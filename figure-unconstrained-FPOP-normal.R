@@ -5,8 +5,9 @@
 ##              "tdhock/directlabels@7b4b08a5dd0ab86e0b90902b3a233903ddd42311",
 ##              data.table="1.9.6")
 library(data.table)
-library(animint)
-library(directlabels)
+library(ggplot2)
+##library(animint)
+##library(directlabels)
 
 ####Functions for doing set operations on continuous sets, where a set is stored as a vector of endpoints####
 
@@ -420,23 +421,29 @@ with.legend <- ggplot()+
   theme(panel.margin=grid::unit(0, "lines"))+
   facet_grid(timestep ~ step)+
   scale_color_manual(values=change.colors)+
-  scale_size_manual(values=c("TRUE"=1, "FALSE"=0.5))+
-  geom_line(aes(mean, cost, color=kk.fac, size=is.min,
-                group=kk),
-            data=not.bold.lines)+
+  scale_size_manual(values=c("TRUE"=1, "FALSE"=0.25))+
   geom_segment(aes(min, -Inf, xend=max, yend=-Inf, color=kk.fac),
                data=intervals,
                size=2)+
-  geom_text(aes(min, -Inf, color=kk.fac, label="|"),
+  geom_text(aes(min, -Inf, label="|"),
+            color="white",
+            size=10,
             data=intervals)+
+  geom_text(aes(min, -Inf, label="|"),
+            color="black",
+            size=5,
+            data=intervals)+
+  geom_line(aes(mean, cost, color=kk.fac, size=is.min,
+                group=kk),
+            data=not.bold.lines)+
   geom_line(aes(mean, cost, color=kk.fac, size=is.min,
                 group=paste(kk, ii)),
             data=bold.lines)
 
-with.labels <- direct.label(with.legend, "last.qp")
+##with.labels <- direct.label(with.legend, "last.qp")
 
 pdf("figure-unconstrained-FPOP-normal.pdf")
-print(with.labels)
+print(with.legend)
 dev.off()
 
 ####Code to run the function####
