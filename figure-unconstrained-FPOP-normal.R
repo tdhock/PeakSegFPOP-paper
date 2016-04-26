@@ -435,7 +435,9 @@ with.legend <- ggplot()+
 
 with.labels <- direct.label(with.legend, "last.qp")
 
-pdf("figure-candidates-
+pdf("figure-unconstrained-FPOP-normal.pdf")
+print(with.labels)
+dev.off()
 
 ####Code to run the function####
 #y<-SimChange(1000,c(1,2,3,0,5,4,6,5,1),1.5)

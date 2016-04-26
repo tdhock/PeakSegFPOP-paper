@@ -1,0 +1,3 @@
+The goal of this paper is to implement a fast algorithm for solving
+the PeakSeg problem described in
+http://jmlr.org/proceedings/papers/v37/hocking15.html
