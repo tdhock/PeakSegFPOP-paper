@@ -187,7 +187,7 @@ LOC<-list()
 D<-c(min(y),max(y))
 for (m in 2:maxseg){
   Set<-list()
-  LOC[[m]]<-m-1
+  LOC[[m]] <- m-1
   a <- c()
   b <- c()
   c <- c()
@@ -227,27 +227,30 @@ for (m in 2:maxseg){
       LOC[[m]]<-c(LOC[[m]],j)
     }
     ###find minimum of cost function
-    temp<-c()
+    min.vec <- c()
     for (v in 1:length(LOC[[m]])){
       vs <- LOC[[m]][v]
-      temp[v] <- NA
+      interval.vec <- Set[[vs]]
+      min.vec[v] <- NA
       if(a[vs]==0){
-        temp[v] <- c[vs]
+        min.vec[v] <- c[vs]
       }else{
-        for(i in 1:(length(Set[[vs]])/2)){
-          if(Set[[vs]][2*i-1] <= -b[vs]/(2*a[vs])
-             & -b[vs]/(2*a[vs]) <= Set[[vs]][2*i]){
-            temp[v] <- -b[vs]/(2*a[vs])
-            temp[v] <- quad(temp[v],a[vs],b[vs],c[vs])
+        mean.at.minimum <- -b[vs]/(2*a[vs])
+        cost.at.minimum <- quad(mean.at.minimum, a[vs], b[vs], c[vs])
+        for(i in 1:(length(interval.vec)/2)){
+          interval.min <- interval.vec[2*i-1]
+          interval.max <- interval.vec[2*i]
+          if(interval.min <= mean.at.minimum & mean.at.minimum <= interval.max){
+            min.vec[v] <- cost.at.minimum
           }
         }
-        if(is.na(temp[v])){
-          temp[v]<-min(quad(Set[[vs]],a[vs],b[vs],c[vs]))
+        if(is.na(min.vec[v])){
+          min.vec[v] <- min(quad(interval.vec, a[vs], b[vs], c[vs]))
         }
       }
     }
-    C[m,j]<-min(temp,na.rm=T)
-    tau[m,j]<-LOC[[m]][(which(temp==C[m,j]))]
+    C[m,j] <- optimal.cost <- min(min.vec, na.rm=T)
+    tau[m,j] <- last.segment.end <- LOC[[m]][(which(min.vec==C[m,j]))]
     
     ###end timestep-1 plot###
     OLOCdash<-c()
@@ -257,7 +260,7 @@ for (m in 2:maxseg){
     }
     plotFuns(OLOCdash, "before", j+1, m)
     cat(j, m,"\n")
-    print(OLOCdash)
+    ##print(OLOCdash)
     plotFuns(OLOC, "unpruned", j, m)
     OLOCdash2<-c()
     for(it in OLOC){
@@ -266,7 +269,7 @@ for (m in 2:maxseg){
       }
     }
     plotFuns(OLOCdash2, "pruned", j, m)
-  }
+  }#for(j data point
   em<-m
   taustar<-c()
   taustar[m+1]<-n
@@ -276,7 +279,7 @@ for (m in 2:maxseg){
   }
   output[m,1]<-C[m,n]
   output[m,2:(m+1)]<-taustar[-1]
-}#for(m
+}#for(m number of segments
 
 intervals <- do.call(rbind, intervals.list)
 not.bold.lines <- do.call(rbind, not.bold.lines.list)
