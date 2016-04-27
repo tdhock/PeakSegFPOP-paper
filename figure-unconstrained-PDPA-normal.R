@@ -171,9 +171,9 @@ plotFuns <- function(oloc.vec, step, timestep, n.segs){
   }##for(kk in oloc.vec
   legend("topleft", legend=paste(oloc.vec," "), col=co,pch=15,bg="white")
 }
-y<-c(rnorm(60,2,1.5),rnorm(60,0,1))
+y <- c(rnorm(60,2,1.5),rnorm(60,0,1))
+y <- c(1, 10, 14, 13, 5, 5, 10, 3, 10)
 y <- c(1, 10, 14, 13)
-##Rigaill(y,2,45,2,0.5,4.5)
 maxseg <- 3
 mu.min <- min(y)
 mu.max <- max(y)
@@ -302,7 +302,7 @@ cost.min <- not.bold.lines[, list(min=min(cost)), by=.(step, timestep, segments,
 show.segments <- do.call(rbind, show.segments.list)
 
 ##dput(RColorBrewer::brewer.pal(Inf, "Set1"))
-change.colors <-
+change.colors <- if(length(y)==4){
   c("1"="#E41A1C", #red
     "2"="#377EB8", #blue
     "#4DAF4A", #green
@@ -311,6 +311,16 @@ change.colors <-
     "#FFFF33", #yellow
     "3"="#A65628",
     "4"="#F781BF", "#999999")
+}else{
+  c("#E41A1C", #red
+    "#377EB8", #blue
+    "#4DAF4A", #green
+    "#984EA3", #purple
+    "#FF7F00", #orange
+    "#FFFF33", #yellow
+    "#A65628",
+    "#F781BF", "#999999")
+}
 cost.limits <- max(cost.min$min)*c(-0.05, 1.05)
 not.bold.unpruned <- not.bold.lines[step=="unpruned" & cost < cost.limits[2],]
 bold.unpruned <- bold.lines[step=="unpruned",]
@@ -367,6 +377,9 @@ segment.rects <- data.table(
 tau.text <- data.table(melt(tau, value.name="last.change"))[!is.na(last.change),]
 tau.text[, previous.segment.end := factor(last.change, 1:n)]
 viz <- list(
+  title=paste(
+    "Pruned Dynamic Programming Algorithm",
+    "for optimal multiple change-point detection"),
   data=ggplot()+
     theme_bw()+
     theme(panel.margin=grid::unit(0, "lines"))+
