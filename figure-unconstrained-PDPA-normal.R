@@ -76,6 +76,7 @@ not.bold.lines.list <- list()
 bold.lines.list <- list()
 intervals.list <- list()
 minima.list <- list()
+show.segments.list <- list()
 Step <- function(s){
   factor(s, c("before", "unpruned", "pruned"))
 }
@@ -95,10 +96,24 @@ plotFuns <- function(oloc.vec, step, timestep, n.segs){
     if(a[kk] != 0){
       mean.at.minimum <- -b[kk]/(2*a[kk])
       cost.at.minimum <- quad(mean.at.minimum, a[kk], b[kk], c[kk])
-      minima.list[[paste(timestep, step, kk, n.segs)]] <<- data.table(
+      previous.segments <- optimal.segments.list[[paste(m-1, kk)]]
+      segment.start <- kk+1
+      new.segment <- data.table(
+        segment.start,
+        segment.end=timestep,
+        mean=mean.at.minimum)
+      show.segments.list[[paste(timestep, step, kk, n.segs)]] <<- data.table(
+        has.intervals,
         timestep,
         step,
-        kk, kk.fac=factor(kk),
+        kk, previous.segment.end=factor(kk),
+        segments=n.segs,
+        rbind(previous.segments, new.segment))
+      minima.list[[paste(timestep, step, kk, n.segs)]] <<- data.table(
+        has.intervals,
+        timestep,
+        step,
+        kk, previous.segment.end=factor(kk, 1:n),
         segments=n.segs,
         mean=mean.at.minimum,
         cost=cost.at.minimum)
@@ -112,7 +127,7 @@ plotFuns <- function(oloc.vec, step, timestep, n.segs){
       mean=x,
       cost=a[kk]*x^2+b[kk]*x+c[kk],
       kk,
-      kk.fac=factor(kk),
+      previous.segment.end=factor(kk, 1:n),
       is.min=FALSE)
     delta=.4 #interval boundary segment height
     delta2=.005 #interval boundary segment offset
@@ -131,7 +146,7 @@ plotFuns <- function(oloc.vec, step, timestep, n.segs){
         step=Step(step),
         min=interval.vec[start.i],
         max=interval.vec[end.i],
-        kk, kk.fac=factor(kk))
+        kk, previous.segment.end=factor(kk, 1:n))
     }
     for(ii in 1:n.intervals) {
       lines(interval.vec[2*ii-c(1,0)]+c(delta2,-delta2),rep(min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1])),2),lwd=3,col=co[(kk)==oloc.vec])#interval
@@ -143,12 +158,13 @@ plotFuns <- function(oloc.vec, step, timestep, n.segs){
         lines(x2,a[kk]*x2^2+b[kk]*x2+c[kk],col=co[(kk)==oloc.vec],lwd=4)#bold part of function which attains the minimum.
         bold.lines.list[[paste(timestep, step, kk, ii, n.segs)]] <<- data.table(
           timestep,
+          has.intervals=TRUE,
           segments=n.segs,
           step=Step(step),
           mean=x2,
           cost=a[kk]*x2^2 + b[kk]*x2 + c[kk],
           is.min=TRUE,
-          kk, kk.fac=factor(kk),
+          kk, previous.segment.end=factor(kk, 1:n),
           ii)
       }#has an interval
     }#for(ii
@@ -174,8 +190,6 @@ n <- length(y)
 optimal.segments.list <- list()
 for(last.segment.end in seq_along(y)){
   optimal.segments.list[[paste(1, last.segment.end)]] <- data.table(
-    segments=1,
-    last.segment.end,
     segment.start=1,
     segment.end=last.segment.end,
     mean=mean.vec[[last.segment.end]])
@@ -256,14 +270,12 @@ for (m in 2:maxseg){
       optimal.segments.list[[paste(m-1, segment.before.end)]]
     segment.start <- segment.before.end+1
     new.segment <- data.table(
-      segments=m,
-      last.segment.end=j,
       segment.start,
       segment.end=j,
       mean=mean(y[segment.start:j]))
-    optimal.segments.new <- rbind(optimal.segments.before, new.segment)
-    optimal.segments.new$last.segment.end <- j
-    optimal.segments.list[[paste(m, j)]] <- optimal.segments.new
+    optimal.segments.list[[paste(m, j)]] <- rbind(
+      optimal.segments.before,
+      new.segment)
     ## Plot all functions before pruning.
     plotFuns(OLOC, "unpruned", j, m)
     ## Plot functions after pruning.
@@ -287,6 +299,7 @@ intervals <- do.call(rbind, intervals.list)
 not.bold.lines <- do.call(rbind, not.bold.lines.list)
 bold.lines <- do.call(rbind, bold.lines.list)
 cost.min <- not.bold.lines[, list(min=min(cost)), by=.(step, timestep, segments, kk)]
+show.segments <- do.call(rbind, show.segments.list)
 
 ##dput(RColorBrewer::brewer.pal(Inf, "Set1"))
 change.colors <-
@@ -302,6 +315,7 @@ cost.limits <- max(cost.min$min)*c(-0.05, 1.05)
 not.bold.unpruned <- not.bold.lines[step=="unpruned" & cost < cost.limits[2],]
 bold.unpruned <- bold.lines[step=="unpruned",]
 minima.unpruned <- minima[step=="unpruned",]
+segments.unpruned <- show.segments[step=="unpruned",]
 with.legend <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
@@ -309,14 +323,14 @@ with.legend <- ggplot()+
   scale_color_manual(values=change.colors)+
   scale_size_manual(values=c("TRUE"=1, "FALSE"=0.25))+
   scale_linetype_manual(values=c("TRUE"="solid", "FALSE"="dashed"))+
-  geom_line(aes(mean, cost, color=kk.fac, size=is.min,
+  geom_line(aes(mean, cost, color=previous.segment.end, size=is.min,
                 linetype=has.intervals,
                 group=kk),
             data=not.bold.unpruned)+
-  geom_line(aes(mean, cost, color=kk.fac, size=is.min,
+  geom_line(aes(mean, cost, color=previous.segment.end, size=is.min,
                 group=paste(kk, ii)),
             data=bold.unpruned)+
-  geom_point(aes(mean, cost, color=kk.fac),
+  geom_point(aes(mean, cost, color=previous.segment.end),
              shape=21,
              fill="white",
              data=minima.unpruned)+
@@ -328,10 +342,9 @@ data.dt <- data.table(
   count=y,
   kk=seq_along(y),
   timestep=seq_along(y),
-  kk.fac=factor(seq_along(y)))
+  previous.segment.end=factor(seq_along(y)))
 interval.counts <-
   intervals[step=="pruned", list(intervals=.N), by=.(segments, timestep)]
-library(animint)
 addBoth <- function(dt, x.var, y.var){
   dt <- data.table(
     dt,
@@ -347,10 +360,12 @@ addX <- function(dt, x.var="cost", y.var="count"){
 addY <- function(dt, y.var){
   addBoth(dt, "data", y.var)
 }
-dimnames(cost.mat) <- list("segments"=NULL, "timestep"=NULL)
-cost.rects <- melt(cost.mat, value.name="cost")
+dimnames(cost.mat) <- dimnames(tau) <- list("segments"=NULL, "timestep"=NULL)
+cost.rects <- data.table(melt(cost.mat, value.name="cost"))[!is.na(cost),]
 segment.rects <- data.table(
   segments=1:maxseg)
+tau.text <- data.table(melt(tau, value.name="last.change"))[!is.na(last.change),]
+tau.text[, previous.segment.end := factor(last.change, 1:n)]
 viz <- list(
   data=ggplot()+
     theme_bw()+
@@ -360,13 +375,27 @@ viz <- list(
     ylab("")+
     xlab("data sequence")+
     scale_color_manual("data", values=change.colors)+
-    geom_point(aes(kk, count, color=kk.fac),
-               data=addY(data.dt, "count"))+
     geom_point(aes(timestep, intervals, showSelected=segments),
                data=addY(interval.counts, "intervals"))+
+    geom_segment(aes(segment.start-0.5, mean,
+                     xend=segment.end+0.5, yend=mean,
+                     showSelected=timestep,
+                     showSelected2=segments,
+                     showSelected3=previous.segment.end),
+                 color="green",
+                 data=addY(segments.unpruned, "count"))+
     geom_tallrect(aes(xmin=kk-0.5, xmax=kk+0.5, clickSelects=timestep),
                   alpha=0.5,
                   data=addX(data.dt, "data", NULL))+
+    geom_point(aes(kk, count),
+               data=addY(data.dt, "count"))+
+    geom_point(aes(kk, data.dt$count[kk],
+                   color=previous.segment.end,
+                   showSelected=segments,
+                   showSelected2=timestep,
+                   clickSelects=previous.segment.end),
+               size=5,
+               data=addY(minima, "count"))+
     geom_tile(aes(timestep, segments, fill=log(cost+1)),
               data=addY(cost.rects, "segments"))+
     geom_widerect(aes(ymin=segments-0.5, ymax=segments+0.5,
@@ -374,24 +403,34 @@ viz <- list(
                   fill=NA,
                   alpha=0.5,
                   data=addY(segment.rects, "segments"))+
+    geom_text(aes(timestep, segments,
+                  label=previous.segment.end,
+                  clickSelects=previous.segment.end,
+                  color=previous.segment.end),
+              data=addY(tau.text, "segments"))+
     scale_size_manual(values=c("TRUE"=3, "FALSE"=1))+
     scale_linetype_manual(values=c("TRUE"="solid", "FALSE"="dashed"))+
-    geom_path(aes(cost, mean, color=kk.fac, size=is.min,
+    guides(color="none")+
+    geom_path(aes(cost, mean, color=previous.segment.end, size=is.min,
                   linetype=has.intervals,
-                  ##clickSelects=last.change,
+                  clickSelects=previous.segment.end,
                   showSelected=timestep,
                   showSelected2=segments,
                   group=paste(kk)),
               data=addX(not.bold.unpruned))+
-    geom_path(aes(cost, mean, color=kk.fac, size=is.min,
+    geom_path(aes(cost, mean, color=previous.segment.end, size=is.min,
+                  linetype=has.intervals,
+                  clickSelects=previous.segment.end,
                   showSelected=timestep,
                   showSelected2=segments,
                   group=paste(kk, ii)),
               data=addX(bold.unpruned))+
     geom_point(aes(cost, mean,
+                   clickSelects=previous.segment.end,
                    showSelected=timestep,
                    showSelected2=segments,
-                   color=kk.fac),
+                   showSelected3=has.intervals,
+                   color=previous.segment.end),
                shape=21,
                fill="white",
                data=addX(minima.unpruned))
@@ -405,7 +444,7 @@ with.legend <- ggplot()+
   facet_grid(segments+timestep ~ step, labeller=label_both)+
   scale_color_manual(values=change.colors)+
   scale_size_manual(values=c("TRUE"=1, "FALSE"=0.25))+
-  geom_segment(aes(min, -Inf, xend=max, yend=-Inf, color=kk.fac),
+  geom_segment(aes(min, -Inf, xend=max, yend=-Inf, color=previous.segment.end),
                data=intervals,
                size=2)+
   geom_text(aes(min, -Inf, label="|"),
@@ -416,10 +455,10 @@ with.legend <- ggplot()+
             color="black",
             size=5,
             data=intervals)+
-  geom_line(aes(mean, cost, color=kk.fac, size=is.min,
+  geom_line(aes(mean, cost, color=previous.segment.end, size=is.min,
                 group=kk),
             data=not.bold.lines)+
-  geom_line(aes(mean, cost, color=kk.fac, size=is.min,
+  geom_line(aes(mean, cost, color=previous.segment.end, size=is.min,
                 group=paste(kk, ii)),
             data=bold.lines)+
   xlab("segment mean")+
