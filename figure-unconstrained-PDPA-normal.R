@@ -150,7 +150,15 @@ y <- c(1, 10, 14, 13)
 maxseg <- 3
 mu.min <- min(y)
 mu.max <- max(y)
-##TODO: save timestep and seg to a df.
+
+## My code for checking.
+cum.y <- cumsum(y)
+t.seq <- seq_along(y)
+mean.vec <- cum.y/t.seq
+cost.mat <- matrix(NA, maxseg, length(y))
+cum.y.sq <- cumsum(y*y)
+cost.mat[1,] <- t.seq*mean.vec*mean.vec + cum.y.sq - 2*mean.vec*cum.y
+
 timestep <- 3
 seg <- 2
 n<-length(y)
@@ -165,8 +173,9 @@ for(i in 1:n){
 C<-matrix(nrow=maxseg,ncol=n)
 for (t in 1:(n)){
   mu<-S1[t+1]/t
-  C[1,t]<-t/2*log(3*pi)+1/3*(SS1[t+1]-2*mu*S1[t+1]+t*mu^2)
+  C[1,t] <- SS1[t+1] - 2*mu*S1[t+1] + t*mu^2
 }
+
 quad<-function(x,A,B,C){
   return(A*x^2+B*x+C)
 }
@@ -178,21 +187,34 @@ D<-c(min(y),max(y))
 for (m in 2:maxseg){
   Set<-list()
   LOC[[m]]<-m-1
-  a<-c();b<-c();c<-c()
-  a[m-1]<-0;b[m-1]<-0;c[m-1]<-C[m-1,m-1]  #min cost of m-1 CPs, last one at m-1
-  Set[[m-1]]<-D
+  a <- c()
+  b <- c()
+  c <- c()
+  a[m-1] <- 0
+  b[m-1] <- 0
+  c[m-1] <- C[m-1, m-1]  #min cost of m-1 CPs, last one at m-1
+  Set[[m-1]] <- D
   for (j in m:n){
-    a[j]<-0;b[j]<-0;c[j]<-C[m-1,j]  #min cost of m-1 CPs, last one at j
-    Set[[j]]<-D
-    temp<-c()
+    a[j] <- 0
+    b[j] <- 0
+    c[j] <- C[m-1, j]  #min cost of m-1 CPs, last one at j
+    Set[[j]] <- D
+    temp <- c()
     #if(j==4) browser()
     OLOC=c(LOC[[m]],j)
     for (v in LOC[[m]]){
-      a[v]<-a[v]+1/3;b[v]<-b[v]-(2/3)*y[j];c[v]<-c[v]+(1/2)*log(3*pi)+(1/3)*(y[j])^2
+      ## This loss function is the full sum of squares (including the
+      ## constant data-squared term).
+      a[v] <- a[v] + 1
+      b[v] <- b[v] - 2*y[j]
+      c[v] <- c[v] + y[j]^2
       if((b[v]^2-4*a[v]*(c[v]-C[m-1,j]))<0){
         I<-NA
       }else{
-        I<-c((-b[v]-sqrt(b[v]^2-4*a[v]*(c[v]-C[m-1,j])))/(2*a[v]),(-b[v]+sqrt(b[v]^2-4*a[v]*(c[v]-C[m-1,j])))/(2*a[v]))
+        I <- c(
+        (-b[v]-sqrt(b[v]^2-4*a[v]*(c[v]-C[m-1,j])))/(2*a[v]),
+        (-b[v]+sqrt(b[v]^2-4*a[v]*(c[v]-C[m-1,j])))/(2*a[v])
+        )
       }
       Set[[v]]<-in1(Set[[v]],I) #intersect function for continuous sets
       if (is.na(Set[[v]][1])){
@@ -206,16 +228,21 @@ for (m in 2:maxseg){
     ###find minimum of cost function
     temp<-c()
     for (v in 1:length(LOC[[m]])){
-      vs<-LOC[[m]][v]
-      temp[v]<-NA
-      if(a[vs]==0){temp[v]<-c[vs]}
-      else{
+      vs <- LOC[[m]][v]
+      temp[v] <- NA
+      if(a[vs]==0){
+        temp[v] <- c[vs]
+      }else{
         for(i in 1:(length(Set[[vs]])/2)){
-          if(Set[[vs]][2*i-1]<=-b[vs]/(2*a[vs])&-b[vs]/(2*a[vs])<=Set[[vs]][2*i]){
-            temp[v]<--b[vs]/(2*a[vs])
-            temp[v]<-quad(temp[v],a[vs],b[vs],c[vs])}
+          if(Set[[vs]][2*i-1] <= -b[vs]/(2*a[vs])
+             & -b[vs]/(2*a[vs]) <= Set[[vs]][2*i]){
+            temp[v] <- -b[vs]/(2*a[vs])
+            temp[v] <- quad(temp[v],a[vs],b[vs],c[vs])
+          }
         }
-        if(is.na(temp[v])){temp[v]<-min(quad(Set[[vs]],a[vs],b[vs],c[vs]))}
+        if(is.na(temp[v])){
+          temp[v]<-min(quad(Set[[vs]],a[vs],b[vs],c[vs]))
+        }
       }
     }
     C[m,j]<-min(temp,na.rm=T)
