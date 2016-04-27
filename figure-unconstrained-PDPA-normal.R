@@ -73,11 +73,10 @@ setdiff1<-function(A,B,M=10000){
 }
 
 ####Function for running PDPA on Normal data with a change in mean and variance 1.5####
-set.seed(1)
-plot(0)
 not.bold.lines.list <- list()
 bold.lines.list <- list()
 intervals.list <- list()
+minima.list <- list()
 Step <- function(s){
   factor(s, c("before", "unpruned", "pruned"))
 }
@@ -93,6 +92,17 @@ plotFuns <- function(oloc.vec, step, timestep, n.segs){
     interval.vec <- Set[[kk]]
     n.intervals <- length(interval.vec)/2
     has.intervals <- !is.na(interval.vec[1])
+    if(a[kk] != 0){
+      mean.at.minimum <- -b[kk]/(2*a[kk])
+      cost.at.minimum <- quad(mean.at.minimum, a[kk], b[kk], c[kk])
+      minima.list[[paste(timestep, step, kk, n.segs)]] <<- data.table(
+        timestep,
+        step,
+        kk, kk.fac=factor(kk),
+        segments=n.segs,
+        mean=mean.at.minimum,
+        cost=cost.at.minimum)
+    }
     not.bold.lines.list[[paste(timestep, step, kk, n.segs)]] <<- data.table(
       has.intervals,
       n.intervals,
@@ -201,21 +211,18 @@ for (m in 2:maxseg){
     c[j] <- C[m-1, j]  #min cost of m-1 CPs, last one at j
     Set[[j]] <- D
     temp <- c()
-    #if(j==4) browser()
-    OLOC=c(LOC[[m]],j)
+    OLOC <- c(LOC[[m]],j)
     for (v in LOC[[m]]){
       ## This loss function is the full sum of squares (including the
       ## constant data-squared term).
       a[v] <- a[v] + 1
       b[v] <- b[v] - 2*y[j]
       c[v] <- c[v] + y[j]^2
-      if((b[v]^2-4*a[v]*(c[v]-C[m-1,j]))<0){
-        I<-NA
+      discriminant <- b[v]^2 - 4*a[v]*(c[v]-C[m-1,j])
+      I <- if(discriminant < 0){
+        NA
       }else{
-        I <- c(
-        (-b[v]-sqrt(b[v]^2-4*a[v]*(c[v]-C[m-1,j])))/(2*a[v]),
-        (-b[v]+sqrt(b[v]^2-4*a[v]*(c[v]-C[m-1,j])))/(2*a[v])
-        )
+        (-b[v]+c(-1,1)*sqrt(discriminant))/(2*a[v])
       }
       Set[[v]]<-in1(Set[[v]],I) #intersect function for continuous sets
       if (is.na(Set[[v]][1])){
@@ -251,24 +258,13 @@ for (m in 2:maxseg){
     }
     C[m,j] <- optimal.cost <- min(min.vec, na.rm=T)
     tau[m,j] <- last.segment.end <- LOC[[m]][(which(min.vec==C[m,j]))]
-    
-    ###end timestep-1 plot###
-    OLOCdash<-c()
-    for(it in OLOC){
-      if(is.na(Set[[it]][1])==FALSE){
-        OLOCdash<-c(OLOCdash,it)}
-    }
-    plotFuns(OLOCdash, "before", j+1, m)
-    cat(j, m,"\n")
-    ##print(OLOCdash)
+    ## Plot all functions before pruning.
     plotFuns(OLOC, "unpruned", j, m)
-    OLOCdash2<-c()
-    for(it in OLOC){
-      if(is.na(Set[[it]][1])==FALSE){
-        OLOCdash2<-c(OLOCdash2,it)
-      }
-    }
-    plotFuns(OLOCdash2, "pruned", j, m)
+    ## Plot functions after pruning.
+    has.intervals <- sapply(OLOC, function(it)!is.na(Set[[it]][1]))
+    OLOCdash <- OLOC[has.intervals]
+    plotFuns(OLOCdash, "before", j+1, m)
+    plotFuns(OLOCdash, "pruned", j, m)
   }#for(j data point
   em<-m
   taustar<-c()
@@ -280,7 +276,7 @@ for (m in 2:maxseg){
   output[m,1]<-C[m,n]
   output[m,2:(m+1)]<-taustar[-1]
 }#for(m number of segments
-
+minima <- do.call(rbind, minima.list)
 intervals <- do.call(rbind, intervals.list)
 not.bold.lines <- do.call(rbind, not.bold.lines.list)
 bold.lines <- do.call(rbind, bold.lines.list)
@@ -299,6 +295,7 @@ change.colors <-
 cost.limits <- max(cost.min$min)*c(-0.05, 1.05)
 not.bold.unpruned <- not.bold.lines[step=="unpruned" & cost < cost.limits[2],]
 bold.unpruned <- bold.lines[step=="unpruned",]
+minima.unpruned <- minima[step=="unpruned",]
 with.legend <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
@@ -313,6 +310,10 @@ with.legend <- ggplot()+
   geom_line(aes(mean, cost, color=kk.fac, size=is.min,
                 group=paste(kk, ii)),
             data=bold.unpruned)+
+  geom_point(aes(mean, cost, color=kk.fac),
+             shape=21,
+             fill="white",
+             data=minima.unpruned)+
   xlab("segment mean")+
   ylab("cost")
 with.legend
