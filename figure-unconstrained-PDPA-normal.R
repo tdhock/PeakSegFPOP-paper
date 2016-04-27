@@ -90,7 +90,12 @@ plotFuns <- function(oloc.vec, step, timestep, n.segs){
     }else{
       lines(x,a[kk]*x^2+b[kk]*x+c[kk],col=co[kk==oloc.vec])
     }
+    interval.vec <- Set[[kk]]
+    n.intervals <- length(interval.vec)/2
+    has.intervals <- !is.na(interval.vec[1])
     not.bold.lines.list[[paste(timestep, step, kk, n.segs)]] <<- data.table(
+      has.intervals,
+      n.intervals,
       timestep,
       segments=n.segs,
       step=Step(step),
@@ -99,48 +104,44 @@ plotFuns <- function(oloc.vec, step, timestep, n.segs){
       kk,
       kk.fac=factor(kk),
       is.min=FALSE)
-    interval.vec <- Set[[kk]]
-    if(length(interval.vec)>0){
-      mm=length(interval.vec)/2
-      if(is.na(interval.vec[1])==FALSE){
-        if(interval.vec[1]<mu.min){interval.vec[1]=mu.min}
-        if(interval.vec[length(interval.vec)]>mu.max){
-          interval.vec[length(interval.vec)]=mu.max
-        }
+    delta=.4 #interval boundary segment height
+    delta2=.005 #interval boundary segment offset
+    if(has.intervals){
+      if(interval.vec[1]<mu.min){
+        interval.vec[1]=mu.min
       }
-      delta=.4 #interval boundary segment height
-      delta2=.005 #interval boundary segment offset
-      if(!is.na(interval.vec[1])){
-        start.i <- seq(1, length(interval.vec), by=2)
-        end.i <- seq(2, length(interval.vec), by=2)
-        intervals.list[[paste(timestep, step, kk, n.segs)]] <<- data.table(
+      if(interval.vec[length(interval.vec)]>mu.max){
+        interval.vec[length(interval.vec)]=mu.max
+      }
+      start.i <- seq(1, length(interval.vec), by=2)
+      end.i <- seq(2, length(interval.vec), by=2)
+      intervals.list[[paste(timestep, step, kk, n.segs)]] <<- data.table(
+        timestep,
+        segments=n.segs,
+        step=Step(step),
+        min=interval.vec[start.i],
+        max=interval.vec[end.i],
+        kk, kk.fac=factor(kk))
+    }
+    for(ii in 1:n.intervals) {
+      lines(interval.vec[2*ii-c(1,0)]+c(delta2,-delta2),rep(min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1])),2),lwd=3,col=co[(kk)==oloc.vec])#interval
+      lines(rep(interval.vec[2*ii-1],2)+delta2,c(min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1]))-delta,min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1]))+delta),lwd=3,col=co[(kk)==oloc.vec])#left interval boundary
+      lines(rep(interval.vec[2*ii-0],2)-delta2,c(min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1]))-delta,min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1]))+delta),lwd=3,col=co[(kk)==oloc.vec])#right interval boundary
+      ######boldbit
+      if(is.na(interval.vec[2*ii-1])==FALSE){
+        x2<-seq(interval.vec[2*ii-1],interval.vec[2*ii-0],length=50)
+        lines(x2,a[kk]*x2^2+b[kk]*x2+c[kk],col=co[(kk)==oloc.vec],lwd=4)#bold part of function which attains the minimum.
+        bold.lines.list[[paste(timestep, step, kk, ii, n.segs)]] <<- data.table(
           timestep,
           segments=n.segs,
           step=Step(step),
-          min=interval.vec[start.i],
-          max=interval.vec[end.i],
-          kk, kk.fac=factor(kk))
-      }
-      for(ii in 1:mm) {
-        lines(interval.vec[2*ii-c(1,0)]+c(delta2,-delta2),rep(min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1])),2),lwd=3,col=co[(kk)==oloc.vec])#interval
-        lines(rep(interval.vec[2*ii-1],2)+delta2,c(min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1]))-delta,min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1]))+delta),lwd=3,col=co[(kk)==oloc.vec])#left interval boundary
-        lines(rep(interval.vec[2*ii-0],2)-delta2,c(min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1]))-delta,min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1]))+delta),lwd=3,col=co[(kk)==oloc.vec])#right interval boundary
-        ######boldbit
-        if(is.na(interval.vec[2*ii-1])==FALSE){
-          x2<-seq(interval.vec[2*ii-1],interval.vec[2*ii-0],length=50)
-          lines(x2,a[kk]*x2^2+b[kk]*x2+c[kk],col=co[(kk)==oloc.vec],lwd=4)#bold part of function which attains the minimum.
-          bold.lines.list[[paste(timestep, step, kk, ii, n.segs)]] <<- data.table(
-            timestep,
-            segments=n.segs,
-            step=Step(step),
-            mean=x2,
-            cost=a[kk]*x2^2 + b[kk]*x2 + c[kk],
-            is.min=TRUE,
-            kk, kk.fac=factor(kk),
-            ii)
-        }#has an interval
-      }#for(ii
-    }#if(length(interval.vec
+          mean=x2,
+          cost=a[kk]*x2^2 + b[kk]*x2 + c[kk],
+          is.min=TRUE,
+          kk, kk.fac=factor(kk),
+          ii)
+      }#has an interval
+    }#for(ii
   }##for(kk in oloc.vec
   legend("topleft", legend=paste(oloc.vec," "), col=co,pch=15,bg="white")
 }
@@ -284,10 +285,38 @@ cost.min <- not.bold.lines[, list(min=min(cost)), by=.(step, timestep, segments,
 
 ##dput(RColorBrewer::brewer.pal(Inf, "Set1"))
 change.colors <-
-  c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", 
-    "#A65628", "#F781BF", "#999999")
+  c("1"="#E41A1C", #red
+    "2"="#377EB8", #blue
+    "#4DAF4A", #green
+    "#984EA3", #purple
+    "#FF7F00", #orange
+    "#FFFF33", #yellow
+    "3"="#A65628",
+    "4"="#F781BF", "#999999")
+cost.limits <- max(cost.min$min)*c(-0.05, 1.05)
+not.bold.unpruned <- not.bold.lines[step=="unpruned" & cost < cost.limits[2],]
+bold.unpruned <- bold.lines[step=="unpruned",]
 with.legend <- ggplot()+
   theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  facet_grid(segments ~ timestep, labeller=label_both)+
+  scale_color_manual(values=change.colors)+
+  scale_size_manual(values=c("TRUE"=1, "FALSE"=0.25))+
+  scale_linetype_manual(values=c("TRUE"="solid", "FALSE"="dashed"))+
+  geom_line(aes(mean, cost, color=kk.fac, size=is.min,
+                linetype=has.intervals,
+                group=kk),
+            data=not.bold.unpruned)+
+  geom_line(aes(mean, cost, color=kk.fac, size=is.min,
+                group=paste(kk, ii)),
+            data=bold.unpruned)+
+  xlab("segment mean")+
+  ylab("cost")
+with.legend
+
+with.legend <- ggplot()+
+  theme_bw()+
+  coord_cartesian(ylim=cost.limits)+
   theme(panel.margin=grid::unit(0, "lines"))+
   facet_grid(segments+timestep ~ step, labeller=label_both)+
   scale_color_manual(values=change.colors)+
