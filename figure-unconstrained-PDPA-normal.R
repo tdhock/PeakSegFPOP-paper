@@ -1,4 +1,5 @@
 source("packages.R")
+data(intreg, package="animint")
 ####Code to run Rigaill's method####
 #y<-SimChange(10000,c(1,.4,.8,2,3,1.6,.3,.4,.2,1,4,.2,.8,1.2,1.4),.5)
 #plot(y[[2]],typ="l")
@@ -84,12 +85,12 @@ plotFuns <- function(oloc.vec, step, timestep, n.segs){
   x <- seq(mu.min, mu.max, length=100)
   co <- seq_along(oloc.vec)
   for(kk in oloc.vec){
-    if(kk==oloc.vec[1]){
-      plot(x,a[kk]*x^2+b[kk]*x+c[kk],type="l",col=co[kk==oloc.vec],
-           xlab=expression(mu),ylab="cost",xlim=c(mu.min,mu.max))
-    }else{
-      lines(x,a[kk]*x^2+b[kk]*x+c[kk],col=co[kk==oloc.vec])
-    }
+    ## if(kk==oloc.vec[1]){
+    ##   plot(x,a[kk]*x^2+b[kk]*x+c[kk],type="l",col=co[kk==oloc.vec],
+    ##        xlab=expression(mu),ylab="cost",xlim=c(mu.min,mu.max))
+    ## }else{
+    ##   lines(x,a[kk]*x^2+b[kk]*x+c[kk],col=co[kk==oloc.vec])
+    ## }
     interval.vec <- Set[[kk]]
     n.intervals <- length(interval.vec)/2
     has.intervals <- !is.na(interval.vec[1])
@@ -149,13 +150,13 @@ plotFuns <- function(oloc.vec, step, timestep, n.segs){
         kk, previous.segment.end=factor(kk, 1:n))
     }
     for(ii in 1:n.intervals) {
-      lines(interval.vec[2*ii-c(1,0)]+c(delta2,-delta2),rep(min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1])),2),lwd=3,col=co[(kk)==oloc.vec])#interval
-      lines(rep(interval.vec[2*ii-1],2)+delta2,c(min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1]))-delta,min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1]))+delta),lwd=3,col=co[(kk)==oloc.vec])#left interval boundary
-      lines(rep(interval.vec[2*ii-0],2)-delta2,c(min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1]))-delta,min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1]))+delta),lwd=3,col=co[(kk)==oloc.vec])#right interval boundary
-      ######boldbit
+      ## lines(interval.vec[2*ii-c(1,0)]+c(delta2,-delta2),rep(min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1])),2),lwd=3,col=co[(kk)==oloc.vec])#interval
+      ## lines(rep(interval.vec[2*ii-1],2)+delta2,c(min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1]))-delta,min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1]))+delta),lwd=3,col=co[(kk)==oloc.vec])#left interval boundary
+      ## lines(rep(interval.vec[2*ii-0],2)-delta2,c(min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1]))-delta,min(c[oloc.vec+1]-0.25*b[oloc.vec+1]^2/(1e-3+a[oloc.vec+1]))+delta),lwd=3,col=co[(kk)==oloc.vec])#right interval boundary
+      ## ######boldbit
       if(is.na(interval.vec[2*ii-1])==FALSE){
         x2<-seq(interval.vec[2*ii-1],interval.vec[2*ii-0],length=50)
-        lines(x2,a[kk]*x2^2+b[kk]*x2+c[kk],col=co[(kk)==oloc.vec],lwd=4)#bold part of function which attains the minimum.
+        ##lines(x2,a[kk]*x2^2+b[kk]*x2+c[kk],col=co[(kk)==oloc.vec],lwd=4)#bold part of function which attains the minimum.
         bold.lines.list[[paste(timestep, step, kk, ii, n.segs)]] <<- data.table(
           timestep,
           has.intervals=TRUE,
@@ -169,12 +170,13 @@ plotFuns <- function(oloc.vec, step, timestep, n.segs){
       }#has an interval
     }#for(ii
   }##for(kk in oloc.vec
-  legend("topleft", legend=paste(oloc.vec," "), col=co,pch=15,bg="white")
+  ##legend("topleft", legend=paste(oloc.vec," "), col=co,pch=15,bg="white")
 }
 y <- c(rnorm(60,2,1.5),rnorm(60,0,1))
 y <- c(1, 10, 14, 13, 5, 5, 10, 3, 10)
 y <- c(1, 10, 14, 13)
-maxseg <- 3
+y <- subset(intreg$signals, signal=="4.2")$logratio
+maxseg <- 5
 mu.min <- min(y)
 mu.max <- max(y)
 
@@ -214,6 +216,7 @@ for (m in 2:maxseg){
   c[m-1] <- cost.mat[m-1, m-1]  #min cost of m-1 CPs, last one at m-1
   Set[[m-1]] <- D
   for (j in m:n){
+    cat(sprintf("%d segments, %d data points\n", m, j))
     a[j] <- 0
     b[j] <- 0
     c[j] <- cost.mat[m-1, j]  #min cost of m-1 CPs, last one at j
@@ -326,6 +329,8 @@ not.bold.unpruned <- not.bold.lines[step=="unpruned" & cost < cost.limits[2],]
 bold.unpruned <- bold.lines[step=="unpruned",]
 minima.unpruned <- minima[step=="unpruned",]
 segments.unpruned <- show.segments[step=="unpruned",]
+segments.unpruned[, segment.i := rank(segment.start), by=.(
+  timestep,segments,previous.segment.end)]
 with.legend <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
@@ -348,17 +353,19 @@ with.legend <- ggplot()+
   ylab("cost")
 with.legend
 
+##save.image("intregPDPA4.2.RData")
+
 data.dt <- data.table(
   count=y,
   kk=seq_along(y),
-  timestep=seq_along(y),
+  timestep=as.numeric(seq_along(y)),
   previous.segment.end=factor(seq_along(y)))
 interval.counts <-
   intervals[step=="pruned", list(intervals=.N), by=.(segments, timestep)]
 addBoth <- function(dt, x.var, y.var){
-  dt <- data.table(
-    dt,
-    x.var=factor(x.var, c("data", "cost")))
+  if(!is.null(x.var)){
+    dt$x.var <- factor(x.var, c("data", "cost"))
+  }
   if(!is.null(y.var)){
     dt$y.var <- factor(y.var, c("count", "intervals", "segments"))
   }
@@ -380,34 +387,49 @@ viz <- list(
   title=paste(
     "Pruned Dynamic Programming Algorithm",
     "for optimal multiple change-point detection"),
+  time=list(variable="timestep", ms=2000),
+  duration=list(timestep=2000),
+  first=list(segments=2, timestep=55, previous.segment.end=40),
   data=ggplot()+
     theme_bw()+
     theme(panel.margin=grid::unit(0, "lines"))+
-    theme_animint(width=1000, height=500)+
+    theme_animint(width=800, height=500)+
     facet_grid(y.var ~ x.var, scales="free")+
     ylab("")+
-    xlab("data sequence")+
-    scale_color_manual("data", values=change.colors)+
+    xlab("")+
+    ##scale_color_manual("data", values=change.colors)+
+    scale_color_discrete("data")+
     geom_point(aes(timestep, intervals, showSelected=segments),
                data=addY(interval.counts, "intervals"))+
+    geom_point(aes(kk, count),
+               data=addY(data.dt, "count"))+
     geom_segment(aes(segment.start-0.5, mean,
                      xend=segment.end+0.5, yend=mean,
+                     key=segment.i,
                      showSelected=timestep,
                      showSelected2=segments,
                      showSelected3=previous.segment.end),
                  color="green",
+                 size=4,
                  data=addY(segments.unpruned, "count"))+
     geom_tallrect(aes(xmin=kk-0.5, xmax=kk+0.5, clickSelects=timestep),
                   alpha=0.5,
-                  data=addX(data.dt, "data", NULL))+
-    geom_point(aes(kk, count),
-               data=addY(data.dt, "count"))+
+                  data=addBoth(data.dt, "data", NULL))+
+    ## geom_hline(aes(yintercept=mean,
+    ##                showSelected=segments,
+    ##                showSelected2=timestep,
+    ##                showSelected3=previous.segment.end),
+    ##            size=0.5,
+    ##            color="green",
+    ##            data=addBoth(minima, NULL, "count"))+
     geom_point(aes(kk, data.dt$count[kk],
                    color=previous.segment.end,
                    showSelected=segments,
                    showSelected2=timestep,
+                   key=previous.segment.end,
                    clickSelects=previous.segment.end),
                size=5,
+               alpha=0.7,
                data=addY(minima, "count"))+
     geom_tile(aes(timestep, segments, fill=log(cost+1)),
               data=addY(cost.rects, "segments"))+
@@ -416,39 +438,45 @@ viz <- list(
                   fill=NA,
                   alpha=0.5,
                   data=addY(segment.rects, "segments"))+
-    geom_text(aes(timestep, segments,
-                  label=previous.segment.end,
-                  clickSelects=previous.segment.end,
-                  color=previous.segment.end),
-              data=addY(tau.text, "segments"))+
-    scale_size_manual(values=c("TRUE"=3, "FALSE"=1))+
+    ## geom_text(aes(timestep, segments,
+    ##               label=previous.segment.end,
+    ##               clickSelects=previous.segment.end,
+    ##               color=previous.segment.end),
+    ##           data=addY(tau.text, "segments"))+
+    scale_size_manual(values=c("TRUE"=5, "FALSE"=1.5))+
     scale_linetype_manual(values=c("TRUE"="solid", "FALSE"="dashed"))+
     guides(color="none")+
     geom_path(aes(cost, mean, color=previous.segment.end, size=is.min,
                   linetype=has.intervals,
                   clickSelects=previous.segment.end,
                   showSelected=timestep,
+                  key=previous.segment.end,
                   showSelected2=segments,
                   group=paste(kk)),
+              alpha=0.7,
               data=addX(not.bold.unpruned))+
     geom_path(aes(cost, mean, color=previous.segment.end, size=is.min,
                   linetype=has.intervals,
                   clickSelects=previous.segment.end,
+                  key=previous.segment.end,
                   showSelected=timestep,
                   showSelected2=segments,
                   group=paste(kk, ii)),
+              alpha=0.7,
               data=addX(bold.unpruned))+
     geom_point(aes(cost, mean,
                    clickSelects=previous.segment.end,
+                   key=previous.segment.end,
                    showSelected=timestep,
                    showSelected2=segments,
                    showSelected3=has.intervals,
                    color=previous.segment.end),
                shape=21,
+               alpha=0.6,
                fill="white",
                data=addX(minima.unpruned))
   )
-animint2dir(viz, "figure-unconstrained-PDPA-normal")
+animint2dir(viz, "figure-unconstrained-PDPA-normal-big")
 
 with.legend <- ggplot()+
   theme_bw()+
