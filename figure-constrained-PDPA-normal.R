@@ -1,29 +1,26 @@
 source("packages.R")
 
+## The first comparison is C12< versus C11<+gamma_2
 data.vec <- c(1, 10, 14, 13)
+min.mean <- min(data.vec)
+max.mean <- max(data.vec)
 gamma.dt <- data.table(
   quadratic=1,
   linear=-2*data.vec,
   constant=data.vec * data.vec)
-C12 <- gamma.dt[1,]+gamma.dt[2,]
-C13 <- C12+gamma.dt[3,]
-C14 <- C13+gamma.dt[4,]
+C1.dt <- cumsum(gamma.dt)
+gamma.dt$min.mean <- C1.dt$min.mean <- min.mean
+gamma.dt$max.mean <- C1.dt$max.mean <- max.mean
+gamma.dt$data.i <- C1.dt$data.i <- seq_along(data.vec)
 quad <- function(dt, x){
   dt[, quadratic*x*x + linear*x + constant]
 }
-## C22 = gamma_1^< + gamma_2 = gamma_2
-C22 <- data.table(seg1.end=1, min.mean=1, max.mean=14, gamma.dt[2,])
-## The first candidate to compare is (gamma_1+gamma_2)^<
-C23.candidate <- rbind(
-  data.table(seg1.end=2, min.mean=1, max.mean=5.5, C12),
-  data.table(seg1.end=2,
-    min.mean=5.5, max.mean=14, quadratic=0, linear=0, constant=quad(C12, 5.5)))
 getLines <- function(dt.name){
   dt <- get(dt.name)
   line.list <- list()
   for(piece.i in 1:nrow(dt)){
     piece <- dt[piece.i,]
-    mean.vec <- piece[, seq(min.mean, max.mean, l=50)]
+    mean.vec <- piece[, seq(min.mean, max.mean, l=100)]
     line.list[[piece.i]] <- data.table(
       piece.i,
       piece,
@@ -32,69 +29,255 @@ getLines <- function(dt.name){
   }
   data.table(dt.name, do.call(rbind, line.list))
 }
-
-pruneNotMin <- function(dt1, dt2){
-  row1 <- 1
-  row2 <- 1
+getMinMean <- function(dt){
+  dt[, -linear/(2*quadratic)]
 }
-
-C23.lines <- rbind(
-  getLines("C22"),
-  getLines("C23.candidate"))
-with.legend <- ggplot()+
-  geom_line(aes(mean, cost, color=dt.name),
-            data=C23.lines)
-(with.labels <- direct.label(with.legend)+xlim(1, 20))
-pdf("figure-constrained-PDPA-normal.pdf")
-print(with.labels)
-dev.off()
-
-gamma3 <- data.table(0,0,0,gamma.dt[3,])
-C23 <- C22+gamma3
-C23.can <- C23.candidate+rbind(gamma3,gamma3)
-C23.lines <- rbind(
-  getLines("C23"),
-  getLines("C23.can"))
-with.legend <- ggplot()+
-  geom_line(aes(mean, cost, color=dt.name),
-            data=C23.lines)
-(with.labels <- direct.label(with.legend)+xlim(1, 20))
-
-C22.upper <- C22
-C22.upper[, min.mean := 10]
-C22more <- rbind(
+getLessEqualMin <- function(dt){
+  if(1 < nrow(dt)){
+    stop("TODO implement more general less min computation")
+  }
+  mu <- getMinMean(dt)
+  cost <- quad(dt, mu)
   data.table(
-    seg1.end=1,
-    min.mean=1,
-    max.mean=10,
+    quadratic=c(dt$quadratic, 0),
+    linear=c(dt$linear, 0),
+    constant=c(dt$constant, cost),
+    min.mean=c(min.mean, mu),
+    max.mean=c(mu, max.mean))
+}
+getLessMin <- function(dt){
+  if(1 < nrow(dt)){
+    stop("TODO implement more general less min computation")
+  }
+  mu <- getMinMean(dt)
+  cost <- quad(dt, mu)
+  data.table(
     quadratic=0,
     linear=0,
-    constant=0),
-  C22.upper)
-with.legend <- ggplot()+
-  geom_line(aes(mean, cost, color=dt.name),
-            data=getLines("C22more"))
-direct.label(with.legend)
+    constant=cost,
+    min.mean=mu,
+    max.mean=dt$max.mean,
+    data.i=NA)
+}
+getMoreMin <- function(dt){
+  if(1 < nrow(dt)){
+    stop("TODO implement more general less min computation")
+  }
+  mu <- getMinMean(dt)
+  cost <- quad(dt, mu)
+  data.table(
+    quadratic=0,
+    linear=0,
+    constant=cost,
+    min.mean=dt$min.mean,
+    max.mean=mu,
+    data.i=NA)
+}
+AddFuns <- function(dt1, dt2){
+  mean.vec <- sort(unique(rbind(dt1, dt2)[, c(min.mean, max.mean)]))
+  i1 <- 1
+  i2 <- 1
+  new.dt.list <- list()
+  while(i1 <= nrow(dt1) && i2 <= nrow(dt2)){
+    row1 <- dt1[i1,]
+    row2 <- dt2[i2,]
+    this.min <- max(row1$min.mean, row2$min.mean)
+    this.max <- if(row1$max.mean < row2$max.mean){
+      i1 <- i1+1
+      row1$max.mean
+    }else{
+      i2 <- i2+1
+      row2$max.mean
+    }
+    new.dt.list[[paste(i1, i2)]] <- data.table(
+      quadratic=row1$quadratic+row2$quadratic,
+      linear=row1$linear+row2$linear,
+      constant=row1$constant+row2$constant,
+      min.mean=this.min,
+      max.mean=this.max,
+      data.i=NA)
+    this.min <- this.max
+  }
+  do.call(rbind, new.dt.list)
+}
 
-C33 <- C22more+data.table(0,0,0,rbind(gamma.dt[3,],gamma.dt[3,]))
+C11.less <- getLessMin(C1.dt[1,])
+C22 <- AddFuns(gamma.dt[2,], C11.less)
+C12.less <- getLessMin(C1.dt[2,])
+
+##dput(RColorBrewer::brewer.pal(Inf, "Set1"))
+break.colors <- c("1"="#E41A1C",
+  "2"="#377EB8",
+  "#4DAF4A",
+  "3"="#984EA3", "#FF7F00", "#FFFF33", 
+  "#A65628", "#F781BF", "#999999")
+
+first.choice.lines <- rbind(
+  data.table(break.after=factor(2), getLines("C12.less")),
+  data.table(break.after=factor(1), getLines("C22")))
+first.choice.ends <- first.choice.lines[mean==min.mean | mean==max.mean,]
+min.cost.candidates <- data.table(break.after=factor(1), C22)
+min.cost.candidates$min.cost.mean <- getMinMean(C22)
+min.cost.mean.dt <-
+  min.cost.candidates[min.mean < min.cost.mean & min.cost.mean < max.mean,]
+min.cost.mean.dt$min.cost <-
+  quad(min.cost.mean.dt, min.cost.mean.dt$min.cost.mean)
 ggplot()+
-  geom_line(aes(mean, cost, color=piece.i),
-            data=getLines("C33"))
+  ggtitle("first choice")+
+  xlab("mean of second segment")+
+  scale_x_continuous(breaks=first.choice.ends[, unique(c(min.mean, max.mean))])+
+  scale_color_manual(values=break.colors)+
+  scale_fill_manual(values=c(min="black", limit=NA))+
+  geom_line(aes(mean, cost, group=dt.name, color=break.after),
+            data=first.choice.lines)+
+  geom_point(aes(mean, cost, group=dt.name, color=break.after, fill=what),
+             shape=21,
+            data=data.table(first.choice.ends, what="limit"))+
+  geom_point(aes(min.cost.mean, min.cost, color=break.after, fill=what),
+             shape=21,
+             data=data.table(min.cost.mean.dt, what="min"))
+## C22 always has a lower cost than C12.less, so prune. This means
+## that we discard the possibility of a break after 2.
 
-C23.min.mean <- C23[,-linear/(2*quadratic)]
-C23.min.cost <- quad(C23, C23.min.mean)
-C23more <- data.table(
-  seg1.end=NA,
-  min.mean=c(1, C23.min.mean),
-  max.mean=c(C23.min.mean, 14),
-  quadratic=c(0, C23$quadratic),
-  linear=c(0, C23$linear),
-  constant=c(C23.min.cost, C23$constant))
+C23 <- AddFuns(C22, gamma.dt[3,])
+C23.lines <- rbind(
+  data.table(break.after=factor(1), getLines("C23")))
+C23.ends <- C23.lines[mean==min.mean | mean==max.mean,]
+breaks.vec <- C23.ends[, unique(c(min.mean, max.mean))]
+min.cost.candidates <- data.table(break.after=factor(1), C23)
+min.cost.candidates$min.cost.mean <- getMinMean(C23)
+min.cost.mean.dt <-
+  min.cost.candidates[min.mean < min.cost.mean & min.cost.mean < max.mean,]
+min.cost.mean.dt$min.cost <-
+  quad(min.cost.mean.dt, min.cost.mean.dt$min.cost.mean)
+ggplot()+
+  ggtitle("Cost in two segments up to data point 3")+
+  xlab("mean of second segment")+
+  ##coord_cartesian(ylim=c(0,20))+
+  scale_x_continuous(breaks=breaks.vec)+
+  scale_color_manual(values=break.colors)+
+  geom_line(aes(mean, cost, color=break.after),
+            data=C23.lines)+
+  geom_point(aes(mean, cost, color=break.after, fill=what),
+             shape=21,
+             data=data.table(C23.ends, what="limit"))+
+  geom_point(aes(min.cost.mean, min.cost, color=break.after, fill=what),
+             shape=21,
+             data=data.table(min.cost.mean.dt, what="min"))+
+  scale_fill_manual(values=c(min="black", limit=NA))
 
-C33.lines <- rbind(getLines("C33"),getLines("C23more"))
-with.legend <- ggplot()+
-  geom_line(aes(mean, cost, color=dt.name),
-            data=C33.lines)
-direct.label(with.legend)
+C13.less <- getLessMin(C1.dt[3,])
+second.choice.lines <- rbind(
+  data.table(break.after=factor(3), getLines("C13.less")),
+  data.table(break.after=factor(1), getLines("C23")))
+second.choice.ends <- second.choice.lines[mean==min.mean | mean==max.mean,]
+breaks.vec <- second.choice.ends[, unique(c(min.mean, max.mean))]
+discriminant <- C23$linear^2 - 4*C23$quadratic*(C23$constant-C13.less$constant)
+numerator <- -C23$linear + c(-1,1)*sqrt(discriminant)
+denominator <- 2*C23$quadratic
+mean.at.equal.cost <- numerator/denominator
+cost.at.equal.cost <- quad(C23, mean.at.equal.cost)
+equal.cost <- data.table(
+  mean=mean.at.equal.cost,
+  cost=cost.at.equal.cost)
+ggplot()+
+  ggtitle("second choice")+
+  scale_color_manual(values=break.colors)+
+  scale_x_continuous(
+    "mean of second segment",
+    labels=sprintf("%.1f", breaks.vec),
+    breaks=breaks.vec)+
+  scale_fill_manual(values=c(limit=NA, equality="grey50"))+
+  geom_line(aes(mean, cost, group=dt.name, color=break.after),
+            data=second.choice.lines)+
+  ## geom_point(aes(mean, cost, fill=what),
+  ##            shape=21,
+  ##            data=data.table(equal.cost, what="equality"))+
+  geom_point(aes(mean, cost, color=break.after, fill=what),
+             shape=21,
+             data=data.table(second.choice.ends, what="limit"))
+## Clear winner is break.after 1, prune the break after 3.
 
+C24 <- AddFuns(C23, gamma.dt[4,])
+C24$break.after <- factor(1)
+C24.lines <- getLines("C24")
+C24.ends <- C24.lines[mean==min.mean | mean==max.mean,]
+breaks.vec <- C24.ends[, unique(c(min.mean, max.mean))]
+C24$min.cost.mean <- getMinMean(C24)
+min.cost.mean.dt <-
+  C24[min.mean < min.cost.mean & min.cost.mean < max.mean,]
+min.cost.mean.dt$min.cost <-
+  quad(min.cost.mean.dt, min.cost.mean.dt$min.cost.mean)
+ggplot()+
+  scale_x_continuous(
+    labels=sprintf("%.1f", breaks.vec),
+    breaks=breaks.vec)+
+  scale_color_manual(values=break.colors)+
+  scale_fill_manual(values=c(limits=NA, min="black"))+
+  geom_line(aes(mean, cost, color=break.after),
+            data=C24.lines)+
+  geom_point(aes(min.cost.mean, min.cost, color=break.after, fill=what),
+             shape=21,
+             data=data.table(min.cost.mean.dt, what="min"))+
+  geom_point(aes(mean, cost, color=break.after, fill=what),
+             shape=21,
+             data=data.table(C24.ends, what="limits"))
+## This curve achieves its minimum within the interval, so we conclude
+## that we have found the minimum error model with two segments.
 
+C33 <- gamma.dt[3,]
+C33$max.mean <- 10
+C23more <- getMoreMin(C23)
+C33.lines <- rbind(
+  data.table(break.after=factor(3), getLines("C23more")),
+  data.table(break.after=factor(2), getLines("C33")))
+C33.ends <- C33.lines[mean==min.mean | mean==max.mean,]
+breaks.vec <- C33.ends[, unique(c(min.mean, max.mean))]
+min.cost.candidates <- data.table(break.after=factor(1), C33)
+min.cost.candidates$min.cost.mean <- getMinMean(C33)
+min.cost.mean.dt <-
+  min.cost.candidates[min.mean < min.cost.mean & min.cost.mean < max.mean,]
+min.cost.mean.dt$min.cost <-
+  quad(min.cost.mean.dt, min.cost.mean.dt$min.cost.mean)
+ggplot()+
+  ggtitle("last choice")+
+  xlab("mean of third segment")+
+  scale_x_continuous(breaks=breaks.vec)+
+  scale_color_manual(values=break.colors)+
+  geom_line(aes(mean, cost, color=break.after),
+            data=C33.lines)+
+  geom_point(aes(mean, cost, color=break.after, fill=what),
+             shape=21,
+             data=data.table(C33.ends, what="limit"))+
+  ## geom_point(aes(min.cost.mean, min.cost, color=break.after, fill=what),
+  ##            shape=21,
+  ##            data=data.table(min.cost.mean.dt, what="min"))+
+  scale_fill_manual(values=c(min="black", limit=NA))
+## We can prune the break after 2 now. C23more is always less costly
+## than C33.
+
+C34 <- AddFuns(C23more, gamma.dt[4,])
+C34.lines <- rbind(
+  ##data.table(break.after=factor(3), getLines("C23more")),
+  data.table(break.after=factor(3), getLines("C34")))
+C34.ends <- C34.lines[mean==min.mean | mean==max.mean,]
+breaks.vec <- C34.ends[, unique(c(min.mean, max.mean))]
+min.cost.candidates <- data.table(break.after=factor(1), C34)
+min.cost.candidates$min.cost.mean <- getMinMean(C34)
+min.cost.candidates$min.cost <-
+  quad(min.cost.candidates, min.cost.candidates$min.cost.mean)
+ggplot()+
+  ##coord_cartesian(ylim=c(0,20))+
+  scale_x_continuous(breaks=breaks.vec)+
+  scale_color_manual(values=break.colors)+
+  geom_line(aes(mean, cost, color=break.after),
+            data=C34.lines)+
+  geom_point(aes(mean, cost, color=break.after, fill=what),
+             shape=21,
+             data=data.table(C34.ends, what="limit"))+
+  geom_point(aes(min.cost.mean, min.cost, color=break.after, fill=what),
+             shape=21,
+             data=data.table(min.cost.candidates, what="min"))+
+  scale_fill_manual(values=c(min="black", limit=NA))
+## Since the minimum occurs outside of the interval, we can conclude
+## that the optimal model is undefined.
