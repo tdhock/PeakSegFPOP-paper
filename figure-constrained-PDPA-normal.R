@@ -97,7 +97,4 @@ with.legend <- ggplot()+
             data=C33.lines)
 direct.label(with.legend)
 
-## from the other direction, 13 14 10 1
-
-## The first comparison is C12< versus C11<+gamma_2
 
