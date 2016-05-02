@@ -211,7 +211,7 @@ quad(C24, C24$min.mean)
 ## that the solution for 2 segments up to data point 4 is undefined.
 
 C33 <- gamma.dt[3,]
-C33$min.mean <- 13
+C33$min.mean <- 1
 ## Since C23 does not attain its minimum in any interval, we only need
 ## to consider C33.
 C33.lines <- rbind(
