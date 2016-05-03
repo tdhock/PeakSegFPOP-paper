@@ -70,7 +70,7 @@ less.more.min.list <- list(
     },
     more=function(dt){
       if(1 < nrow(dt)){
-        stop("TODO implement more general more equal min computation")
+        browser()
       }
       mu <- getMinMean(dt)
       cost <- quad(dt, mu)
@@ -110,6 +110,58 @@ less.more.min.list <- list(
           max.mean=mu,
           data.i=dt$data.i)[min.mean!=max.mean,]
       }))
+less.more.test.list <- list(
+  ## list(fun=data.table(
+  ##   quadratic=c(0, 1, 0),
+  ##   linear=c(0, -2, 0),
+  ##   constant=c(1, 1, 1),
+  ##   min.mean=c(-2, -1, 1),
+  ##   max.mean=c(-1, 1, 2)))
+  list(input=data.table(
+    quadratic=c(2,1),
+    linear=c(-54, -28),
+    constant=c(365, 196),
+    min.mean=c(1,13),
+    max.mean=c(13,14),
+    data.i=1
+  ), output=list(
+    ## strict=list(
+    ##   less=data.table(),
+    ##   more=data.table(
+    ##     quadratic=0,
+    ##     linear=0,
+    ##     constant=0,
+    ##     min.mean=1,
+    ##     max.mean=14
+    ##   ),
+    not.strict=list(
+      ## less=data.table(
+      ##   quadratic=c(2,1),
+      ##   linear=c(-54, -28),
+      ##   constant=c(365, 196),
+      ##   min.mean=c(1,13),
+      ##   max.mean=c(13,14)),
+      more=data.table(
+        quadratic=0,
+        linear=0,
+        constant=0,
+        min.mean=1,
+        max.mean=14,
+        data.i=1
+      )))
+  )
+)
+for(test.case in less.more.test.list){
+  for(min.type in names(test.case$output)){
+    type.list <- test.case$output[[min.type]]
+    for(min.fun.name in names(type.list)){
+      expected <- type.list[[min.fun.name]]
+      min.fun <- less.more.min.list[[min.type]][[min.fun.name]]
+      computed <- min.fun(test.case$input)
+      stopifnot(all(expected==computed))
+    }
+  }
+}
 
 Minimize <- function(dt){
   dt$min.cost.mean <- getMinMean(dt)
