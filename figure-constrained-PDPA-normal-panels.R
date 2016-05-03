@@ -52,6 +52,13 @@ AddFuns <- function(dt1, dt2){
   do.call(rbind, new.dt.list)
 }
 
+Inf.dt <- data.table(
+  quadratic=numeric(),
+  linear=numeric(),
+  constant=numeric(),
+  min.mean=numeric(),
+  max.mean=numeric(),
+  data.i=numeric())
 less.more.min.list <- list(
   not.strict=list(
     less=function(dt){
@@ -134,27 +141,49 @@ less.more.min.list <- list(
           stop("TODO implement more general less min computation")
         }
         mu <- getMinMean(dt)
-        cost <- quad(dt, mu)
-        data.table(
-          quadratic=0,
-          linear=0,
-          constant=cost,
-          min.mean=mu,
-          max.mean=dt$max.mean,
-          data.i=dt$data.i)[min.mean!=max.mean,]
+        if(dt$min.mean <= mu & mu < dt$max.mean){
+          cost <- quad(dt, mu)
+          data.table(
+            quadratic=0,
+            linear=0,
+            constant=cost,
+            min.mean=mu,
+            max.mean,
+            data.i=dt$data.i)
+        }else Inf.dt
       },
       more=function(dt){
+        if(1 < nrow(dt)){
+          stop("TODO implement more general less min computation")
+        }
         mu <- getMinMean(dt)
-        cost <- quad(dt, mu)
-        data.table(
-          quadratic=0,
-          linear=0,
-          constant=cost,
-          min.mean=dt$min.mean,
-          max.mean=mu,
-          data.i=dt$data.i)[min.mean<max.mean,]
+        if(dt$min.mean < mu & mu <= dt$max.mean){
+          cost <- quad(dt, mu)
+          data.table(
+            quadratic=0,
+            linear=0,
+            constant=cost,
+            min.mean,
+            max.mean=mu,
+            data.i=dt$data.i)
+        }else Inf.dt
       }))
 less.more.test.list <- list(
+  C22backward=list(input=data.table(
+    quadratic=1,
+    linear=-28,
+    constant=196,
+    min.mean=13,
+    max.mean=14,
+    data.i=1), output=list(
+      strict=list(
+        more=data.table(
+          quadratic=0,
+          linear=0,
+          constant=0,
+          min.mean=1,
+          max.mean=14,
+          data.i=1)))),
   single=list(input=data.table(
     quadratic=2,
     linear=-48,
@@ -163,14 +192,7 @@ less.more.test.list <- list(
     max.mean=14,
     data.i=1), output=list(
       strict=list(
-        more=data.table(
-          quadratic=numeric(),
-          linear=numeric(),
-          constant=numeric(),
-          min.mean=numeric(),
-          max.mean=numeric(),
-          data.i=numeric()
-        )))
+        more=Inf.dt))
     ),
   real=list(input=data.table(
     quadratic=c(2,1),
@@ -230,7 +252,8 @@ less.more.test.list <- list(
 for(test.case.name in names(less.more.test.list)){
   test.case <- less.more.test.list[[test.case.name]]
   input <- test.case$input
-  min.mean <- min(input$min.mean)
+  min.mean <- 1
+  max.mean <- 14
   for(min.type in names(test.case$output)){
     type.list <- test.case$output[[min.type]]
     for(min.fun.name in names(type.list)){
@@ -546,6 +569,11 @@ ggplot()+
             data=all.cost.lines)+
   geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
              data=all.cost.minima)
-all.cost.minima[pos=="3 4",]
+all.cost.minima[pos=="3 4" & min.type=="not.strict",]
+all.cost.minima[pos=="2 3" & min.type=="not.strict",]
+all.cost.minima[pos=="1 1" & min.type=="not.strict",]
 sum((c(1,10,14,13)-c(5.5,5.5,14,13))^2)
 sum((c(10,14,13)-mean(c(10,14,13)))^2)
+L <- all.cost.models[["1,10,14,13"]];lapply(L, "[[", "2 3")
+L <- all.cost.models[["13,14,10,1"]];lapply(L, "[[", "2 3")
+all.cost.minima[pos=="2 4",]
