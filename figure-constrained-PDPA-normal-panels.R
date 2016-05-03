@@ -267,7 +267,7 @@ Minimize <- function(dt){
   dt$min.cost.mean <- getMinMean(dt)
   dt$min.cost <- quad(dt, dt$min.cost.mean)
   dt[is.finite(min.cost.mean) &
-       min.mean < min.cost.mean & min.cost.mean < max.mean,]
+       min.mean <= min.cost.mean & min.cost.mean <= max.mean,]
 }
 
 MinEnvelope <- function(dt1, dt2){
@@ -497,7 +497,8 @@ envelope[, data.i.fac := factor(data.i)]
 break.colors <- c("1"="#E41A1C",
   "2"="#377EB8",
   "#4DAF4A",
-  "3"="#984EA3", "#FF7F00", "#FFFF33", 
+  "3"="#984EA3",
+  "4"="#FF7F00", "#FFFF33", 
   "#A65628", "#F781BF", "#999999")
 ggplot()+
   theme_bw()+
@@ -513,4 +514,38 @@ ggplot()+
             data=cost.lines)+
   geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
              data=minima)
-    
+
+all.cost.lines.list <- list()
+all.cost.minima.list <- list()
+for(data.name in names(all.cost.models)){
+  models.by.type <- all.cost.models[[data.name]]
+  for(min.type in names(models.by.type)){
+    models.by.pos <- models.by.type[[min.type]]
+    for(pos in names(models.by.pos)){
+      fun.dt <- models.by.pos[[pos]]
+      min.dt <- Minimize(fun.dt)
+      if(nrow(min.dt)){
+        all.cost.minima.list[[paste(data.name, min.type, pos)]] <- data.table(
+          data.name, min.type, pos, min.dt)
+      }
+      all.cost.lines.list[[paste(data.name, min.type, pos)]] <- data.table(
+        data.name, min.type, pos, getLines(fun.dt))
+    }
+  }
+}
+all.cost.lines <- do.call(rbind, all.cost.lines.list)
+all.cost.lines[, data.i.fac := factor(data.i)]
+all.cost.minima <- do.call(rbind, all.cost.minima.list)
+all.cost.minima[, data.i.fac := factor(data.i)]
+ggplot()+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  facet_grid(data.name + min.type ~ pos, scales="free")+
+  scale_color_manual(values=break.colors)+
+  geom_line(aes(mean, cost, color=data.i.fac),
+            data=all.cost.lines)+
+  geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
+             data=all.cost.minima)
+all.cost.minima[pos=="3 4",]
+sum((c(1,10,14,13)-c(5.5,5.5,14,13))^2)
+sum((c(10,14,13)-mean(c(10,14,13)))^2)
