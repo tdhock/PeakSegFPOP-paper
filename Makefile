@@ -1,8 +1,10 @@
-HOCKING-PeakSegFPOP.pdf: HOCKING-PeakSegFPOP.tex refs.bib figure-unconstrained-PDPA-normal.pdf figure-unconstrained-FPOP-normal.pdf figure-constrained-PDPA-normal-grid.pdf figure-constrained-PDPA-normal-panels.pdf
+HOCKING-PeakSegFPOP.pdf: HOCKING-PeakSegFPOP.tex refs.bib figure-unconstrained-PDPA-normal.pdf figure-unconstrained-FPOP-normal.pdf figure-constrained-PDPA-normal-grid.pdf figure-constrained-PDPA-normal-panels.pdf figure-less-more-min.tex
 	pdflatex HOCKING-PeakSegFPOP
 	bibtex HOCKING-PeakSegFPOP
 	pdflatex HOCKING-PeakSegFPOP
 	pdflatex HOCKING-PeakSegFPOP
+figure-less-more-min.tex: figure-less-more-min.R
+	R --no-save < $<
 figure-constrained-PDPA-normal-panels.pdf: figure-constrained-PDPA-normal-panels.R
 	R --no-save < $<
 figure-constrained-PDPA-normal-grid.pdf: figure-constrained-PDPA-normal-grid.R
