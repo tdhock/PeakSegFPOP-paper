@@ -14,6 +14,7 @@
 \DeclareMathOperator*{\Diag}{Diag}
 \DeclareMathOperator*{\TPR}{TPR}
 \DeclareMathOperator*{\Segments}{Segments}
+\DeclareMathOperator*{\Changes}{Changes}
 \DeclareMathOperator*{\FPR}{FPR}
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator*{\maximize}{maximize}
@@ -52,15 +53,15 @@ $\lambda\in\RR_+$ is
   \rho
   %\tag{\textbf{Unconstrained}}
   (\mathbf m, \mathbf z) 
-  +\lambda\Segments(\mathbf m),
+  +\lambda\Changes(\mathbf m),
 \end{equation}
 where the Poisson loss function is
 \begin{equation}\label{eq:rho}
   \rho(\mathbf m, \mathbf z)= \sum_{b=1}^B m_b - z_b \log m_b.
 \end{equation} 
-The model complexity is the number of piecewise constant segments
+The model complexity is the number of change-points
 \begin{equation}
-  \Segments(\mathbf m)=1+\sum_{b=2}^B I(m_{b-1} \neq m_b),
+  \Changes(\mathbf m)=\sum_{b=2}^B I(m_{b-1} \neq m_b),
 \end{equation}
 where $I$ is the indicator function.
 
@@ -78,7 +79,7 @@ More concretely, we first define the peak indicator at base
 $b\in\{2, \dots, B\}$ as
 \begin{equation}
   \label{eq:peaks}
-  P_b(\mathbf m) = \sum_{b=2}^B \sign( m_{b} - m_{b-1} ),
+  P_b(\mathbf m) = \sum_{j=2}^b \sign( m_{j} - m_{j-1} ),
 \end{equation}
 where $P_1(\mathbf m)=0$ by convention. $P_b(\mathbf m)$ is the
 cumulative sum of signs of changes up to point $b$ in the piecewise
@@ -109,11 +110,16 @@ which results in the constrained problem
   \label{PenPeakSeg}
   \mathbf{\tilde m}^\lambda(\mathbf z)  =
   \argmin_{\mathbf m\in\RR^{B}} &\ \ 
-    \rho(\mathbf m, \mathbf z) + \lambda\Segments(\mathbf m)
+    \rho(\mathbf m, \mathbf z) + \lambda\Peaks(\mathbf m)
     \tag{\textbf{PenPeakSeg}}
   \\
-  \text{such that} &\ \forall b\in\{1, \dots, B\}, \ \ P_b(\mathbf m) \in\{0, 1\}.
+  \text{such that} &\ \forall b\in\{1, \dots, B\},
+                     \ \ P_b(\mathbf m) \in\{0, 1\}.
 \end{align*}
+The Peaks model complexity term only counts up changes:
+\begin{equation}
+  \Peaks(\mathbf m) = \sum_{b=2}^B I(m_{b-1} < m_b).
+\end{equation}
 The constraint in the \ref{PenPeakSeg} problem forces the sequence of
 changes in the segment means $\mathbf m$ to begin with a positive
 change and then alternate: up, down, up, down, ... (and not up, up,
@@ -123,18 +129,125 @@ as background $P_b(\mathbf m)=0$.
 
 \section{Algorithm}
 
+\subsection{Segment Neighborhood}
+
+For the Segment Neighborhood algorithm we begin as usual by computing
+a functional representation of the optimal cost in 1 segment up to
+base $b$. 
+\begin{equation*}
+  \label{eq:C1b}
+  C_{1,b}(\mu) = \sum_{i=1}^b \gamma_b(\mu),
+\end{equation*}
+where $\gamma_b(\mu)$ is the cost of using the mean $\mu$ for single
+data point $b$ (for example the Gaussian or Poisson loss).
+
+Next we define the minimum cost in 2 segments up to data point 2 as
+\begin{equation*}
+  \label{eq:C22}
+  C_{2,2}(\mu) = C_{1,1}^{\leq}(\mu) + \gamma_2(\mu),
+\end{equation*}
+where for a function $f:\RR\rightarrow\RR$ the min-less operator
+yields another function $f\leq:\RR\rightarrow\RR$ such that
+\begin{equation}
+  \label{eq:min-less}
+  f^{\leq}(\mu) = \min_{x\leq \mu} f(x).
+\end{equation}
+The algorithm relies on the ability to compute an exact representation
+of functions such as $C_{1,1}^{\leq}$. Since the cost functions $f$
+are quasiconvex, we can easily find the minimum $\mu^*$, and then
+compute the following exact representation
+\begin{equation*}
+  f^\leq(\mu)
+  \begin{cases}
+    f(\mu^*) & \text{ if } \mu \geq \mu^*,\\
+    f(\mu) & \text{ otherwise.}
+  \end{cases}
+\end{equation*}
+
+TODO: figure.
+
+The next step is to compute the minimum cost in 2 segments up to data
+point 3, for which there is a choice of two change-points.
+\begin{equation*}
+  C_{2,3}(\mu) = \min
+  \begin{cases}
+    C_{2,2}(\mu)+\gamma_3(\mu), \\
+    C_{1,2}^{\leq}(\mu)+\gamma_3(\mu)
+  \end{cases}
+\end{equation*}
+We have already computed an exact representation of the $C_{2,2}$
+term, which is the cost a change after the first data point. Now we
+need to compare it with the $C_{1,2}^{\leq}$ term, which is the cost
+of a change after the second data point. This is a crucial step in
+which the \texttt{MinEnvelope} sub-routine computes an exact
+representation of the minimum of these two functions.
+
+The updates continue for every data point $b\in\{3, ..., B\}$
+\begin{equation*}
+  C_{2,b}(\mu) = \min
+  \begin{cases}
+    C_{2,b-1}(\mu) + \gamma_b(\mu),\\
+    C_{1,b-1}^{\leq}(\mu) + \gamma_b(\mu).
+  \end{cases}
+\end{equation*}
+
+For the third segment we first compute the minimum cost up to data point 3
+\begin{equation*}
+  C_{3,3}(\mu) = C_{2,2}^{\geq}(\mu) + \gamma_3(\mu),
+\end{equation*}
+where the more-min operator $f^\geq$ is defined analogously. The
+update formula for the minimum cost up to data point
+$b\in\{4, ..., B\}$ is
+\begin{equation*}
+  C_{3,b}(\mu) = \min
+  \begin{cases}
+    C_{3,b-1}^{\geq}(\mu)+\gamma_b(\mu),\\
+    C_{2,b-1}^{\geq}(\mu)+\gamma_b(\mu)
+  \end{cases}
+\end{equation*}
+In general for $s$ segments, we use
+\begin{equation}
+  C_{s,s}(\mu) = C_{s-1,s-1}^{*}(\mu) + \gamma_s(\mu),
+\end{equation}
+and for $b\in\{s+1, ..., B\}$
+\begin{equation}
+  C_{s,b}(\mu) = \min
+  \begin{cases}
+    C_{s,b-1}^{*}(\mu)+\gamma_b(\mu),\\
+    C_{s-1,b-1}^{*}(\mu)+\gamma_b(\mu),
+  \end{cases}
+\end{equation}
+where * means less-min for even-numbered segments $s$, and more-min
+for odd-numbered segments.
+
+\subsection{Optimal Partitioning}
+
 \section{Figures}
 
-In this section we are concerned with showing that the new algo can
-recover the optimal constrained segmentation for
+\subsection{Simple data set analysis}
+
+In this section we analyze the simple data
 $\mathbf z = \left[\begin{array}{cccc} 1 & 10 & 14 & 13
 \end{array}\right]\in\ZZ_+^4
 $. For $s=3$ segments there are only 3 possible segmentations:
 $[1][10][14, 13]$, $[1][10, 14][13]$ and $[1, 10][14][13]$. If we use
 max-likelihood estimates for each segment mean, then only the last
-segmentation obeys the \ref{PeakSeg} model constraints. However the
+segmentation obeys the \ref{PenPeakSeg} model constraints. However the
 constrained Dynamic Programming Algorithm of \citet{PeakSeg} does not
-recover it.
+recover it. However this last segmentation is more costly than a
+simpler segmentation with a single change after the first data point
+(see figure below).
+
+\includegraphics[width=\textwidth]{figure-constrained-PDPA-normal-grid}
+
+The figure above plots the cost of a segmentation in two segments, up
+to data point 3. There are two possible change-points: after 1 [1][10
+14], and after 2 [1 10][14]. The minimum cost of a change after 2 is
+40.5, but the other change is less costly for those mean values (5.5,
+14). Thus it is clear that although the segmentation [1 10][14][13] is
+feasible for the PeakSeg problem, it is clearly not optimal.
+
+\subsection{Unconstrained PDPA and FPOP}
 
 In the figures below I took the R implementation of PDPA and FPOP from
 the FPOP paper, and I ran both on this simple data set. The plot shows
@@ -146,6 +259,30 @@ column shows after pruning.
 \includegraphics[width=\textwidth]{figure-unconstrained-FPOP-normal}
 
 \includegraphics[width=\textwidth]{figure-unconstrained-PDPA-normal}
+
+The figure above shows the same results for the unconstrained PDPA.
+
+\subsection{Results with and without strict inequalities}
+
+\includegraphics[width=\textwidth]{figure-constrained-PDPA-normal-panels-pruning}
+
+The figure above compares the results of the two different cost models
+(with and without strict inequalities). Note that for strict
+inequalities it is a bit more complicated to compute the less-min
+operator. In fact the minimum $\mu^*$ may be undefined, in which case
+we set $f^{<}(\mu)=\infty$ (infinite cost intervals are not
+stored). Otherwise if $\mu^*$ is achieved somewhere in the domain of
+$f$ we use
+\begin{equation*}
+  f^{<}(\mu) = \min_{x<\mu}f(x) = 
+  \begin{cases}
+    f(\mu^*) & \text{ if } \mu > \mu^*,\\
+    \infty & \text{ otherwise.}
+  \end{cases}
+\end{equation*}
+
+
+\includegraphics[width=\textwidth]{figure-constrained-PDPA-normal-panels}
 
 \bibliographystyle{abbrvnat}
 \bibliography{refs}

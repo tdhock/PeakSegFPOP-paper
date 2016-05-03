@@ -410,6 +410,8 @@ change.colors <-
   c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", 
     "#A65628", "#F781BF", "#999999")
 with.legend <- ggplot()+
+  ggtitle(paste(
+    "FPOP with penalty =",pen))+
   theme_bw()+
   coord_cartesian(ylim=c(0, max(cost.min$min)+1))+
   theme(panel.margin=grid::unit(0, "lines"))+

@@ -523,11 +523,19 @@ break.colors <- c("1"="#E41A1C",
   "3"="#984EA3",
   "4"="#FF7F00", "#FFFF33", 
   "#A65628", "#F781BF", "#999999")
-ggplot()+
+gg.pruning <- ggplot()+
+  ggtitle("Three pruning steps")+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
-  facet_grid(data.name + min.type ~ timestep + n.segments, scales="free")+
-  coord_cartesian(xlim=c(1,14), ylim=c(0,40))+
+  facet_grid(data.name + min.type ~ timestep + n.segments, scales="free",
+             labeller=function(var, val){
+               if(var %in% c("n.segments", "timestep")){
+                 paste(var, "=", val)
+               }else{
+                 paste(val)
+               }
+             })+
+  coord_cartesian(ylim=c(0,95))+
   scale_color_manual(values=break.colors)+
   geom_line(aes(mean, cost, group=data.i.fac),
             color="grey",
@@ -537,6 +545,9 @@ ggplot()+
             data=cost.lines)+
   geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
              data=minima)
+pdf("figure-constrained-PDPA-normal-panels-pruning.pdf")
+print(gg.pruning)
+dev.off()
 
 all.cost.lines.list <- list()
 all.cost.minima.list <- list()
@@ -560,7 +571,8 @@ all.cost.lines <- do.call(rbind, all.cost.lines.list)
 all.cost.lines[, data.i.fac := factor(data.i)]
 all.cost.minima <- do.call(rbind, all.cost.minima.list)
 all.cost.minima[, data.i.fac := factor(data.i)]
-ggplot()+
+gg.panels <- ggplot()+
+  coord_cartesian(ylim=c(-5,190))+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
   facet_grid(data.name + min.type ~ pos, scales="free")+
@@ -577,3 +589,7 @@ sum((c(10,14,13)-mean(c(10,14,13)))^2)
 L <- all.cost.models[["1,10,14,13"]];lapply(L, "[[", "2 3")
 L <- all.cost.models[["13,14,10,1"]];lapply(L, "[[", "2 3")
 all.cost.minima[pos=="2 4",]
+pdf("figure-constrained-PDPA-normal-panels.pdf")
+print(gg.panels)
+dev.off()
+
