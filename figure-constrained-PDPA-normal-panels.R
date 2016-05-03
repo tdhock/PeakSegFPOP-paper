@@ -69,18 +69,65 @@ less.more.min.list <- list(
         data.i=dt$data.i)[min.mean!=max.mean,]
     },
     more=function(dt){
-      if(1 < nrow(dt)){
-        browser()
+      new.dt.list <- list()
+      overall.min.cost <- NULL
+      row.i <- nrow(dt)
+      while(is.null(overall.min.cost)){
+        r <- dt[row.i,]
+        mean.at.min <- getMinMean(r)
+        cost.at.min <- quad(r, mean.at.min)
+        if(r$max.mean <= mean.at.min){
+          min.position <- "right"
+          decreasing.to.right <- TRUE
+          overall.min.cost <- quad(r, r$max.mean)
+          new.dt.list[[paste(row.i)]] <- data.table(
+            quadratic=0,
+            linear=0,
+            constant=overall.min.cost,
+            min.mean,
+            max.mean=r$max.mean,
+            data.i=r$data.i)
+        }else if(mean.at.min <= r$min.mean){
+          min.position <- "left"
+          decreasing.to.right <- FALSE
+          new.dt.list[[paste(row.i)]] <- r
+        }else{
+          min.position <- "inside"
+          overall.min.cost <- cost.at.min
+          decreasing.to.right <- FALSE
+          new.dt.list[[paste(row.i)]] <- data.table(
+            quadratic=c(0, r$quadratic),
+            linear=c(0, r$linear),
+            constant=c(overall.min.cost, r$constant),
+            min.mean=c(min.mean, mean.at.min),
+            max.mean=c(mean.at.min, r$max.mean),
+            data.i=r$data.i)
+        }
+        min.text <- data.table(
+          mean.at.min, cost.at.min, min.position,
+          decreasing.to.right)
+        gg.funs <- ggplot()+
+          geom_line(aes(mean, cost),
+                    data=getLines(dt),
+                    size=2,
+                    color="grey")+
+          geom_line(aes(mean, cost),
+                    data=getLines(r),
+                    size=1,
+                    color="black")+
+          geom_point(aes(mean.at.min, cost.at.min),
+                     data=min.text,
+                     shape=21,
+                     fill="white")+
+          geom_text(aes(mean.at.min, cost.at.min, label=paste(
+            min.position,
+            ifelse(decreasing.to.right, "decreasing", "increasing"))),
+            vjust=1.5,
+            data=min.text)
+        ##print(gg.funs)
+        row.i <- row.i-1
       }
-      mu <- getMinMean(dt)
-      cost <- quad(dt, mu)
-      data.table(
-        quadratic=c(0, dt$quadratic),
-        linear=c(0, dt$linear),
-        constant=c(cost, dt$constant),
-        min.mean=c(min.mean, mu),
-        max.mean=c(mu, max.mean),
-        data.i=dt$data.i)[min.mean!=max.mean,]
+      do.call(rbind, rev(new.dt.list))
     }), strict=list(
       less=function(dt){
         if(1 < nrow(dt)){
@@ -97,9 +144,6 @@ less.more.min.list <- list(
           data.i=dt$data.i)[min.mean!=max.mean,]
       },
       more=function(dt){
-        if(1 < nrow(dt)){
-          stop("TODO implement more general less min computation")
-        }
         mu <- getMinMean(dt)
         cost <- quad(dt, mu)
         data.table(
@@ -108,16 +152,27 @@ less.more.min.list <- list(
           constant=cost,
           min.mean=dt$min.mean,
           max.mean=mu,
-          data.i=dt$data.i)[min.mean!=max.mean,]
+          data.i=dt$data.i)[min.mean<max.mean,]
       }))
 less.more.test.list <- list(
-  ## list(fun=data.table(
-  ##   quadratic=c(0, 1, 0),
-  ##   linear=c(0, -2, 0),
-  ##   constant=c(1, 1, 1),
-  ##   min.mean=c(-2, -1, 1),
-  ##   max.mean=c(-1, 1, 2)))
-  list(input=data.table(
+  single=list(input=data.table(
+    quadratic=2,
+    linear=-48,
+    constant=296,
+    min.mean=13,
+    max.mean=14,
+    data.i=1), output=list(
+      strict=list(
+        more=data.table(
+          quadratic=numeric(),
+          linear=numeric(),
+          constant=numeric(),
+          min.mean=numeric(),
+          max.mean=numeric(),
+          data.i=numeric()
+        )))
+    ),
+  real=list(input=data.table(
     quadratic=c(2,1),
     linear=c(-54, -28),
     constant=c(365, 196),
@@ -150,15 +205,60 @@ less.more.test.list <- list(
         data.i=1
       )))
   )
+  ## This symmetric example is not quasiconvex,
+  ## and I think the min cost envelope is always quasiconvex,
+  ## so the computation should be simpler than is required
+  ## for this example.
+  ## symmetric=list(input=data.table(
+  ##   quadratic=c(1, 1, 1),
+  ##   linear=c(4, 0, -4),
+  ##   constant=c(5, 0, 5),
+  ##   min.mean=c(-4, -5/4, 5/4),
+  ##   max.mean=c(-5/4, 5/4, 4),
+  ##   data.i=1
+  ## ), output=list(
+  ##   not.strict=list(
+  ##     more=data.table(
+  ##       quadratic=c(0,1,0,1),
+  ##       linear=c(0,0,0,-4),
+  ##       constant=c(0,0,1,5),
+  ##       min.mean=c(-4,0,1,2),
+  ##       max.mean=c(0,1,2,4),
+  ##       data.i=1)))
+  ## )
 )
-for(test.case in less.more.test.list){
+for(test.case.name in names(less.more.test.list)){
+  test.case <- less.more.test.list[[test.case.name]]
+  input <- test.case$input
+  min.mean <- min(input$min.mean)
   for(min.type in names(test.case$output)){
     type.list <- test.case$output[[min.type]]
     for(min.fun.name in names(type.list)){
       expected <- type.list[[min.fun.name]]
       min.fun <- less.more.min.list[[min.type]][[min.fun.name]]
-      computed <- min.fun(test.case$input)
-      stopifnot(all(expected==computed))
+      computed <- min.fun(input)
+      test.lines.list <- list()
+      for(object.name in c("input","expected","computed")){
+        dt <- get(object.name)
+        if(nrow(dt)){
+          test.lines.list[[object.name]] <- data.table(
+            object.name=factor(object.name, c("input", "expected", "computed")),
+            getLines(dt))
+        }
+      }
+      test.lines <- do.call(rbind, test.lines.list)
+      gg.test <- ggplot()+
+        ggtitle(paste(test.case.name, min.type, min.fun.name))+
+        scale_size_manual(values=c(input=3, expected=2, computed=1))+
+        scale_color_manual(values=c(
+          input="grey", expected="black", computed="red"))+
+        geom_line(aes(mean, cost, color=object.name, size=object.name),
+                  data=test.lines)
+      if(!identical(expected, computed)){
+        print(gg.test)
+        print(list(input=input, expected=expected, computed=computed))
+        stop("expected not identical to computed")
+      }
     }
   }
 }
@@ -171,8 +271,10 @@ Minimize <- function(dt){
 }
 
 MinEnvelope <- function(dt1, dt2){
-  stopifnot(dt1[, min.mean != max.mean])
-  stopifnot(dt2[, min.mean != max.mean])
+  stopifnot(dt1[, min.mean < max.mean])
+  stopifnot(dt2[, min.mean < max.mean])
+  if(nrow(dt1)==0)return(dt2)
+  if(nrow(dt2)==0)return(dt1)
   ## First we have to figure out which function starts out with a lower cost. 
   row1 <- dt1[1,]
   row2 <- dt2[1,]
@@ -180,6 +282,17 @@ MinEnvelope <- function(dt1, dt2){
   same.mat <-
     row1[, same.name.vec, with=FALSE] ==
     row2[, same.name.vec, with=FALSE]
+  ggplot()+
+    geom_line(aes(mean, cost, color=fun.i),
+              size=2,
+              data=data.table(getLines(dt1), fun.i=factor(1)))+
+    geom_line(aes(mean, cost, color=fun.i),
+              size=2,
+              data=data.table(getLines(dt2), fun.i=factor(2)))+
+    geom_line(aes(mean, cost),
+              data=getLines(row1))+
+    geom_line(aes(mean, cost),
+              data=getLines(row2))
   is.row2 <- if(all(same.mat)){
     ## if they start out the same, then pick whichever one has the
     ## lower cost after the smallest of the two max.mean values.
@@ -215,51 +328,98 @@ MinEnvelope <- function(dt1, dt2){
   }else{
     row2$min.mean < row1$min.mean 
   }
+  this.row <- if(is.row2)row2 else row1
+  other.row <- if(is.row2)row1 else row2
+  last.min.mean <- this.row$min.mean
   i1 <- 1
   i2 <- 1
   new.dt.list <- list()
   while(i1 <= nrow(dt1) && i2 <= nrow(dt2)){
     row1 <- dt1[i1,]
     row2 <- dt2[i2,]
+    this.row <- if(is.row2)row2 else row1
+    other.row <- if(is.row2)row1 else row2
     row.diff <- row1-row2
+    row.diff$min.mean <- min(row1$min.mean, row2$min.mean)
+    row.diff$max.mean <- max(row1$max.mean, row2$max.mean)
+    ggplot()+
+      theme_bw()+
+      theme(panel.margin=grid::unit(0, "lines"))+
+      facet_grid(y ~ ., scales="free")+
+      geom_line(aes(mean, cost, color=fun.i),
+                data.table(getLines(row1),fun.i=factor(1),y="cost"))+
+      geom_line(aes(mean, cost, color=fun.i),
+                data.table(getLines(row2),fun.i=factor(2),y="cost"))+
+      geom_line(aes(mean, cost),
+                data.table(getLines(row.diff),y="diff"))
     discriminant <- row.diff[, linear^2 - 4*quadratic*constant]
-    numerator <- -row.diff$linear + c(-1,1)*sqrt(discriminant)
-    denominator <- 2*row.diff$quadratic
-    mean.at.equal.cost <- numerator/denominator
-    slope.at.equal.cost <- row.diff[, 2*mean.at.equal.cost*quadratic + linear]
-    ## If the slope is negative, then row2 is minimal on the left and
-    ## row1 is optimal on the right (and vice versa).
-    in.row1 <-
-      row1$min.mean < mean.at.equal.cost &
-      mean.at.equal.cost < row1$max.mean
-    in.row2 <-
-      row2$min.mean < mean.at.equal.cost &
-      mean.at.equal.cost < row2$max.mean
-    in.both <- in.row1 & in.row2
-    cross.dt <- data.table(
-      mean=mean.at.equal.cost,
-      slope=slope.at.equal.cost)[in.both,]
-    new.dt.list[[paste(i1, i2)]] <- if(nrow(cross.dt)==0){
-      ## No crossing points, so use current.
-      if(is.row2)row2 else row1
-    }else if(nrow(cross.dt)==1){
-      r <- if(is.row2)rbind(row2,row1) else rbind(row1,row2)
-      r$max.mean[1] <- r$min.mean[2] <- cross.dt$mean
-      r
-    }else if(nrow(cross.dt)==2){
-      r <- if(is.row2)rbind(row2,row1,row2) else rbind(row1,row2,row1)
-      r$max.mean[1:2] <- cross.dt$mean
-      r$min.mean[2:3] <- cross.dt$mean
-    }else stop("more than two crossing points")
-    this.max <- if(row1$max.mean < row2$max.mean){
-      row1$max.mean
+    cross.dt <- if(0 < discriminant){
+      numerator <- -row.diff$linear + c(-1,1)*sqrt(discriminant)
+      denominator <- 2*row.diff$quadratic
+      mean.at.equal.cost <- numerator/denominator
+      slope.at.equal.cost <- row.diff[, 2*mean.at.equal.cost*quadratic + linear]
+      ## If the slope is negative, then row2 is minimal on the left and
+      ## row1 is optimal on the right (and vice versa).
+      in.row1 <-
+        row1$min.mean < mean.at.equal.cost &
+        mean.at.equal.cost < row1$max.mean
+      in.row2 <-
+        row2$min.mean < mean.at.equal.cost &
+        mean.at.equal.cost < row2$max.mean
+      in.both <- in.row1 & in.row2
+      data.table(
+        mean=mean.at.equal.cost,
+        slope=slope.at.equal.cost)[in.both,]
     }else{
-      row2$max.mean
+      ## one or no intersection points, so one function is always above
+      ## the other.
+      data.table()
     }
-    if(row1$max.mean == this.max)i1 <- i1+1
-    if(row2$max.mean == this.max)i2 <- i2+1
+    if(nrow(cross.dt)==1){
+      before.cross <- this.row
+      before.cross$min.mean <- last.min.mean
+      before.cross$max.mean <- cross.dt$mean
+      last.min.mean <- cross.dt$mean
+      new.dt.list[[paste(i1, i2, "cross")]] <- before.cross
+      is.row2 <- !is.row2
+      tmp.row <- this.row
+      this.row <- other.row
+      other.row <- tmp.row
+    }else if(nrow(cross.dt)==2){
+      r <- rbind(this.row, other.row)
+      r$max.mean <- cross.dt$mean
+      r$min.mean <- c(last.min.mean, cross.dt$mean[1])
+      new.dt.list[[paste(i1, i2, "cross")]] <- r
+      last.min.mean <- cross.dt$mean[2]
+    }
+    if(this.row$max.mean < other.row$max.mean){
+      ## this function piece stops but the other function continues to
+      ## a larger mean, so store it and move on to the next piece of
+      ## this function.
+      r <- this.row
+      r$min.mean <- last.min.mean
+      new.dt.list[[paste(i1,i2)]] <- r
+      last.min.mean <- this.row$max.mean
+      if(is.row2){
+        i2 <- i2+1
+      }else{
+        i1 <- i1+1
+      }
+    }else{
+      ## this function piece continues to a larger mean.
+      if(is.row2){
+        i1 <- i1+1
+      }else{
+        i2 <- i2+1
+      }
+    }
   }
-  do.call(rbind, new.dt.list)
+  this.row$min.mean <- last.min.mean
+  new.dt.list[["last"]] <- this.row
+  new.dt <- do.call(rbind, new.dt.list)
+  browser(expr=any(table(new.dt$min.mean)>1))
+  browser(expr=any(table(new.dt$max.mean)>1))
+  new.dt
 }
 
 all.cost.models <- list()
@@ -299,9 +459,15 @@ for(data.name in names(data.list)){
         compare.cost$data.i <- timestep-1
         cost.minima <- Minimize(cost.model)
         compare.minima <- Minimize(compare.cost)
+        if(nrow(compare.cost)){
+          cost.lines.list[[
+            paste(data.name, min.type, n.segments, timestep, "compare")]] <-
+            data.table(data.name, min.type, n.segments, timestep,
+                       getLines(compare.cost))
+        }
         cost.lines.list[[paste(data.name, min.type, n.segments, timestep)]] <-
-          data.table(data.name, min.type, n.segments, timestep, rbind(
-            getLines(cost.model), getLines(compare.cost)))
+          data.table(data.name, min.type, n.segments, timestep,
+                     getLines(cost.model))
         one.env <- MinEnvelope(compare.cost, cost.model)
         envelope.list[[paste(data.name, min.type, n.segments, timestep)]] <-
           data.table(data.name, min.type, n.segments, timestep,
@@ -337,7 +503,7 @@ ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
   facet_grid(data.name + min.type ~ timestep + n.segments, scales="free")+
-  ##coord_cartesian(xlim=c(10,14), ylim=c(0,10))+
+  coord_cartesian(xlim=c(1,14), ylim=c(0,40))+
   scale_color_manual(values=break.colors)+
   geom_line(aes(mean, cost, group=data.i.fac),
             color="grey",
