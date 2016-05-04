@@ -189,11 +189,21 @@ for(test.case.name in names(less.more.test.list)){
   }
 }
 
-Minimize <- function(dt){
-  dt$min.cost.mean <- getMinMean(dt)
-  dt$min.cost <- quad(dt, dt$min.cost.mean)
-  dt[is.finite(min.cost.mean) &
-       min.mean <= min.cost.mean & min.cost.mean <= max.mean,]
+Minimize <- function(dt, from=min(dt$min.mean), to=max(dt$max.mean)){
+  stopifnot(from < to)
+  is.before <- dt$max.mean < from
+  is.after <- to < dt$min.mean
+  feasible <- dt[!(is.before | is.after),]
+  feasible$min.mean[1] <- from
+  feasible$max.mean[nrow(feasible)] <- to
+  feasible$quad.min.mean <- getMinMean(feasible)
+  feasible[, min.cost.mean := ifelse(
+    quad.min.mean < min.mean, min.mean,
+    ifelse(max.mean < quad.min.mean,
+           max.mean,
+           quad.min.mean))]
+  feasible[, min.cost := quad(feasible, min.cost.mean)]
+  feasible[min.cost==min(min.cost),]
 }
 
 MinEnvelope <- function(dt1, dt2){
@@ -353,6 +363,7 @@ cost.lines.list <- list()
 minima.list <- list()
 envelope.list <- list()
 data.vec <- -subset(intreg$signals, signal=="4.2")$logratio[80:200]
+data.vec <- data.vec[1:5]
 min.mean <- min(data.vec)
 max.mean <- max(data.vec)
 gamma.dt <- data.table(
@@ -386,22 +397,36 @@ for(n.segments in 2:max.segments){
     compare.cost$data.i <- timestep-1
     cost.minima <- Minimize(cost.model)
     compare.minima <- Minimize(compare.cost)
+    gg <- ggplot()+
+      ggtitle(paste(n.segments, "segments,", timestep, "data points"))
     if(nrow(compare.cost)){
       cost.lines.list[[
         paste(n.segments, timestep, "compare")]] <-
         data.table(n.segments, timestep,
                    compare.cost.lines <- getLines(compare.cost))
+      gg <- gg+
+        geom_line(aes(mean, cost, color=factor(data.i)),
+                  compare.cost.lines)
     }
     if(nrow(cost.model)){ # may be Inf over entire interval.
       cost.lines.list[[paste(n.segments, timestep)]] <-
         data.table(n.segments, timestep,
                    cost.model.lines <- getLines(cost.model))
+      gg <- gg+
+        geom_line(aes(mean, cost, color=factor(data.i)),
+                  cost.model.lines)
     }
     one.env <- MinEnvelope(compare.cost, cost.model)
     if(nrow(one.env)){
       envelope.list[[paste(n.segments, timestep)]] <-
         data.table(n.segments, timestep,
                    env.lines <- getLines(one.env))
+      gg <- gg+
+        geom_line(aes(mean, cost),
+                  env.lines,
+                  color="grey",
+                  size=2,
+                  alpha=0.5)
     }
     if(nrow(cost.minima)){
       minima.list[[paste(n.segments, timestep)]] <-
@@ -411,17 +436,6 @@ for(n.segments in 2:max.segments){
     ## Now that we are done with this step, we can perform the
     ## recursion by setting the new model of the cost to the min
     ## envelope, plus a new data point.
-    ggplot()+
-      theme_bw()+
-      theme(panel.margin=grid::unit(0, "lines"))+
-      geom_line(aes(mean, cost),
-                color="grey",
-                size=2,
-                data=env.lines)+
-      geom_line(aes(mean, cost, color=factor(data.i)),
-                data=cost.model.lines)+
-      geom_line(aes(mean, cost, color=factor(data.i)),
-                data=compare.cost.lines)
     cost.model <- AddFuns(one.env, gamma.dt[timestep,])
     cost.models.list[[paste(n.segments, timestep)]] <- cost.model
   }#for(timestep
@@ -433,10 +447,11 @@ minima[, data.i.fac := factor(data.i)]
 envelope <- do.call(rbind, envelope.list)
 envelope[, data.i.fac := factor(data.i)]
 
+## TODO: fix min envelope computation for data point 5!
 gg.pruning <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
-  facet_grid(min.type ~ timestep + n.segments, scales="free",
+  facet_grid(timestep ~ n.segments, scales="free",
              labeller=function(var, val){
                if(var %in% c("n.segments", "timestep")){
                  paste(var, "=", val)
@@ -452,9 +467,7 @@ gg.pruning <- ggplot()+
             data=cost.lines)+
   geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
              data=minima)
-pdf("figure-constrained-PDPA-normal-panels-pruning.pdf")
 print(gg.pruning)
-dev.off()
 
 data.lines.list <- list()
 data.minima.list <- list()
