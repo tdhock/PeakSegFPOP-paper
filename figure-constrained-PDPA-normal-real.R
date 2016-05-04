@@ -203,7 +203,7 @@ Minimize <- function(dt, from=min(dt$min.mean), to=max(dt$max.mean)){
            max.mean,
            quad.min.mean))]
   feasible[, min.cost := quad(feasible, min.cost.mean)]
-  feasible[min.cost==min(min.cost),]
+  feasible[which.min(min.cost),]
 }
 
 MinEnvelope <- function(dt1, dt2){
@@ -249,17 +249,20 @@ MinEnvelope <- function(dt1, dt2){
     ## They could also be different functions that start at the same
     ## min.mean.
     m <- row1$min.mean
-    row1.cost <- quad(row1, m)
-    row2.cost <- quad(row2, m)
-    if(row1.cost == row2.cost){
+    row.diff <- row1-row2
+    cost.diff <- quad(row.diff, m)
+    if(cost.diff==0){
       ## If the different functions have the same value at min.mean,
       ## then look at the derivative to determine which one to start
       ## with.
-      row.diff <- row1-row2
-      slope <- row.diff[, 2*min.mean*quadratic + linear]
-      slope < 0
+      slope <- row.diff[, 2*m*quadratic + linear]
+      if(slope==0){
+        0 < row.diff[, 2*quadratic] #hessian/2nd derivative.
+      }else{
+        0 < slope
+      }
     }else{
-      row2.cost < row1.cost
+      0 < cost.diff
     }
   }else{
     row2$min.mean < row1$min.mean 
@@ -358,12 +361,40 @@ MinEnvelope <- function(dt1, dt2){
   new.dt
 }
 
+## A test case for MinEnvelope:
+result <- data.table(
+  quadratic = c(3, 2, 1),
+  linear = c(0.0757353883540654, -0.0842153650871264, -0.132854723477952),
+  constant = c(0.0114001020653698, 0.00507885284652773, 0.00703123698800913),
+  min.mean = c(-0.0922074380970889, -0.0713260031733877, 0.026116725688849),
+  max.mean = c(-0.0713260031733877, 0.026116725688849, 0.0954195650786824),
+  data.i = c(1, 2, 3))
+min.env.test.list <- list(not.quasiconvex=list(
+  input=list(
+    data.table(
+      quadratic = c(4, 0),
+      linear = c(0.260150264548243, 0),
+      constant = c(0.0199023137057983, 0.0156724286967657),
+      min.mean = c(-0.0922074380970889, -0.0325187830685304),
+      max.mean = c(-0.0325187830685304, 0.0954195650786824),
+      data.i = c(4, 4)),
+    result),
+  output=result))
+## MinEnvelope(dt1, dt2) should give dt2!
+for(min.env.test.name in names(min.env.test.list)){
+  test <- min.env.test.list[[min.env.test.name]]
+  computed <- do.call(MinEnvelope, test$input)
+  test$output ##TODO
+}
+
 all.cost.models <- list()
 cost.lines.list <- list()
 minima.list <- list()
 envelope.list <- list()
 data.vec <- -subset(intreg$signals, signal=="4.2")$logratio[80:200]
-data.vec <- data.vec[1:5]
+## TODO: increase the number of data points and see where the bug is
+## coming from.
+data.vec <- data.vec[1:20]
 min.mean <- min(data.vec)
 max.mean <- max(data.vec)
 gamma.dt <- data.table(
@@ -378,7 +409,7 @@ cost.models.list <- list()
 for(data.i in 1:nrow(C1.dt)){
   cost.models.list[[paste(1, data.i)]] <- C1.dt[data.i,]
 }
-max.segments <- 3
+max.segments <- 2
 for(n.segments in 2:max.segments){
   prev.cost.model <- cost.models.list[[paste(n.segments-1, n.segments-1)]]
   min.fun.name <- ifelse(n.segments %% 2, "more", "less")
@@ -416,7 +447,8 @@ for(n.segments in 2:max.segments){
         geom_line(aes(mean, cost, color=factor(data.i)),
                   cost.model.lines)
     }
-    one.env <- MinEnvelope(compare.cost, cost.model)
+    one.env <-
+      MinEnvelope(compare.cost, cost.model)
     if(nrow(one.env)){
       envelope.list[[paste(n.segments, timestep)]] <-
         data.table(n.segments, timestep,
@@ -505,6 +537,9 @@ for(total.segments in 1:max.segments){
                      show.lines)
       }
       min.dt <- Minimize(unconstrained.fun)
+      ggplot()+
+        geom_line(aes(mean, cost, color=factor(data.i)),
+                  data=getLines(unconstrained.fun))
       min.dt$segment.end <- segment.end
       min.dt[, segment.start := ifelse(seg.i==1, 1, 1+data.i)]
       segment.end <- min.dt$data.i
@@ -649,14 +684,18 @@ viz <- list(
                data=addY(data.intervals[total.segments==2,],"intervals"))+
     geom_tile(aes(timestep, total.segments, fill=optimal.cost,
                   clickSelects=minimization),
-              data=addY(data.cost, "segments"))+
+              data=addY(data.cost, "segments"))
+)
+active <- data.cost[constraint=="active",]
+if(nrow(active)){
+  viz$data <- viz$data+
     geom_point(aes(timestep, total.segments, 
                    clickSelects=minimization),
                shape=21,
                color="black",
                fill="white",
-               data=addY(data.cost[constraint=="active",], "segments"))
-)
+               data=addY(active, "segments"))
+}
 animint2dir(viz, "figure-constrained-PDPA-normal-real")
 
 intervalsPlot <- ggplot()+
