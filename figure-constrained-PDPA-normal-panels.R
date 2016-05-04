@@ -3,7 +3,10 @@ source("packages.R")
 ## The first comparison is C12< versus C11<+gamma_2
 data.list <- list(
   "1,10,14,13"=c(1, 10, 14, 13),
-  "13,14,10,1"=c(13, 14, 10, 1))
+  ## "13,14,10,1"=c(13, 14, 10, 1),
+  ## "1,2,14,3"=c(1,2,9,3),
+  ## "1,2,10,14"=c(1,2,10,14),
+  "14,10,2,1"=c(14,10,2,1))
 ## TODO add another data set.
 
 quad <- function(dt, x){
@@ -26,6 +29,8 @@ getMinMean <- function(dt){
   dt[, -linear/(2*quadratic)]
 }
 AddFuns <- function(dt1, dt2){
+  if(nrow(dt1)==0)return(dt1)
+  if(nrow(dt2)==0)return(dt2)
   ## NOTE asymmetrey of dt1 and dt2 -- dt1 is used for data.i
   i1 <- 1
   i2 <- 1
@@ -154,20 +159,20 @@ less.more.min.list <- list(
         }else Inf.dt
       },
       more=function(dt){
-        if(1 < nrow(dt)){
-          stop("TODO implement more general less min computation")
-        }
         mu <- getMinMean(dt)
-        if(dt$min.mean < mu & mu <= dt$max.mean){
-          cost <- quad(dt, mu)
+        mu.inside <- dt[min.mean < mu & mu <= max.mean,]
+        if(nrow(mu.inside)==1){
+          cost <- quad(mu.inside, mu)
           data.table(
             quadratic=0,
             linear=0,
             constant=cost,
             min.mean,
             max.mean=mu,
-            data.i=dt$data.i)
-        }else Inf.dt
+            data.i=mu.inside$data.i)
+        }else if(nrow(mu.inside)==0){
+          Inf.dt
+        }else stop(nrow(mu.inside), " rows unexpected")
       }))
 less.more.test.list <- list(
   C22backward=list(input=data.table(
@@ -489,13 +494,17 @@ for(data.name in names(data.list)){
             data.table(data.name, min.type, n.segments, timestep,
                        getLines(compare.cost))
         }
-        cost.lines.list[[paste(data.name, min.type, n.segments, timestep)]] <-
-          data.table(data.name, min.type, n.segments, timestep,
-                     getLines(cost.model))
+        if(nrow(cost.model)){ # may be Inf over entire interval.
+          cost.lines.list[[paste(data.name, min.type, n.segments, timestep)]] <-
+            data.table(data.name, min.type, n.segments, timestep,
+                       getLines(cost.model))
+        }
         one.env <- MinEnvelope(compare.cost, cost.model)
-        envelope.list[[paste(data.name, min.type, n.segments, timestep)]] <-
-          data.table(data.name, min.type, n.segments, timestep,
-                     getLines(one.env))
+        if(nrow(one.env)){
+          envelope.list[[paste(data.name, min.type, n.segments, timestep)]] <-
+            data.table(data.name, min.type, n.segments, timestep,
+                       getLines(one.env))
+        }
         if(nrow(cost.minima)){
           minima.list[[paste(data.name, min.type, n.segments, timestep)]] <-
             data.table(data.name, min.type, n.segments, timestep, rbind(
@@ -578,11 +587,14 @@ for(data.name in names(all.cost.models)){
         while(0 < seg.i && length(data.i)==1){
           unconstrained.fun <- models.by.pos[[paste(seg.i, data.i)]]
           ##constrained.fun <- AddFuns(unconstrained.fun, constraint)
-          show.lines <- getLines(unconstrained.fun)
-          if(seg.i>1)show.lines$data.i <- show.lines$data.i+1L
-          data.lines.list[[paste(min.type, total.segments, timestep, seg.i)]] <-
-            data.table(min.type, total.segments, timestep, seg.i,
-                       show.lines)
+          if(nrow(unconstrained.fun)){
+            show.lines <- getLines(unconstrained.fun)
+            if(seg.i>1)show.lines$data.i <- show.lines$data.i+1L
+            data.lines.list[[paste(
+              min.type, total.segments, timestep, seg.i)]] <-
+              data.table(min.type, total.segments, timestep, seg.i,
+                         show.lines)
+          }
           min.dt <- Minimize(unconstrained.fun)
           min.dt$constraint <- "inactive"
           min.dt$segment.end <- segment.end
@@ -651,8 +663,10 @@ for(data.name in names(all.cost.models)){
         all.cost.minima.list[[paste(data.name, min.type, pos)]] <-
           data.table(data.name, min.type, pos, min.dt)
       }
-      all.cost.lines.list[[paste(data.name, min.type, pos)]] <-
-        data.table(data.name, min.type, pos, getLines(fun.dt))
+      if(nrow(fun.dt)){
+        all.cost.lines.list[[paste(data.name, min.type, pos)]] <-
+          data.table(data.name, min.type, pos, getLines(fun.dt))
+      }
     }
   }#for(min.type
   data.lines <- do.call(rbind, data.lines.list)
