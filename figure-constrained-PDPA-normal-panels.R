@@ -532,9 +532,11 @@ envelope[, data.i.fac := factor(data.i)]
 break.colors <- c("1"="#E41A1C",
   "2"="#377EB8",
   "#4DAF4A",
-  "3"="#984EA3",
-  "4"="#FF7F00", "#FFFF33", 
-  "#A65628", "#F781BF", "#999999")
+  "4"="#984EA3", #purple
+  "3"="#FF7F00", #orange
+  "#FFFF33", 
+  "#A65628", "#F781BF", "#999999",
+  "0"="black")
 gg.pruning <- ggplot()+
   ggtitle("Three pruning steps")+
   theme_bw()+
@@ -590,7 +592,8 @@ for(data.name in names(all.cost.models)){
           unconstrained.fun <- models.by.pos[[paste(seg.i, data.i)]]
           if(nrow(unconstrained.fun)){
             show.lines <- getLines(unconstrained.fun)
-            if(seg.i>1)show.lines$data.i <- show.lines$data.i+1L
+            ##if(seg.i>1)show.lines$data.i <- show.lines$data.i+1L
+            if(seg.i==1)show.lines$data.i <- 0
             data.lines.list[[paste(
               min.type, total.segments, timestep, seg.i)]] <-
               data.table(min.type, total.segments, timestep, seg.i,
@@ -633,7 +636,8 @@ for(data.name in names(all.cost.models)){
             show.min <- data.table(
               min.type, total.segments, timestep, seg.i,
               min.dt)
-            if(seg.i>1)show.min$data.i <- show.min$data.i+1L
+            ##if(seg.i>1)show.min$data.i <- show.min$data.i+1L
+            if(seg.i==1)show.min$data.i <- 0
             data.minima.list[[paste(
               min.type, total.segments, timestep, seg.i)]] <-
               show.min
@@ -721,7 +725,7 @@ for(data.name in names(all.cost.models)){
         }
       })+
       scale_x_continuous("segment mean", breaks=c(1, 5, 10, 14))+
-      scale_color_manual("change before", values=break.colors)+
+      scale_color_manual("change", values=break.colors)+
       geom_tallrect(aes(xmin=min.mean, xmax=max.mean,
                         showSelected=minimization),
                     fill="grey",
@@ -794,6 +798,7 @@ for(data.name in names(all.cost.models)){
   animint2dir(viz, fig.dir)
   ##animint2gist(viz)
 }
+
 all.cost.lines <- do.call(rbind, all.cost.lines.list)
 all.cost.lines[, data.i.fac := factor(data.i)]
 all.cost.minima <- do.call(rbind, all.cost.minima.list)
