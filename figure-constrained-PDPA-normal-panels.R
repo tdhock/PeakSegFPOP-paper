@@ -468,7 +468,7 @@ for(data.name in names(data.list)){
   C1.dt <- cumsum(gamma.dt)
   gamma.dt$min.mean <- C1.dt$min.mean <- min.mean
   gamma.dt$max.mean <- C1.dt$max.mean <- max.mean
-  gamma.dt$data.i <- C1.dt$data.i <- seq_along(data.vec)
+  gamma.dt$data.i <- C1.dt$data.i <- 0
   cost.models.list <- list()
   for(data.i in 1:nrow(C1.dt)){
     cost.models.list[[paste(1, data.i)]] <- C1.dt[data.i,]
@@ -536,7 +536,7 @@ break.colors <- c("1"="#E41A1C",
   "3"="#FF7F00", #orange
   "#FFFF33", 
   "#A65628", "#F781BF", "#999999",
-  "0"="black")
+  "0"="grey")
 gg.pruning <- ggplot()+
   ggtitle("Three pruning steps")+
   theme_bw()+
@@ -694,6 +694,7 @@ for(data.name in names(all.cost.models)){
     scale_color_manual(values=break.colors)+
     geom_tallrect(aes(xmin=min.mean, xmax=max.mean),
                   fill="grey",
+                  alpha=0.5,
                   data=data.infeasible)+
     geom_line(aes(mean, cost, color=data.i.fac),
               data=data.lines)+
@@ -729,6 +730,7 @@ for(data.name in names(all.cost.models)){
       geom_tallrect(aes(xmin=min.mean, xmax=max.mean,
                         showSelected=minimization),
                     fill="grey",
+                    alpha=0.5,
                     color=NA,
                     data=data.infeasible)+
       geom_line(aes(mean, cost, color=data.i.fac,
