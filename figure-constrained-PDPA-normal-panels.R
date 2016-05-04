@@ -1,13 +1,15 @@
 source("packages.R")
 
-## The first comparison is C12< versus C11<+gamma_2
+options(warn=2)
+
+## In this script we assume the global min is 1 and the global max is
+## 14 so make sure to respect that in the data set declarations below.
 data.list <- list(
   "1,10,14,13"=c(1, 10, 14, 13),
-  ## "13,14,10,1"=c(13, 14, 10, 1),
-  ## "1,2,14,3"=c(1,2,9,3),
-  ## "1,2,10,14"=c(1,2,10,14),
+  "13,14,10,1"=c(13, 14, 10, 1),
+  "1,2,14,3"=c(1,2,9,3),
+  "1,2,10,14"=c(1,2,10,14),
   "14,10,2,1"=c(14,10,2,1))
-## TODO add another data set.
 
 quad <- function(dt, x){
   dt[, quadratic*x*x + linear*x + constant]
@@ -586,7 +588,6 @@ for(data.name in names(all.cost.models)){
         segment.end <- timestep
         while(0 < seg.i && length(data.i)==1){
           unconstrained.fun <- models.by.pos[[paste(seg.i, data.i)]]
-          ##constrained.fun <- AddFuns(unconstrained.fun, constraint)
           if(nrow(unconstrained.fun)){
             show.lines <- getLines(unconstrained.fun)
             if(seg.i>1)show.lines$data.i <- show.lines$data.i+1L
@@ -618,18 +619,17 @@ for(data.name in names(all.cost.models)){
           }else{
             if(min.dt$min.cost.mean < constraint$min.mean){
               min.dt$min.cost.mean <- constraint$min.mean
-              min.dt$min.cost <- quad(unconstrained.fun, min.dt$min.cost.mean)
-              data.cost.list[[paste(
-                min.type, total.segments, timestep)]]$constraint <- "active"
-              min.dt$constraint <- "active"
             }
             if(constraint$max.mean < min.dt$min.cost.mean){
               min.dt$min.cost.mean <- constraint$max.mean
-              min.dt$min.cost <- quad(unconstrained.fun, min.dt$min.cost.mean)
-              data.cost.list[[paste(
-                min.type, total.segments, timestep)]]$constraint <- "active"
-              min.dt$constraint <- "active"
             }
+            constrained.fun <- unconstrained.fun[
+              min.mean <= min.dt$min.cost.mean &
+                min.dt$min.cost.mean <= max.mean,]
+            min.dt$min.cost <- quad(constrained.fun, min.dt$min.cost.mean)
+            data.cost.list[[paste(
+              min.type, total.segments, timestep)]]$constraint <- "active"
+            min.dt$constraint <- "active"
             show.min <- data.table(
               min.type, total.segments, timestep, seg.i,
               min.dt)
@@ -707,9 +707,8 @@ for(data.name in names(all.cost.models)){
     data.i.fac=factor(seq_along(data.vec)))
   viz <- list(
     title=paste(
-      "Constrained Pruned Dynamic Programming Algorithm",
-      "for data",
-      data.name),
+      data.name,
+      "Constrained Pruned Dynamic Programming Algorithm"),
     funModels=ggplot()+
       theme_bw()+
       theme(panel.margin=grid::unit(0, "lines"))+
@@ -793,6 +792,7 @@ for(data.name in names(all.cost.models)){
   )
   fig.dir <- paste0("figure-constrained-PDPA-normal-", data.name)
   animint2dir(viz, fig.dir)
+  ##animint2gist(viz)
 }
 all.cost.lines <- do.call(rbind, all.cost.lines.list)
 all.cost.lines[, data.i.fac := factor(data.i)]
