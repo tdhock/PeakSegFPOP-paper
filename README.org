@@ -2,3 +2,14 @@ The goal of this paper is to implement a fast algorithm for solving
 the PeakSeg problem described in
 http://jmlr.org/proceedings/papers/v37/hocking15.html
 
+** 4 May 2016
+
+- [[file:figure-constrained-PDPA-normal-panels.R]] implements the
+  constrained PDPA algo with two kinds of min-less/min-more operators,
+  inspired by two kinds of inequality constraints (strict and
+  not). Visualization of running the algos up to 3 segments on 5 data
+  sets with 4 data points each:
+  [[http://bl.ocks.org/tdhock/raw/e924d180dda5d0cd1da8e8f556e741b7/]]
+- [[file:figure-unconstrained-PDPA-normal.R]] implements the unconstrained
+  PDPA and visualizes the functional cost model and pruning
+  [[http://cbio.ensmp.fr/~thocking/figure-unconstrained-PDPA-normal-big/]]

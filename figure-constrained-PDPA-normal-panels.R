@@ -565,13 +565,14 @@ dev.off()
 
 all.cost.lines.list <- list()
 all.cost.minima.list <- list()
+data.lines.list <- list()
+data.minima.list <- list()
+data.infeasible.list <- list()
+data.cost.list <- list()
+data.points.list <- list()
 for(data.name in names(all.cost.models)){
   models.by.type <- all.cost.models[[data.name]]
   data.vec <- data.list[[data.name]]
-  data.lines.list <- list()
-  data.minima.list <- list()
-  data.infeasible.list <- list()
-  data.cost.list <- list()
   for(min.type in names(models.by.type)){
     models.by.pos <- models.by.type[[min.type]]
     ## for animint:
@@ -595,51 +596,54 @@ for(data.name in names(all.cost.models)){
             ##if(seg.i>1)show.lines$data.i <- show.lines$data.i+1L
             if(seg.i==1)show.lines$data.i <- 0
             data.lines.list[[paste(
-              min.type, total.segments, timestep, seg.i)]] <-
-              data.table(min.type, total.segments, timestep, seg.i,
+              data.name, min.type, total.segments, timestep, seg.i)]] <-
+              data.table(data.name, min.type, total.segments, timestep, seg.i,
                          show.lines)
           }
           min.dt <- Minimize(unconstrained.fun)
-          min.dt$constraint <- "inactive"
           min.dt$segment.end <- segment.end
           min.dt[, segment.start := ifelse(seg.i==1, 1, 1+data.i)]
           segment.end <- min.dt$data.i
           if(min.mean < constraint$min.mean){
             data.infeasible.list[[paste(
-              min.type, total.segments, timestep, seg.i)]] <-
-              data.table(min.type, total.segments, timestep, seg.i,
+              data.name, min.type, total.segments, timestep, seg.i)]] <-
+              data.table(data.name, min.type, total.segments, timestep, seg.i,
                          min.mean, max.mean=constraint$min.mean)
           }
           if(constraint$max.mean < max.mean){
             data.infeasible.list[[paste(
-              min.type, total.segments, timestep, seg.i)]] <-
-              data.table(min.type, total.segments, timestep, seg.i,
+              data.name, min.type, total.segments, timestep, seg.i)]] <-
+              data.table(data.name, min.type, total.segments, timestep, seg.i,
                          min.mean=constraint$max.mean,
                          max.mean)
           }
           optimal.cost <- if(nrow(min.dt)==0){
             Inf
           }else{
+            constraint.status <- "inactive"
             if(min.dt$min.cost.mean < constraint$min.mean){
               min.dt$min.cost.mean <- constraint$min.mean
+              constraint.status <- "active"
             }
             if(constraint$max.mean < min.dt$min.cost.mean){
               min.dt$min.cost.mean <- constraint$max.mean
+              constraint.status <- "active"
             }
             constrained.fun <- unconstrained.fun[
               min.mean <= min.dt$min.cost.mean &
                 min.dt$min.cost.mean <= max.mean,]
             min.dt$min.cost <- quad(constrained.fun, min.dt$min.cost.mean)
             data.cost.list[[paste(
-              min.type, total.segments, timestep)]]$constraint <- "active"
-            min.dt$constraint <- "active"
+              data.name, min.type,
+              total.segments, timestep)]]$constraint <- constraint.status
+            min.dt$constraint <- constraint.status
             show.min <- data.table(
-              min.type, total.segments, timestep, seg.i,
+              data.name, min.type, total.segments, timestep, seg.i,
               min.dt)
             ##if(seg.i>1)show.min$data.i <- show.min$data.i+1L
             if(seg.i==1)show.min$data.i <- 0
             data.minima.list[[paste(
-              min.type, total.segments, timestep, seg.i)]] <-
+              data.name, min.type, total.segments, timestep, seg.i)]] <-
               show.min
             constraint <- no.constraint
             constraint.side <- if(seg.i %% 2){
@@ -650,8 +654,10 @@ for(data.name in names(all.cost.models)){
             min.dt$min.cost
           }
           if(seg.i==total.segments){
-            data.cost.list[[paste(min.type, total.segments, timestep)]] <-
-              data.table(min.type, total.segments, timestep, optimal.cost,
+            data.cost.list[[paste(
+              data.name, min.type, total.segments, timestep)]] <-
+              data.table(data.name,
+                         min.type, total.segments, timestep, optimal.cost,
                          constraint="inactive")
           }
           data.i <- min.dt$data.i
@@ -673,133 +679,267 @@ for(data.name in names(all.cost.models)){
       }
     }
   }#for(min.type
-  data.lines <- do.call(rbind, data.lines.list)
-  data.lines[, data.i.fac := factor(data.i)]
-  data.lines[, minimization := paste(
-    total.segments, "segments up to data point", timestep)]
-  data.minima <- do.call(rbind, data.minima.list)
-  data.minima[, data.i.fac := factor(data.i)]
-  data.minima[, minimization := paste(
-    total.segments, "segments up to data point", timestep)]
-  data.infeasible <- do.call(rbind, data.infeasible.list)
-  data.infeasible[, minimization := paste(
-    total.segments, "segments up to data point", timestep)]
-  data.cost <- do.call(rbind, data.cost.list)
-  data.cost[, minimization := paste(
-    total.segments, "segments up to data point", timestep)]
-  ggplot()+
+  ## data.lines <- do.call(rbind, data.lines.list)
+  ## data.lines[, data.i.fac := factor(data.i)]
+  ## data.lines[, minimization := paste(
+  ##   total.segments, "segments up to data point", timestep)]
+  ## data.minima <- do.call(rbind, data.minima.list)
+  ## data.minima[, data.i.fac := factor(data.i)]
+  ## data.minima[, minimization := paste(
+  ##   total.segments, "segments up to data point", timestep)]
+  ## data.infeasible <- do.call(rbind, data.infeasible.list)
+  ## data.infeasible[, minimization := paste(
+  ##   total.segments, "segments up to data point", timestep)]
+  ## data.cost <- do.call(rbind, data.cost.list)
+  ## data.cost[, minimization := paste(
+  ##   total.segments, "segments up to data point", timestep)]
+  ## ggplot()+
+  ##   theme_bw()+
+  ##   theme(panel.margin=grid::unit(0, "lines"))+
+  ##   facet_grid(total.segments + timestep + min.type ~ seg.i, scales="free")+
+  ##   scale_color_manual(values=break.colors)+
+  ##   geom_tallrect(aes(xmin=min.mean, xmax=max.mean),
+  ##                 fill="grey",
+  ##                 alpha=0.5,
+  ##                 data=data.infeasible)+
+  ##   geom_line(aes(mean, cost, color=data.i.fac),
+  ##             data=data.lines)+
+  ##   geom_point(aes(min.cost.mean, min.cost),
+  ##              size=4,
+  ##              shape=21,
+  ##              fill="white",
+  ##              color="black",
+  ##              data=data.minima[constraint=="active",])+
+  ##   geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
+  ##              data=data.minima)
+  data.dt <- data.table(
+    data.name,
+    count=data.vec,
+    position=seq_along(data.vec),
+    data.i.fac=factor(seq_along(data.vec)))
+  data.points.list[[data.name]] <- data.dt
+  ## viz <- list(
+  ##   title=paste(
+  ##     data.name,
+  ##     "Constrained Pruned Dynamic Programming Algorithm"),
+  ##   funModels=ggplot()+
+  ##     theme_bw()+
+  ##     theme(panel.margin=grid::unit(0, "lines"))+
+  ##     theme_animint(width=500, height=300)+
+  ##     facet_grid(min.type ~ seg.i, scales="free", labeller=function(var, val){
+  ##       if(var=="seg.i"){
+  ##         paste("segment", val)
+  ##       }else{
+  ##         paste(val, "inequality")
+  ##       }
+  ##     })+
+  ##     scale_x_continuous("segment mean", breaks=c(1, 5, 10, 14))+
+  ##     scale_color_manual("change", values=break.colors)+
+  ##     geom_tallrect(aes(xmin=min.mean, xmax=max.mean,
+  ##                       showSelected=minimization),
+  ##                   fill="grey",
+  ##                   alpha=0.5,
+  ##                   color=NA,
+  ##                   data=data.infeasible)+
+  ##     geom_line(aes(mean, cost, color=data.i.fac,
+  ##                   group=piece.i,
+  ##                   showSelected=minimization),
+  ##               data=data.lines)+
+  ##     geom_point(aes(min.cost.mean, min.cost,
+  ##                    showSelected2=constraint,
+  ##                    showSelected=minimization),
+  ##                size=5,
+  ##                shape=21,
+  ##                fill="white",
+  ##                color="black",
+  ##                data=data.minima[constraint=="active",])+
+  ##     geom_point(aes(min.cost.mean, min.cost, color=data.i.fac,
+  ##                    tooltip=paste(
+  ##                      "minimum cost =",
+  ##                      round(min.cost, 2),
+  ##                      "at mean =",
+  ##                      round(min.cost.mean, 2),
+  ##                      "for",
+  ##                      seg.i,
+  ##                      "segment model up to data point",
+  ##                      timestep
+  ##                    ),
+  ##                    showSelected=minimization),
+  ##                size=4,
+  ##                data=data.minima)+
+  ##     coord_cartesian(xlim=c(-1, 16), ylim=c(-5,190)),
+  ##   data=ggplot()+
+  ##     theme_bw()+
+  ##     theme_animint(width=150, height=300)+
+  ##     theme(panel.margin=grid::unit(0, "lines"))+
+  ##     facet_grid(min.type ~ ., scales="free", labeller=function(var, val){
+  ##       paste(val, "inequality")
+  ##     })+
+  ##     scale_color_manual(values=break.colors)+
+  ##     geom_point(aes(position, count, color=data.i.fac,
+  ##                    showSelected=data.i.fac),
+  ##                size=5,
+  ##                data=data.dt)+
+  ##     geom_segment(aes(segment.start-0.5, min.cost.mean,
+  ##                      showSelected=minimization,
+  ##                      xend=segment.end+0.5, yend=min.cost.mean),
+  ##                  data=data.minima,
+  ##                  color="green")+
+  ##     guides(color="none"),
+  ##   costMat=ggplot()+
+  ##     theme_bw()+
+  ##     theme(panel.margin=grid::unit(0, "lines"))+
+  ##     theme_animint(width=210, height=300)+
+  ##     ##coord_equal()+
+  ##     facet_grid(min.type ~ ., scales="free", labeller=function(var, val){
+  ##       paste(val, "inequality")
+  ##     })+
+  ##     geom_tile(aes(timestep, total.segments, fill=optimal.cost,
+  ##                   clickSelects=minimization),
+  ##               data=data.cost)+
+  ##     scale_color_manual(values=c(active="black"))+
+  ##     geom_point(aes(timestep, total.segments, color=constraint,
+  ##                    clickSelects=minimization),
+  ##                shape=21,
+  ##                size=5,
+  ##                fill="white",
+  ##                data=data.cost[constraint=="active",])
+  ## )
+  ## fig.dir <- paste0("figure-constrained-PDPA-normal-", data.name)
+  ## animint2dir(viz, fig.dir)
+  ##animint2gist(viz)
+}
+data.lines <- do.call(rbind, data.lines.list)
+data.lines[, data.i.fac := factor(data.i)]
+data.lines[, minimization := paste(
+  total.segments, "segments up to data point", timestep)]
+data.minima <- do.call(rbind, data.minima.list)
+data.minima[, data.i.fac := factor(data.i)]
+data.minima[, minimization := paste(
+  total.segments, "segments up to data point", timestep)]
+data.infeasible <- do.call(rbind, data.infeasible.list)
+data.infeasible[, minimization := paste(
+  total.segments, "segments up to data point", timestep)]
+data.cost <- do.call(rbind, data.cost.list)
+data.cost[, minimization := paste(
+  total.segments, "segments up to data point", timestep)]
+data.points <- do.call(rbind, data.points.list)
+summary.wide <- data.cost[, list(
+  constraints.active=sum(constraint=="active"),
+  infinite.cost=sum(!is.finite(optimal.cost))
+), by=data.name]
+data.name.levels <-
+  summary.wide[order(constraints.active, infinite.cost), data.name]
+summary.tall <- melt(summary.wide, id.vars="data.name")
+summary.tall[, data.name.fac := factor(data.name, data.name.levels)]
+viz <- list(
+  title=paste(
+    data.name,
+    "Constrained Pruned Dynamic Programming Algorithm"),
+  funModels=ggplot()+
     theme_bw()+
     theme(panel.margin=grid::unit(0, "lines"))+
-    facet_grid(total.segments + timestep + min.type ~ seg.i, scales="free")+
-    scale_color_manual(values=break.colors)+
-    geom_tallrect(aes(xmin=min.mean, xmax=max.mean),
+    theme_animint(width=500, height=300)+
+    facet_grid(min.type ~ seg.i, scales="free", labeller=function(var, val){
+      if(var=="seg.i"){
+        paste("segment", val)
+      }else{
+        paste(val, "inequality")
+      }
+    })+
+    scale_x_continuous("segment mean", breaks=c(1, 5, 10, 14))+
+    scale_color_manual("change", values=break.colors)+
+    geom_tallrect(aes(xmin=min.mean, xmax=max.mean,
+                      showSelected2=data.name,
+                      showSelected=minimization),
                   fill="grey",
                   alpha=0.5,
+                  color=NA,
                   data=data.infeasible)+
-    geom_line(aes(mean, cost, color=data.i.fac),
+    geom_line(aes(mean, cost, color=data.i.fac,
+                  group=piece.i,
+                  showSelected2=data.name,
+                  showSelected=minimization),
               data=data.lines)+
-    geom_point(aes(min.cost.mean, min.cost),
-               size=4,
+    geom_point(aes(min.cost.mean, min.cost,
+                   showSelected3=data.name,
+                   showSelected2=constraint,
+                   showSelected=minimization),
+               size=5,
                shape=21,
                fill="white",
                color="black",
                data=data.minima[constraint=="active",])+
-    geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
-               data=data.minima)
-  data.dt <- data.table(
-    count=data.vec,
-    position=seq_along(data.vec),
-    data.i.fac=factor(seq_along(data.vec)))
-  viz <- list(
-    title=paste(
-      data.name,
-      "Constrained Pruned Dynamic Programming Algorithm"),
-    funModels=ggplot()+
-      theme_bw()+
-      theme(panel.margin=grid::unit(0, "lines"))+
-      theme_animint(width=500)+
-      facet_grid(min.type ~ seg.i, scales="free", labeller=function(var, val){
-        if(var=="seg.i"){
-          paste("segment", val)
-        }else{
-          paste(val, "inequality")
-        }
-      })+
-      scale_x_continuous("segment mean", breaks=c(1, 5, 10, 14))+
-      scale_color_manual("change", values=break.colors)+
-      geom_tallrect(aes(xmin=min.mean, xmax=max.mean,
-                        showSelected=minimization),
-                    fill="grey",
-                    alpha=0.5,
-                    color=NA,
-                    data=data.infeasible)+
-      geom_line(aes(mean, cost, color=data.i.fac,
-                    group=piece.i,
-                    showSelected=minimization),
-                data=data.lines)+
-      geom_point(aes(min.cost.mean, min.cost,
-                     showSelected2=constraint,
-                     showSelected=minimization),
-                 size=5,
-                 shape=21,
-                 fill="white",
-                 color="black",
-                 data=data.minima[constraint=="active",])+
-      geom_point(aes(min.cost.mean, min.cost, color=data.i.fac,
-                     tooltip=paste(
-                       "minimum cost =",
-                       round(min.cost, 2),
-                       "at mean =",
-                       round(min.cost.mean, 2),
-                       "for",
-                       seg.i,
-                       "segment model up to data point",
-                       timestep
-                     ),
-                     showSelected=minimization),
-                 size=4,
-                 data=data.minima)+
-      coord_cartesian(xlim=c(-1, 16), ylim=c(-5,190)),
-    data=ggplot()+
-      theme_bw()+
-      theme_animint(width=150)+
-      theme(panel.margin=grid::unit(0, "lines"))+
-      facet_grid(min.type ~ ., scales="free", labeller=function(var, val){
-        paste(val, "inequality")
-      })+
-      scale_color_manual(values=break.colors)+
-      geom_point(aes(position, count, color=data.i.fac,
-                     showSelected=data.i.fac),
-                 size=5,
-                 data=data.dt)+
-      geom_segment(aes(segment.start-0.5, min.cost.mean,
-                       showSelected=minimization,
-                       xend=segment.end+0.5, yend=min.cost.mean),
-                   data=data.minima,
-                   color="green")+
-      guides(color="none"),
-    costMat=ggplot()+
-      theme_bw()+
-      theme(panel.margin=grid::unit(0, "lines"))+
-      theme_animint(width=300)+
-      facet_grid(min.type ~ ., scales="free", labeller=function(var, val){
-        paste(val, "inequality")
-      })+
-      geom_tile(aes(timestep, total.segments, fill=optimal.cost,
-                    clickSelects=minimization),
-                data=data.cost)+
-      scale_color_manual(values=c(active="black"))+
-      geom_point(aes(timestep, total.segments, color=constraint,
-                     clickSelects=minimization),
-                 shape=21,
-                 size=5,
-                 fill="white",
-                 data=data.cost[constraint=="active",])
-  )
-  fig.dir <- paste0("figure-constrained-PDPA-normal-", data.name)
-  animint2dir(viz, fig.dir)
-  ##animint2gist(viz)
-}
+    geom_point(aes(min.cost.mean, min.cost, color=data.i.fac,
+                   tooltip=paste(
+                     "minimum cost =",
+                     round(min.cost, 2),
+                     "at mean =",
+                     round(min.cost.mean, 2),
+                     "for",
+                     seg.i,
+                     "segment model up to data point",
+                     timestep
+                   ),
+                   showSelected=minimization,
+                   showSelected2=data.name),
+               size=4,
+               data=data.minima)+
+    coord_cartesian(xlim=c(-1, 16), ylim=c(-5,190)),
+  data=ggplot()+
+    theme_bw()+
+    theme_animint(width=150, height=300)+
+    theme(panel.margin=grid::unit(0, "lines"))+
+    facet_grid(min.type ~ ., scales="free", labeller=function(var, val){
+      paste(val, "inequality")
+    })+
+    scale_color_manual(values=break.colors)+
+    geom_point(aes(position, count, color=data.i.fac,
+                   showSelected2=data.name,
+                   showSelected=data.i.fac),
+               size=5,
+               data=data.points)+
+    geom_segment(aes(segment.start-0.5, min.cost.mean,
+                     showSelected=minimization,
+                     showSelected2=data.name,
+                     xend=segment.end+0.5, yend=min.cost.mean),
+                 data=data.minima,
+                 color="green")+
+    guides(color="none"),
+  selectData=ggplot()+
+    ggtitle("select data")+
+    theme_bw()+
+    theme(panel.margin=grid::unit(0, "lines"))+
+    theme_animint(width=300, height=300)+
+    facet_grid(. ~ variable, scales="free")+
+    scale_y_discrete("data set")+
+    geom_point(aes(value, data.name.fac, clickSelects=data.name),
+               size=5,
+               data=summary.tall),
+  costMat=ggplot()+
+    ggtitle("select model")+
+    theme_bw()+
+    theme(panel.margin=grid::unit(0, "lines"))+
+    theme_animint(width=190, height=300)+
+    ##coord_equal()+
+    facet_grid(min.type ~ ., scales="free", labeller=function(var, val){
+      paste(val, "inequality")
+    })+
+    geom_tile(aes(timestep, total.segments, fill=optimal.cost,
+                  clickSelects=minimization,
+                  showSelected=data.name),
+              data=data.cost)+
+    scale_color_manual(values=c(active="black"))+
+    geom_point(aes(timestep, total.segments, color=constraint,
+                   showSelected=data.name,
+                   clickSelects=minimization),
+               shape=21,
+               size=5,
+               fill="white",
+               data=data.cost[constraint=="active",])
+)
+animint2dir(viz, "figure-constrained-PDPA-normal-panels")
+##animint2gist(viz)
 
 all.cost.lines <- do.call(rbind, all.cost.lines.list)
 all.cost.lines[, data.i.fac := factor(data.i)]
