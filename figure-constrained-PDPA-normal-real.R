@@ -211,65 +211,58 @@ MinEnvelope <- function(dt1, dt2){
   stopifnot(dt2[, min.mean < max.mean])
   if(nrow(dt1)==0)return(dt2)
   if(nrow(dt2)==0)return(dt1)
-  ## First we have to figure out which function starts out with a lower cost. 
-  row1 <- dt1[1,]
-  row2 <- dt2[1,]
-  same.name.vec <- c("min.mean", "quadratic", "linear", "constant")
-  same.mat <-
-    row1[, same.name.vec, with=FALSE] ==
-    row2[, same.name.vec, with=FALSE]
-  ggplot()+
-    geom_line(aes(mean, cost, color=fun.i),
-              size=2,
-              data=data.table(getLines(dt1), fun.i=factor(1)))+
-    geom_line(aes(mean, cost, color=fun.i),
-              size=2,
-              data=data.table(getLines(dt2), fun.i=factor(2)))+
-    geom_line(aes(mean, cost),
-              data=getLines(row1))+
-    geom_line(aes(mean, cost),
-              data=getLines(row2))
-  is.row2 <- if(all(same.mat)){
-    ## if they start out the same, then pick whichever one has the
-    ## lower cost after the smallest of the two max.mean values.
-    if(row1$max.mean < row2$max.mean){
-      row.diff <- dt1[2,]-row2
-      mean.at.last.equal.cost <- row1$max.mean
+  ## First we have to figure out which function starts out with a
+  ## lower cost. To do that we scan from the left until we find a
+  ## difference.
+  i1 <- 1
+  i2 <- 1
+  is.row2 <- NULL
+  while(is.null(is.row2)){
+    if(nrow(dt1) < i1 || nrow(dt2) < i2){
+      ## Both are the same over the entire region, so just pick the
+      ## one with the fewer number of intervals.
+      is.row2 <- nrow(dt2) < nrow(dt1)
     }else{
-      row.diff <- row1-dt2[2,]
-      mean.at.last.equal.cost <- row2$max.mean
-    }
-    slope <- row.diff[, 2*quadratic*mean.at.last.equal.cost + linear]
-    if(slope==0){
-      0 < row.diff[, 2*quadratic] #hessian/2nd derivative.
-    }else{
-      0 < slope
-    }
-  }else if(same.mat[, "min.mean"]){
-    ## They could also be different functions that start at the same
-    ## min.mean.
-    m <- row1$min.mean
-    row.diff <- row1-row2
-    cost.diff <- quad(row.diff, m)
-    if(cost.diff==0){
-      ## If the different functions have the same value at min.mean,
-      ## then look at the derivative to determine which one to start
-      ## with.
-      slope <- row.diff[, 2*m*quadratic + linear]
-      if(slope==0){
-        0 < row.diff[, 2*quadratic] #hessian/2nd derivative.
+      row1 <- dt1[i1,]
+      row2 <- dt2[i2,]
+      first.max.mean <- if(row1$max.mean < row2$max.mean){
+        row1$max.mean
       }else{
-        0 < slope
+        row2$max.mean
       }
-    }else{
-      0 < cost.diff
+      cost1 <- quad(row1, first.max.mean)
+      cost2 <- quad(row2, first.max.mean)
+      if(cost1 == cost2){
+        if(row1$max.mean==first.max.mean){
+          i1 <- i1+1
+        }
+        if(row2$max.mean==first.max.mean){
+          i2 <- i2+1
+        }
+      }else{
+        is.row2 <- cost2 < cost1
+      }   
+      first.max.points <- 
+        data.table(mean=first.max.mean, cost=c(cost1, cost2))
+      ggplot()+
+        geom_line(aes(mean, cost, color=fun.i),
+                  size=2,
+                  data=data.table(getLines(dt1), fun.i=factor(1)))+
+        geom_line(aes(mean, cost, color=fun.i),
+                  size=1,
+                  data=data.table(getLines(dt2), fun.i=factor(2)))+
+        geom_line(aes(mean, cost),
+                  linetype="dashed",
+                  data=getLines(row1))+
+        geom_line(aes(mean, cost),
+                  linetype="dotted",
+                  data=getLines(row2))+
+        geom_point(aes(mean, cost),
+                   shape=1,
+                   data=first.max.points)
     }
-  }else{
-    row2$min.mean < row1$min.mean 
   }
-  this.row <- if(is.row2)row2 else row1
-  other.row <- if(is.row2)row1 else row2
-  last.min.mean <- this.row$min.mean
+  last.min.mean <- dt1$min.mean[1]
   i1 <- 1
   i2 <- 1
   new.dt.list <- list()
@@ -331,6 +324,14 @@ MinEnvelope <- function(dt1, dt2){
       new.dt.list[[paste(i1, i2, "cross")]] <- r
       last.min.mean <- cross.dt$mean[2]
     }
+    if(this.row$max.mean == other.row$max.mean){
+      r <- this.row
+      r$min.mean <- last.min.mean
+      new.dt.list[[paste(i1,i2)]] <- r
+      last.min.mean <- this.row$max.mean
+      i1 <- i1+1
+      i2 <- i2+1
+    }
     if(this.row$max.mean < other.row$max.mean){
       ## this function piece stops but the other function continues to
       ## a larger mean, so store it and move on to the next piece of
@@ -345,7 +346,8 @@ MinEnvelope <- function(dt1, dt2){
         i1 <- i1+1
       }
     }else{
-      ## this function piece continues to a larger mean.
+      ## this function piece continues to a larger mean, and the other
+      ## function stops before.
       if(is.row2){
         i1 <- i1+1
       }else{
@@ -354,13 +356,11 @@ MinEnvelope <- function(dt1, dt2){
     }
   }
   this.row$min.mean <- last.min.mean
-  new.dt.list[["last"]] <- this.row
   new.dt <- do.call(rbind, new.dt.list)
   browser(expr=any(table(new.dt$min.mean)>1))
   browser(expr=any(table(new.dt$max.mean)>1))
   new.dt
 }
-
 ## A test case for MinEnvelope:
 result <- data.table(
   quadratic = c(3, 2, 1),
@@ -394,7 +394,7 @@ envelope.list <- list()
 data.vec <- -subset(intreg$signals, signal=="4.2")$logratio[80:200]
 ## TODO: increase the number of data points and see where the bug is
 ## coming from.
-data.vec <- data.vec[1:20]
+data.vec <- data.vec[1:30]
 min.mean <- min(data.vec)
 max.mean <- max(data.vec)
 gamma.dt <- data.table(
@@ -426,6 +426,7 @@ for(n.segments in 2:max.segments){
     prev.cost.model <- cost.models.list[[paste(n.segments-1, timestep-1)]]
     compare.cost <- min.fun(prev.cost.model)
     compare.cost$data.i <- timestep-1
+    cost.model <- cost.models.list[[paste(n.segments, timestep-1)]]
     cost.minima <- Minimize(cost.model)
     compare.minima <- Minimize(compare.cost)
     gg <- ggplot()+
@@ -473,11 +474,17 @@ for(n.segments in 2:max.segments){
   }#for(timestep
 }#for(n.segments
 cost.lines <- do.call(rbind, cost.lines.list)
+cost.lines[, minimization := paste(
+  n.segments, "segments up to data point", timestep)]
 cost.lines[, data.i.fac := factor(data.i)]
 minima <- do.call(rbind, minima.list)
+minima[, minimization := paste(
+  n.segments, "segments up to data point", timestep)]
 minima[, data.i.fac := factor(data.i)]
 envelope <- do.call(rbind, envelope.list)
 envelope[, data.i.fac := factor(data.i)]
+envelope[, minimization := paste(
+  n.segments, "segments up to data point", timestep)]
 
 ## TODO: fix min envelope computation for data point 5!
 gg.pruning <- ggplot()+
@@ -499,6 +506,28 @@ gg.pruning <- ggplot()+
             data=cost.lines)+
   geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
              data=minima)
+print(gg.pruning)
+
+ti <- 4
+gg.pruning <- ggplot()+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  facet_grid(timestep ~ n.segments, scales="free",
+             labeller=function(var, val){
+               if(var %in% c("n.segments", "timestep")){
+                 paste(var, "=", val)
+               }else{
+                 paste(val)
+               }
+             })+
+  geom_line(aes(mean, cost, group=data.i.fac),
+            color="grey",
+            size=2,
+            data=envelope[timestep==ti,])+
+  geom_line(aes(mean, cost, color=data.i.fac),
+            data=cost.lines[timestep==ti,])+
+  geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
+             data=minima[timestep==ti,])
 print(gg.pruning)
 
 data.lines.list <- list()
@@ -568,7 +597,7 @@ for(total.segments in 1:max.segments){
         }
         constrained.fun <- unconstrained.fun[
           min.mean <= min.dt$min.cost.mean &
-            min.dt$min.cost.mean <= max.mean,]
+            min.dt$min.cost.mean <= max.mean,][1,]
         min.dt$min.cost <- quad(constrained.fun, min.dt$min.cost.mean)
         data.cost.list[[
           paste(total.segments, timestep)]]$constraint <- constraint.status
@@ -629,8 +658,21 @@ viz <- list(
     theme_bw()+
     theme(panel.margin=grid::unit(0, "lines"))+
     theme_animint(width=500, height=300)+
+    geom_line(aes(mean, cost,
+                  showSelected=minimization),
+              color="grey",
+              size=8,
+              data=data.table(envelope, seg.i="pruning"))+
+    geom_line(aes(mean, cost, color=data.i.fac,
+                  group=paste(piece.i, data.i),
+                  showSelected=minimization),
+              data=data.table(cost.lines, seg.i="pruning"))+
+    geom_point(aes(min.cost.mean, min.cost, color=data.i.fac,
+                   showSelected=minimization),
+               size=5,
+               data=data.table(minima, seg.i="pruning"))+    
     facet_grid(. ~ seg.i, scales="free", labeller=function(var, val){
-      paste("segment", val)
+      paste(ifelse(val!="pruning", "segment", ""), val)
     })+
     geom_tallrect(aes(xmin=min.mean, xmax=max.mean,
                       showSelected=minimization),
@@ -642,31 +684,7 @@ viz <- list(
                   group=piece.i,
                   showSelected=minimization),
               data=data.lines)+
-    geom_point(aes(min.cost.mean, min.cost,
-                   showSelected=minimization),
-               size=5,
-               shape=21,
-               fill="white",
-               color="black",
-               data=data.minima[constraint=="active",])+
-    guides(color="none")+
-    geom_point(aes(min.cost.mean, min.cost, color=data.i.fac,
-                   tooltip=paste(
-                     "minimum cost =",
-                     round(min.cost, 2),
-                     "at mean =",
-                     round(min.cost.mean, 2),
-                     "for",
-                     seg.i,
-                     "segment model up to data point",
-                     timestep
-                   ),
-                   showSelected=minimization),
-               size=4,
-               data=data.minima)+
-    geom_point(aes(mean, cost, 
-                  showSelected=minimization),
-              data=limits),
+    guides(color="none"),
   data=ggplot()+
     theme_bw()+
     theme(panel.margin=grid::unit(0, "lines"))+
@@ -686,17 +704,56 @@ viz <- list(
                   clickSelects=minimization),
               data=addY(data.cost, "segments"))
 )
-active <- data.cost[constraint=="active",]
-if(nrow(active)){
+minima.active <- data.minima[constraint=="active",]
+if(nrow(minima.active)){
+  viz$funModels <- viz$funModels+
+    geom_point(aes(min.cost.mean, min.cost,
+                   showSelected=minimization),
+               size=6,
+               shape=21,
+               fill="white",
+               color="black",
+               data=minima.active)
+}
+viz$funModels <- viz$funModels+
+  geom_point(aes(min.cost.mean, min.cost, color=data.i.fac,
+                 tooltip=paste(
+                   "minimum cost =",
+                   round(min.cost, 4),
+                   "at mean =",
+                   round(min.cost.mean, 4),
+                   "for",
+                   seg.i,
+                   "segment model up to data point",
+                   timestep,
+                   "change after",
+                   data.i
+                 ),
+                 showSelected=minimization),
+             size=5,
+             data=data.minima)+
+  geom_point(aes(mean, cost, 
+                 showSelected=minimization),
+             data=limits)  
+cost.active <- data.cost[constraint=="active",]
+if(nrow(cost.active)){
   viz$data <- viz$data+
     geom_point(aes(timestep, total.segments, 
                    clickSelects=minimization),
                shape=21,
                color="black",
                fill="white",
-               data=addY(active, "segments"))
+               data=addY(cost.active, "segments"))
 }
 animint2dir(viz, "figure-constrained-PDPA-normal-real")
+
+mlcost <- function(d.vec){
+  m <- mean(d.vec)
+  sum((d.vec-m)^2)
+}
+m34 <- mean(data.vec[3:4])
+mlcost(data.vec[1:3])+(data.vec[4]-m34)
+mlcost(data.vec[1:2])+mlcost(data.vec[3:4])
 
 intervalsPlot <- ggplot()+
   theme_bw()+
@@ -708,3 +765,11 @@ intervalsPlot <- ggplot()+
 pdf("figure-constrained-PDPA-normal-real.pdf")
 print(intervalsPlot)
 dev.off()
+
+## FunctionalPruning <- list(
+##   envelope=data.frame(envelope),
+##   cost.lines=data.frame(cost.lines),
+##   minima=data.frame(minima),
+##   grid=data.frame(data.cost))
+## save(FunctionalPruning, file="~/R/animint/data/FunctionalPruning.RData")
+## prompt(FunctionalPruning, file="~/R/animint/man/FunctionalPruning.Rd")
