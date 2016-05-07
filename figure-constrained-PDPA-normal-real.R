@@ -225,6 +225,29 @@ MinEnvelope <- function(dt1, dt2){
     }else{
       row1 <- dt1[i1,]
       row2 <- dt2[i2,]
+      ## insignificant.list <- list(machine=.Machine$double.eps)
+      ## if(row1$max.mean < row2$max.mean){
+      ##   first.max.mean <- row1$max.mean
+      ##   insignificant.list[["row1 next"]] <-
+      ##     abs(quad(row1, first.max.mean)-quad(dt1[i1+1,], first.max.mean))
+      ## }
+      ## if(row2$max.mean < row1$max.mean){
+      ##   first.max.mean <- row2$max.mean
+      ##   insignificant.list[["row2 next"]] <-
+      ##     abs(quad(row2, first.max.mean)-quad(dt2[i2+1,], first.max.mean))
+      ## }
+      ## if(row2$min.mean < row1$min.mean){
+      ##   last.min.mean <- row1$min.mean
+      ##   insignificant.list[["row1 prev"]] <-
+      ##     abs(quad(row1, last.min.mean)-quad(dt1[i1-1,], last.min.mean))
+      ## }
+      ## if(row1$min.mean < row2$min.mean){
+      ##   last.min.mean <- row2$min.mean
+      ##   insignificant.list[["row2 prev"]] <-
+      ##     abs(quad(row2, last.min.mean)-quad(dt2[i2-1,], last.min.mean))
+      ## }
+      ## insignificant.cost.vec <- unlist(insignificant.list)
+      ## insignificant.cost.difference <- max(insignificant.cost.vec)
       first.max.mean <- if(row1$max.mean < row2$max.mean){
         row1$max.mean
       }else{
@@ -232,7 +255,7 @@ MinEnvelope <- function(dt1, dt2){
       }
       cost1 <- quad(row1, first.max.mean)
       cost2 <- quad(row2, first.max.mean)
-      if(cost1 == cost2){
+      if(row1$quadratic==row2$quadratic){
         if(row1$max.mean==first.max.mean){
           i1 <- i1+1
         }
@@ -245,6 +268,8 @@ MinEnvelope <- function(dt1, dt2){
       first.max.points <- 
         data.table(mean=first.max.mean, cost=c(cost1, cost2))
       ggplot()+
+        coord_cartesian(xlim=c(-0.05, -0.1),
+                        ylim=c(0,1e-3))+
         geom_line(aes(mean, cost, color=fun.i),
                   size=2,
                   data=data.table(getLines(dt1), fun.i=factor(1)))+
@@ -256,16 +281,42 @@ MinEnvelope <- function(dt1, dt2){
                   data=getLines(row1))+
         geom_line(aes(mean, cost),
                   linetype="dotted",
+                  size=1,
                   data=getLines(row2))+
         geom_point(aes(mean, cost),
                    shape=1,
                    data=first.max.points)
     }
   }
-  last.min.mean <- dt1$min.mean[1]
-  i1 <- 1
-  i2 <- 1
+  ## At this point we know that if(is.row2) then dt2 has a lower cost
+  ## at least until the first max.mean in i1,i2.
   new.dt.list <- list()
+  add.i <- 1
+  if(is.row2){
+    while(add.i < i2){
+      new.dt.list[[paste(add.i)]] <- dt2[add.i,]
+      last.min.mean <- dt2[add.i, max.mean]
+      add.i <- add.i+1
+    }
+    if(row2$max.mean < row1$max.mean){
+      last.min.mean <- row2$max.mean
+      new.dt.list[[paste(i2)]] <- row2
+      i2 <- i2+1
+    }
+  }else{
+    while(add.i < i1){
+      new.dt.list[[paste(add.i)]] <- dt1[add.i,]
+      last.min.mean <- dt1[add.i, max.mean]
+      add.i <- add.i+1
+    }
+    if(row1$max.mean < row2$max.mean){
+      last.min.mean <- row1$max.mean
+      new.dt.list[[paste(i1)]] <- row1
+      i1 <- i1+1
+    }
+  }
+  ## Now go through the rest of the pieces looking for crossing
+  ## points.
   while(i1 <= nrow(dt1) && i2 <= nrow(dt2)){
     row1 <- dt1[i1,]
     row2 <- dt2[i2,]
@@ -274,10 +325,17 @@ MinEnvelope <- function(dt1, dt2){
     row.diff <- row1-row2
     row.diff$min.mean <- min(row1$min.mean, row2$min.mean)
     row.diff$max.mean <- max(row1$max.mean, row2$max.mean)
+    insignificant.rect <- data.table(
+      insignificant.cost.difference)
     ggplot()+
       theme_bw()+
       theme(panel.margin=grid::unit(0, "lines"))+
       facet_grid(y ~ ., scales="free")+
+      geom_widerect(aes(
+        ymin=-insignificant.cost.difference,
+        ymax=insignificant.cost.difference),
+        fill="grey",
+        data=insignificant.rect)+
       geom_line(aes(mean, cost, color=fun.i),
                 data.table(getLines(row1),fun.i=factor(1),y="cost"))+
       geom_line(aes(mean, cost, color=fun.i),
@@ -285,7 +343,7 @@ MinEnvelope <- function(dt1, dt2){
       geom_line(aes(mean, cost),
                 data.table(getLines(row.diff),y="diff"))
     discriminant <- row.diff[, linear^2 - 4*quadratic*constant]
-    cross.dt <- if(0 < discriminant){
+    cross.dt <- if(insignificant.cost.difference < discriminant){
       numerator <- -row.diff$linear + c(-1,1)*sqrt(discriminant)
       denominator <- 2*row.diff$quadratic
       mean.at.equal.cost <- numerator/denominator
@@ -394,7 +452,7 @@ envelope.list <- list()
 data.vec <- -subset(intreg$signals, signal=="4.2")$logratio[80:200]
 ## TODO: increase the number of data points and see where the bug is
 ## coming from.
-data.vec <- data.vec[1:30]
+##data.vec <- data.vec[1:54]
 min.mean <- min(data.vec)
 max.mean <- max(data.vec)
 gamma.dt <- data.table(
@@ -486,7 +544,6 @@ envelope[, data.i.fac := factor(data.i)]
 envelope[, minimization := paste(
   n.segments, "segments up to data point", timestep)]
 
-## TODO: fix min envelope computation for data point 5!
 gg.pruning <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
@@ -506,9 +563,8 @@ gg.pruning <- ggplot()+
             data=cost.lines)+
   geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
              data=minima)
-print(gg.pruning)
 
-ti <- 4
+ti <- 5
 gg.pruning <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
