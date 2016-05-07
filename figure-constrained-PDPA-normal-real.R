@@ -268,8 +268,7 @@ MinEnvelope <- function(dt1, dt2){
       first.max.points <- 
         data.table(mean=first.max.mean, cost=c(cost1, cost2))
       ggplot()+
-        coord_cartesian(xlim=c(-0.05, -0.1),
-                        ylim=c(0,1e-3))+
+        ##coord_cartesian(xlim=c(-0.05, -0.1), ylim=c(0,1e-3))+
         geom_line(aes(mean, cost, color=fun.i),
                   size=2,
                   data=data.table(getLines(dt1), fun.i=factor(1)))+
@@ -291,6 +290,7 @@ MinEnvelope <- function(dt1, dt2){
   ## At this point we know that if(is.row2) then dt2 has a lower cost
   ## at least until the first max.mean in i1,i2.
   new.dt.list <- list()
+  last.min.mean <- dt1[1, min.mean]
   add.i <- 1
   if(is.row2){
     while(add.i < i2){
@@ -325,17 +325,10 @@ MinEnvelope <- function(dt1, dt2){
     row.diff <- row1-row2
     row.diff$min.mean <- min(row1$min.mean, row2$min.mean)
     row.diff$max.mean <- max(row1$max.mean, row2$max.mean)
-    insignificant.rect <- data.table(
-      insignificant.cost.difference)
     ggplot()+
       theme_bw()+
       theme(panel.margin=grid::unit(0, "lines"))+
       facet_grid(y ~ ., scales="free")+
-      geom_widerect(aes(
-        ymin=-insignificant.cost.difference,
-        ymax=insignificant.cost.difference),
-        fill="grey",
-        data=insignificant.rect)+
       geom_line(aes(mean, cost, color=fun.i),
                 data.table(getLines(row1),fun.i=factor(1),y="cost"))+
       geom_line(aes(mean, cost, color=fun.i),
@@ -343,7 +336,7 @@ MinEnvelope <- function(dt1, dt2){
       geom_line(aes(mean, cost),
                 data.table(getLines(row.diff),y="diff"))
     discriminant <- row.diff[, linear^2 - 4*quadratic*constant]
-    cross.dt <- if(insignificant.cost.difference < discriminant){
+    cross.dt <- if(.Machine$double.eps < discriminant){
       numerator <- -row.diff$linear + c(-1,1)*sqrt(discriminant)
       denominator <- 2*row.diff$quadratic
       mean.at.equal.cost <- numerator/denominator
@@ -452,7 +445,7 @@ envelope.list <- list()
 data.vec <- -subset(intreg$signals, signal=="4.2")$logratio[80:200]
 ## TODO: increase the number of data points and see where the bug is
 ## coming from.
-##data.vec <- data.vec[1:54]
+data.vec <- data.vec[1:11]
 min.mean <- min(data.vec)
 max.mean <- max(data.vec)
 gamma.dt <- data.table(
@@ -467,10 +460,23 @@ cost.models.list <- list()
 for(data.i in 1:nrow(C1.dt)){
   cost.models.list[[paste(1, data.i)]] <- C1.dt[data.i,]
 }
-max.segments <- 2
+max.segments <- 3
 for(n.segments in 2:max.segments){
   prev.cost.model <- cost.models.list[[paste(n.segments-1, n.segments-1)]]
-  min.fun.name <- ifelse(n.segments %% 2, "more", "less")
+  if(n.segments %% 2){
+    min.fun.name <- "more"
+    env.transform <- function(dt){
+      new.max <- -dt$min.mean
+      new.min <- -dt$max.mean
+      dt$min.mean <- new.min
+      dt$max.mean <- new.max
+      dt[, linear := -linear]
+      dt[.N:1,]
+    }
+  }else{
+    min.fun.name <- "less"
+    env.transform <- identity
+  }
   min.fun <- less.more.min.list[[min.fun.name]]
   first.min <- min.fun(prev.cost.model)
   first.data <- gamma.dt[n.segments,]
@@ -506,8 +512,11 @@ for(n.segments in 2:max.segments){
         geom_line(aes(mean, cost, color=factor(data.i)),
                   cost.model.lines)
     }
-    one.env <-
-      MinEnvelope(compare.cost, cost.model)
+    transformed.compare <- env.transform(compare.cost)
+    transformed.model <- env.transform(cost.model)
+    transformed.env <-
+      MinEnvelope(transformed.compare, transformed.model)
+    one.env <- env.transform(transformed.env)
     if(nrow(one.env)){
       envelope.list[[paste(n.segments, timestep)]] <-
         data.table(n.segments, timestep,
@@ -564,7 +573,7 @@ gg.pruning <- ggplot()+
   geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
              data=minima)
 
-ti <- 5
+ti <- 10
 gg.pruning <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
@@ -707,6 +716,7 @@ data.cost[, minimization := paste(
 addY <- function(dt, y){
   data.table(dt, y=factor(y, c("count", "intervals", "segments")))
 }
+largest.constant <- envelope[quadratic==0, max(constant)]
 viz <- list(
   title=paste(
     "Constrained Pruned Dynamic Programming Algorithm"),
@@ -714,6 +724,7 @@ viz <- list(
     theme_bw()+
     theme(panel.margin=grid::unit(0, "lines"))+
     theme_animint(width=500, height=300)+
+    coord_cartesian(ylim=c(0, largest.constant*1.05))+
     geom_line(aes(mean, cost,
                   showSelected=minimization),
               color="grey",
@@ -810,6 +821,8 @@ mlcost <- function(d.vec){
 m34 <- mean(data.vec[3:4])
 mlcost(data.vec[1:3])+(data.vec[4]-m34)
 mlcost(data.vec[1:2])+mlcost(data.vec[3:4])
+mlcost(data.vec[1:2])+mlcost(data.vec[3])
+mlcost(data.vec[2:3])+mlcost(data.vec[1])
 
 intervalsPlot <- ggplot()+
   theme_bw()+
