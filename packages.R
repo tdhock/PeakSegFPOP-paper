@@ -4,7 +4,7 @@ suppressPackageStartupMessages({
                "tdhock/PeakSegDP@6520faad59fcf8c94ed4345d2b0d826b7f61faf9",
                "hadley/scales@2c3edf45de56d617444dc38e47e0404173817886",
                "tdhock/ggplot2@a8b06ddb680acdcdbd927773b1011c562134e4d2",
-               "tdhock/animint@ec8ff1831a14ba6973b48e5f36b4d27ce17f1837",
+               "tdhock/animint@6b1c9e588b03f632cd39cdec9bbcfa730db9e889",
                "tdhock/directlabels@7b4b08a5dd0ab86e0b90902b3a233903ddd42311",
                data.table="1.9.6")
 })
