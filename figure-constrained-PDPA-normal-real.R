@@ -205,8 +205,11 @@ Minimize <- function(dt, from=min(dt$min.mean), to=max(dt$max.mean)){
   feasible[, min.cost := quad(feasible, min.cost.mean)]
   feasible[which.min(min.cost),]
 }
-
-CompareRows <- function(row1, row2, insignificant.cost.diff){
+### Return just the minimum interval on the intersection of row1 and
+### row2.
+CompareRows <- function(dt1, dt2, i1, i2){
+  row1 <- dt1[i1,]
+  row2 <- dt2[i2,]
   last.min.mean <- if(row1$min.mean < row2$min.mean){
     row2$min.mean
   }else{
@@ -219,10 +222,52 @@ CompareRows <- function(row1, row2, insignificant.cost.diff){
   }
   stopifnot(last.min.mean < first.max.mean)
   if(row1$quadratic==row2$quadratic){
-    return(data.table(
-      mean=c(first.min.mean, last.max.mean),
-      status="equal"))
+    ## The functions are exactly equal over the entire interval so we
+    ## can return either one of them.
+    row1$min.mean <- first.min.mean
+    row1$max.mean <- last.max.mean
+    row1$data.i <- NA #means either one is fine.
+    return(row1)
   }
+  ## They are not equal over the entire interval, but they may be
+  ## equal on the left or right
+  insignificant.list <- list(
+    ##machine=.Machine$double.eps
+  )
+  cost1.right <- quad(row1, first.max.mean)
+  if(row1$max.mean < row2$max.mean){
+    cost1.next <- quad(dt1[i1+1,], first.max.mean)
+    insignificant.list[["row1 next"]] <- abs(cost1.right-cost1.next)
+  }
+  cost2.right <- quad(row2, first.max.mean)
+  if(row2$max.mean < row1$max.mean){
+    cost2.next <- quad(dt2[i2+1,], first.max.mean)
+    insignificant.list[["row2 next"]] <- abs(cost2.right-cost2.next)
+  }
+  cost1.left <- quad(row1, last.min.mean)
+  if(row2$min.mean < row1$min.mean){
+    cost1.prev <- quad(dt1[i1-1,], last.min.mean)
+    insignificant.list[["row1 prev"]] <- abs(cost1.left-cost1.prev)
+  }
+  cost2.left <- quad(row2, last.min.mean)
+  if(row1$min.mean < row2$min.mean){
+    cost2.prev <- quad(dt2[i2-1,], last.min.mean)
+    insignificant.list[["row2 prev"]] <- abs(cost2.prev-cost2.left)
+  }
+  insignificant.vec <- unlist(insignificant.list)
+  thresh <- max(insignificant.vec)
+  row.diff <- row1-row2
+  row.diff$min.mean <- last.min.mean
+  row.diff$max.mean <- first.max.mean
+  discriminant <- row.diff[, linear^2 - 4*quadratic*constant]
+  numerator <- -row.diff$linear + c(-1,1)*sqrt(discriminant)
+  denominator <- 2*row.diff$quadratic
+  mean.at.equal.cost <- numerator/denominator
+  left.diff <- cost1.left-cost2.left
+  right.diff <- cost1.right-cost2.right
+  thresh < abs(right.diff)
+  thresh < abs(left.diff)
+  
   first.max.points <- 
     data.table(mean=first.max.mean, cost=c(cost1, cost2))
   ggplot()+
@@ -635,6 +680,7 @@ for(n.segments in 2:max.segments){
     transformed.env <-
       MinEnvelope(transformed.compare, transformed.model)
     one.env <- env.transform(transformed.env)
+    ##one.env <- MinEnvelope(compare.cost, cost.model)
     if(nrow(one.env)){
       envelope.list[[paste(n.segments, timestep)]] <-
         data.table(n.segments, timestep,
