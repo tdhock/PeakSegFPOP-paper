@@ -449,15 +449,8 @@ MinEnvelope <- function(dt1, dt2){
   browser(expr=any(table(new.dt$max.mean)>1))
   new.dt
 }
-## A test case for MinEnvelope:
-result <- data.table(
-  quadratic = c(3, 2, 1),
-  linear = c(0.0757353883540654, -0.0842153650871264, -0.132854723477952),
-  constant = c(0.0114001020653698, 0.00507885284652773, 0.00703123698800913),
-  min.mean = c(-0.0922074380970889, -0.0713260031733877, 0.026116725688849),
-  max.mean = c(-0.0713260031733877, 0.026116725688849, 0.0954195650786824),
-  data.i = c(1, 2, 3))
-## list format is: input1, input2, output.
+## Test cases for MinEnvelope: list format is: input1, input2,
+## [output]. If output is omitted then it is the same as input2.
 min.env.test.list <- list(not.quasiconvex=list(
   data.table(
     quadratic = c(4, 0),
@@ -466,8 +459,13 @@ min.env.test.list <- list(not.quasiconvex=list(
     min.mean = c(-0.0922074380970889, -0.0325187830685304),
     max.mean = c(-0.0325187830685304, 0.0954195650786824),
     data.i = c(4, 4)),
-  result,
-  result),
+  data.table(
+    quadratic = c(3, 2, 1),
+    linear = c(0.0757353883540654, -0.0842153650871264, -0.132854723477952),
+    constant = c(0.0114001020653698, 0.00507885284652773, 0.00703123698800913),
+    min.mean = c(-0.0922074380970889, -0.0713260031733877, 0.026116725688849),
+    max.mean = c(-0.0713260031733877, 0.026116725688849, 0.0954195650786824),
+    data.i = c(1, 2, 3))),
   equal.at.max=list(
     data.table(
       quadratic = c(1, 7, 0),
@@ -485,38 +483,72 @@ min.env.test.list <- list(not.quasiconvex=list(
       data.i = c(6, 6, 8)),
     data.table(
       quadratic = c(1,
-        7, 4, 2),
+                    7, 4, 2),
       linear = c(-0.02585234888854,
-        0.580695481248607, -0.0534236722285902, -0.155618052058249),
+                 0.580695481248607, -0.0534236722285902, -0.155618052058249),
       constant = c(0.0664360533749589,
-        0.0548316584743037, 0.0213227334070839, 0.0277237775077624),
+                   0.0548316584743037, 0.0213227334070839, 0.0277237775077624),
       min.mean = c(-0.15521264992094,
-        -0.117545121200233, -0.105686525579533, 0.0365259791823832),
+                   -0.117545121200233, -0.105686525579533, 0.0365259791823832),
       max.mean = c(-0.117545121200233,
-        -0.105686525579533, 0.0365259791823832, 0.0922074380970889),
+                   -0.105686525579533, 0.0365259791823832, 0.0922074380970889),
       data.i = c(10,
-        6, 6, 8))))
+                 6, 6, 8))),
+  same.on.right=list(
+    data.table(
+      quadratic = c(0, 6),
+      linear = c(0, -0.606547830137147),
+      constant = c(0.0393353945617033, 0.05466457248854),
+      min.mean = c(-0.0922074380970889, 0.0505456525114289),
+      max.mean = c(0.0505456525114289, 0.15521264992094),
+      data.i = c(9, 9)),
+    data.table(
+      quadratic = c(1, 3, 6),
+      linear = c(0.129765703169709, 0.0275713233400502, -0.606547830137147),
+      constant = c(0.0275566915219987, 0.0211556474213202, 0.05466457248854),
+      min.mean = c(-0.0922074380970889, -0.0365259791823832, 0.105686525579533),
+      max.mean = c(-0.0365259791823832, 0.105686525579533, 0.15521264992094),
+      data.i = c(8, 6, 6))),
+  same.on.left=list(
+    data.table(
+      quadratic = c(6, 0),
+      linear = c(0.606547830137147, 0),
+      constant = c(0.05466457248854, 0.0393353945617033),
+      min.mean = c(-0.15521264992094, -0.0505456525114289),
+      max.mean = c(-0.0505456525114289, 0.0922074380970889),
+      data.i = c(9, 9)),
+    data.table(
+      quadratic = c(6, 3, 1),
+      linear = c(0.606547830137147, -0.0275713233400502, -0.129765703169709),
+      constant = c(0.05466457248854, 0.0211556474213202, 0.0275566915219987),
+      min.mean = c(-0.15521264992094, -0.105686525579533, 0.0365259791823832),
+      max.mean = c(-0.105686525579533, 0.0365259791823832, 0.0922074380970889),
+      data.i = c(6, 6, 8))))
 for(min.env.test.name in names(min.env.test.list)){
   test <- min.env.test.list[[min.env.test.name]]
   dt1 <- test[[1]]
   dt2 <- test[[2]]
   computed <- MinEnvelope(dt1, dt2)
-  expected <- test[[3]]
+  expected <- if(length(test)==3)test[[3]] else test[[2]]
   gg.test <- ggplot()+
     ggtitle(min.env.test.name)+
-    geom_line(aes(mean, cost),
-              color="grey",
+    scale_color_manual(values=c(
+      input1="#4DAF4A",
+      input2="#FF7F00", #orange
+      computed="black",
+      expected="grey"))+
+    geom_line(aes(mean, cost, color=fun.i),
               size=4,
-              data=getLines(expected))+
+              data=data.table(getLines(expected), fun.i="expected"))+
     geom_line(aes(mean, cost, color=fun.i),
               size=2.5,
-              data=data.table(getLines(dt1), fun.i=factor(1)))+
+              data=data.table(getLines(dt1), fun.i="input1"))+
     geom_line(aes(mean, cost, color=fun.i),
               size=1.5,
-              data=data.table(getLines(dt2), fun.i=factor(2)))+
-    geom_line(aes(mean, cost),
+              data=data.table(getLines(dt2), fun.i="input2"))+
+    geom_line(aes(mean, cost, color=fun.i),
               size=0.5,
-              data=getLines(computed))
+              data=data.table(getLines(computed), fun.i="computed"))
   if(!identical(expected, computed)){
     print(gg.test)
     print(list(expected=expected, computed=computed))
@@ -734,29 +766,27 @@ for(total.segments in 1:max.segments){
       min.dt$segment.end <- segment.end
       min.dt[, segment.start := ifelse(seg.i==1, 1, 1+data.i)]
       segment.end <- min.dt$data.i
-      constraint.status <- if(min.dt[, quad.min.mean == min.cost.mean]){
+      if(min.mean < constraint$min.mean){
+        data.infeasible.list[[paste(
+          total.segments, timestep, seg.i)]] <-
+          data.table(total.segments, timestep, seg.i,
+                     min.mean=-Inf,
+                     max.mean=constraint$min.mean)
+      }
+      if(constraint$max.mean < max.mean){
+        data.infeasible.list[[paste(
+          total.segments, timestep, seg.i)]] <-
+          data.table(total.segments, timestep, seg.i,
+                     min.mean=constraint$max.mean,
+                     max.mean=Inf)
+      }
+      min.dt$constraint <- if(min.dt[, quad.min.mean == min.cost.mean]){
         "inactive"
       }else{
-        if(constraint$min.mean == min.dt$min.cost.mean){
-          data.infeasible.list[[paste(
-            total.segments, timestep, seg.i)]] <-
-            data.table(total.segments, timestep, seg.i,
-                       min.mean,
-                       max.mean=constraint$min.mean)
-        }else{
-          data.infeasible.list[[paste(
-            total.segments, timestep, seg.i)]] <-
-            data.table(total.segments, timestep, seg.i,
-                       min.mean=constraint$max.mean,
-                       max.mean)
-        }
+        data.cost.list[[paste(
+          total.segments, timestep)]]$constraint <- "active"
         "active"
       }
-      if(constraint.status=="active"){
-        data.cost.list[[paste(
-          total.segments, timestep)]]$constraint <- constraint.status
-      }
-      min.dt$constraint <- constraint.status
       show.min <- data.table(
         total.segments, timestep, seg.i,
         min.dt)
@@ -808,7 +838,7 @@ viz <- list(
   funModels=ggplot()+
     theme_bw()+
     theme(panel.margin=grid::unit(0, "lines"))+
-    theme_animint(width=500, height=300)+
+    theme_animint(width=800, height=300)+
     coord_cartesian(ylim=c(0, max(between.intervals$cost)))+
     geom_line(aes(mean, cost,
                   showSelected=minimization),
@@ -872,13 +902,15 @@ viz$funModels <- viz$funModels+
                  tooltip=paste(
                    "minimum cost =",
                    round(min.cost, 4),
-                   "at mean =",
+                   "with",
+                   constraint,
+                   "constraint at mean =",
                    round(min.cost.mean, 4),
                    "for",
                    seg.i,
                    "segment model up to data point",
-                   timestep,
-                   "change after",
+                   segment.end,
+                   "previous segment end =",
                    data.i
                  ),
                  showSelected=minimization),
