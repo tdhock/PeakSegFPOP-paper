@@ -241,7 +241,6 @@ CompareRows <- function(dt1, dt2, i1, i2){
     ## can return either one of them.
     row1$min.mean <- last.min.mean
     row1$max.mean <- first.max.mean
-    row1$data.i <- NA #means either one is fine.
     return(row1)
   }
   ## They are not equal over the entire interval, but they may be
@@ -301,7 +300,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
         stop("intersection to the left of the equal right limit")
       }
     }
-    row1.min.before.right <- if(deriv1.right==deriv2.right){
+    row1.min.before.right <- if(sign1==sign2){
       row2$quadratic < row1$quadratic
     }else{
       deriv2.right < deriv1.right 
@@ -332,12 +331,12 @@ CompareRows <- function(dt1, dt2, i1, i2){
         stop("intersection to the right of the equal left limit")
       }
     }
-    row1.min.after.right <- if(deriv1.left==deriv2.left){
+    row1.min.after.left <- if(sign1==sign2){
       row1$quadratic < row2$quadratic
     }else{
       deriv1.left < deriv2.left
     }
-    this.row <- if(row1.min.after.right)row1 else row2
+    this.row <- if(row1.min.after.left)row1 else row2
     this.row$min.mean <- last.min.mean
     this.row$max.mean <- first.max.mean
     return(this.row)
@@ -367,6 +366,165 @@ CompareRows <- function(dt1, dt2, i1, i2){
   }else{
     ## functions do not cross in this interval.
     stopifnot(row1.min.on.right==row1.min.on.left)
+    if(row1.min.on.right)row1 else row2
+  }
+  new.intervals$min.mean <- c(last.min.mean, mean.in.interval)
+  new.intervals$max.mean <- c(mean.in.interval, first.max.mean)
+  new.intervals
+}
+## Another implementation that checks equality of quadratic
+## coefficients rather than cost function values.
+CompareRows <- function(dt1, dt2, i1, i2){
+  row1 <- dt1[i1,]
+  row2 <- dt2[i2,]
+  ggplot()+
+    ##coord_cartesian(xlim=c(0.05, 0.15), ylim=c(0.02,0.03))+
+    geom_line(aes(mean, cost, color=fun.i),
+              size=2,
+              data=data.table(getLines(dt1), fun.i=factor(1)))+
+    geom_line(aes(mean, cost, color=fun.i),
+              size=1,
+              data=data.table(getLines(dt2), fun.i=factor(2)))+
+    geom_line(aes(mean, cost),
+              linetype="dashed",
+              data=getLines(row1))+
+    geom_line(aes(mean, cost),
+              linetype="dotted",
+              size=1,
+              data=getLines(row2))
+  if(row1$min.mean < row2$min.mean){
+    same.at.left <- dt2[i2-1, quadratic]==row1$quadratic
+    last.min.mean <- row2$min.mean
+  }else{
+    last.min.mean <- row1$min.mean
+    same.at.left <- if(row2$min.mean < row1$min.mean){
+      dt1[i1-1, quadratic]==row2$quadratic
+    }else{
+      if(i1==1 && i2==1){
+        FALSE
+      }else{
+        stop("start at the same position")
+      }
+    }
+  }
+  if(row1$max.mean < row2$max.mean){
+    same.at.right <- dt1[i1+1, quadratic]==row2$quadratic
+    first.max.mean <- row1$max.mean
+  }else{
+    first.max.mean <- row2$max.mean
+    same.at.right <- if(row2$max.mean < row1$max.mean){
+      dt2[i2+1, quadratic]==row1$quadratic
+    }else{
+      if(i1==nrow(dt1) && i2==nrow(dt2)){
+        FALSE
+      }else{
+        stop("end at the same position")
+      }
+    }
+  }
+  stopifnot(last.min.mean < first.max.mean)
+  if(row1$quadratic==row2$quadratic){
+    ## The functions are exactly equal over the entire interval so we
+    ## can return either one of them.
+    row1$min.mean <- last.min.mean
+    row1$max.mean <- first.max.mean
+    return(row1)
+  }
+  row.diff <- row1-row2
+  row.diff$min.mean <- last.min.mean
+  row.diff$max.mean <- first.max.mean
+  discriminant <- row.diff[, linear^2 - 4*quadratic*constant]
+  cost2.left <- quad(row2, last.min.mean)
+  cost1.left <- quad(row1, last.min.mean)
+  cost1.right <- quad(row1, first.max.mean)
+  cost2.right <- quad(row2, first.max.mean)
+  if(!same.at.right){
+    row1.min.on.right <- cost1.right < cost2.right
+  }else{
+    ## They are equal on the right limit, so use the first and second
+    ## derivatives to see which is minimal just before the right
+    ## limit. Do we need to check if they intersect before the right
+    ## limit? Only if one is going up and the other is going down. And
+    ## in that case we just need to check the -sqrt of the
+    ## difference (since we know the +sqrt is on the right limit).
+    deriv1.right <- row1[, 2*quadratic*first.max.mean + linear]
+    deriv2.right <- row2[, 2*quadratic*first.max.mean + linear]
+    sign1 <- sign(deriv1.right)
+    sign2 <- sign(deriv2.right)
+    ## There could be a crossing point to the left.
+    ## if(0 < discriminant){
+    ##   numerator <- - row.diff$linear - sqrt(discriminant)
+    ##   denominator <- 2*row.diff$quadratic
+    ##   mean.at.equal.cost <- numerator/denominator
+    ##   in.interval <-
+    ##     last.min.mean < mean.at.equal.cost &
+    ##     mean.at.equal.cost < first.max.mean
+    ##   if(in.interval){
+    ##     stop("intersection to the left of the equal right limit")
+    ##   }
+    ## }
+    row1.min.before.right <- if(sign1==sign2){
+      cost1.left < cost2.left
+    }else{
+      deriv2.right < deriv1.right 
+    }
+    this.row <- if(row1.min.before.right)row1 else row2
+    this.row$min.mean <- last.min.mean
+    this.row$max.mean <- first.max.mean
+    return(this.row)
+  }
+  if(!same.at.left){
+    row1.min.on.left <- cost1.left < cost2.left
+  }else{
+    ## Equal on the left.
+    deriv1.left <- row1[, 2*quadratic*last.min.mean + linear]
+    deriv2.left <- row2[, 2*quadratic*last.min.mean + linear]
+    sign1 <- sign(deriv1.left)
+    sign2 <- sign(deriv2.left)
+    ## There could be a crossing point to the right.
+    ## if(0 < discriminant){
+    ##   numerator <- -row.diff$linear + sqrt(discriminant)
+    ##   denominator <- 2*row.diff$quadratic
+    ##   mean.at.equal.cost <- numerator/denominator
+    ##   in.interval <-
+    ##     last.min.mean < mean.at.equal.cost &
+    ##     mean.at.equal.cost < first.max.mean
+    ##   if(in.interval){
+    ##     stop("intersection to the right of the equal left limit")
+    ##   }
+    ## }
+    row1.min.after.left <- if(sign1==sign2){
+      cost1.right < cost2.right
+    }else{
+      deriv1.left < deriv2.left
+    }
+    this.row <- if(row1.min.after.left)row1 else row2
+    this.row$min.mean <- last.min.mean
+    this.row$max.mean <- first.max.mean
+    return(this.row)
+  }
+  ## The only remaining case is that the curves are equal neither on
+  ## the left nor on the right of the interval. However they may be
+  ## equal inside the interval, so let's check for that.
+  mean.in.interval <- if(0 < discriminant){
+    numerator <- -row.diff$linear + c(-1,1)*sqrt(discriminant)
+    denominator <- 2*row.diff$quadratic
+    mean.at.equal.cost <- numerator/denominator
+    in.interval <-
+      last.min.mean < mean.at.equal.cost &
+      mean.at.equal.cost < first.max.mean
+    mean.at.equal.cost[in.interval]
+  }
+  new.intervals <- if(length(mean.in.interval)==1){
+    if(row1.min.on.left)rbind(row1,row2) else rbind(row2, row1)
+  }else if(length(mean.in.interval)==2){
+    if(row1.min.on.left){
+      rbind(row1, row2, row1)
+    }else{
+      rbind(row2, row1, row2)
+    }
+  }else{
+    ## functions do not cross in this interval.
     if(row1.min.on.right)row1 else row2
   }
   new.intervals$min.mean <- c(last.min.mean, mean.in.interval)
@@ -578,38 +736,43 @@ MinEnvelope <- function(dt1, dt2){
   new.dt
 }
 MinEnvelope <- function(dt1, dt2){
+  stopifnot(dt1[, min.mean < max.mean])
+  stopifnot(dt2[, min.mean < max.mean])
+  stopifnot(dt1[1, min.mean]==dt2[1, min.mean])
+  stopifnot(dt1[.N, max.mean]==dt2[.N, max.mean])
   i1 <- 1
   i2 <- 1
-  redundant.list <- list()
+  new.dt.list <- list()
+  row.to.add <- NULL
   while(i1 <= nrow(dt1) && i2 <= nrow(dt2)){
     row1 <- dt1[i1,]
     row2 <- dt2[i2,]
-    new.row <- CompareRows(dt1, dt2, i1, i2)
+    new.rows <- CompareRows(dt1, dt2, i1, i2)
+    for(row.i in 1:nrow(new.rows)){
+      new.row <- new.rows[row.i,]
+      if(is.null(row.to.add)){
+        row.to.add <- new.row
+      }else{
+        if(new.row$quadratic==row.to.add$quadratic){
+          ## this is the same function as the previous one, so just make
+          ## it extend further to the right.
+          row.to.add$max.mean <- new.row$max.mean
+        }else{
+          ## new.row is a different function than the previous
+          ## row.to.add, so now is the time to store it and move on.
+          new.dt.list[[paste(i1, i2, row.i)]] <- row.to.add
+          row.to.add <- new.row
+        }
+      }
+    }
     if(row1$max.mean == new.row$max.mean){
       i1 <- i1+1
     }
     if(row2$max.mean == new.row$max.mean){
       i2 <- i2+1
     }
-    redundant.list[[paste(i1,i2)]] <- new.row
   }
-  redundant <- do.call(rbind, redundant.list)
-  this.i <- 1
-  new.dt.list <- list()
-  while(this.i <= nrow(redundant)){
-    this.row <- redundant[this.i,]
-    next.i <- this.i+1
-    while(
-      next.i <= nrow(redundant) &&
-        this.row$quadratic==redundant[next.i, quadratic]){
-      if(is.na(this.row$data.i)){
-        this.row$data.i <- redundant[next.i, data.i]
-      }
-      next.i <- next.i+1
-    }
-    new.dt.list[[paste(this.i)]] <- this.row
-    this.i <- next.i
-  }
+  new.dt.list[["last"]] <- row.to.add
   do.call(rbind, new.dt.list)
 }
 ## Test cases for MinEnvelope: list format is: input1, input2,
@@ -656,7 +819,7 @@ min.env.test.list <- list(not.quasiconvex=list(
       max.mean = c(-0.117545121200233,
                    -0.105686525579533, 0.0365259791823832, 0.0922074380970889),
       data.i = c(10,
-                 6, 6, 8))),
+                 10, 6, 8))),
   same.on.right=list(
     data.table(
       quadratic = c(0, 6),
@@ -671,7 +834,7 @@ min.env.test.list <- list(not.quasiconvex=list(
       constant = c(0.0275566915219987, 0.0211556474213202, 0.05466457248854),
       min.mean = c(-0.0922074380970889, -0.0365259791823832, 0.105686525579533),
       max.mean = c(-0.0365259791823832, 0.105686525579533, 0.15521264992094),
-      data.i = c(8, 6, 6))),
+      data.i = c(8, 6, 9))),
   same.on.left=list(
     data.table(
       quadratic = c(6, 0),
@@ -686,7 +849,7 @@ min.env.test.list <- list(not.quasiconvex=list(
       constant = c(0.05466457248854, 0.0211556474213202, 0.0275566915219987),
       min.mean = c(-0.15521264992094, -0.105686525579533, 0.0365259791823832),
       max.mean = c(-0.105686525579533, 0.0365259791823832, 0.0922074380970889),
-      data.i = c(6, 6, 8))))
+      data.i = c(9, 6, 8))))
 for(min.env.test.name in names(min.env.test.list)){
   test <- min.env.test.list[[min.env.test.name]]
   dt1 <- test[[1]]
@@ -726,7 +889,7 @@ envelope.list <- list()
 data.vec <- -subset(intreg$signals, signal=="4.2")$logratio[80:200]
 ## TODO: increase the number of data points and see where the bug is
 ## coming from.
-data.vec <- data.vec[1:11]
+data.vec <- data.vec[1:60]
 min.mean <- min(data.vec)
 max.mean <- max(data.vec)
 gamma.dt <- data.table(
@@ -782,7 +945,9 @@ for(n.segments in 2:max.segments){
         data.table(n.segments, timestep,
                    compare.cost.lines <- getLines(compare.cost))
       gg <- gg+
-        geom_line(aes(mean, cost, color=factor(data.i)),
+        geom_line(aes(mean, cost,
+                      color=factor(data.i),
+                      group=piece.i),
                   compare.cost.lines)
     }
     if(nrow(cost.model)){ # may be Inf over entire interval.
@@ -790,15 +955,17 @@ for(n.segments in 2:max.segments){
         data.table(n.segments, timestep,
                    cost.model.lines <- getLines(cost.model))
       gg <- gg+
-        geom_line(aes(mean, cost, color=factor(data.i)),
+        geom_line(aes(mean, cost,
+                      group=piece.i,
+                      color=factor(data.i)),
                   cost.model.lines)
     }
-    transformed.compare <- env.transform(compare.cost)
-    transformed.model <- env.transform(cost.model)
-    transformed.env <-
-      MinEnvelope(transformed.compare, transformed.model)
-    one.env <- env.transform(transformed.env)
-    ##one.env <- MinEnvelope(compare.cost, cost.model)
+    ## transformed.compare <- env.transform(compare.cost)
+    ## transformed.model <- env.transform(cost.model)
+    ## transformed.env <-
+    ##   MinEnvelope(transformed.compare, transformed.model)
+    ## one.env <- env.transform(transformed.env)
+    one.env <- MinEnvelope(compare.cost, cost.model)
     if(nrow(one.env)){
       envelope.list[[paste(n.segments, timestep)]] <-
         data.table(n.segments, timestep,
@@ -855,7 +1022,7 @@ gg.pruning <- ggplot()+
   geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
              data=minima)
 
-ti <- 11
+ti <- 10
 gg.pruning <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
@@ -867,11 +1034,11 @@ gg.pruning <- ggplot()+
                  paste(val)
                }
              })+
-  geom_line(aes(mean, cost, group=data.i.fac),
+  geom_line(aes(mean, cost),
             color="grey",
             size=2,
             data=envelope[timestep==ti,])+
-  geom_line(aes(mean, cost, color=data.i.fac),
+  geom_line(aes(mean, cost, color=paste(data.i.fac, piece.i)),
             data=cost.lines[timestep==ti,])+
   geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
              data=minima[timestep==ti,])
