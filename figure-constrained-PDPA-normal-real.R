@@ -210,6 +210,21 @@ Minimize <- function(dt, from=min(dt$min.mean), to=max(dt$max.mean)){
 CompareRows <- function(dt1, dt2, i1, i2){
   row1 <- dt1[i1,]
   row2 <- dt2[i2,]
+  ggplot()+
+    ##coord_cartesian(xlim=c(-0.05, -0.1), ylim=c(0,1e-3))+
+    geom_line(aes(mean, cost, color=fun.i),
+              size=2,
+              data=data.table(getLines(dt1), fun.i=factor(1)))+
+    geom_line(aes(mean, cost, color=fun.i),
+              size=1,
+              data=data.table(getLines(dt2), fun.i=factor(2)))+
+    geom_line(aes(mean, cost),
+              linetype="dashed",
+              data=getLines(row1))+
+    geom_line(aes(mean, cost),
+              linetype="dotted",
+              size=1,
+              data=getLines(row2))
   last.min.mean <- if(row1$min.mean < row2$min.mean){
     row2$min.mean
   }else{
@@ -224,8 +239,8 @@ CompareRows <- function(dt1, dt2, i1, i2){
   if(row1$quadratic==row2$quadratic){
     ## The functions are exactly equal over the entire interval so we
     ## can return either one of them.
-    row1$min.mean <- first.min.mean
-    row1$max.mean <- last.max.mean
+    row1$min.mean <- last.min.mean
+    row1$max.mean <- first.max.mean
     row1$data.i <- NA #means either one is fine.
     return(row1)
   }
@@ -260,34 +275,103 @@ CompareRows <- function(dt1, dt2, i1, i2){
   row.diff$min.mean <- last.min.mean
   row.diff$max.mean <- first.max.mean
   discriminant <- row.diff[, linear^2 - 4*quadratic*constant]
-  numerator <- -row.diff$linear + c(-1,1)*sqrt(discriminant)
-  denominator <- 2*row.diff$quadratic
-  mean.at.equal.cost <- numerator/denominator
-  left.diff <- cost1.left-cost2.left
   right.diff <- cost1.right-cost2.right
-  thresh < abs(right.diff)
-  thresh < abs(left.diff)
-  
-  first.max.points <- 
-    data.table(mean=first.max.mean, cost=c(cost1, cost2))
-  ggplot()+
-    ##coord_cartesian(xlim=c(-0.05, -0.1), ylim=c(0,1e-3))+
-    geom_line(aes(mean, cost, color=fun.i),
-              size=2,
-              data=data.table(getLines(dt1), fun.i=factor(1)))+
-    geom_line(aes(mean, cost, color=fun.i),
-              size=1,
-              data=data.table(getLines(dt2), fun.i=factor(2)))+
-    geom_line(aes(mean, cost),
-              linetype="dashed",
-              data=getLines(row1))+
-    geom_line(aes(mean, cost),
-              linetype="dotted",
-              size=1,
-              data=getLines(row2))+
-    geom_point(aes(mean, cost),
-               shape=1,
-               data=first.max.points)
+  if(thresh < abs(right.diff)){
+    row1.min.on.right <- right.diff < 0
+  }else{
+    ## They are equal on the right limit, so use the first and second
+    ## derivatives to see which is minimal just before the right
+    ## limit. Do we need to check if they intersect before the right
+    ## limit? Only if one is going up and the other is going down. And
+    ## in that case we just need to check the -sqrt of the
+    ## difference (since we know the +sqrt is on the right limit).
+    deriv1.right <- row1[, 2*quadratic*first.max.mean + linear]
+    deriv2.right <- row2[, 2*quadratic*first.max.mean + linear]
+    sign1 <- sign(deriv1.right)
+    sign2 <- sign(deriv2.right)
+    if(sign1 != 0 && sign2 != 0 && sign1 != sign2){
+      ## There could be a crossing point to the left.
+      numerator <- - row.diff$linear - sqrt(discriminant)
+      denominator <- 2*row.diff$quadratic
+      mean.at.equal.cost <- numerator/denominator
+      in.interval <-
+        last.min.mean < mean.at.equal.cost &
+        mean.at.equal.cost < first.max.mean
+      if(in.interval){
+        stop("intersection to the left of the equal right limit")
+      }
+    }
+    row1.min.before.right <- if(deriv1.right==deriv2.right){
+      row2$quadratic < row1$quadratic
+    }else{
+      deriv2.right < deriv1.right 
+    }
+    this.row <- if(row1.min.before.right)row1 else row2
+    this.row$min.mean <- last.min.mean
+    this.row$max.mean <- first.max.mean
+    return(this.row)
+  }
+  left.diff <- cost1.left-cost2.left
+  if(thresh < abs(left.diff)){
+    row1.min.on.left <- left.diff < 0
+  }else{
+    ## Equal on the left.
+    deriv1.left <- row1[, 2*quadratic*last.min.mean + linear]
+    deriv2.left <- row2[, 2*quadratic*last.min.mean + linear]
+    sign1 <- sign(deriv1.left)
+    sign2 <- sign(deriv2.left)
+    if(sign1 != 0 && sign2 != 0 && sign1 != sign2){
+      ## There could be a crossing point to the right.
+      numerator <- -row.diff$linear + sqrt(discriminant)
+      denominator <- 2*row.diff$quadratic
+      mean.at.equal.cost <- numerator/denominator
+      in.interval <-
+        last.min.mean < mean.at.equal.cost &
+        mean.at.equal.cost < first.max.mean
+      if(in.interval){
+        stop("intersection to the right of the equal left limit")
+      }
+    }
+    row1.min.after.right <- if(deriv1.left==deriv2.left){
+      row1$quadratic < row2$quadratic
+    }else{
+      deriv1.left < deriv2.left
+    }
+    this.row <- if(row1.min.after.right)row1 else row2
+    this.row$min.mean <- last.min.mean
+    this.row$max.mean <- first.max.mean
+    return(this.row)
+  }
+  ## The only remaining case is that the curves are equal neither on
+  ## the left nor on the right of the interval. However they may be
+  ## equal inside the interval, so let's check for that.
+  mean.in.interval <- if(0 < discriminant){
+    numerator <- -row.diff$linear + c(-1,1)*sqrt(discriminant)
+    denominator <- 2*row.diff$quadratic
+    mean.at.equal.cost <- numerator/denominator
+    in.interval <-
+      last.min.mean < mean.at.equal.cost &
+      mean.at.equal.cost < first.max.mean
+    mean.at.equal.cost[in.interval]
+  }
+  new.intervals <- if(length(mean.in.interval)==1){
+    stopifnot(row1.min.on.left != row2.min.on.right)
+    if(row1.min.on.left)rbind(row1,row2) else rbind(row2, row1)
+  }else if(length(mean.in.interval)==2){
+    stopifnot(row1.min.on.left == row2.min.on.right)
+    if(row1.min.on.left){
+      rbind(row1, row2, row1)
+    }else{
+      rbind(row2, row1, row2)
+    }
+  }else{
+    ## functions do not cross in this interval.
+    stopifnot(row1.min.on.right==row1.min.on.left)
+    if(row1.min.on.right)row1 else row2
+  }
+  new.intervals$min.mean <- c(last.min.mean, mean.in.interval)
+  new.intervals$max.mean <- c(mean.in.interval, first.max.mean)
+  new.intervals
 }
 MinEnvelope <- function(dt1, dt2){
   stopifnot(dt1[, min.mean < max.mean])
@@ -418,11 +502,10 @@ MinEnvelope <- function(dt1, dt2){
       geom_line(aes(mean, cost),
                 data.table(getLines(row.diff),y="diff"))
     discriminant <- row.diff[, linear^2 - 4*quadratic*constant]
-    cross.dt <- if(.Machine$double.eps < discriminant){
+    cross.dt <- if(0 < discriminant){
       numerator <- -row.diff$linear + c(-1,1)*sqrt(discriminant)
       denominator <- 2*row.diff$quadratic
       mean.at.equal.cost <- numerator/denominator
-      slope.at.equal.cost <- row.diff[, 2*mean.at.equal.cost*quadratic + linear]
       ## If the slope is negative, then row2 is minimal on the left and
       ## row1 is optimal on the right (and vice versa).
       in.row1 <-
@@ -493,6 +576,41 @@ MinEnvelope <- function(dt1, dt2){
   browser(expr=any(table(new.dt$min.mean)>1))
   browser(expr=any(table(new.dt$max.mean)>1))
   new.dt
+}
+MinEnvelope <- function(dt1, dt2){
+  i1 <- 1
+  i2 <- 1
+  redundant.list <- list()
+  while(i1 <= nrow(dt1) && i2 <= nrow(dt2)){
+    row1 <- dt1[i1,]
+    row2 <- dt2[i2,]
+    new.row <- CompareRows(dt1, dt2, i1, i2)
+    if(row1$max.mean == new.row$max.mean){
+      i1 <- i1+1
+    }
+    if(row2$max.mean == new.row$max.mean){
+      i2 <- i2+1
+    }
+    redundant.list[[paste(i1,i2)]] <- new.row
+  }
+  redundant <- do.call(rbind, redundant.list)
+  this.i <- 1
+  new.dt.list <- list()
+  while(this.i <= nrow(redundant)){
+    this.row <- redundant[this.i,]
+    next.i <- this.i+1
+    while(
+      next.i <= nrow(redundant) &&
+        this.row$quadratic==redundant[next.i, quadratic]){
+      if(is.na(this.row$data.i)){
+        this.row$data.i <- redundant[next.i, data.i]
+      }
+      next.i <- next.i+1
+    }
+    new.dt.list[[paste(this.i)]] <- this.row
+    this.i <- next.i
+  }
+  do.call(rbind, new.dt.list)
 }
 ## Test cases for MinEnvelope: list format is: input1, input2,
 ## [output]. If output is omitted then it is the same as input2.
