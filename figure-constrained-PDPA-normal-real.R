@@ -543,7 +543,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
       (row2$quadratic < row2$quadratic && 0 < sign1)
     if(0 < discriminant && maybe.cross){
       ## There could be a crossing point to the left.
-      numerator <- - row.diff$linear - sqrt(discriminant)
+      numerator <- row.diff[, -linear - sign(quadratic)*sqrt(discriminant)]
       denominator <- 2*row.diff$quadratic
       mean.at.equal.cost <- numerator/denominator
       in.interval <-
@@ -576,7 +576,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
       (row2$quadratic < row2$quadratic && sign1 < 0)
     if(0 < discriminant && maybe.cross){
       ## There could be a crossing point to the right.
-      numerator <- - row.diff$linear + sqrt(discriminant)
+      numerator <- row.diff[, -linear + sign(quadratic)*sqrt(discriminant)]
       denominator <- 2*row.diff$quadratic
       mean.at.equal.cost <- numerator/denominator
       in.interval <-
@@ -1314,6 +1314,7 @@ viz <- list(
               data=addY(data.cost, "segments"))+
     geom_widerect(aes(ymin=total.segments-0.5, ymax=total.segments+0.5,
                       clickSelects=total.segments),
+                  alpha=0.5,
                   data=addY(
                     data.table(total.segments=1:max.segments), "segments"))
 )
