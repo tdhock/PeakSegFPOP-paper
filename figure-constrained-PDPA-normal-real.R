@@ -54,18 +54,80 @@ AddFuns <- function(dt1, dt2){
 
 less.more.min.list <- list(
   less=function(dt){
-    if(1 < nrow(dt)){
-      stop("TODO implement more general less equal min computation")
+    new.dt.list <- list()
+    prev.min.cost <- NULL
+    row.i <- 1
+    prev.min.mean <- dt$min.mean[1]
+    while(row.i <= nrow(dt)){
+      this.row <- dt[row.i,]
+      gg <- ggplot()+
+        geom_vline(xintercept=prev.min.mean)+
+        geom_line(aes(mean, cost),
+                  color="grey",
+                  size=4,
+                  data=getLines(dt))+
+        geom_line(aes(mean, cost),
+                  data=getLines(this.row))
+      if(is.numeric(prev.min.cost)){
+        gg <- gg+
+          geom_hline(yintercept=prev.min.cost)
+      }
+      if(is.null(prev.min.cost)){
+        ## Look for min achieved in this interval.
+        mu <- getMinMean(this.row)
+        if(mu <= this.row$min.mean){
+          ## The minimum is achieved before this interval, so this
+          ## function is always increasing in this interval. We don't
+          ## need to store it.
+          prev.min.cost <- quad(this.row, this.row$min.mean)
+          prev.data.i <- this.row$data.i
+        }else if(mu < this.row$max.mean){
+          ## Minimum in this interval.
+          new.row <- this.row
+          new.row$min.mean <- prev.min.mean
+          new.row$max.mean <- mu
+          new.dt.list[[paste(row.i)]] <- new.row
+          prev.min.mean <- mu
+          prev.min.cost <- quad(this.row, mu)
+          prev.data.i <- this.row$data.i
+        }else{
+          ## Minimum after this interval, so this function is
+          ## decreasing on this entire interval, and so we can just
+          ## store it as is.
+          new.row <- this.row
+          new.row$min.mean <- prev.min.mean
+          new.dt.list[[paste(row.i)]] <- new.row
+          prev.min.mean <- this.row$max.mean
+        }
+      }else{
+        ## Look for a function with prev.min.cost.
+        discriminant <- this.row[, linear^2-4*quadratic*(constant-prev.min.cost)]
+        if(0 < discriminant){
+          mu <- this.row[, (-linear-sqrt(discriminant))/(2*quadratic)]
+          if(this.row[, min.mean < mu & mu < max.mean]){
+            new.dt.list[[paste(row.i, "constant")]] <- data.table(
+              quadratic=0,
+              linear=0,
+              constant=prev.min.cost,
+              min.mean=prev.min.mean,
+              max.mean=mu,
+              data.i=prev.data.i)
+            prev.min.cost <- NULL
+            prev.min.mean <- mu
+            row.i <- row.i-1
+          }
+        }
+      }
+      row.i <- row.i+1
     }
-    mu <- getMinMean(dt)
-    cost <- quad(dt, mu)
-    data.table(
-      quadratic=c(dt$quadratic, 0),
-      linear=c(dt$linear, 0),
-      constant=c(dt$constant, cost),
-      min.mean=c(dt$min.mean[1], mu),
-      max.mean=c(mu, dt$max.mean[nrow(dt)]),
-      data.i=dt$data.i)[min.mean!=max.mean,]
+    new.dt.list[["last"]] <- data.table(
+      quadratic=0,
+      linear=0,
+      constant=prev.min.cost,
+      min.mean=prev.min.mean,
+      max.mean=this.row$max.mean,
+      data.i=prev.data.i)
+    do.call(rbind, new.dt.list)
   },
   more=function(dt){
     mean.at.min.vec <- getMinMean(dt)
@@ -132,6 +194,19 @@ less.more.min.list <- list(
     }
     do.call(rbind, rev(new.dt.list))
   })
+mirror <- function(dt){
+  new.max <- -dt$min.mean
+  new.min <- -dt$max.mean
+  dt$min.mean <- new.min
+  dt$max.mean <- new.max
+  dt[, linear := -linear]
+  dt[.N:1,]
+}
+less.more.min.list$more <- function(dt){
+  mirror.input <- mirror(dt)
+  mirror.output <- less.more.min.list$less(mirror.input)
+  mirror(mirror.output)
+}
 less.more.test.list <- list(
   real=list(input=data.table(
     quadratic=c(2,1),
@@ -374,11 +449,15 @@ CompareRows <- function(dt1, dt2, i1, i2){
 }
 ## Another implementation that checks equality of quadratic
 ## coefficients rather than cost function values.
+sameFuns <- function(row1, row2){
+  row1$quadratic==row2$quadratic &&
+    row1$constant==row2$constant
+}
 CompareRows <- function(dt1, dt2, i1, i2){
   row1 <- dt1[i1,]
   row2 <- dt2[i2,]
   ggplot()+
-    ##coord_cartesian(xlim=c(0.05, 0.15), ylim=c(0.02,0.03))+
+    ##coord_cartesian(xlim=c(-0.1, 0), ylim=c(0,0.2))+
     geom_line(aes(mean, cost, color=fun.i),
               size=2,
               data=data.table(getLines(dt1), fun.i=factor(1)))+
@@ -393,37 +472,44 @@ CompareRows <- function(dt1, dt2, i1, i2){
               size=1,
               data=getLines(row2))
   if(row1$min.mean < row2$min.mean){
-    same.at.left <- dt2[i2-1, quadratic]==row1$quadratic
+    prev2 <- dt2[i2-1, ]
+    same.at.left <- sameFuns(prev2, row1)
     last.min.mean <- row2$min.mean
   }else{
     last.min.mean <- row1$min.mean
+    prev1 <- dt1[i1-1, ]
     same.at.left <- if(row2$min.mean < row1$min.mean){
-      dt1[i1-1, quadratic]==row2$quadratic
+      sameFuns(prev1, row2)
     }else{
       if(i1==1 && i2==1){
         FALSE
       }else{
-        dt2[i2-1, quadratic]==dt1[i1-1, quadratic]
+        prev2 <- dt2[i2-1, ]
+        sameFuns(prev1, prev2)
       }
     }
   }
   if(row1$max.mean < row2$max.mean){
-    same.at.right <- dt1[i1+1, quadratic]==row2$quadratic
+    next1 <- dt1[i1+1,]
+    same.at.right <- sameFuns(next1, row2)
     first.max.mean <- row1$max.mean
   }else{
     first.max.mean <- row2$max.mean
     same.at.right <- if(row2$max.mean < row1$max.mean){
-      dt2[i2+1, quadratic]==row1$quadratic
+      next2 <- dt2[i2+1,]
+      sameFuns(row1, next2)
     }else{
       if(i1==nrow(dt1) && i2==nrow(dt2)){
         FALSE
       }else{
-        dt2[i2+1, quadratic]==dt1[i1+1, quadratic]
+        next1 <- dt1[i1+1,]
+        next2 <- dt2[i2+1,]
+        sameFuns(next1, next2)
       }
     }
   }
   stopifnot(last.min.mean < first.max.mean)
-  if(row1$quadratic==row2$quadratic){
+  if(row1$quadratic==row2$quadratic && row1$constant==row2$constant){
     ## The functions are exactly equal over the entire interval so we
     ## can return either one of them.
     row1$min.mean <- last.min.mean
@@ -514,7 +600,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
   ## the left nor on the right of the interval. However they may be
   ## equal inside the interval, so let's check for that.
   mean.in.interval <- if(0 < discriminant){
-    numerator <- -row.diff$linear + c(-1,1)*sqrt(discriminant)
+    numerator <- row.diff[, -linear + sign(quadratic)*c(-1,1)*sqrt(discriminant)]
     denominator <- 2*row.diff$quadratic
     mean.at.equal.cost <- numerator/denominator
     in.interval <-
@@ -912,44 +998,37 @@ for(data.i in 1:nrow(C1.dt)){
   cost.models.list[[paste(1, data.i)]] <- C1.dt[data.i,]
 }
 max.segments <- 5
-for(n.segments in 2:max.segments){
-  prev.cost.model <- cost.models.list[[paste(n.segments-1, n.segments-1)]]
-  if(n.segments %% 2){
+for(total.segments in 2:max.segments){
+  prev.cost.model <- cost.models.list[[paste(total.segments-1, total.segments-1)]]
+  if(total.segments %% 2){
     min.fun.name <- "more"
-    env.transform <- function(dt){
-      new.max <- -dt$min.mean
-      new.min <- -dt$max.mean
-      dt$min.mean <- new.min
-      dt$max.mean <- new.max
-      dt[, linear := -linear]
-      dt[.N:1,]
-    }
+    env.transform <- mirror
   }else{
     min.fun.name <- "less"
     env.transform <- identity
   }
   min.fun <- less.more.min.list[[min.fun.name]]
   first.min <- min.fun(prev.cost.model)
-  first.data <- gamma.dt[n.segments,]
-  first.data$data.i <- n.segments-1
+  first.data <- gamma.dt[total.segments,]
+  first.data$data.i <- total.segments-1
   cost.model <- AddFuns(first.data, first.min)
-  cost.models.list[[paste(n.segments, n.segments)]] <- cost.model
-  for(timestep in (n.segments+1):length(data.vec)){
+  cost.models.list[[paste(total.segments, total.segments)]] <- cost.model
+  for(timestep in (total.segments+1):length(data.vec)){
     cat(sprintf("%4d / %4d segments %4d / %4d data points %d intervals\n",
-                n.segments, max.segments, timestep, length(data.vec),
+                total.segments, max.segments, timestep, length(data.vec),
                 nrow(cost.model)))
-    prev.cost.model <- cost.models.list[[paste(n.segments-1, timestep-1)]]
+    prev.cost.model <- cost.models.list[[paste(total.segments-1, timestep-1)]]
     compare.cost <- min.fun(prev.cost.model)
     compare.cost$data.i <- timestep-1
-    cost.model <- cost.models.list[[paste(n.segments, timestep-1)]]
+    cost.model <- cost.models.list[[paste(total.segments, timestep-1)]]
     cost.minima <- Minimize(cost.model)
     compare.minima <- Minimize(compare.cost)
     gg <- ggplot()+
-      ggtitle(paste(n.segments, "segments,", timestep, "data points"))
+      ggtitle(paste(total.segments, "segments,", timestep, "data points"))
     if(nrow(compare.cost)){
       cost.lines.list[[
-        paste(n.segments, timestep, "compare")]] <-
-        data.table(n.segments, timestep,
+        paste(total.segments, timestep, "compare")]] <-
+        data.table(total.segments, timestep,
                    compare.cost.lines <- getLines(compare.cost))
       gg <- gg+
         geom_line(aes(mean, cost,
@@ -958,8 +1037,8 @@ for(n.segments in 2:max.segments){
                   compare.cost.lines)
     }
     if(nrow(cost.model)){ # may be Inf over entire interval.
-      cost.lines.list[[paste(n.segments, timestep)]] <-
-        data.table(n.segments, timestep,
+      cost.lines.list[[paste(total.segments, timestep)]] <-
+        data.table(total.segments, timestep,
                    cost.model.lines <- getLines(cost.model))
       gg <- gg+
         geom_line(aes(mean, cost,
@@ -973,9 +1052,10 @@ for(n.segments in 2:max.segments){
     ##   MinEnvelope(transformed.compare, transformed.model)
     ## one.env <- env.transform(transformed.env)
     one.env <- MinEnvelope(compare.cost, cost.model)
+    stopifnot(one.env[, min.mean < max.mean])
     if(nrow(one.env)){
-      envelope.list[[paste(n.segments, timestep)]] <-
-        data.table(n.segments, timestep,
+      envelope.list[[paste(total.segments, timestep)]] <-
+        data.table(total.segments, timestep,
                    env.lines <- getLines(one.env))
       gg <- gg+
         geom_line(aes(mean, cost),
@@ -985,36 +1065,36 @@ for(n.segments in 2:max.segments){
                   alpha=0.5)
     }
     if(nrow(cost.minima)){
-      minima.list[[paste(n.segments, timestep)]] <-
-        data.table(n.segments, timestep, rbind(
+      minima.list[[paste(total.segments, timestep)]] <-
+        data.table(total.segments, timestep, rbind(
           cost.minima, compare.minima))
     }
     ## Now that we are done with this step, we can perform the
     ## recursion by setting the new model of the cost to the min
     ## envelope, plus a new data point.
     cost.model <- AddFuns(one.env, gamma.dt[timestep,])
-    cost.models.list[[paste(n.segments, timestep)]] <- cost.model
+    cost.models.list[[paste(total.segments, timestep)]] <- cost.model
   }#for(timestep
-}#for(n.segments
+}#for(total.segments
 cost.lines <- do.call(rbind, cost.lines.list)
 cost.lines[, minimization := paste(
-  n.segments, "segments up to data point", timestep)]
+  total.segments, "segments up to data point", timestep)]
 cost.lines[, data.i.fac := factor(data.i)]
 minima <- do.call(rbind, minima.list)
 minima[, minimization := paste(
-  n.segments, "segments up to data point", timestep)]
+  total.segments, "segments up to data point", timestep)]
 minima[, data.i.fac := factor(data.i)]
 envelope <- do.call(rbind, envelope.list)
 envelope[, data.i.fac := factor(data.i)]
 envelope[, minimization := paste(
-  n.segments, "segments up to data point", timestep)]
+  total.segments, "segments up to data point", timestep)]
 
 gg.pruning <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
-  facet_grid(timestep ~ n.segments, scales="free",
+  facet_grid(timestep ~ total.segments, scales="free",
              labeller=function(var, val){
-               if(var %in% c("n.segments", "timestep")){
+               if(var %in% c("total.segments", "timestep")){
                  paste(var, "=", val)
                }else{
                  paste(val)
@@ -1029,13 +1109,14 @@ gg.pruning <- ggplot()+
   geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
              data=minima)
 
-ti <- 7
+ti <- 30
 gg.pruning <- ggplot()+
+  coord_cartesian(xlim=c(-0.2, 0), ylim=c(0, 0.3))+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
-  facet_grid(timestep ~ n.segments, scales="free",
+  facet_grid(timestep ~ total.segments, scales="free",
              labeller=function(var, val){
-               if(var %in% c("n.segments", "timestep")){
+               if(var %in% c("total.segments", "timestep")){
                  paste(var, "=", val)
                }else{
                  paste(val)
@@ -1180,30 +1261,32 @@ viz <- list(
     theme_animint(width=800, height=300)+
     coord_cartesian(ylim=c(0, max(between.intervals$cost)))+
     geom_line(aes(mean, cost,
-                  showSelected=minimization),
+                  showSelected=total.segments, showSelected2=timestep),
               color="grey",
               size=8,
               data=data.table(envelope, seg.i="pruning"))+
     geom_line(aes(mean, cost, color=data.i.fac,
                   group=paste(piece.i, data.i),
-                  showSelected=minimization),
+                  showSelected=total.segments, showSelected2=timestep),
               data=data.table(cost.lines, seg.i="pruning"))+
     geom_point(aes(min.cost.mean, min.cost, color=data.i.fac,
-                   showSelected=minimization),
+                   showSelected=total.segments, showSelected2=timestep),
                size=5,
                data=data.table(minima, seg.i="pruning"))+    
     facet_grid(. ~ seg.i, scales="free", labeller=function(var, val){
       paste(ifelse(val!="pruning", "segment", ""), val)
     })+
     geom_tallrect(aes(xmin=min.mean, xmax=max.mean,
-                      showSelected=minimization),
+                      showSelected=total.segments,
+                      showSelected2=timestep),
                   fill="grey",
                   alpha=0.5,
                   color=NA,
                   data=data.infeasible)+
     geom_line(aes(mean, cost, color=data.i.fac,
                   group=piece.i,
-                  showSelected=minimization),
+                  showSelected=total.segments,
+                  showSelected2=timestep),
               data=data.lines)+
     guides(color="none"),
   data=ggplot()+
@@ -1214,22 +1297,31 @@ viz <- list(
     geom_point(aes(position, count),
                data=addY(data.dt, "count"))+
     geom_segment(aes(segment.start-0.45, min.cost.mean,
-                     showSelected=minimization,
+                     showSelected=total.segments,
+                     showSelected2=timestep,
                      xend=segment.end+0.45, yend=min.cost.mean),
                  data=addY(data.minima, "count"),
                  color="green")+
     guides(color="none")+
-    geom_point(aes(timestep, intervals),
-               data=addY(data.intervals[total.segments==2,],"intervals"))+
-    geom_tile(aes(timestep, total.segments, fill=optimal.cost,
-                  clickSelects=minimization),
-              data=addY(data.cost, "segments"))
+    geom_tallrect(aes(xmin=timestep-0.5, xmax=timestep+0.5,
+                      clickSelects=timestep),
+                  data=data.table(timestep=seq_along(data.vec)),
+                  alpha=0.5)+
+    geom_line(aes(timestep, intervals, group=total.segments,
+                  clickSelects=total.segments),
+               data=addY(data.intervals, "intervals"))+
+    geom_tile(aes(timestep, total.segments, fill=optimal.cost),
+              data=addY(data.cost, "segments"))+
+    geom_widerect(aes(ymin=total.segments-0.5, ymax=total.segments+0.5,
+                      clickSelects=total.segments),
+                  data=addY(
+                    data.table(total.segments=1:max.segments), "segments"))
 )
 minima.active <- data.minima[constraint=="active",]
 if(nrow(minima.active)){
   viz$funModels <- viz$funModels+
     geom_point(aes(min.cost.mean, min.cost,
-                   showSelected=minimization),
+                   showSelected=total.segments, showSelected2=timestep),
                size=6,
                shape=21,
                fill="white",
@@ -1252,17 +1344,16 @@ viz$funModels <- viz$funModels+
                    "previous segment end =",
                    data.i
                  ),
-                 showSelected=minimization),
+                 showSelected=total.segments, showSelected2=timestep),
              size=5,
              data=data.minima)+
   geom_point(aes(mean, cost, 
-                 showSelected=minimization),
+                 showSelected=total.segments, showSelected2=timestep),
              data=between.intervals)  
 cost.active <- data.cost[constraint=="active",]
 if(nrow(cost.active)){
   viz$data <- viz$data+
-    geom_point(aes(timestep, total.segments, 
-                   clickSelects=minimization),
+    geom_point(aes(timestep, total.segments),
                shape=21,
                color="black",
                fill="white",
