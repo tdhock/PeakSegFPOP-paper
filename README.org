@@ -2,6 +2,13 @@ The goal of this paper is to implement a fast algorithm for solving
 the PeakSeg problem described in
 http://jmlr.org/proceedings/papers/v37/hocking15.html
 
+** 10 May 2016
+
+- [[file:figure-constrained-PDPA-normal-real.R]] makes
+  http://cbio.ensmp.fr/~thocking/figure-constrained-PDPA-normal-real/
+  a data viz which shows the constrained algorithm up to 5 segments
+  for a data set with 121 points.
+
 ** 4 May 2016
 
 - [[file:figure-constrained-PDPA-normal-panels.R]] implements the
