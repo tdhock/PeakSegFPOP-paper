@@ -403,7 +403,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
       if(i1==1 && i2==1){
         FALSE
       }else{
-        stop("start at the same position")
+        dt2[i2-1, quadratic]==dt1[i1-1, quadratic]
       }
     }
   }
@@ -418,7 +418,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
       if(i1==nrow(dt1) && i2==nrow(dt2)){
         FALSE
       }else{
-        stop("end at the same position")
+        dt2[i2+1, quadratic]==dt1[i1+1, quadratic]
       }
     }
   }
@@ -444,25 +444,29 @@ CompareRows <- function(dt1, dt2, i1, i2){
     ## They are equal on the right limit, so use the first and second
     ## derivatives to see which is minimal just before the right
     ## limit. Do we need to check if they intersect before the right
-    ## limit? Only if one is going up and the other is going down. And
-    ## in that case we just need to check the -sqrt of the
-    ## difference (since we know the +sqrt is on the right limit).
+    ## limit? Only if the sign of the slope of the more curved
+    ## function is positive. And in that case we just need to check
+    ## the -sqrt of the difference (since we know the +sqrt is on the
+    ## right limit).
     deriv1.right <- row1[, 2*quadratic*first.max.mean + linear]
     deriv2.right <- row2[, 2*quadratic*first.max.mean + linear]
     sign1 <- sign(deriv1.right)
     sign2 <- sign(deriv2.right)
-    ## There could be a crossing point to the left.
-    ## if(0 < discriminant){
-    ##   numerator <- - row.diff$linear - sqrt(discriminant)
-    ##   denominator <- 2*row.diff$quadratic
-    ##   mean.at.equal.cost <- numerator/denominator
-    ##   in.interval <-
-    ##     last.min.mean < mean.at.equal.cost &
-    ##     mean.at.equal.cost < first.max.mean
-    ##   if(in.interval){
-    ##     stop("intersection to the left of the equal right limit")
-    ##   }
-    ## }
+    maybe.cross <-
+      (row1$quadratic < row2$quadratic && 0 < sign2) ||
+      (row2$quadratic < row2$quadratic && 0 < sign1)
+    if(0 < discriminant && maybe.cross){
+      ## There could be a crossing point to the left.
+      numerator <- - row.diff$linear - sqrt(discriminant)
+      denominator <- 2*row.diff$quadratic
+      mean.at.equal.cost <- numerator/denominator
+      in.interval <-
+        last.min.mean < mean.at.equal.cost &
+        mean.at.equal.cost < first.max.mean
+      if(in.interval){
+        stop("intersection to the left of the equal right limit")
+      }
+    }
     row1.min.before.right <- if(sign1==sign2){
       cost1.left < cost2.left
     }else{
@@ -481,18 +485,21 @@ CompareRows <- function(dt1, dt2, i1, i2){
     deriv2.left <- row2[, 2*quadratic*last.min.mean + linear]
     sign1 <- sign(deriv1.left)
     sign2 <- sign(deriv2.left)
-    ## There could be a crossing point to the right.
-    ## if(0 < discriminant){
-    ##   numerator <- -row.diff$linear + sqrt(discriminant)
-    ##   denominator <- 2*row.diff$quadratic
-    ##   mean.at.equal.cost <- numerator/denominator
-    ##   in.interval <-
-    ##     last.min.mean < mean.at.equal.cost &
-    ##     mean.at.equal.cost < first.max.mean
-    ##   if(in.interval){
-    ##     stop("intersection to the right of the equal left limit")
-    ##   }
-    ## }
+    maybe.cross <-
+      (row1$quadratic < row2$quadratic && sign2 < 0) ||
+      (row2$quadratic < row2$quadratic && sign1 < 0)
+    if(0 < discriminant && maybe.cross){
+      ## There could be a crossing point to the right.
+      numerator <- - row.diff$linear + sqrt(discriminant)
+      denominator <- 2*row.diff$quadratic
+      mean.at.equal.cost <- numerator/denominator
+      in.interval <-
+        last.min.mean < mean.at.equal.cost &
+        mean.at.equal.cost < first.max.mean
+      if(in.interval){
+        stop("intersection to the right of the equal left limit")
+      }
+    }
     row1.min.after.left <- if(sign1==sign2){
       cost1.right < cost2.right
     }else{
@@ -889,7 +896,7 @@ envelope.list <- list()
 data.vec <- -subset(intreg$signals, signal=="4.2")$logratio[80:200]
 ## TODO: increase the number of data points and see where the bug is
 ## coming from.
-data.vec <- data.vec[1:60]
+##data.vec <- data.vec[1:60]
 min.mean <- min(data.vec)
 max.mean <- max(data.vec)
 gamma.dt <- data.table(
@@ -904,7 +911,7 @@ cost.models.list <- list()
 for(data.i in 1:nrow(C1.dt)){
   cost.models.list[[paste(1, data.i)]] <- C1.dt[data.i,]
 }
-max.segments <- 3
+max.segments <- 5
 for(n.segments in 2:max.segments){
   prev.cost.model <- cost.models.list[[paste(n.segments-1, n.segments-1)]]
   if(n.segments %% 2){
@@ -1022,7 +1029,7 @@ gg.pruning <- ggplot()+
   geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
              data=minima)
 
-ti <- 10
+ti <- 7
 gg.pruning <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
@@ -1038,7 +1045,8 @@ gg.pruning <- ggplot()+
             color="grey",
             size=2,
             data=envelope[timestep==ti,])+
-  geom_line(aes(mean, cost, color=paste(data.i.fac, piece.i)),
+  geom_line(aes(mean, cost, group=paste(data.i.fac, piece.i),
+                color=data.i.fac),
             data=cost.lines[timestep==ti,])+
   geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
              data=minima[timestep==ti,])
