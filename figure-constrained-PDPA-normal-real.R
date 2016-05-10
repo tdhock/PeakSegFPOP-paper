@@ -1,7 +1,7 @@
 source("packages.R")
 data(intreg, package="animint")
 
-options(warn=2)
+##options(warn=2)
 
 quad <- function(dt, x){
   dt[, quadratic*x*x + linear*x + constant]
@@ -1029,6 +1029,7 @@ for(total.segments in 2:max.segments){
       cost.lines.list[[
         paste(total.segments, timestep, "compare")]] <-
         data.table(total.segments, timestep,
+                   cost.type="compare",
                    compare.cost.lines <- getLines(compare.cost))
       gg <- gg+
         geom_line(aes(mean, cost,
@@ -1039,6 +1040,7 @@ for(total.segments in 2:max.segments){
     if(nrow(cost.model)){ # may be Inf over entire interval.
       cost.lines.list[[paste(total.segments, timestep)]] <-
         data.table(total.segments, timestep,
+                   cost.type="model",
                    cost.model.lines <- getLines(cost.model))
       gg <- gg+
         geom_line(aes(mean, cost,
@@ -1249,7 +1251,7 @@ data.cost <- do.call(rbind, data.cost.list)
 data.cost[, minimization := paste(
   total.segments, "segments up to data point", timestep)]
 addY <- function(dt, y){
-  data.table(dt, y=factor(y, c("count", "intervals", "segments")))
+  data.table(dt, y=factor(y, c("data value", "intervals", "segments")))
 }
 largest.constant <- envelope[quadratic==0, max(constant)]
 viz <- list(
@@ -1261,22 +1263,25 @@ viz <- list(
     theme_animint(width=800, height=300)+
     coord_cartesian(ylim=c(0, max(between.intervals$cost)))+
     geom_line(aes(mean, cost,
+                  key=1,
                   showSelected=total.segments, showSelected2=timestep),
               color="grey",
               size=8,
               data=data.table(envelope, seg.i="pruning"))+
     geom_line(aes(mean, cost, color=data.i.fac,
                   group=paste(piece.i, data.i),
+                  key=paste(cost.type, min.mean, max.mean),
                   showSelected=total.segments, showSelected2=timestep),
               data=data.table(cost.lines, seg.i="pruning"))+
-    geom_point(aes(min.cost.mean, min.cost, color=data.i.fac,
-                   showSelected=total.segments, showSelected2=timestep),
-               size=5,
-               data=data.table(minima, seg.i="pruning"))+    
+    ## geom_point(aes(min.cost.mean, min.cost, color=data.i.fac,
+    ##                showSelected=total.segments, showSelected2=timestep),
+    ##            size=5,
+    ##            data=data.table(minima, seg.i="pruning"))+    
     facet_grid(. ~ seg.i, scales="free", labeller=function(var, val){
       paste(ifelse(val!="pruning", "segment", ""), val)
     })+
     geom_tallrect(aes(xmin=min.mean, xmax=max.mean,
+                      key=timestep,
                       showSelected=total.segments,
                       showSelected2=timestep),
                   fill="grey",
@@ -1285,6 +1290,8 @@ viz <- list(
                   data=data.infeasible)+
     geom_line(aes(mean, cost, color=data.i.fac,
                   group=piece.i,
+                  ##key=quadratic-timestep,
+                  key=paste(min.mean, max.mean),
                   showSelected=total.segments,
                   showSelected2=timestep),
               data=data.lines)+
@@ -1295,12 +1302,20 @@ viz <- list(
     theme_animint(width=800, height=300)+
     facet_grid(y ~ ., scales="free")+
     geom_point(aes(position, count),
-               data=addY(data.dt, "count"))+
+               data=addY(data.dt, "data value"))+
+    geom_vline(aes(xintercept=segment.start-0.5,
+                   key=seg.i,
+                   showSelected=total.segments,
+                   showSelected2=timestep),
+               data=addY(data.minima[1<segment.start,], "data value"),
+               color="green",
+               linetype="dashed")+
     geom_segment(aes(segment.start-0.45, min.cost.mean,
                      showSelected=total.segments,
                      showSelected2=timestep,
+                     key=seg.i,
                      xend=segment.end+0.45, yend=min.cost.mean),
-                 data=addY(data.minima, "count"),
+                 data=addY(data.minima, "data value"),
                  color="green")+
     guides(color="none")+
     geom_tallrect(aes(xmin=timestep-0.5, xmax=timestep+0.5,
@@ -1316,12 +1331,19 @@ viz <- list(
                       clickSelects=total.segments),
                   alpha=0.5,
                   data=addY(
-                    data.table(total.segments=1:max.segments), "segments"))
+                    data.table(total.segments=1:max.segments), "segments"))+
+    ylab("")+
+    scale_x_continuous(
+      "data point",
+      breaks=unique(c(seq(1, length(data.vec), by=10), length(data.vec)))),
+  time=list(variable="timestep", ms=2000),
+  duration=list(timestep=2000)
 )
 minima.active <- data.minima[constraint=="active",]
 if(nrow(minima.active)){
   viz$funModels <- viz$funModels+
     geom_point(aes(min.cost.mean, min.cost,
+                   key=data.i,
                    showSelected=total.segments, showSelected2=timestep),
                size=6,
                shape=21,
@@ -1345,10 +1367,12 @@ viz$funModels <- viz$funModels+
                    "previous segment end =",
                    data.i
                  ),
+                 key=data.i,
                  showSelected=total.segments, showSelected2=timestep),
              size=5,
              data=data.minima)+
-  geom_point(aes(mean, cost, 
+  geom_point(aes(mean, cost,
+                 key=mean,
                  showSelected=total.segments, showSelected2=timestep),
              data=between.intervals)  
 cost.active <- data.cost[constraint=="active",]
