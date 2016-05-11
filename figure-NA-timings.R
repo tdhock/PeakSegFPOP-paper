@@ -20,16 +20,18 @@ ggplot()+
              color="red",
              data=missing.dt)
 
-forward.small <- join.dt[data <= max(missing.dt$data),]
+max.data <- max(missing.dt$data)
+forward.small <- join.dt[data <= max.data,]
 gg <- ggplot()+
-  ylab("minutes")+
-  geom_text(aes(data, seconds/60, label=missing),
+  geom_text(aes(data, seconds, label=missing),
             shape=1,
             data=forward.small)+
-  geom_text(aes(data, seconds/60, label=missing),
+  geom_text(aes(data, seconds, label=missing),
             shape=1,
             color="red",
             data=missing.dt)
+
+## TODO: same figure for backward direction.
 
 pdf("figure-NA-timings.pdf")
 print(gg)

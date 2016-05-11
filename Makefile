@@ -30,3 +30,5 @@ dp.peaks.RData: dp.peaks.R dp.timings.RData
 	R --no-save < $<
 dp.timings.RData: dp.timings.R
 	R --no-save < $<
+dp.timings.reverse.RData: dp.timings.reverse.R
+	R --no-save < $<
