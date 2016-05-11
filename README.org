@@ -1,6 +1,13 @@
 The goal of this paper is to implement a fast algorithm for solving
 the PeakSeg problem described in
 http://jmlr.org/proceedings/papers/v37/hocking15.html
+** 12 May 2016
+
+[[file:figure-cDPA-PDPA.R]] shows the difference between the cDPA and PDPA
+on real data: the cDPA recovers a sub-optimal solution that obeys the
+strict inequality peak constraint, and the PDPA recovers the optimal
+solution for the non-strict inequality peak
+constraint. http://bl.ocks.org/tdhock/raw/24aa6387901edab1577ce24f1e736ff3/
 
 ** 10 May 2016
 
