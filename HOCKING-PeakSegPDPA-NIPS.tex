@@ -1,9 +1,19 @@
 \documentclass{article}
+\usepackage{nips_2016}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+
 \usepackage{graphicx}
 \usepackage{tikz}
-\usepackage[cm]{fullpage}
 \usepackage{amssymb,amsmath}
-\usepackage{natbib}
+%\usepackage{natbib}
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\sign}{sign}
 \DeclareMathOperator*{\Lik}{Lik}
@@ -28,16 +38,55 @@
 \title{A linear time algorithm for peak detection using constrained
   optimal segmentation}
 
-\author{Toby Dylan Hocking and Guillem Rigaill}
+\author{
+  Toby Dylan Hocking\\
+  Department of Human Genetics\\
+  McGill University\\
+  Montreal, QC H2R-2G9 Canada \\
+  \texttt{toby.hocking@mail.mcgill.ca} \\
+  %% examples of more authors
+  \And
+  Guillem Rigaill \\
+  University of Evry \\
+  Evry, France \\
+  \texttt{guillem.rigaill@evry.fr} \\
+  %% \AND
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+}
 
 \maketitle
 
+\begin{abstract}
+  Change-point detection is a central problem in time series and
+  genomic data sets, and new constrained maximum likelihood
+  segmentation model for peak detection with an efficient inference
+  algorithm: constrained dynamic programming. We propose a new Pruned
+  Dynamic Programming algorithm We investigate un\-super\-vised and
+  super\-vised learning of penalties for the critical model selection
+  problem. We show that the super\-vised method has state-of-the-art
+  peak detection across all data sets in a benchmark that includes
+  both sharp H3K4me3 and broad H3K36me3 patterns.
+\end{abstract}
+
 \section{Introduction}
 
-\citet{FPOP} proposed the Functional Pruning Optimal Partitioning
-(FPOP) Algorithm to exactly solve the penalized segmentation
-problem. In this paper we use the FPOP algorithm to solve the
-penalized version of the PeakSeg problem \citep{PeakSeg}.
+\citet{pruned-dp} proposed a Pruned Dynamic Programming Algorithm
+(PDPA) to exactly solve the penalized segmentation problem. In this
+paper we use the FPOP algorithm to solve the penalized version of the
+PeakSeg problem \citep{PeakSeg}.
 
 \section{Problem setting}
 
@@ -287,6 +336,17 @@ $f$ we use
 \includegraphics[width=\textwidth]{figure-constrained-PDPA-normal-panels}
 
 \section{Timings}
+
+TODO: plot the number of intervals over time.
+
+TODO: show that the time complexity is empirically linear in the
+number of data points.
+
+\section{Comparison with two-state HMM}
+
+TODO: first run two-state HMM, which will assign a certain number of
+peaks. Compute the Poisson loss for that model, and compare it to the
+optimal Poisson loss recovered by the PDPA.
 
 \includegraphics[width=\textwidth]{figure-NA-timings}
 

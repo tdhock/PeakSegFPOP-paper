@@ -1,3 +1,8 @@
+HOCKING-PeakSegPDPA-NIPS.pdf: HOCKING-PeakSegPDPA-NIPS.tex refs.bib
+	pdflatex HOCKING-PeakSegPDPA-NIPS
+	bibtex HOCKING-PeakSegPDPA-NIPS
+	pdflatex HOCKING-PeakSegPDPA-NIPS
+	pdflatex HOCKING-PeakSegPDPA-NIPS
 HOCKING-PeakSegFPOP.pdf: HOCKING-PeakSegFPOP.tex refs.bib figure-unconstrained-PDPA-normal.pdf figure-unconstrained-FPOP-normal.pdf figure-constrained-PDPA-normal-grid.pdf figure-constrained-PDPA-normal-panels.pdf figure-less-more-min.tex figure-constrained-PDPA-normal-real.pdf figure-NA-timings.pdf
 	pdflatex HOCKING-PeakSegFPOP
 	bibtex HOCKING-PeakSegFPOP

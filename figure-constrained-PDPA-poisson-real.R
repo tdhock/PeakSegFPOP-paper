@@ -554,13 +554,13 @@ cost.lines.list <- list()
 minima.list <- list()
 envelope.list <- list()
 one.bins$weight <- with(one.bins, chromEnd-chromStart)
-input.dt <- data.table(one.bins)[1:20]
+input.dt <- data.table(one.bins)#[1:20]
 min.mean <- min(input.dt$count)
 max.mean <- max(input.dt$count)
 gamma.dt <- input.dt[, data.table(
   Linear=weight,
   Log=-count*weight,
-  Constant=0)]
+  Constant=weight*count*(log(count)-1))]
 C1.dt <- cumsum(gamma.dt)
 gamma.dt$min.mean <- C1.dt$min.mean <- min.mean
 gamma.dt$max.mean <- C1.dt$max.mean <- max.mean
@@ -677,7 +677,7 @@ gg.pruning <- ggplot()+
   geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
              data=minima)
 
-ti <- 6
+ti <- 60
 gg.pruning <- ggplot()+
   ##coord_cartesian(xlim=c(-0.2, 0), ylim=c(0, 0.3))+
   theme_bw()+
@@ -948,16 +948,6 @@ if(nrow(cost.active)){
 }
 animint2dir(viz, "figure-constrained-PDPA-normal-real")
 
-mlcost <- function(d.vec){
-  m <- mean(d.vec)
-  sum((d.vec-m)^2)
-}
-m34 <- mean(input.dt$count[3:4])
-mlcost(input.dt$count[1:3])+(input.dt$count[4]-m34)
-mlcost(input.dt$count[1:2])+mlcost(input.dt$count[3:4])
-mlcost(input.dt$count[1:2])+mlcost(input.dt$count[3])
-mlcost(input.dt$count[2:3])+mlcost(input.dt$count[1])
-
 intervalsPlot <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
@@ -965,7 +955,7 @@ intervalsPlot <- ggplot()+
   geom_point(aes(timestep, intervals),
              data=data.intervals)
 
-pdf("figure-constrained-PDPA-normal-real.pdf")
+pdf("figure-constrained-PDPA-poisson-real.pdf")
 print(intervalsPlot)
 dev.off()
 
