@@ -1,3 +1,6 @@
+figure-*/*
+*.RData
+data
 .httr-oauth
 *.aux
 *.bbl

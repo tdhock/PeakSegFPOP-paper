@@ -1,6 +1,7 @@
 suppressPackageStartupMessages({
   works_with_R("3.2.2",
                tikzDevice="0.9",
+               "tdhock/PeakError@d9196abd9ba51ad1b8f165d49870039593b94732",
                "tdhock/PeakSegDP@6520faad59fcf8c94ed4345d2b0d826b7f61faf9",
                "hadley/scales@2c3edf45de56d617444dc38e47e0404173817886",
                "tdhock/ggplot2@a8b06ddb680acdcdbd927773b1011c562134e4d2",
