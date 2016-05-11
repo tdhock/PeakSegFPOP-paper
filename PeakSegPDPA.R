@@ -1,7 +1,10 @@
 source("packages.R")
 
 ploss <- function(dt, x){
-  dt[, Log*log(x) + Linear*x + Constant]
+  ## need to make a new data table, otherwise ifelse may only get one
+  ## element, and return only one element.
+  new.dt <- data.table(dt, x)
+  new.dt[, ifelse(Log==0, 0, Log*log(x)) + Linear*x + Constant]
 }
 pderiv <- function(dt, x){
   dt[, Linear+Log/x]
@@ -90,25 +93,37 @@ less.more.min.list <- list(
         }
       }else{
         ## Look for a function with prev.min.cost.
-        discriminant <- this.row[, Linear/Log*exp((prev.min.cost-Constant)/Log)]
-        if(-1/exp(1) < discriminant){
-          ## Since the Log constant is negative, the principal branch
-          ## W(,0) results in the smaller of the two mean values.
-          mu <- this.row[, Log/Linear*LambertW::W(discriminant, 0)]
-          if(this.row[, min.mean < mu & mu < max.mean]){
-            new.dt.list[[paste(row.i, "constant")]] <- data.table(
-              Linear=0,
-              Log=0,
-              Constant=prev.min.cost,
-              min.mean=prev.min.mean,
-              max.mean=mu,
-              data.i=prev.data.i)
-            prev.min.cost <- NULL
-            prev.min.mean <- mu
-            row.i <- row.i-1
+        if(this.row$Log==0){
+          ## degenerate linear case.
+          if(this.row$Linear < 0){
+            ## decreasing linear function
+            stop("this should never happen")
+          }else{
+            ##increasing linear function, so will not intersect the
+            ##constant below.
           }
-        }
-      }
+        }else{
+          discriminant <-
+            this.row[, Linear/Log*exp((prev.min.cost-Constant)/Log)]
+          if(-1/exp(1) < discriminant){
+            ## Since the Log constant is negative, the principal branch
+            ## W(,0) results in the smaller of the two mean values.
+            mu <- this.row[, Log/Linear*LambertW::W(discriminant, 0)]
+            if(this.row[, min.mean < mu & mu < max.mean]){
+              new.dt.list[[paste(row.i, "constant")]] <- data.table(
+                Linear=0,
+                Log=0,
+                Constant=prev.min.cost,
+                min.mean=prev.min.mean,
+                max.mean=mu,
+                data.i=prev.data.i)
+              prev.min.cost <- NULL
+              prev.min.mean <- mu
+              row.i <- row.i-1
+            }
+          }#if(there are two roots
+        }#if(degenerate linear) else
+      }#if(looking for a min)else
       row.i <- row.i+1
     }
     if(!is.null(prev.data.i)){
@@ -158,26 +173,32 @@ less.more.min.list <- list(
         }
       }else{
         ## Look for a function with prev.min.cost.
-        discriminant <- this.row[, Linear/Log*exp((prev.min.cost-Constant)/Log)]
-        if(-1/exp(1) < discriminant){
-          ## Since the Log constant is negative, the non-principal
-          ## branch W(,-1) results in the larger of the two mean
-          ## values.
-          mu <- this.row[, Log/Linear*LambertW::W(discriminant, -1)]
-          if(this.row[, min.mean < mu & mu < max.mean]){
-            new.dt.list[[paste(row.i, "constant")]] <- data.table(
-              Linear=0,
-              Log=0,
-              Constant=prev.min.cost,
-              min.mean=mu,
-              max.mean=prev.max.mean,
-              data.i=prev.data.i)
-            prev.min.cost <- NULL
-            prev.max.mean <- mu
-            row.i <- row.i+1
-          }
+        mu <- if(this.row$Log==0){
+          ## degenerate case where the function is linear.
+          this.row[, (prev.min.cost - Constant)/Linear]
+        }else{
+          discriminant <-
+            this.row[, Linear/Log*exp((prev.min.cost-Constant)/Log)]
+          if(-1/exp(1) < discriminant){
+            ## Since the Log constant is negative, the non-principal
+            ## branch W(,-1) results in the larger of the two mean
+            ## values.
+            this.row[, Log/Linear*LambertW::W(discriminant, -1)]
+          }#if(-1/e < discriminant
         }
-      }
+        if(is.numeric(mu) && this.row[, min.mean < mu & mu < max.mean]){
+          new.dt.list[[paste(row.i, "constant")]] <- data.table(
+            Linear=0,
+            Log=0,
+            Constant=prev.min.cost,
+            min.mean=mu,
+            max.mean=prev.max.mean,
+            data.i=prev.data.i)
+          prev.min.cost <- NULL
+          prev.max.mean <- mu
+          row.i <- row.i+1
+        }#if(mu in interval
+      }#if(is.null(prev.min.cost)else
       row.i <- row.i-1
     }
     if(!is.null(prev.data.i)){
@@ -254,7 +275,8 @@ CompareRows <- function(dt1, dt2, i1, i2){
     }
   }
   stopifnot(last.min.mean < first.max.mean)
-  if(sameFuns(row1, row2)){
+  is.same <- sameFuns(row1, row2)
+  if(is.same){
     ## The functions are exactly equal over the entire interval so we
     ## can return either one of them.
     row1$min.mean <- last.min.mean
@@ -271,16 +293,39 @@ CompareRows <- function(dt1, dt2, i1, i2){
     new.row$max.mean <- first.max.mean
     return(new.row)
   }
+  if(row.diff$Log==0){
+    mean.at.equal.cost <- row.diff[, -Constant/Linear]
+    root.in.interval <-
+      last.min.mean < mean.at.equal.cost &&
+      mean.at.equal.cost < first.max.mean
+    if(root.in.interval){
+      new.rows <- if(0 < row.diff$Linear){
+        rbind(row1, row2)
+      }else{
+        rbind(row2, row1)
+      }
+      new.rows$min.mean <- c(last.min.mean, mean.at.equal.cost)
+      new.rows$max.mean <- c(mean.at.equal.cost, first.max.mean)
+      return(new.rows)
+    }else{
+      new.row <- if(mean.at.equal.cost < last.min.mean)row1 else row2
+      new.row$min.mean <- last.min.mean
+      new.row$max.mean <- first.max.mean
+      return(new.row)
+    }
+  }
+  ## cost2.left <- ploss(row2, last.min.mean)
+  ## cost1.left <- ploss(row1, last.min.mean)
+  ## cost1.right <- ploss(row1, first.max.mean)
+  ## cost2.right <- ploss(row2, first.max.mean)
+  cost.diff.right <- ploss(row.diff, first.max.mean)
+  cost.diff.left <- ploss(row.diff, last.min.mean)
   discriminant <- row.diff[, Linear/Log*exp(-Constant/Log)]
   two.roots <- -1/exp(1) < discriminant
   root.right <- row.diff[, Log/Linear*LambertW::W(discriminant, -1)]
   root.left <- row.diff[, Log/Linear*LambertW::W(discriminant, 0)]
-  cost2.left <- ploss(row2, last.min.mean)
-  cost1.left <- ploss(row1, last.min.mean)
-  cost1.right <- ploss(row1, first.max.mean)
-  cost2.right <- ploss(row2, first.max.mean)
   if(!same.at.right){
-    row1.min.on.right <- cost1.right < cost2.right
+    row1.min.on.right <- cost.diff.right < 0
   }else{
     ## They are equal on the right limit, so use the first and second
     ## derivatives to see which is minimal just before the right
@@ -302,7 +347,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
         last.min.mean < mean.at.equal.cost &
         mean.at.equal.cost < first.max.mean
       if(in.interval){
-        new.rows <- if(cost1.left < cost2.left){
+        new.rows <- if(cost.diff.left < 0){
           rbind(row1, row2)
         }else{
           rbind(row2, row1)
@@ -313,7 +358,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
       }
     }
     row1.min.before.right <- if(sign1==sign2){
-      cost1.left < cost2.left
+      cost.diff.left < 0
     }else{
       deriv2.right < deriv1.right 
     }
@@ -323,7 +368,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
     return(this.row)
   }
   if(!same.at.left){
-    row1.min.on.left <- cost1.left < cost2.left
+    row1.min.on.left <- cost.diff.left < 0
   }else{
     ## Equal on the left.
     deriv1.left <- pderiv(row1, last.min.mean)
@@ -340,7 +385,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
         last.min.mean < mean.at.equal.cost &
         mean.at.equal.cost < first.max.mean
       if(in.interval){
-        new.rows <- if(cost1.right < cost2.right){
+        new.rows <- if(cost.diff.right < 0){
           rbind(row2, row1)
         }else{
           rbind(row1, row2)
@@ -351,7 +396,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
       }
     }
     row1.min.after.left <- if(sign1==sign2){
-      cost1.right < cost2.right
+      cost.diff.right < 0
     }else{
       deriv1.left < deriv2.left
     }
@@ -426,21 +471,23 @@ MinEnvelope <- function(dt1, dt2){
   new.dt.list[["last"]] <- row.to.add
   do.call(rbind, new.dt.list)
 }
-
-all.cost.models <- list()
-cost.lines.list <- list()
-minima.list <- list()
-envelope.list <- list()
-one.bins$weight <- with(one.bins, chromEnd-chromStart)
-input.dt <- data.table(one.bins)#[1:20]
-
+PeakSegPDPAchrom <- function(chrom.dt, maxPeaks=9L){
+  stopifnot(c("chromStart", "chromEnd", "count") %in% names(chrom.dt))
+  chrom.dt[, weight := chromEnd - chromStart]
+  fit <- PeakSegPDPA(chrom.dt, maxPeaks)
+  fit$segments[, chromStart := chrom.dt$chromStart[segment.start]]
+  fit$segments[, chromEnd := chrom.dt$chromEnd[segment.end]]
+  fit$peaks <- fit$segments[seg.i %% 2 == 0,]
+  fit
+}
 PeakSegPDPA <- function(input.dt, maxPeaks=9L){
+  stopifnot(c("weight", "count") %in% names(input.dt))
   min.mean <- min(input.dt$count)
   max.mean <- max(input.dt$count)
   gamma.dt <- input.dt[, data.table(
     Linear=weight,
     Log=-count*weight,
-    Constant=weight*count*(log(count)-1))]
+    Constant=ifelse(count==0, 0, weight*count*(log(count)-1)))]
   C1.dt <- cumsum(gamma.dt)
   gamma.dt$min.mean <- C1.dt$min.mean <- min.mean
   gamma.dt$max.mean <- C1.dt$max.mean <- max.mean
@@ -450,6 +497,7 @@ PeakSegPDPA <- function(input.dt, maxPeaks=9L){
     cost.models.list[[paste(1, data.i)]] <- C1.dt[data.i,]
   }
   max.segments <- maxPeaks*2+1
+  stopifnot(max.segments <= nrow(input.dt))
   for(total.segments in 2:max.segments){
     prev.cost.model <-
       cost.models.list[[paste(total.segments-1, total.segments-1)]]
@@ -473,6 +521,23 @@ PeakSegPDPA <- function(input.dt, maxPeaks=9L){
       compare.cost$data.i <- timestep-1
       cost.model <- cost.models.list[[paste(total.segments, timestep-1)]]
       one.env <- MinEnvelope(compare.cost, cost.model)
+      ## gg <- ggplot()+
+      ##   ggtitle(paste(total.segments, "segments,", timestep, "data points"))+
+      ##   geom_line(aes(mean, cost),
+      ##             data=getLines(one.env),
+      ##             color="grey",
+      ##             size=2,
+      ##             alpha=0.5)+
+      ##   geom_line(aes(mean, cost,
+      ##                 color="compare.cost",
+      ##                 group=piece.i),
+      ##             data=getLines(compare.cost))+
+      ##   geom_line(aes(mean, cost,
+      ##                 group=piece.i,
+      ##                 color="cost.model"),
+      ##             data=getLines(cost.model))
+      ## print(gg)
+      ## browser()
       stopifnot(one.env[, min.mean < max.mean])
       ## Now that we are done with this step, we can perform the
       ## recursion by setting the new model of the cost to the min
@@ -535,29 +600,100 @@ PeakSegPDPA <- function(input.dt, maxPeaks=9L){
        models=do.call(rbind, cost.list))
 }
 
-## data(chr11ChIPseq, package="PeakSegDP")
-## count.dt <- data.table(chr11ChIPseq$coverage)
-## sid <- "McGill0322"
-## one.sample <- count.dt[sample.id==sid,]
-## one.bins <- binSum(
-##   one.sample,
-##   bin.chromStart=one.sample$chromStart[1],
-##   bin.size=500L,
-##   n.bins=100L)
-## one.bins$sample.id <- sid
-## one.bins$weight <- with(one.bins, chromEnd-chromStart)
-## input.dt <- data.table(one.bins)#[1:20]
-## fit <- PeakSegPDPA(input.dt[1:10,], 4)
-## fit.rev <- PeakSegPDPA(input.dt[10:1,], 4)
-## stopifnot(fit.rev$models$min.cost==fit.rev$models$min.cost)
-## input.dt[, data.i := seq_along(count)]
-## ggplot()+
-##   theme_bw()+
-##   theme(panel.margin=grid::unit(0, "lines"))+
-##   facet_grid(total.segments ~ .)+
-##   geom_point(aes(data.i, count),
-##              data=input.dt[1:10,])+
-##   geom_segment(aes(segment.start-0.3, min.cost.mean,
-##                    xend=segment.end+0.3, yend=min.cost.mean),
-##                color="green",
-##                data=fit$segments)
+data(chr11ChIPseq, package="PeakSegDP")
+count.dt <- data.table(chr11ChIPseq$coverage)
+sid <- "McGill0322"
+one.sample <- count.dt[sample.id==sid,]
+one.bins <- binSum(
+  one.sample,
+  bin.chromStart=one.sample$chromStart[1],
+  bin.size=500L,
+  n.bins=100L)
+input.dt <- data.table(one.bins)#[1:20]
+fit <- PeakSegPDPAchrom(input.dt[1:10,], 4)
+fit.rev <- PeakSegPDPAchrom(input.dt[10:1,], 4)
+stopifnot(fit.rev$models$min.cost==fit.rev$models$min.cost)
+input.dt[, data.i := seq_along(count)]
+
+ggplot()+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  facet_grid(total.segments ~ .)+
+  geom_point(aes(data.i, count),
+             data=input.dt[1:10,])+
+  geom_segment(aes(segment.start-0.3, min.cost.mean,
+                   xend=segment.end+0.3, yend=min.cost.mean),
+               color="deepskyblue",
+               size=2,
+               data=fit$peaks)+
+  geom_segment(aes(segment.start-0.3, min.cost.mean,
+                   xend=segment.end+0.3, yend=min.cost.mean),
+               color="green",
+               data=fit$segments)
+
+n.data <- 20
+forward <- one.sample[1:n.data,]
+makeRev <- function(fwd){
+  rev <- data.table(fwd)
+  rev$chromStart <- -fwd$chromEnd
+  rev$chromEnd <- -fwd$chromStart
+  rev[.N:1,]
+}
+reverse <- makeRev(forward)
+
+fit <- PeakSegPDPAchrom(forward, 4)
+fit.rev <- PeakSegPDPAchrom(reverse, 4)
+
+fit.rev$peaks.forward <- makeRev(fit.rev$peaks)
+fit.rev$segments.forward <- makeRev(fit.rev$segments)
+stopifnot(fit.rev$models$min.cost==fit.rev$models$min.cost)
+dp.fit <- PeakSegDP(one.sample[1:n.data,], 4L)
+dp.fit$peaks[["1"]]
+fit$peaks[peaks==1,]
+fit.rev$peaks.forward[peaks==1,]
+(pdpa.segs <- fit$segments[peaks==1,])
+(pdpa.rev.segs <- fit.rev$segments.forward[peaks==1,])
+fit.rev$segments[peaks==1,]
+(cdpa.segs <- subset(dp.fit$segments, peaks==1))
+
+forward$pdpa.mean <- NA
+forward$pdpa.rev.mean <- NA
+forward$cdpa.mean <- NA
+for(seg.i in 1:nrow(cdpa.segs)){
+  seg <- cdpa.segs[seg.i,]
+  forward$cdpa.mean[seg$first:seg$last] <- seg$mean
+}
+for(seg.i in 1:nrow(pdpa.segs)){
+  seg <- pdpa.segs[seg.i,]
+  forward$pdpa.mean[seg$segment.start:seg$segment.end] <- seg$min.cost.mean
+}
+with(forward, {
+  rbind(pdpa.fwd=PoissonLoss(count, pdpa.mean, chromEnd-chromStart),
+        cdpa.fwd=PoissonLoss(count, cdpa.mean, chromEnd-chromStart))
+})
+
+ggplot()+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  facet_grid(peaks ~ .)+
+  geom_step(aes(chromStart, count),
+            data=one.sample[1:n.data,])+
+  geom_segment(aes(chromStart, min.cost.mean,
+                   xend=chromEnd, yend=min.cost.mean),
+               color="deepskyblue",
+               size=2,
+               data=fit.rev$peaks.forward)+
+  geom_segment(aes(chromStart, min.cost.mean,
+                   xend=chromEnd, yend=min.cost.mean),
+               color="green",
+               data=fit.rev$segments.forward)+
+  geom_segment(aes(chromStart, min.cost.mean,
+                   xend=chromEnd, yend=min.cost.mean),
+               color="deepskyblue",
+               size=2,
+               data=fit$peaks)+
+  geom_segment(aes(chromStart, min.cost.mean,
+                   xend=chromEnd, yend=min.cost.mean),
+               color="green",
+               data=fit$segments)
+
