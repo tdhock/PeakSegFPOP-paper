@@ -946,7 +946,7 @@ if(nrow(cost.active)){
                fill="white",
                data=addY(cost.active, "segments"))
 }
-animint2dir(viz, "figure-constrained-PDPA-normal-real")
+animint2dir(viz, "figure-constrained-PDPA-poisson-real")
 
 intervalsPlot <- ggplot()+
   theme_bw()+

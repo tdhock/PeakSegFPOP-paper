@@ -71,22 +71,131 @@
 
 \begin{abstract}
   Change-point detection is a central problem in time series and
-  genomic data sets, and new constrained maximum likelihood
-  segmentation model for peak detection with an efficient inference
-  algorithm: constrained dynamic programming. We propose a new Pruned
-  Dynamic Programming algorithm We investigate un\-super\-vised and
-  super\-vised learning of penalties for the critical model selection
-  problem. We show that the super\-vised method has state-of-the-art
-  peak detection across all data sets in a benchmark that includes
-  both sharp H3K4me3 and broad H3K36me3 patterns.
+  genomic data sets. We consider the PeakSeg constrained optimal
+  segmentation model, for which the only previous solver is heuristic
+  and quadratic time complexity. We propose a new Pruned Dynamic
+  Programming Algorithm (PDPA) which recovers the exact solution in
+  linear time. 
 \end{abstract}
 
 \section{Introduction}
+
+\subsection{Peak detection in ChIP-seq data}
+
+Chromatin immunoprecipitation sequencing (ChIP-seq) is a biological
+experiment for genome-wide profiling of histone modifications and
+transcription factor binding sites, with many experimental and
+computational steps \citep{practical}. Briefly, each experiment yields
+a set of sequence reads which are aligned to a reference genome, and
+then the number of aligned reads are counted at each genomic position
+(Figure~\ref{fig:good-bad}). Although these read counts can be
+interpreted as quantitative data, they are most often interpreted
+using one of the many available peak detection algorithms
+\citep{evaluation2010, rye2010manually, chip-seq-bench}. A peak
+detection algorithm is a binary classifier for each genomic
+position. The positive class is enriched (peaks) and the negative
+class is background noise. Importantly, peaks and background occur in
+long contiguous segments across the genome.
+
+More concretely, a single ChIP-seq profile on a genomic region with
+$d$ base pairs can be represented as a vector $\mathbf y= \left[
+  \begin{array}{ccc}
+    y_1 & \cdots & y_d
+  \end{array}
+\right]\in\ZZ_+^d$ of counts of aligned sequence reads. A peak
+detection algorithm is a function $c:\ZZ_+^d
+\rightarrow \{0, 1\}^d$ which returns 0 for background noise and 1 for
+a peak. 
 
 \citet{pruned-dp} proposed a Pruned Dynamic Programming Algorithm
 (PDPA) to exactly solve the penalized segmentation problem. In this
 paper we use the FPOP algorithm to solve the penalized version of the
 PeakSeg problem \citep{PeakSeg}.
+
+\subsection{Contributions 
+%and organization
+}
+
+The main contribution of this paper is a new Constrained Pruned
+Dynamic Programming Algorithm (cPDPA) which is guaranteed to solve the
+PeakSeg optimal segmentation problem. a peak detection model that can
+be trained using supervised learning, and is effective for several
+pattern types (sharp and broad peaks). Rather than taking unsupervised
+model parameters for granted, we propose to train model parameters
+using labeled data of the same pattern type. Importantly, and in
+contrast to existing unsupervised approaches which can only be trained
+using grid search, we propose efficient discrete and convex
+optimization algorithms for model training. Our method is the first
+peak detector with an efficient supervised learning algorithm, and the
+first method that achieves state-of-the-art peak detection across
+several patterns in the benchmark of \citet{hocking2014visual}.
+
+A second contribution of this paper is a detailed study of the peak
+detection accuracy of several unsupervised and supervised penalty
+function learning methods. The two main results are that the oracle
+penalty of \citet{cleynen2013segmentation} is more accurate than
+asymptotic penalties like the AIC/BIC, and that supervised penalty
+learning can be used to further increase peak detection accuracy.
+
+\section{Related work}
+\label{sec:related}
+
+Our work is based on and inspired by roughly three types of related
+work:
+%Previous work can be divided into roughly three categories:
+unsupervised ChIP-seq peak detectors from the bioinformatics
+literature, maximum likelihood segmentation models, 
+and criteria for model selection.
+
+\subsection{Unsupervised ChIP-seq peak detectors}
+
+There are literally dozens of unsupervised algorithms for peak
+detection in ChIP-seq data sets, and the bioinformatics literature
+contains several published comparison studies \citep{evaluation2010,
+  rye2010manually, chip-seq-bench}. \citet{hocking2014visual} proposed
+a benchmark of labeled ChIP-seq data sets, with two different histone
+mark types: H3K4me3 (sharp peak pattern) and H3K36me3 (broad peak
+pattern). The best peak detection algorithm in these H3K4me3 data was
+macs \citep{MACS}, and the best for H3K36me3 was HMCan
+\citep{HMCan}. Both of these algorithms are unsupervised, but were
+calibrated via grid search using the annotated region labels to choose
+the best scalar significance threshold hyperparameter.  Others have
+proposed to train the hyperparameters of unsupervised peak detectors
+\citep{picking2012, DFilter}. In contrast, we propose the supervised
+\ref{PeakSeg} model which can be efficiently trained using discrete
+and convex optimization algorithms (Sections~\ref{sec:algorithms} and
+\ref{sec:penalty-learning}).
+
+\subsection{Maximum likelihood segmentation models}
+
+The \ref{PeakSeg} model we propose in this paper is a constrained
+version of the Poisson segmentation model of \citet{Segmentor}.
+Their unconstrained model can be computed using a dynamic programming
+algorithm (DPA) \citep{bellman}, or a pruned dynamic programming
+algorithm (pDPA) \citep{pruned-dp}. Both algorithms are guaranteed to
+recover the exact solution to the unconstrained model, but there are
+two important differences. The pDPA is more complicated to implement,
+but is also computationally faster than the DPA. For segmenting a
+sequence of $d$ data points, the pDPA takes on average $O(d\log d)$
+time whereas the DPA takes $O(d^2)$ time. 
+
+Relative to the unconstrained segmentation model of \citet{Segmentor},
+our proposed \ref{PeakSeg} model has an additional constraint. Rather
+than searching all possible change-points to find the most likely
+model with $s$ segments, we propose to constrain the possible
+change-points to the subset of models that can be interpreted as peaks
+(with segment means that change up, down, up, etc, see
+Section~\ref{sec:constrained}).
+
+Due to the simplicity of its implementation, we propose a constrained
+dynamic programming algorithm (cDPA) that requires a small
+modification to the standard DPA solver. Although the DPA is an exact
+solver for the unconstrained problem, we show that the cDPA is a
+heuristic that is not guaranteed to solve the constrained
+problem (Section~\ref{sec:dp-fails}). However, we show that it is
+still very useful and accurate in practice on real data
+(Section~\ref{sec:results}).
+
 
 \section{Problem setting}
 
