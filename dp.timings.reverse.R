@@ -37,7 +37,9 @@ for(file.i in 1:nrow(count.files)){
       compressed <- sample.list[[sample.id]]
       bases <- sum(compressed$bases)
       n.data <- nrow(compressed)
-      if(n.data <= 5116){
+      ## the biggest profile for which we could not compute all 10
+      ## models in the forward direction.
+      if(n.data <= 5116){ 
         reverse <- compressed[n.data:1,]
         chromStart <- reverse$chromStart
         reverse$chromStart <- -reverse$chromEnd
@@ -61,7 +63,9 @@ for(file.i in 1:nrow(count.files)){
         chromStart <- -model.list$segments$chromStart
         model.list$segments$chromStart <- -model.list$segments$chromEnd
         model.list$segments$chromEnd <- chromStart
-        model.list$breaks$chromEnd <- -model.list$breaks$chromEnd
+        if(is.numeric(model.list$breaks$chromEnd)){
+          model.list$breaks$chromEnd <- -model.list$breaks$chromEnd
+        }
         result$model <- model.list
         result$timing <- 
           data.frame(set.name, chunk.id, sample.id,

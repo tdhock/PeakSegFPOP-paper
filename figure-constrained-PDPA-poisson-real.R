@@ -23,7 +23,7 @@ ggplot()+
 
 ##options(warn=2)
 
-quad <- function(dt, x){
+ploss <- function(dt, x){
   dt[, Log*log(x) + Linear*x + Constant]
 }
 getLines <- function(dt){
@@ -35,12 +35,12 @@ getLines <- function(dt){
       piece.i,
       piece,
       mean=mean.vec,
-      cost=quad(piece, mean.vec))
+      cost=ploss(piece, mean.vec))
   }
   do.call(rbind, line.list)
 }
 getMinMean <- function(dt){
-  dt[, -linear/(2*quadratic)]
+  dt[, -Log/Linear]
 }
 AddFuns <- function(dt1, dt2){
   if(nrow(dt1)==0)return(dt1)
@@ -61,9 +61,9 @@ AddFuns <- function(dt1, dt2){
       row2$max.mean
     }
     new.dt.list[[paste(i1, i2)]] <- data.table(
-      quadratic=row1$quadratic+row2$quadratic,
-      linear=row1$linear+row2$linear,
-      constant=row1$constant+row2$constant,
+      Linear=row1$Linear+row2$Linear,
+      Log=row1$Log+row2$Log,
+      Constant=row1$Constant+row2$Constant,
       min.mean=this.min,
       max.mean=this.max,
       data.i=row1$data.i)
@@ -99,7 +99,7 @@ less.more.min.list <- list(
           ## The minimum is achieved before this interval, so this
           ## function is always increasing in this interval. We don't
           ## need to store it.
-          prev.min.cost <- quad(this.row, this.row$min.mean)
+          prev.min.cost <- ploss(this.row, this.row$min.mean)
           prev.data.i <- this.row$data.i
         }else if(mu < this.row$max.mean){
           ## Minimum in this interval.
@@ -108,7 +108,7 @@ less.more.min.list <- list(
           new.row$max.mean <- mu
           new.dt.list[[paste(row.i)]] <- new.row
           prev.min.mean <- mu
-          prev.min.cost <- quad(this.row, mu)
+          prev.min.cost <- ploss(this.row, mu)
           prev.data.i <- this.row$data.i
         }else{
           ## Minimum after this interval, so this function is
@@ -121,14 +121,16 @@ less.more.min.list <- list(
         }
       }else{
         ## Look for a function with prev.min.cost.
-        discriminant <- this.row[, linear^2-4*quadratic*(constant-prev.min.cost)]
-        if(0 < discriminant){
-          mu <- this.row[, (-linear-sqrt(discriminant))/(2*quadratic)]
+        discriminant <- this.row[, Linear/Log*exp((prev.min.cost-Constant)/Log)]
+        if(-1/exp(1) < discriminant){
+          ## Since the Log constant is negative, the principal branch
+          ## W(,0) results in the smaller of the two mean values.
+          mu <- this.row[, Log/Linear*LambertW::W(discriminant, 0)]
           if(this.row[, min.mean < mu & mu < max.mean]){
             new.dt.list[[paste(row.i, "constant")]] <- data.table(
-              quadratic=0,
-              linear=0,
-              constant=prev.min.cost,
+              Linear=0,
+              Log=0,
+              Constant=prev.min.cost,
               min.mean=prev.min.mean,
               max.mean=mu,
               data.i=prev.data.i)
@@ -141,117 +143,93 @@ less.more.min.list <- list(
       row.i <- row.i+1
     }
     new.dt.list[["last"]] <- data.table(
-      quadratic=0,
-      linear=0,
-      constant=prev.min.cost,
+      Linear=0,
+      Log=0,
+      Constant=prev.min.cost,
       min.mean=prev.min.mean,
       max.mean=this.row$max.mean,
       data.i=prev.data.i)
     do.call(rbind, new.dt.list)
-  },
-  more=function(dt){
-    mean.at.min.vec <- getMinMean(dt)
-    min.achieved <-
-      dt[, min.mean < mean.at.min.vec & mean.at.min.vec < max.mean]
-    stopifnot(nrow(min.achieved)==1)
+  }, more=function(dt){
     new.dt.list <- list()
-    overall.min.cost <- NULL
+    prev.min.cost <- NULL
     row.i <- nrow(dt)
-    while(is.null(overall.min.cost)){
-      r <- dt[row.i,]
-      mean.at.min <- getMinMean(r)
-      cost.at.min <- quad(r, mean.at.min)
-      if(r$max.mean <= mean.at.min){
-        min.position <- "right"
-        decreasing.to.right <- TRUE
-        overall.min.cost <- quad(r, r$max.mean)
-        new.dt.list[[paste(row.i)]] <- data.table(
-          quadratic=0,
-          linear=0,
-          constant=overall.min.cost,
-          min.mean=dt$min.mean[1],
-          max.mean=r$max.mean,
-          data.i=r$data.i)
-      }else if(mean.at.min <= r$min.mean){
-        min.position <- "left"
-        decreasing.to.right <- FALSE
-        new.dt.list[[paste(row.i)]] <- r
-      }else{
-        min.position <- "inside"
-        overall.min.cost <- cost.at.min
-        decreasing.to.right <- FALSE
-        new.dt.list[[paste(row.i)]] <- data.table(
-          quadratic=c(0, r$quadratic),
-          linear=c(0, r$linear),
-          constant=c(overall.min.cost, r$constant),
-          min.mean=c(dt$min.mean[1], mean.at.min),
-          max.mean=c(mean.at.min, r$max.mean),
-          data.i=r$data.i)
+    prev.max.mean <- dt$max.mean[row.i]
+    while(1 <= row.i){
+      this.row <- dt[row.i,]
+      gg <- ggplot()+
+        geom_vline(xintercept=prev.max.mean)+
+        geom_line(aes(mean, cost),
+                  color="grey",
+                  size=4,
+                  data=getLines(dt))+
+        geom_line(aes(mean, cost),
+                  data=getLines(this.row))
+      if(is.numeric(prev.min.cost)){
+        gg <- gg+
+          geom_hline(yintercept=prev.min.cost)
       }
-      min.text <- data.table(
-        mean.at.min, cost.at.min, min.position,
-        decreasing.to.right)
-      gg.funs <- ggplot()+
-        geom_line(aes(mean, cost),
-                  data=getLines(dt),
-                  size=2,
-                  color="grey")+
-        geom_line(aes(mean, cost),
-                  data=getLines(r),
-                  size=1,
-                  color="black")+
-        geom_point(aes(mean.at.min, cost.at.min),
-                   data=min.text,
-                   shape=21,
-                   fill="white")+
-        geom_text(aes(mean.at.min, cost.at.min, label=paste(
-          min.position,
-          ifelse(decreasing.to.right, "decreasing", "increasing"))),
-          vjust=1.5,
-          data=min.text)
-      ##print(gg.funs)
+      if(is.null(prev.min.cost)){
+        ## Look for min achieved in this interval.
+        mu <- getMinMean(this.row)
+        if(this.row$max.mean <= mu){
+          ## The minimum is achieved after this interval, so this
+          ## function is always decreasing in this interval. We don't
+          ## need to store it.
+          prev.min.cost <- ploss(this.row, this.row$max.mean)
+          prev.data.i <- this.row$data.i
+        }else if(this.row$min.mean < mu){
+          ## Minimum in this interval.
+          new.row <- this.row
+          new.row$max.mean <- prev.max.mean
+          new.row$min.mean <- mu
+          new.dt.list[[paste(row.i)]] <- new.row
+          prev.max.mean <- mu
+          prev.min.cost <- ploss(this.row, mu)
+          prev.data.i <- this.row$data.i
+        }else{
+          ## Minimum before this interval, so this function is
+          ## increasing on this entire interval, and so we can just
+          ## store it as is.
+          new.row <- this.row
+          new.row$max.mean <- prev.max.mean
+          new.dt.list[[paste(row.i)]] <- new.row
+          prev.max.mean <- this.row$min.mean
+        }
+      }else{
+        ## Look for a function with prev.min.cost.
+        discriminant <- this.row[, Linear/Log*exp((prev.min.cost-Constant)/Log)]
+        if(-1/exp(1) < discriminant){
+          ## Since the Log constant is negative, the non-principal
+          ## branch W(,-1) results in the larger of the two mean
+          ## values.
+          mu <- this.row[, Log/Linear*LambertW::W(discriminant, -1)]
+          if(this.row[, min.mean < mu & mu < max.mean]){
+            new.dt.list[[paste(row.i, "constant")]] <- data.table(
+              Linear=0,
+              Log=0,
+              Constant=prev.min.cost,
+              min.mean=prev.max.mean,
+              max.mean=mu,
+              data.i=prev.data.i)
+            prev.min.cost <- NULL
+            prev.max.mean <- mu
+            row.i <- row.i+1
+          }
+        }
+      }
       row.i <- row.i-1
     }
-    do.call(rbind, rev(new.dt.list))
+    new.dt.list[["last"]] <- data.table(
+      Linear=0,
+      Log=0,
+      Constant=prev.min.cost,
+      min.mean=prev.max.mean,
+      max.mean=this.row$max.mean,
+      data.i=prev.data.i)
+    do.call(rbind, new.dt.list)
   })
-mirror <- function(dt){
-  new.max <- -dt$min.mean
-  new.min <- -dt$max.mean
-  dt$min.mean <- new.min
-  dt$max.mean <- new.max
-  dt[, linear := -linear]
-  dt[.N:1,]
-}
-less.more.min.list$more <- function(dt){
-  mirror.input <- mirror(dt)
-  mirror.output <- less.more.min.list$less(mirror.input)
-  mirror(mirror.output)
-}
-less.more.test.list <- list(
-  real=list(input=data.table(
-    quadratic=c(2,1),
-    linear=c(-54, -28),
-    constant=c(365, 196),
-    min.mean=c(1,13),
-    max.mean=c(13,14),
-    data.i=1
-  ), output=list(
-      ## less=data.table(
-      ##   quadratic=c(2,1),
-      ##   linear=c(-54, -28),
-      ##   constant=c(365, 196),
-      ##   min.mean=c(1,13),
-      ##   max.mean=c(13,14)),
-      more=data.table(
-        quadratic=0,
-        linear=0,
-        constant=0,
-        min.mean=1,
-        max.mean=14,
-        data.i=1
-      ))
-  )
-)
+less.more.test.list <- list()
 for(test.case.name in names(less.more.test.list)){
   test.case <- less.more.test.list[[test.case.name]]
   input <- test.case$input
@@ -297,7 +275,7 @@ Minimize <- function(dt, from=min(dt$min.mean), to=max(dt$max.mean)){
     ifelse(max.mean < quad.min.mean,
            max.mean,
            quad.min.mean))]
-  feasible[, min.cost := quad(feasible, min.cost.mean)]
+  feasible[, min.cost := ploss(feasible, min.cost.mean)]
   feasible[which.min(min.cost),]
 }
 ### Return just the minimum interval on the intersection of row1 and
@@ -343,24 +321,24 @@ CompareRows <- function(dt1, dt2, i1, i2){
   insignificant.list <- list(
     ##machine=.Machine$double.eps
   )
-  cost1.right <- quad(row1, first.max.mean)
+  cost1.right <- ploss(row1, first.max.mean)
   if(row1$max.mean < row2$max.mean){
-    cost1.next <- quad(dt1[i1+1,], first.max.mean)
+    cost1.next <- ploss(dt1[i1+1,], first.max.mean)
     insignificant.list[["row1 next"]] <- abs(cost1.right-cost1.next)
   }
-  cost2.right <- quad(row2, first.max.mean)
+  cost2.right <- ploss(row2, first.max.mean)
   if(row2$max.mean < row1$max.mean){
-    cost2.next <- quad(dt2[i2+1,], first.max.mean)
+    cost2.next <- ploss(dt2[i2+1,], first.max.mean)
     insignificant.list[["row2 next"]] <- abs(cost2.right-cost2.next)
   }
-  cost1.left <- quad(row1, last.min.mean)
+  cost1.left <- ploss(row1, last.min.mean)
   if(row2$min.mean < row1$min.mean){
-    cost1.prev <- quad(dt1[i1-1,], last.min.mean)
+    cost1.prev <- ploss(dt1[i1-1,], last.min.mean)
     insignificant.list[["row1 prev"]] <- abs(cost1.left-cost1.prev)
   }
-  cost2.left <- quad(row2, last.min.mean)
+  cost2.left <- ploss(row2, last.min.mean)
   if(row1$min.mean < row2$min.mean){
-    cost2.prev <- quad(dt2[i2-1,], last.min.mean)
+    cost2.prev <- ploss(dt2[i2-1,], last.min.mean)
     insignificant.list[["row2 prev"]] <- abs(cost2.prev-cost2.left)
   }
   insignificant.vec <- unlist(insignificant.list)
@@ -540,10 +518,10 @@ CompareRows <- function(dt1, dt2, i1, i2){
   row.diff$min.mean <- last.min.mean
   row.diff$max.mean <- first.max.mean
   discriminant <- row.diff[, linear^2 - 4*quadratic*constant]
-  cost2.left <- quad(row2, last.min.mean)
-  cost1.left <- quad(row1, last.min.mean)
-  cost1.right <- quad(row1, first.max.mean)
-  cost2.right <- quad(row2, first.max.mean)
+  cost2.left <- ploss(row2, last.min.mean)
+  cost1.left <- ploss(row1, last.min.mean)
+  cost1.right <- ploss(row1, first.max.mean)
+  cost2.right <- ploss(row2, first.max.mean)
   if(!same.at.right){
     row1.min.on.right <- cost1.right < cost2.right
   }else{
@@ -665,8 +643,8 @@ MinEnvelope <- function(dt1, dt2){
       this.row <- dt[row.i,]
       next.row <- dt[row.i+1,]
       mean.value <- this.row$max.mean
-      this.cost <- quad(this.row, mean.value)
-      next.cost <- quad(next.row, mean.value)
+      this.cost <- ploss(this.row, mean.value)
+      next.cost <- ploss(next.row, mean.value)
       insignificant.cost.diff <- abs(this.cost-next.cost)
       row.i <- row.i+1
     }
@@ -690,8 +668,8 @@ MinEnvelope <- function(dt1, dt2){
       }else{
         row2$max.mean
       }
-      cost1 <- quad(row1, first.max.mean)
-      cost2 <- quad(row2, first.max.mean)
+      cost1 <- ploss(row1, first.max.mean)
+      cost2 <- ploss(row2, first.max.mean)
       if(row1$quadratic==row2$quadratic){
         if(row1$max.mean==first.max.mean){
           i1 <- i1+1
