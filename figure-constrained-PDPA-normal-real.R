@@ -509,7 +509,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
     }
   }
   stopifnot(last.min.mean < first.max.mean)
-  if(row1$quadratic==row2$quadratic && row1$constant==row2$constant){
+  if(sameFuns(row1, row2)){
     ## The functions are exactly equal over the entire interval so we
     ## can return either one of them.
     row1$min.mean <- last.min.mean
@@ -540,7 +540,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
     sign2 <- sign(deriv2.right)
     maybe.cross <-
       (row1$quadratic < row2$quadratic && 0 < sign2) ||
-      (row2$quadratic < row2$quadratic && 0 < sign1)
+      (row2$quadratic < row1$quadratic && 0 < sign1)
     if(0 < discriminant && maybe.cross){
       ## There could be a crossing point to the left.
       numerator <- row.diff[, -linear - sign(quadratic)*sqrt(discriminant)]
@@ -573,7 +573,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
     sign2 <- sign(deriv2.left)
     maybe.cross <-
       (row1$quadratic < row2$quadratic && sign2 < 0) ||
-      (row2$quadratic < row2$quadratic && sign1 < 0)
+      (row2$quadratic < row1$quadratic && sign1 < 0)
     if(0 < discriminant && maybe.cross){
       ## There could be a crossing point to the right.
       numerator <- row.diff[, -linear + sign(quadratic)*sqrt(discriminant)]
