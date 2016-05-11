@@ -498,6 +498,7 @@ PeakSegPDPA <- function(input.dt, maxPeaks=9L){
   }
   max.segments <- maxPeaks*2+1
   stopifnot(max.segments <= nrow(input.dt))
+  intervals.list <- list()
   for(total.segments in 2:max.segments){
     prev.cost.model <-
       cost.models.list[[paste(total.segments-1, total.segments-1)]]
@@ -511,6 +512,8 @@ PeakSegPDPA <- function(input.dt, maxPeaks=9L){
     first.data <- gamma.dt[total.segments,]
     first.data$data.i <- total.segments-1
     cost.model <- AddFuns(first.data, first.min)
+    intervals.list[[paste(total.segments, total.segments)]] <- data.table(
+      total.segments, timestep=total.segments, intervals=nrow(cost.model))
     cost.models.list[[paste(total.segments, total.segments)]] <- cost.model
     for(timestep in (total.segments+1):length(input.dt$count)){
       cat(sprintf("%4d / %4d segments %4d / %4d data points %d intervals\n",
@@ -542,8 +545,11 @@ PeakSegPDPA <- function(input.dt, maxPeaks=9L){
       ## Now that we are done with this step, we can perform the
       ## recursion by setting the new model of the cost to the min
       ## envelope, plus a new data point.
+      new.cost.model <- AddFuns(one.env, gamma.dt[timestep,])
+      intervals.list[[paste(total.segments, timestep)]] <- data.table(
+        total.segments, timestep, intervals=nrow(new.cost.model))
       cost.models.list[[paste(total.segments, timestep)]] <-
-        AddFuns(one.env, gamma.dt[timestep,])
+        new.cost.model
     }#for(timestep
   }#for(total.segments
   minima.list <- list()
@@ -597,10 +603,28 @@ PeakSegPDPA <- function(input.dt, maxPeaks=9L){
     cost.list[[paste(total.segments)]] <- cost.row
   }#for(total.segments
   list(segments=do.call(rbind, minima.list),
-       models=do.call(rbind, cost.list))
+       models=do.call(rbind, cost.list),
+       intervals=do.call(rbind, intervals.list))
 }
 
 if(FALSE){
+
+  load("data/H3K4me3_XJ_immune/2/counts.RData")
+  counts$bases <- with(counts, chromEnd-chromStart)
+  counts$count <- counts$coverage
+  sample.list <- split(counts, counts$sample.id)
+  sample.id <- "McGill0091"
+  compressed <- data.table(sample.list[[sample.id]])
+  ## This is an interesting data set that starts accumulating lots of
+  ## intervals at around the 100th data point.
+  ggplot()+
+    geom_step(aes(chromStart/1e3, count),
+              data=compressed,
+              color="grey50")
+  ggplot()+
+    geom_step(aes(seq_along(count), count),
+              data=compressed,
+              color="grey50")
 
   data(chr11ChIPseq, package="PeakSegDP")
   count.dt <- data.table(chr11ChIPseq$coverage)

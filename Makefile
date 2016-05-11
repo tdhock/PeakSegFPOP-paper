@@ -37,3 +37,5 @@ dp.timings.RData: dp.timings.R
 	R --no-save < $<
 dp.timings.reverse.RData: dp.timings.reverse.R
 	R --no-save < $<
+PDPA.timings.RData: PDPA.timings.R
+	R --no-save < $<
