@@ -600,100 +600,103 @@ PeakSegPDPA <- function(input.dt, maxPeaks=9L){
        models=do.call(rbind, cost.list))
 }
 
-data(chr11ChIPseq, package="PeakSegDP")
-count.dt <- data.table(chr11ChIPseq$coverage)
-sid <- "McGill0322"
-one.sample <- count.dt[sample.id==sid,]
-one.bins <- binSum(
-  one.sample,
-  bin.chromStart=one.sample$chromStart[1],
-  bin.size=500L,
-  n.bins=100L)
-input.dt <- data.table(one.bins)#[1:20]
-fit <- PeakSegPDPAchrom(input.dt[1:10,], 4)
-fit.rev <- PeakSegPDPAchrom(input.dt[10:1,], 4)
-stopifnot(fit.rev$models$min.cost==fit.rev$models$min.cost)
-input.dt[, data.i := seq_along(count)]
+## data(chr11ChIPseq, package="PeakSegDP")
+## count.dt <- data.table(chr11ChIPseq$coverage)
+## sid <- "McGill0322"
+## one.sample <- count.dt[sample.id==sid,]
+## one.bins <- binSum(
+##   one.sample,
+##   bin.chromStart=one.sample$chromStart[1],
+##   bin.size=500L,
+##   n.bins=100L)
+## input.dt <- data.table(one.bins)#[1:20]
+## fit <- PeakSegPDPAchrom(input.dt[1:10,], 4)
+## fit.rev <- PeakSegPDPAchrom(input.dt[10:1,], 4)
+## stopifnot(fit.rev$models$min.cost==fit.rev$models$min.cost)
+## input.dt[, data.i := seq_along(count)]
 
-ggplot()+
-  theme_bw()+
-  theme(panel.margin=grid::unit(0, "lines"))+
-  facet_grid(total.segments ~ .)+
-  geom_point(aes(data.i, count),
-             data=input.dt[1:10,])+
-  geom_segment(aes(segment.start-0.3, min.cost.mean,
-                   xend=segment.end+0.3, yend=min.cost.mean),
-               color="deepskyblue",
-               size=2,
-               data=fit$peaks)+
-  geom_segment(aes(segment.start-0.3, min.cost.mean,
-                   xend=segment.end+0.3, yend=min.cost.mean),
-               color="green",
-               data=fit$segments)
+## ggplot()+
+##   theme_bw()+
+##   theme(panel.margin=grid::unit(0, "lines"))+
+##   facet_grid(total.segments ~ .)+
+##   geom_point(aes(data.i, count),
+##              data=input.dt[1:10,])+
+##   geom_segment(aes(segment.start-0.3, min.cost.mean,
+##                    xend=segment.end+0.3, yend=min.cost.mean),
+##                color="deepskyblue",
+##                size=2,
+##                data=fit$peaks)+
+##   geom_segment(aes(segment.start-0.3, min.cost.mean,
+##                    xend=segment.end+0.3, yend=min.cost.mean),
+##                color="green",
+##                data=fit$segments)
 
-n.data <- 20
-forward <- one.sample[1:n.data,]
-makeRev <- function(fwd){
-  rev <- data.table(fwd)
-  rev$chromStart <- -fwd$chromEnd
-  rev$chromEnd <- -fwd$chromStart
-  rev[.N:1,]
-}
-reverse <- makeRev(forward)
+## n.data <- 40
+## forward <- one.sample[1:n.data,]
+## makeRev <- function(fwd){
+##   rev <- data.table(fwd)
+##   rev$chromStart <- -fwd$chromEnd
+##   rev$chromEnd <- -fwd$chromStart
+##   rev[.N:1,]
+## }
+## reverse <- makeRev(forward)
 
-fit <- PeakSegPDPAchrom(forward, 4)
-fit.rev <- PeakSegPDPAchrom(reverse, 4)
+## fit <- PeakSegPDPAchrom(forward, 4)
+## fit.rev <- PeakSegPDPAchrom(reverse, 4)
 
-fit.rev$peaks.forward <- makeRev(fit.rev$peaks)
-fit.rev$segments.forward <- makeRev(fit.rev$segments)
-stopifnot(fit.rev$models$min.cost==fit.rev$models$min.cost)
-dp.fit <- PeakSegDP(one.sample[1:n.data,], 4L)
-dp.fit$peaks[["1"]]
-fit$peaks[peaks==1,]
-fit.rev$peaks.forward[peaks==1,]
-(pdpa.segs <- fit$segments[peaks==1,])
-(pdpa.rev.segs <- fit.rev$segments.forward[peaks==1,])
-fit.rev$segments[peaks==1,]
-(cdpa.segs <- subset(dp.fit$segments, peaks==1))
+## fit.rev$peaks.forward <- makeRev(fit.rev$peaks)
+## fit.rev$segments.forward <- makeRev(fit.rev$segments)
+## stopifnot(fit.rev$models$min.cost==fit.rev$models$min.cost)
+## dp.fit <- PeakSegDP(one.sample[1:n.data,], 4L)
+## rbind(with(dp.fit$peaks[["1"]], c(chromStart, chromEnd)),
+##       fit$peaks[peaks==1, c(chromStart, chromEnd)],
+##       fit.rev$peaks.forward[peaks==1, c(chromStart, chromEnd)])
 
-forward$pdpa.mean <- NA
-forward$pdpa.rev.mean <- NA
-forward$cdpa.mean <- NA
-for(seg.i in 1:nrow(cdpa.segs)){
-  seg <- cdpa.segs[seg.i,]
-  forward$cdpa.mean[seg$first:seg$last] <- seg$mean
-}
-for(seg.i in 1:nrow(pdpa.segs)){
-  seg <- pdpa.segs[seg.i,]
-  forward$pdpa.mean[seg$segment.start:seg$segment.end] <- seg$min.cost.mean
-}
-with(forward, {
-  rbind(pdpa.fwd=PoissonLoss(count, pdpa.mean, chromEnd-chromStart),
-        cdpa.fwd=PoissonLoss(count, cdpa.mean, chromEnd-chromStart))
-})
+## n.peaks <- 4
+## (pdpa.segs <- fit$segments[peaks==n.peaks,])
+## (cdpa.segs <- subset(dp.fit$segments, peaks==n.peaks))
+## forward$pdpa.mean <- NA
+## forward$cdpa.mean <- NA
+## for(seg.i in 1:nrow(cdpa.segs)){
+##   seg <- cdpa.segs[seg.i,]
+##   forward$cdpa.mean[seg$first:seg$last] <- seg$mean
+## }
+## for(seg.i in 1:nrow(pdpa.segs)){
+##   seg <- pdpa.segs[seg.i,]
+##   forward$pdpa.mean[seg$segment.start:seg$segment.end] <- seg$min.cost.mean
+## }
+## with(forward, {
+##   rbind(pdpa.fwd=PoissonLoss(count, pdpa.mean, chromEnd-chromStart),
+##         cdpa.fwd=PoissonLoss(count, cdpa.mean, chromEnd-chromStart))
+## })
 
-ggplot()+
-  theme_bw()+
-  theme(panel.margin=grid::unit(0, "lines"))+
-  facet_grid(peaks ~ .)+
-  geom_step(aes(chromStart, count),
-            data=one.sample[1:n.data,])+
-  geom_segment(aes(chromStart, min.cost.mean,
-                   xend=chromEnd, yend=min.cost.mean),
-               color="deepskyblue",
-               size=2,
-               data=fit.rev$peaks.forward)+
-  geom_segment(aes(chromStart, min.cost.mean,
-                   xend=chromEnd, yend=min.cost.mean),
-               color="green",
-               data=fit.rev$segments.forward)+
-  geom_segment(aes(chromStart, min.cost.mean,
-                   xend=chromEnd, yend=min.cost.mean),
-               color="deepskyblue",
-               size=2,
-               data=fit$peaks)+
-  geom_segment(aes(chromStart, min.cost.mean,
-                   xend=chromEnd, yend=min.cost.mean),
-               color="green",
-               data=fit$segments)
+## ggplot()+
+##   theme_bw()+
+##   theme(panel.margin=grid::unit(0, "lines"))+
+##   facet_grid(peaks ~ .)+
+##   geom_step(aes(chromStart, count),
+##             data=one.sample[1:n.data,])+
+##   geom_segment(aes(chromStart, min.cost.mean,
+##                    xend=chromEnd, yend=min.cost.mean),
+##                color="deepskyblue",
+##                size=2,
+##                data=fit.rev$peaks.forward)+
+##   geom_segment(aes(chromStart, min.cost.mean,
+##                    xend=chromEnd, yend=min.cost.mean),
+##                color="green",
+##                data=fit.rev$segments.forward)+
+##   geom_segment(aes(chromStart, min.cost.mean,
+##                    xend=chromEnd, yend=min.cost.mean),
+##                color="deepskyblue",
+##                size=2,
+##                data=fit$peaks)+
+##   geom_segment(aes(chromStart, 0,
+##                    xend=chromEnd, yend=0),
+##                color="red",
+##                size=2,
+##                data=do.call(rbind, dp.fit$peaks))+
+##   geom_segment(aes(chromStart, min.cost.mean,
+##                    xend=chromEnd, yend=min.cost.mean),
+##                color="green",
+##                data=fit$segments)
 
