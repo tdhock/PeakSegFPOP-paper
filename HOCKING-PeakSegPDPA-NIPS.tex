@@ -333,9 +333,10 @@ compute the following exact representation
       \input{figure-1-min-less-operator}
     \end{center}
   }
-  \caption{\label{fig:min-operators} Min-less and min-more
-    functions need to be computed exactly and represented as piecewise
-    functions.}
+  \caption{\label{fig:min-operators} \textbf{Left:} The min-more
+    operator is $C^{\geq}(\mu)=\min_{x\geq \mu}C(x)$. \textbf{Right:}
+    The min-less operator is $C^{\leq}(\mu)=\min_{x\leq
+      \mu}C(x)$.}
 \end{figure}
 
 The next step is to compute the minimum cost in 2 segments up to data
@@ -358,8 +359,19 @@ representation of the minimum of these two functions.
   \begin{center}
     \input{figure-2-min-envelope}
   \end{center}
-  \caption{\label{fig:min-envelope} At each time step $t$ the cPDPA
-    computes the update.}
+  \caption{\label{fig:min-envelope} The cost $C_{s,t}$ in $s$ segments
+    up to $t$ data points is computed using the min envelope
+    $M_{s,t-1}$. \textbf{Left:} the min envelope for $s=3$ segments up
+    to data point $t=34$ is the minimum of two functions:
+    $C^{\geq}_{2,34}$ is the cost if the second segment ends at data
+    point $t=34$, and $C_{3,34}$ is the cost if the second segment
+    ends before that. \textbf{Middle:} the optimal cost for $s=3$
+    segments up to data point $t=35$ is the sum of the min envelope
+    $M_{3,34}$ and the cost of the next data point
+    $\gamma_{35}$. \textbf{Right:} in the next pruning step, the
+    algorithm prunes all previously considered change-points (cost
+    $C_{3,35}$), and only considers the model with a the second segment
+    ending at data point $t=35$ (cost $C^{\geq}_{2,35}$).}
 \end{figure}
 
 The updates continue for every data point $b\in\{3, ..., B\}$
