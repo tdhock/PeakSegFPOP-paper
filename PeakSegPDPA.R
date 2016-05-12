@@ -183,6 +183,7 @@ less.more.min.list <- list(
             ## Since the Log constant is negative, the non-principal
             ## branch W(,-1) results in the larger of the two mean
             ## values.
+            browser(expr=!is.finite(discriminant))
             this.row[, Log/Linear*LambertW::W(discriminant, -1)]
           }#if(-1/e < discriminant
         }
@@ -321,9 +322,9 @@ CompareRows <- function(dt1, dt2, i1, i2){
   cost.diff.right <- ploss(row.diff, first.max.mean)
   cost.diff.left <- ploss(row.diff, last.min.mean)
   discriminant <- row.diff[, Linear/Log*exp(-Constant/Log)]
+  ## The discriminant could be -Inf, if the exp argument is larger
+  ## than about 700.
   two.roots <- -1/exp(1) < discriminant
-  root.right <- row.diff[, Log/Linear*LambertW::W(discriminant, -1)]
-  root.left <- row.diff[, Log/Linear*LambertW::W(discriminant, 0)]
   if(!same.at.right){
     row1.min.on.right <- cost.diff.right < 0
   }else{
@@ -342,6 +343,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
       (row1$Log < row2$Log && 0 < sign1)
     if(two.roots && maybe.cross){
       ## There could be a crossing point to the left.
+      root.left <- row.diff[, Log/Linear*LambertW::W(discriminant, 0)]
       mean.at.equal.cost <- root.left
       in.interval <-
         last.min.mean < mean.at.equal.cost &
@@ -380,6 +382,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
       (row1$Log < row2$Log && sign1 < 0)
     if(two.roots && maybe.cross){
       ## There could be a crossing point to the right.
+      root.right <- row.diff[, Log/Linear*LambertW::W(discriminant, -1)]
       mean.at.equal.cost <- root.right
       in.interval <-
         last.min.mean < mean.at.equal.cost &
@@ -409,6 +412,8 @@ CompareRows <- function(dt1, dt2, i1, i2){
   ## the left nor on the right of the interval. However they may be
   ## equal inside the interval, so let's check for that.
   mean.in.interval <- if(two.roots){
+    root.right <- row.diff[, Log/Linear*LambertW::W(discriminant, -1)]
+    root.left <- row.diff[, Log/Linear*LambertW::W(discriminant, 0)]
     mean.at.equal.cost <- sort(c(root.left, root.right))
     in.interval <-
       last.min.mean < mean.at.equal.cost &

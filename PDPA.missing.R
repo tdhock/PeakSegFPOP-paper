@@ -2,6 +2,8 @@ source("PeakSegPDPA.R")
 
 load("dp.peaks.NA.RData")
 
+options(warn=2)
+
 for(row.i in 1:nrow(dp.peaks.NA)){
   sample.info <- dp.peaks.NA[row.i,]
   model.RData <- sample.info[, paste0(
@@ -30,8 +32,7 @@ for(row.i in 1:nrow(dp.peaks.NA)){
     })[["elapsed"]]
     result$model <- model.list
     result$timing <- 
-      data.frame(set.name, chunk.id, sample.id,
-                 seconds, data=n.data, bases)
-    save(result, file="PDPA.missing.RData")
+      data.frame(seconds, data=n.data, bases)
+    save(result, file=model.RData)
   }
 }
