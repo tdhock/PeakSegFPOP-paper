@@ -541,7 +541,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
     maybe.cross <-
       (row1$quadratic < row2$quadratic && 0 < sign2) ||
       (row2$quadratic < row1$quadratic && 0 < sign1)
-    if(0 < discriminant && maybe.cross){
+    if(1e-10 < discriminant && maybe.cross){
       ## There could be a crossing point to the left.
       numerator <- row.diff[, -linear - sign(quadratic)*sqrt(discriminant)]
       denominator <- 2*row.diff$quadratic
@@ -574,7 +574,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
     maybe.cross <-
       (row1$quadratic < row2$quadratic && sign2 < 0) ||
       (row2$quadratic < row1$quadratic && sign1 < 0)
-    if(0 < discriminant && maybe.cross){
+    if(1e-10 < discriminant && maybe.cross){
       ## There could be a crossing point to the right.
       numerator <- row.diff[, -linear + sign(quadratic)*sqrt(discriminant)]
       denominator <- 2*row.diff$quadratic
@@ -1111,9 +1111,11 @@ gg.pruning <- ggplot()+
   geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
              data=minima)
 
-ti <- 30
+save.image("figure-constrained-PDPA-normal-real.RData")
+
+ti <- 35
 gg.pruning <- ggplot()+
-  coord_cartesian(xlim=c(-0.2, 0), ylim=c(0, 0.3))+
+  ##coord_cartesian(xlim=c(-0.2, 0), ylim=c(0, 0.3))+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
   facet_grid(timestep ~ total.segments, scales="free",

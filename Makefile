@@ -1,9 +1,11 @@
-HOCKING-PeakSegPDPA-NIPS.pdf: HOCKING-PeakSegPDPA-NIPS.tex refs.bib figure-1-min-operators.pdf
+HOCKING-PeakSegPDPA-NIPS.pdf: HOCKING-PeakSegPDPA-NIPS.tex refs.bib figure-1-min-operators.pdf figure-2-min-envelope.tex
 	rm -rf *.aux *.bbl
 	pdflatex HOCKING-PeakSegPDPA-NIPS
 	bibtex HOCKING-PeakSegPDPA-NIPS
 	pdflatex HOCKING-PeakSegPDPA-NIPS
 	pdflatex HOCKING-PeakSegPDPA-NIPS
+figure-2-min-envelope.tex: figure-2-min-envelope.R
+	R --no-save < $<
 figure-1-min-operators.pdf: figure-1-min-operators.R
 	R --no-save < $<
 HOCKING-PeakSegFPOP.pdf: HOCKING-PeakSegFPOP.tex refs.bib figure-unconstrained-PDPA-normal.pdf figure-unconstrained-FPOP-normal.pdf figure-constrained-PDPA-normal-grid.pdf figure-constrained-PDPA-normal-panels.pdf figure-less-more-min.tex figure-constrained-PDPA-normal-real.pdf figure-NA-timings.pdf
