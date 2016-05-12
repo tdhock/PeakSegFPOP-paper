@@ -229,6 +229,7 @@ gg.less <- ggplot()+
   ylab("cost")+
   scale_size_manual("function", values=c(cost=1, min=3), labels=lab.vec)+
   scale_color_manual("function", values=c(cost="black", min="grey"), labels=lab.vec)+
+  guides(color=guide_legend(keyheight=3))+
   geom_line(aes(mean/100, cost/1e6, color=fun.type.fac, size=fun.type.fac),
             data=cost.lines[min.fun.name=="less",])+
   coord_cartesian(xlim=c(0, 25), ylim=c(1, 5))
@@ -246,6 +247,7 @@ gg.more <- ggplot()+
   ylab("cost")+
   scale_size_manual("function", values=c(cost=1, min=3), labels=lab.vec)+
   scale_color_manual("function", values=c(cost="black", min="grey"), labels=lab.vec)+
+  guides(color=guide_legend(keyheight=3))+
   geom_line(aes(mean/1000, cost/1e6, color=fun.type.fac, size=fun.type.fac),
             data=cost.lines[min.fun.name=="more",])+
   coord_cartesian(xlim=c(0, 15), ylim=c(0, 4))
