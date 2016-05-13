@@ -71,223 +71,178 @@
 
 \begin{abstract}
   Change-point detection is a central problem in time series and
-  genomic data sets. We consider the PeakSeg constrained optimal
-  segmentation model, for which the only previous solver is heuristic
-  and quadratic time complexity. We propose a new Pruned Dynamic
-  Programming Algorithm (PDPA) which recovers the exact solution in
-  linear time. 
+  genomic data sets. In several kinds of data it is desirable to
+  constrain the possible change-points to obtain a more interpretable
+  model. We propose a new constrained Pruned Dynamic Programming
+  Algorithm (cPDPA) which recovers the optimal change-points subject
+  to affine constraints on adjacent segment means. We use this
+  algorithm for isotonic regression and peak detection.
 \end{abstract}
 
 \section{Introduction}
 
-\subsection{Peak detection in ChIP-seq data}
+Change-point detection is a central problem in many fields. TODO ref
+isotonic regression and PAVA.
 
-Chromatin immunoprecipitation sequencing (ChIP-seq) is a biological
-experiment for genome-wide profiling of histone modifications and
-transcription factor binding sites, with many experimental and
-computational steps \citep{practical}. Briefly, each experiment yields
-a set of sequence reads which are aligned to a reference genome, and
-then the number of aligned reads are counted at each genomic position
-(Figure~\ref{fig:good-bad}). Although these read counts can be
-interpreted as quantitative data, they are most often interpreted
-using one of the many available peak detection algorithms
-\citep{evaluation2010, rye2010manually, chip-seq-bench}. A peak
-detection algorithm is a binary classifier for each genomic
-position. The positive class is enriched (peaks) and the negative
-class is background noise. Importantly, peaks and background occur in
-long contiguous segments across the genome.
-
-More concretely, a single ChIP-seq profile on a genomic region with
-$d$ base pairs can be represented as a vector $\mathbf y= \left[
-  \begin{array}{ccc}
-    y_1 & \cdots & y_d
-  \end{array}
-\right]\in\ZZ_+^d$ of counts of aligned sequence reads. A peak
-detection algorithm is a function $c:\ZZ_+^d
-\rightarrow \{0, 1\}^d$ which returns 0 for background noise and 1 for
-a peak. 
+An algorithm with quadratic time complexity was proposed to solve the
+peak detection problem \citep{PeakSeg}. 
 
 \citet{pruned-dp} proposed a Pruned Dynamic Programming Algorithm
-(PDPA) to exactly solve the penalized segmentation problem. In this
-paper we use the FPOP algorithm to solve the penalized version of the
-PeakSeg problem \citep{PeakSeg}.
+(PDPA) to exactly solve the unconstrained segmentation problem.
 
-\subsection{Contributions 
-%and organization
-}
+\subsection{Contributions}
 
 The main contribution of this paper is a new Constrained Pruned
-Dynamic Programming Algorithm (cPDPA) which is guaranteed to solve the
-PeakSeg optimal segmentation problem. a peak detection model that can
-be trained using supervised learning, and is effective for several
-pattern types (sharp and broad peaks). Rather than taking unsupervised
-model parameters for granted, we propose to train model parameters
-using labeled data of the same pattern type. Importantly, and in
-contrast to existing unsupervised approaches which can only be trained
-using grid search, we propose efficient discrete and convex
-optimization algorithms for model training. Our method is the first
-peak detector with an efficient supervised learning algorithm, and the
-first method that achieves state-of-the-art peak detection across
-several patterns in the benchmark of \citet{hocking2014visual}.
-
-A second contribution of this paper is a detailed study of the peak
-detection accuracy of several unsupervised and supervised penalty
-function learning methods. The two main results are that the oracle
-penalty of \citet{cleynen2013segmentation} is more accurate than
-asymptotic penalties like the AIC/BIC, and that supervised penalty
-learning can be used to further increase peak detection accuracy.
+Dynamic Programming Algorithm (cPDPA) which is guaranteed to recover
+the exact solution for a class of constrained optimal segmentation
+problems. 
 
 \section{Related work}
 \label{sec:related}
 
-Our work is based on and inspired by roughly three types of related
-work:
-%Previous work can be divided into roughly three categories:
-unsupervised ChIP-seq peak detectors from the bioinformatics
-literature, maximum likelihood segmentation models, 
-and criteria for model selection.
-
-\subsection{Unsupervised ChIP-seq peak detectors}
-
-There are literally dozens of unsupervised algorithms for peak
-detection in ChIP-seq data sets, and the bioinformatics literature
-contains several published comparison studies \citep{evaluation2010,
-  rye2010manually, chip-seq-bench}. \citet{hocking2014visual} proposed
-a benchmark of labeled ChIP-seq data sets, with two different histone
-mark types: H3K4me3 (sharp peak pattern) and H3K36me3 (broad peak
-pattern). The best peak detection algorithm in these H3K4me3 data was
-macs \citep{MACS}, and the best for H3K36me3 was HMCan
-\citep{HMCan}. Both of these algorithms are unsupervised, but were
-calibrated via grid search using the annotated region labels to choose
-the best scalar significance threshold hyperparameter.  Others have
-proposed to train the hyperparameters of unsupervised peak detectors
-\citep{picking2012, DFilter}. In contrast, we propose the supervised
-\ref{PeakSeg} model which can be efficiently trained using discrete
-and convex optimization algorithms (Sections~\ref{sec:algorithms} and
-\ref{sec:penalty-learning}).
-
 \subsection{Maximum likelihood segmentation models}
 
-The \ref{PeakSeg} model we propose in this paper is a constrained
-version of the Poisson segmentation model of \citet{Segmentor}.
-Their unconstrained model can be computed using a dynamic programming
+The model we consider in this paper is a constrained version of the
+optimal segmentation model \citep{TODO_MORE_REFS,Segmentor}. The
+unconstrained model can be computed using a dynamic programming
 algorithm (DPA) \citep{bellman}, or a pruned dynamic programming
 algorithm (pDPA) \citep{pruned-dp}. Both algorithms are guaranteed to
 recover the exact solution to the unconstrained model, but there are
 two important differences. The pDPA is more complicated to implement,
 but is also computationally faster than the DPA. For segmenting a
 sequence of $d$ data points, the pDPA takes on average $O(d\log d)$
-time whereas the DPA takes $O(d^2)$ time. 
+time whereas the DPA takes $O(d^2)$ time.
 
-Relative to the unconstrained segmentation model of \citet{Segmentor},
-our proposed \ref{PeakSeg} model has an additional constraint. Rather
-than searching all possible change-points to find the most likely
-model with $s$ segments, we propose to constrain the possible
-change-points to the subset of models that can be interpreted as peaks
-(with segment means that change up, down, up, etc, see
-Section~\ref{sec:constrained}).
+The constraints that we consider in this paper are a generalization of
+the peak detection model \citep{PeakSeg} and the isotonic regression
+model \citep{isotonic}. Rather than searching all possible
+change-points to find the most likely model with $s$ segments, we
+propose to constrain the possible change-points so that the segment
+means may be more easily interpreted.
 
-Due to the simplicity of its implementation, we propose a constrained
-dynamic programming algorithm (cDPA) that requires a small
-modification to the standard DPA solver. Although the DPA is an exact
-solver for the unconstrained problem, we show that the cDPA is a
-heuristic that is not guaranteed to solve the constrained
-problem (Section~\ref{sec:dp-fails}). However, we show that it is
-still very useful and accurate in practice on real data
-(Section~\ref{sec:results}).
+\section{From unconstrained to constrained maximum likelihoood
+  segmentation}
+\label{sec:model}
 
+In this section we first discuss the existing unconstrained maximum
+likelihood model, and then we discuss a more general framework for
+constrained maximum likle
 
-\section{Problem setting}
+\subsection{Unconstrained maximum likelihood segmentation}
 
-\subsection{Unconstrained model}
-
-We have a genomic data set $\mathbf{z}\in\ZZ_+^B$ of counts on $B$
-bases. The unconstrained problem for a positive penalty parameter
-$\lambda\in\RR_+$ is
-\begin{equation}
+For a sequence of $d$ data points $\mathbf y\in\ZZ_+^d$ to segment, we
+fix a maximum number of segments $ s_{\text{\text{max}}}\leq d$. The
+unconstrained maximum likelihood segmentation model is defined as the
+most likely mean vector $\mathbf m\in\RR^d$ with $s\in\{1, 2, \dots,
+s_{\max}\}$ piecewise constant segments:
+\begin{align}
   \label{unconstrained}
-  \mathbf{\hat m}^\lambda(\mathbf z)  =\ 
-  \argmin_{\mathbf m\in\RR^{B}}\ 
-  \rho
+  \mathbf{\hat m}^s(\mathbf y)  =\ 
+  &\argmin_{\mathbf m\in\RR^{d}} && 
+  \ell
   %\tag{\textbf{Unconstrained}}
-  (\mathbf m, \mathbf z) 
-  +\lambda\Changes(\mathbf m),
-\end{equation}
-where the Poisson loss function is
-\begin{equation}\label{eq:rho}
-  \rho(\mathbf m, \mathbf z)= \sum_{b=1}^B m_b - z_b \log m_b.
+  (\mathbf m, \mathbf y) \\
+  &\text{such that} && \Segments(\mathbf m)=s,
+  \nonumber
+\end{align}
+where the loss function is
+\begin{equation}\label{eq:loss}
+  \ell(\mathbf m, \mathbf y)= \sum_{j=1}^d m_j - y_j \log m_j.
 \end{equation} 
-The model complexity is the number of change-points
+The model complexity is the number of piecewise constant segments
 \begin{equation}
-  \Changes(\mathbf m)=\sum_{b=2}^B I(m_{b-1} \neq m_b),
+  \Segments(\mathbf m)=1+\sum_{j=2}^d I(m_j \neq m_{j-1}),
 \end{equation}
-where $I$ is the indicator function.
+where $I$ is the indicator function. 
 
-Although it is a non-convex optimization problem, the segmentation
-$\mathbf{\hat m}^\lambda(\mathbf z)$ can be computed in linear $O(B)$
-time using the FPOP algorithm \citep{FPOP}.
+Although it is a non-convex optimization problem, the sequence of
+segmentations $\mathbf{\hat m}^1(\mathbf y), \dots, \mathbf{\hat
+  m}^{s_{\text{\text{max}}}}(\mathbf y)$ can be computed in
+$O(s_{\text{\text{max}}} d^2)$ time using dynamic programming
+\citep{bellman}, or in $O(s_{\text{\text{max}}} d \log d)$
+time using pruned dynamic programming \citep{pruned-dp, Segmentor}.
 
-We refer to (\ref{unconstrained}) as the ``unconstrained'' model since
-$\mathbf{\hat m}^\lambda(\mathbf z)$ can have any sequence of changes
-up or down. However for the purposes of peak detection, we are only
-interested in segmentations with alternating changes that can be
-interpreted as peaks and background \citep{PeakSeg}.
-
-More concretely, we first define the peak indicator at base
-$b\in\{2, \dots, B\}$ as
+We refer to (\ref{unconstrained}) as the ``unconstrained'' model
+since $\mathbf{\hat m}^s(\mathbf y)$ is the most likely segmentation
+of all possible models with $s$ piecewise constant segments ($s-1$
+change-points). Several unconstrained models are shown on the left of
+Figure~\ref{fig:Segmentor-PeakSeg}, and for example the second segment
+of the model with $s=3$ segments appears to capture the peak in the
+data.
+% In general, we would like to use the 2nd, 4th,
+% ... segments as peaks, and the 1st, 3rd, ... segments as
+% background. 
+To construct a peak detector $c$, we first define the peak indicator at base
+$j\in\{2, \dots, d\}$ as
 \begin{equation}
   \label{eq:peaks}
-  P_b(\mathbf m) = \sum_{j=2}^b \sign( m_{j} - m_{j-1} ),
+  P_j(\mathbf m) = \sum_{k=2}^j \sign( m_{k} - m_{k-1} ),
 \end{equation}
-where $P_1(\mathbf m)=0$ by convention. $P_b(\mathbf m)$ is the
-cumulative sum of signs of changes up to point $b$ in the piecewise
+where $P_1(\mathbf m)=0$ by convention. $P_j(\mathbf m)$ is the
+cumulative sum of signs of changes up to point $j$ in the piecewise
 constant vector $\mathbf m$. We define the vector of peak indicators
 as
 \begin{equation}
   \mathbf
-  P[\mathbf m] = \left[
-    \begin{array}{ccc}
-      P_1(\mathbf m) & \cdots & P_B(\mathbf m)
-    \end{array}\right].
+P[\mathbf m] = \left[\begin{array}{ccc} P_1(\mathbf m) & \cdots &
+    P_d(\mathbf m)
+\end{array}\right].
 \end{equation}
 
-\subsection{PenPeakSeg: penalized constrained segmentation}
+\subsection{PeakSeg: constrained maximum likelihood}
 \label{sec:constrained}
 
-In general for the unconstrained model $P_b(\mathbf m)\in\ZZ$, which
+In general for the unconstrained model $P_j(\mathbf m)\in\ZZ$, which
 is problematic since we want to use it as a peak detector with binary
-outputs $P_b(\mathbf m)\in \{0, 1\}$. 
+outputs $P_j(\mathbf m)\in \{0, 1\}$. 
+
 For example, if $\mathbf m = \left[\begin{array}{ccccccc}1.1 &
     1.1 & 2 & 2 & 4 & 4 & 3\end{array}\right]$, with two changes up
 followed by one change down, then $\mathbf P(\mathbf m) =
 \left[\begin{array}{ccccccc}0 & 0 & 1 & 1 & 2 & 2 &
     1 \end{array}\right]$.
-Thus we constrain the peak indicator $P_b(\mathbf m)\in\{0, 1\}$,
-which results in the constrained problem
+
+% This is also a practical problem that can be observed in real data
+% sets. For example in Figure~\ref{fig:Segmentor-PeakSeg} there is a position $j$ for
+% which $P_j\left[ \mathbf{\hat m}^5(\mathbf y) \right]=2$ (since the
+% mean changes up, up, down, down). 
+
+Thus we constrain the peak indicator $P_j(\mathbf
+m)\in\{0, 1\}$, which results
+in the constrained problem
 \begin{align*}
-  \label{PenPeakSeg}
-  \mathbf{\tilde m}^\lambda(\mathbf z)  =
-  \argmin_{\mathbf m\in\RR^{B}} &\ \ 
-    \rho(\mathbf m, \mathbf z) + \lambda\Peaks(\mathbf m)
-    \tag{\textbf{PenPeakSeg}}
-  \\
-  \text{such that} &\ \forall b\in\{1, \dots, B\},
-                     \ \ P_b(\mathbf m) \in\{0, 1\}.
+  \label{PeakSeg}
+  \mathbf{\tilde m}^s(\mathbf y)  =
+    \argmin_{\mathbf m\in\RR^{d}} &\ \ 
+    \rho(\mathbf m, \mathbf y) 
+    \tag{\textbf{PeakSeg}}
+\\
+    \text{such that} &\ \  \Segments(\mathbf m)=s,  \\
+     \forall j\in\{1, \dots, d\}, &\ \ P_j(\mathbf m) \in\{0, 1\}.
 \end{align*}
-The Peaks model complexity term only counts up changes:
-\begin{equation}
-  \Peaks(\mathbf m) = \sum_{b=2}^B I(m_{b-1} < m_b).
-\end{equation}
-The constraint in the \ref{PenPeakSeg} problem forces the sequence of
-changes in the segment means $\mathbf m$ to begin with a positive
+Note that one must specify the number of segments $s$ or,
+equivalently, the number of peaks $p=(s-1)/2$. Another way to
+interpret the constrained \ref{PeakSeg} problem is that the sequence
+of changes in the segment means $\mathbf m$ must begin with a positive
 change and then alternate: up, down, up, down, ... (and not up, up,
 down). Thus the even-numbered segments may be interpreted as peaks
-$P_b(\mathbf m)=1$, and the odd-numbered segments may be interpreted
-as background $P_b(\mathbf m)=0$.
+$P_j(\mathbf m)=1$, and the odd-numbered segments may be interpreted
+as background $P_j(\mathbf m)=0$.
+
+For example, the good peaks in Figure~\ref{fig:good-bad} are the
+second and fourth segments of the \ref{PeakSeg} solution for $s=5$
+segments.
+
+Figure~\ref{fig:Segmentor-PeakSeg} shows a profile where the constraint is
+necessary for the even-numbered segments to be interpreted as
+peaks. In particular, it is clear that unconstrained models with
+$s\in\{5, 7\}$ segments do not satisfy $P_j[\mathbf{\hat m}^s(\mathbf
+y)]\in\{0, 1\}$ for all positions $j\in\{1,\dots, d\}$ (since they
+have up, up, down changes).
 
 \section{Algorithm}
 
-\subsection{Segment Neighborhood}
+\subsection{Constrained PeakSeg model}
 
 For the Segment Neighborhood algorithm we begin as usual by computing
 a functional representation of the optimal cost in 1 segment up to
@@ -430,7 +385,6 @@ recover it. However this last segmentation is more costly than a
 simpler segmentation with a single change after the first data point
 (see figure below).
 
-
 The figure above plots the cost of a segmentation in two segments, up
 to data point 3. There are two possible change-points: after 1 [1][10
 14], and after 2 [1 10][14]. The minimum cost of a change after 2 is
@@ -438,56 +392,19 @@ to data point 3. There are two possible change-points: after 1 [1][10
 14). Thus it is clear that although the segmentation [1 10][14][13] is
 feasible for the PeakSeg problem, it is clearly not optimal.
 
-\subsection{Unconstrained PDPA and FPOP}
-
-In the figures below I took the R implementation of PDPA and FPOP from
-the FPOP paper, and I ran both on this simple data set. The plot shows
-the functions and intervals at each time step. The first column shows
-the model ofthe cost before adding a new data point, the second column
-shows after adding a new data point but before pruning, and the third
-column shows after pruning.
-
-\includegraphics[width=\textwidth]{figure-unconstrained-FPOP-normal}
-
-\includegraphics[width=\textwidth]{figure-unconstrained-PDPA-normal}
-
-The figure above shows the same results for the unconstrained PDPA.
-
-\subsection{Results with and without strict inequalities}
-
-\includegraphics[width=\textwidth]{figure-constrained-PDPA-normal-panels-pruning}
-
-The figure above compares the results of the two different cost models
-(with and without strict inequalities). Note that for strict
-inequalities it is a bit more complicated to compute the less-min
-operator. In fact the minimum $\mu^*$ may be undefined, in which case
-we set $f^{<}(\mu)=\infty$ (infinite cost intervals are not
-stored). Otherwise if $\mu^*$ is achieved somewhere in the domain of
-$f$ we use
-\begin{equation*}
-  f^{<}(\mu) = \min_{x<\mu}f(x) = 
-  \begin{cases}
-    f(\mu^*) & \text{ if } \mu > \mu^*,\\
-    \infty & \text{ otherwise.}
-  \end{cases}
-\end{equation*}
-
-
-\includegraphics[width=\textwidth]{figure-constrained-PDPA-normal-panels}
-
 %%%% update rules
 \newcommand{\FCC}{\widetilde{C}}
 \newcommand{\MK}{\mathcal{M}^k}
 \section{Constrained DP Problem}
 \subsection{Some definition}
 
-We aim at optimizing over all possible segmentations
-$m$ in $\MK_n$ described as a set of segments $\{s_1, ... s_K\}$
-the quantity
-$\sum_{k \in [1..K]} \sum_{i \in s_{k}} (y_i - \mu_{k})^2$
-under the following linear (K-1) constraints 
+We aim at optimizing over all possible segmentations $m$ in $\MK_n$
+described as a set of segments $\{s_1, ... s_K\}$ the quantity
+$\sum_{k \in [1..K]} \sum_{i \in s_{k}} (y_i - \mu_{k})^2$ subject to
+the following $K-1$ linear constraints. For every
+$k\in\{1, \dots, K-1\}$ we have
 \begin{equation}
-a_{kk} \mu_1 + a_{k(k+1}} \mu_2 + b_k \geq 0.
+a_{kk} \mu_1 + a_{k,k+1} \mu_2 + b_k \geq 0.
 \end{equation}
 Each of these constraint imply only 
 
@@ -496,7 +413,7 @@ Isotonic regression
 
 Up-Down model
 
-\subsection{Fonctiona cost representation}
+\subsection{Fonctional cost representation}
 
 We will consider the optimal fonctionnal cost up to in $k$ which is 
 \begin{equation*}
