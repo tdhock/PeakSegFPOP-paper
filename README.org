@@ -1,6 +1,12 @@
 The goal of this paper is to implement a fast algorithm for solving
 the PeakSeg problem described in
 http://jmlr.org/proceedings/papers/v37/hocking15.html
+** 13 May 2016
+
+[[file:figure-cDPA-PDPA-all.R]] visualizes the optimality and feasibility
+of the PDPA and cDPA models, and shows the interval counts in the PDPA
+[[http://bl.ocks.org/tdhock/raw/4582904f843cc60639fdfeb9651cac73/]]
+
 ** 12 May 2016
 
 [[file:figure-cDPA-PDPA.R]] shows the difference between the cDPA and PDPA

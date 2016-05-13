@@ -130,6 +130,7 @@ less.more.min.list <- list(
           ## W(,0) results in the smaller of the two mean values.
           mu <- this.row[, Log/Linear*LambertW::W(discriminant, 0)]
           if(this.row[, min.mean < mu & mu < max.mean]){
+            ##browser()
             new.dt.list[[paste(row.i, "constant")]] <- data.table(
               Linear=0,
               Log=0,
@@ -208,6 +209,7 @@ less.more.min.list <- list(
           ## values.
           mu <- this.row[, Log/Linear*LambertW::W(discriminant, -1)]
           if(this.row[, min.mean < mu & mu < max.mean]){
+            browser()
             new.dt.list[[paste(row.i, "constant")]] <- data.table(
               Linear=0,
               Log=0,
