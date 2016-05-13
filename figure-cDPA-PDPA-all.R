@@ -73,15 +73,18 @@ for(missing.i in seq_along(missing.RData.vec)){
       normEnd=normalize(chromEnd),
       mean=min.cost.mean,
       norm=min.cost.mean/max.coverage)
-    ])
-  breaks.list[[missing.RData]] <- rbind(with(dp.model[[sid]]$breaks, {
+      ])
+  breaks.fwd <- dp.model[[sid]]$breaks
+  breaks.rev <- dp.model.reverse[[sid]]$breaks
+  breaks.list[[missing.RData]] <- rbind(
+    if(is.data.frame(breaks.fwd))with(breaks.fwd, {
     data.table(
       meta,
       algorithm="cDPA.forward",
       peaks,
       normEnd=normalize(chromEnd),
       chromEnd)
-  }), with(dp.model.reverse[[sid]]$breaks, {
+  }), if(is.data.frame(breaks.rev))with(breaks.rev, {
     data.table(
       meta,
       algorithm="cDPA.reverse",
