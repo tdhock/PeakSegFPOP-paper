@@ -18,6 +18,7 @@ for(missing.i in seq_along(missing.RData.vec)){
   load(counts.RData)
   sid <- sub("[.]RData$", "", basename(missing.RData))
   one.sample <- data.table(counts)[sample.id==sid,]
+  ##fit <- cDPA(one.sample$coverage, one.sample[,chromEnd-chromStart], 19)
   first.chromStart <- one.sample$chromStart[1]
   last.chromEnd <- one.sample[.N, chromEnd]
   bases <- last.chromEnd-first.chromStart

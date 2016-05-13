@@ -14,8 +14,8 @@ between.intervals <- left.of.intervals[min.mean != min(data.vec),]
 type.code <- c(
   minimum="min\nenvelope\n$M_{3,t}$",
   add="cost of\ndata $t$\n$\\gamma_{t}$",
-  model="min cost\nin 3 segments\nup to data $t-1$\n$C_{3,t-1}$",
-  compare="cost\nof change\nafter $t-1$\n$C^{\\geq}_{2,t-1}$")
+  model="min cost\nin 3 segments\nup to data $t$\n$C_{3,t}$",
+  compare="cost\nof change\nafter $t$\n$C^{\\geq}_{2,t}$")
 cfac <- function(cost.type){
   factor(cost.type, c("model", "compare", "minimum", "add"))
 }

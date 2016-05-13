@@ -368,7 +368,7 @@ representation of the minimum of these two functions.
     ends before that. \textbf{Middle:} the optimal cost for $s=3$
     segments up to data point $t=35$ is the sum of the min envelope
     $M_{3,34}$ and the cost of the next data point
-    $\gamma_{35}$. \textbf{Right:} in the next pruning step, the
+    $\gamma_{35}$. \textbf{Right:} in the next step, the
     algorithm prunes all previously considered change-points (cost
     $C_{3,35}$), and only considers the model with a the second segment
     ending at data point $t=35$ (cost $C^{\geq}_{2,35}$).}
@@ -430,7 +430,6 @@ recover it. However this last segmentation is more costly than a
 simpler segmentation with a single change after the first data point
 (see figure below).
 
-\includegraphics[width=\textwidth]{figure-constrained-PDPA-normal-grid}
 
 The figure above plots the cost of a segmentation in two segments, up
 to data point 3. There are two possible change-points: after 1 [1][10
