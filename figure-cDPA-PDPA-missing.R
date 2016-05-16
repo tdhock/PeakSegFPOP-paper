@@ -1,6 +1,6 @@
 source("packages.R")
 
-PDPA.RData.vec <- Sys.glob("data/H3K*/*/PDPA.model/*")
+missing.RData.vec <- Sys.glob("data/H3K*/*/PDPA.missing/*")
 algo <- function(x){
   factor(x, c("PDPA intervals", "PDPA", "cDPA.forward", "cDPA.reverse"))
 }
@@ -9,15 +9,14 @@ segs.list <- list()
 breaks.list <- list()
 counts.list <- list()
 intervals.list <- list()
-for(PDPA.i in seq_along(PDPA.RData.vec)){
-  PDPA.RData <- PDPA.RData.vec[[PDPA.i]]
-  cat(sprintf("%4d / %4d %s\n", PDPA.i, length(PDPA.RData.vec), PDPA.RData))
-  (objs <- load(PDPA.RData))
-  chunk.dir <- dirname(dirname(PDPA.RData))
+for(missing.i in seq_along(missing.RData.vec)){
+  missing.RData <- missing.RData.vec[[missing.i]]
+  (objs <- load(missing.RData))
+  chunk.dir <- dirname(dirname(missing.RData))
   chunk.name <- sub("^data/", "", chunk.dir)
   counts.RData <- file.path(chunk.dir, "counts.RData")
   load(counts.RData)
-  sid <- sub("[.]RData$", "", basename(PDPA.RData))
+  sid <- sub("[.]RData$", "", basename(missing.RData))
   one.sample <- data.table(counts)[sample.id==sid,]
   ##fit <- cDPA(one.sample$coverage, one.sample[,chromEnd-chromStart], 19)
   first.chromStart <- one.sample$chromStart[1]
@@ -25,19 +24,19 @@ for(PDPA.i in seq_along(PDPA.RData.vec)){
   bases <- last.chromEnd-first.chromStart
   normalize <- function(pos)(pos-first.chromStart)/bases
   sample.intervals <- data.table(
-    algorithm=algo("PDPA intervals"), PDPA.RData, result$model$intervals)
+    algorithm=algo("PDPA intervals"), missing.RData, result$model$intervals)
   sample.intervals[, chromStart := one.sample$chromStart[timestep]]
   sample.intervals[, normStart := normalize(chromStart)]
   sample.intervals[, normIntervals := intervals/max(intervals)]
   sample.intervals[, peaks := (total.segments-1)/2]
   sample.intervals$data <- nrow(one.sample)
-  intervals.list[[PDPA.RData]] <- sample.intervals
+  intervals.list[[missing.RData]] <- sample.intervals
   one.sample[, normStart := normalize(chromStart)]
   one.sample[, normEnd := normalize(chromStart)]
   max.coverage <- max(one.sample$coverage)
   one.sample[, norm := coverage/max.coverage]
-  meta <- data.table(chunk.name, sample.id=sid, PDPA.RData)
-  counts.list[[PDPA.RData]] <- data.table(
+  meta <- data.table(chunk.name, sample.id=sid, missing.RData)
+  counts.list[[missing.RData]] <- data.table(
     meta,
     one.sample)
   load(file.path(chunk.dir, "dp.model.reverse.RData"))
@@ -61,8 +60,8 @@ for(PDPA.i in seq_along(PDPA.RData.vec)){
     }))
   min.loss <- min(sample.loss$poisson.loss)
   sample.loss[, normLoss := (poisson.loss-min.loss)/(max(poisson.loss)-min.loss)]
-  loss.list[[PDPA.RData]] <- sample.loss
-  segs.list[[PDPA.RData]] <- rbind(
+  loss.list[[missing.RData]] <- sample.loss
+  segs.list[[missing.RData]] <- rbind(
     result$model$segments[, data.table(
       meta,
       algorithm=algo("PDPA"),
@@ -96,7 +95,7 @@ for(PDPA.i in seq_along(PDPA.RData.vec)){
   }))
   breaks.fwd <- dp.model[[sid]]$breaks
   breaks.rev <- dp.model.reverse[[sid]]$breaks
-  breaks.list[[PDPA.RData]] <- rbind(
+  breaks.list[[missing.RData]] <- rbind(
     result$model$segments[segment.end<max(segment.end), data.table(
       meta,
       algorithm=algo("PDPA"),
@@ -126,16 +125,16 @@ loss <- do.call(rbind, loss.list)
 counts <- do.call(rbind, counts.list)
 intervals <- do.call(rbind, intervals.list)
 interval.means <-
-  intervals[, list(mean.intervals=mean(intervals)), by=PDPA.RData]
+  intervals[, list(mean.intervals=mean(intervals)), by=missing.RData]
 scatter.some <- loss[, list(
   cDPA.models=sum(grepl("cDPA", algorithm)),
   PDPA.feasible=sum(constraint=="inactive" & algorithm=="PDPA")),
-  by=.(PDPA.RData)]
-setkey(interval.means, PDPA.RData)
-setkey(scatter.some, PDPA.RData)
+  by=.(missing.RData)]
+setkey(interval.means, missing.RData)
+setkey(scatter.some, missing.RData)
 scatter.dt <- scatter.some[interval.means]
 interval.max <-
-  intervals[, .SD[which.max(intervals),], by=.(PDPA.RData, peaks)]
+  intervals[, .SD[which.max(intervals),], by=.(missing.RData, peaks)]
 interval.stats <-
   intervals[, list(
     max=max(intervals),
@@ -143,7 +142,7 @@ interval.stats <-
     median=as.numeric(median(intervals)),
     q25=quantile(intervals, 0.25),
     min=min(intervals)
-  ), by=.(PDPA.RData, peaks)]
+  ), by=.(missing.RData, peaks)]
   
 ggplot()+
   theme_bw()+
@@ -157,7 +156,7 @@ loss[, feasible := ifelse(constraint=="active", "infeasible","feasible")]
 loss[, optimal := ifelse(
   poisson.loss-.SD[algorithm=="PDPA", poisson.loss] < 1e-2,
   "optimal",
-  "sub-optimal"), by=.(PDPA.RData, peaks)]
+  "sub-optimal"), by=.(missing.RData, peaks)]
 viz <- list(
   title="Algorithms for computing PeakSeg model",
   scatter=ggplot()+
@@ -168,14 +167,12 @@ viz <- list(
     geom_abline(aes(slope=slope, intercept=intercept),
                 color="grey",
                 data=abline.dt)+
-    xlab("mean PDPA intervals")+
-    ylab("PDPA feasible - cDPA models")+
-    ## geom_rect(aes(xmin=cDPA.models-0.5, xmax=cDPA.models+0.5,
-    ##               ymin=PDPA.feasible-0.5, ymax=PDPA.feasible+0.5,
-    ##               fill=mean.intervals,
-    ##               clickSelects=PDPA.RData),
-    ##            data=scatter.dt),
-    geom_point(aes(mean.intervals, PDPA.feasible-cDPA.models/2),
+    xlab("all cDPA models")+
+    ylab("PDPA feasible models")+
+    geom_rect(aes(xmin=cDPA.models-0.5, xmax=cDPA.models+0.5,
+                  ymin=PDPA.feasible-0.5, ymax=PDPA.feasible+0.5,
+                  fill=mean.intervals,
+                  clickSelects=missing.RData),
                data=scatter.dt),
   intervals=ggplot()+
     ggtitle("quartiles of intervals")+
@@ -184,14 +181,14 @@ viz <- list(
     ylab("intervals")+
     geom_segment(aes(peaks, min,
                      xend=peaks, yend=q25,
-                     showSelected=PDPA.RData),
+                     showSelected=missing.RData),
                  data=interval.stats)+
     geom_segment(aes(peaks, max,
                      xend=peaks, yend=q75,
-                     showSelected=PDPA.RData),
+                     showSelected=missing.RData),
                  data=interval.stats)+
     geom_point(aes(peaks, median,
-                   showSelected=PDPA.RData),
+                   showSelected=missing.RData),
                data=interval.stats)+
     geom_tallrect(aes(xmin=peaks-0.5, xmax=peaks+0.5,
                       clickSelects=peaks),
@@ -208,7 +205,7 @@ viz <- list(
     geom_point(aes(peaks, normLoss,
                    color=optimal,
                    fill=feasible,
-                   showSelected=PDPA.RData),
+                   showSelected=missing.RData),
                size=4,
                data=loss)+
     geom_tallrect(aes(xmin=peaks-0.5, xmax=peaks+0.5,
@@ -224,26 +221,26 @@ viz <- list(
     facet_grid(algorithm ~ .)+
     geom_line(aes(normStart, normIntervals, group=peaks,
                   showSelected2=peaks,
-                  showSelected=PDPA.RData),
+                  showSelected=missing.RData),
               size=3,
               data=intervals)+
     geom_text(aes(normStart, normIntervals, label=paste(
       intervals, "intervals /", data, "data points"),
                   showSelected2=peaks,
-                  showSelected=PDPA.RData),
+                  showSelected=missing.RData),
               data=interval.max)+
     geom_step(aes(normStart, norm,
-                  showSelected=PDPA.RData),
+                  showSelected=missing.RData),
               color="grey50",
               data=counts)+
     geom_text(aes(0.5, 0.8, label=sprintf("Poisson loss = %.1f", poisson.loss),
-                  showSelected=PDPA.RData,
+                  showSelected=missing.RData,
                   showSelected2=peaks),
               color="green",
               data=loss)+
     geom_segment(aes(normStart, norm,
                      showSelected=peaks,
-                     showSelected2=PDPA.RData,
+                     showSelected2=missing.RData,
                      tooltip=paste("mean =", mean),
                      xend=normEnd, yend=norm),
                  color="green",
@@ -252,7 +249,7 @@ viz <- list(
                  data=segs)+
     geom_segment(aes(normEnd, 0,
                      xend=normEnd, yend=0.8,
-                     showSelected=PDPA.RData,
+                     showSelected=missing.RData,
                      showSelected2=peaks),
                  color="green",
                  alpha=0.5,
