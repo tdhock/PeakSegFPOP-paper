@@ -1,5 +1,8 @@
 source("packages.R")
 
+## TODO: check problematic sample H3K4me3_XJ_immune/1 McGill0024 where
+## PDPA loss is bigger than cDPA loss.
+
 PDPA.RData.vec <- Sys.glob("data/H3K*/*/PDPA.model/*")
 "H3K4me3_PGP_immune/10/"
 "H3K4me3_PGP_immune/2/"
