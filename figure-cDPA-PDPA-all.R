@@ -1,6 +1,10 @@
 source("packages.R")
 
 PDPA.RData.vec <- Sys.glob("data/H3K*/*/PDPA.model/*")
+"H3K4me3_PGP_immune/10/"
+"H3K4me3_PGP_immune/2/"
+"H3K4me3_XJ_immune/1/"
+PDPA.RData.vec <- grep("H3K4me3_XJ_immune/1/|H3K4me3_PGP_immune/2/|H3K4me3_PGP_immune/10/", PDPA.RData.vec, value=TRUE)
 algo <- function(x){
   factor(x, c("PDPA intervals", "PDPA", "cDPA.forward", "cDPA.reverse"))
 }
@@ -37,9 +41,12 @@ for(PDPA.i in seq_along(PDPA.RData.vec)){
   max.coverage <- max(one.sample$coverage)
   one.sample[, norm := coverage/max.coverage]
   meta <- data.table(chunk.name, sample.id=sid, PDPA.RData)
-  counts.list[[PDPA.RData]] <- data.table(
+  norm.pos <- seq(0, 1, l=200)
+  counts.list[[PDPA.RData]] <- one.sample[, data.table(
     meta,
-    one.sample)
+    norm=approx(normStart, norm, norm.pos)$y,
+    normStart=norm.pos)]
+  counts.list[[PDPA.RData]] <- data.table(meta, one.sample)
   load(file.path(chunk.dir, "dp.model.reverse.RData"))
   dp.model.reverse <- dp.model
   load(file.path(chunk.dir, "dp.model.RData"))
@@ -127,13 +134,27 @@ counts <- do.call(rbind, counts.list)
 intervals <- do.call(rbind, intervals.list)
 interval.means <-
   intervals[, list(mean.intervals=mean(intervals)), by=PDPA.RData]
+loss.wide <- dcast(
+  loss,
+  PDPA.RData + chunk.name + sample.id + peaks ~ algorithm,
+  value.var="poisson.loss")
+loss.wide[, poisson.loss.diff.fwd := cDPA.forward-PDPA]
+loss.wide[, poisson.loss.diff.rev := cDPA.reverse-PDPA]
+loss.wide[order(poisson.loss.diff.fwd),] # TODO: check these!
+loss.diff.min.max <- loss.wide[, list(
+  min=min(poisson.loss.diff.fwd, poisson.loss.diff.rev),
+  max=max(poisson.loss.diff.fwd, poisson.loss.diff.rev)),
+  by=.(PDPA.RData, chunk.name, sample.id)]
 scatter.some <- loss[, list(
-  cDPA.models=sum(grepl("cDPA", algorithm)),
+  cDPA.fwd.models=sum(grepl("cDPA.forward", algorithm)),
+  cDPA.rev.models=sum(grepl("cDPA.rev", algorithm)),
   PDPA.feasible=sum(constraint=="inactive" & algorithm=="PDPA")),
   by=.(PDPA.RData)]
+scatter.some[, cDPA.mean.models := (cDPA.fwd.models + cDPA.rev.models)/2]
 setkey(interval.means, PDPA.RData)
 setkey(scatter.some, PDPA.RData)
-scatter.dt <- scatter.some[interval.means]
+setkey(loss.diff.min.max, PDPA.RData)
+scatter.dt <- scatter.some[interval.means][loss.diff.min.max]
 interval.max <-
   intervals[, .SD[which.max(intervals),], by=.(PDPA.RData, peaks)]
 interval.stats <-
@@ -152,6 +173,24 @@ ggplot()+
   geom_point(aes(peaks, poisson.loss, color=constraint),
              data=loss)
 
+ggplot()+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  facet_wrap("PDPA.RData")+
+  coord_equal()+
+  geom_point(aes(poisson.loss.diff.rev, poisson.loss.diff.fwd),
+             shape=1,
+             data=loss.wide)
+
+ggplot()+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  facet_wrap("PDPA.RData")+
+  geom_line(aes(peaks, poisson.loss.diff.fwd),
+            data=loss.wide)+
+  geom_line(aes(peaks, poisson.loss.diff.rev),
+            data=loss.wide)
+
 abline.dt <- data.table(intercept=0, slope=1)
 loss[, feasible := ifelse(constraint=="active", "infeasible","feasible")]
 loss[, optimal := ifelse(
@@ -160,23 +199,39 @@ loss[, optimal := ifelse(
   "sub-optimal"), by=.(PDPA.RData, peaks)]
 viz <- list(
   title="Algorithms for computing PeakSeg model",
-  scatter=ggplot()+
+  feasibilty=ggplot()+
     ggtitle("select data set")+
+    theme_grey()+
+    theme(panel.margin=grid::unit(0, "lines"))+
+    theme_animint(height=300, width=200)+
+    xlab("mean PDPA intervals")+
+    ylab("PDPA feasible - cDPA models")+
+    scale_fill_gradient("max loss diff", low="black", high="white")+
+    scale_color_gradient("min loss diff", low="white", high="blue")+
+    geom_point(aes(mean.intervals, PDPA.feasible-cDPA.mean.models,
+                   color=min, fill=max,
+                   clickSelects=PDPA.RData),
+               alpha=0.8,
+               shape=21,
+               size=4,
+               data=scatter.dt),
+  optimality=ggplot()+
     theme_bw()+
     theme(panel.margin=grid::unit(0, "lines"))+
     theme_animint(height=300, width=200)+
-    geom_abline(aes(slope=slope, intercept=intercept),
-                color="grey",
-                data=abline.dt)+
-    xlab("mean PDPA intervals")+
-    ylab("PDPA feasible - cDPA models")+
-    ## geom_rect(aes(xmin=cDPA.models-0.5, xmax=cDPA.models+0.5,
-    ##               ymin=PDPA.feasible-0.5, ymax=PDPA.feasible+0.5,
-    ##               fill=mean.intervals,
-    ##               clickSelects=PDPA.RData),
-    ##            data=scatter.dt),
-    geom_point(aes(mean.intervals, PDPA.feasible-cDPA.models/2),
-               data=scatter.dt),
+    geom_line(aes(peaks, poisson.loss.diff.fwd,
+                  showSelected=PDPA.RData),
+              data=loss.wide)+
+    geom_line(aes(peaks, poisson.loss.diff.rev,
+                  showSelected=PDPA.RData),
+              data=loss.wide)+
+    geom_point(aes(peaks, poisson.loss.diff.rev,
+                   showSelected=PDPA.RData),
+               data=loss.wide[poisson.loss.diff.rev < -1,])+
+    geom_tallrect(aes(xmin=peaks-0.5, xmax=peaks+0.5,
+                      clickSelects=peaks),
+                  alpha=0.2,
+                  data=data.table(peaks=0:9)),
   intervals=ggplot()+
     ggtitle("quartiles of intervals")+
     theme_animint(height=300, width=250)+
@@ -261,4 +316,6 @@ viz <- list(
     scale_x_continuous("relative position on chromosome", breaks=c())+
     scale_y_continuous("relative aligned read counts / intervals", breaks=c())
 )
+viz$feasibilty
+
 animint2dir(viz, "figure-cDPA-PDPA-all")
