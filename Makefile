@@ -1,9 +1,9 @@
-HOCKING-PeakSegPDPA-NIPS.pdf: HOCKING-PeakSegPDPA-NIPS.tex refs.bib figure-1-min-operators.pdf figure-2-min-envelope.tex
+HOCKING-RIGAILL-constrained-functional-pruning.pdf: HOCKING-RIGAILL-constrained-functional-pruning.tex refs.bib figure-1-min-operators.pdf figure-2-min-envelope.tex
 	rm -rf *.aux *.bbl
-	pdflatex HOCKING-PeakSegPDPA-NIPS
-	bibtex HOCKING-PeakSegPDPA-NIPS
-	pdflatex HOCKING-PeakSegPDPA-NIPS
-	pdflatex HOCKING-PeakSegPDPA-NIPS
+	pdflatex HOCKING-RIGAILL-constrained-functional-pruning
+	bibtex HOCKING-RIGAILL-constrained-functional-pruning
+	pdflatex HOCKING-RIGAILL-constrained-functional-pruning
+	pdflatex HOCKING-RIGAILL-constrained-functional-pruning
 figure-2-min-envelope.tex: figure-2-min-envelope.R
 	R --no-save < $<
 figure-1-min-operators.pdf: figure-1-min-operators.R
@@ -12,11 +12,11 @@ figure-cDPA-PDPA-all/index.html: figure-cDPA-PDPA-all.R
 	R --no-save < $<
 figure-cDPA-PDPA.pdf: figure-cDPA-PDPA.R
 	R --no-save < $<
-HOCKING-PeakSegFPOP.pdf: HOCKING-PeakSegFPOP.tex refs.bib figure-unconstrained-PDPA-normal.pdf figure-unconstrained-FPOP-normal.pdf figure-constrained-PDPA-normal-grid.pdf figure-constrained-PDPA-normal-panels.pdf figure-less-more-min.tex figure-constrained-PDPA-normal-real.pdf figure-NA-timings.pdf
-	pdflatex HOCKING-PeakSegFPOP
-	bibtex HOCKING-PeakSegFPOP
-	pdflatex HOCKING-PeakSegFPOP
-	pdflatex HOCKING-PeakSegFPOP
+HOCKING-notes.pdf: HOCKING-notes.tex refs.bib figure-unconstrained-PDPA-normal.pdf figure-unconstrained-FPOP-normal.pdf figure-constrained-PDPA-normal-grid.pdf figure-constrained-PDPA-normal-panels.pdf figure-less-more-min.tex figure-constrained-PDPA-normal-real.pdf figure-NA-timings.pdf
+	pdflatex HOCKING-notes
+	bibtex HOCKING-notes
+	pdflatex HOCKING-notes
+	pdflatex HOCKING-notes
 figure-constrained-PDPA-normal-real.pdf: figure-constrained-PDPA-normal-real.R
 	R --no-save < $<
 figure-less-more-min.tex: figure-less-more-min.R

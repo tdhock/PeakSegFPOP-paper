@@ -82,27 +82,30 @@
 \section{Introduction}
 
 Change-point detection is a central problem in many fields. TODO ref
-isotonic regression and PAVA.
+isotonic regression, unimodal regression, PAVA.
 
 An algorithm with quadratic time complexity was proposed to solve the
 peak detection problem \citep{PeakSeg}. 
 
 \citet{pruned-dp} proposed a Pruned Dynamic Programming Algorithm
-(PDPA) to exactly solve the unconstrained segmentation problem.
+(PDPA) to exactly solve the unconstrained segmentation
+problem. \citet{FPOP} proposed the Functional Pruning Optimal
+Partitioning (FPOP) algorithm for solving the equivalent penalized
+segmentation problem.
 
 \subsection{Contributions}
 
-The main contribution of this paper is a new Constrained Pruned
-Dynamic Programming Algorithm (cPDPA) which is guaranteed to recover
-the exact solution for a class of constrained optimal segmentation
-problems. 
+The main contribution of this paper is a family of algorithms for
+solving constrained segmentation problems. These algorithms are
+guaranteed to recover the exact solution and have linear time
+complexity (empirically).
 
 \section{Related work}
 \label{sec:related}
 
 \subsection{Maximum likelihood segmentation models}
 
-The model we consider in this paper is a constrained version of the
+The models we consider in this paper are constrained versions of the
 optimal segmentation model \citep{TODO_MORE_REFS,Segmentor}. The
 unconstrained model can be computed using a dynamic programming
 algorithm (DPA) \citep{bellman}, or a pruned dynamic programming
@@ -126,7 +129,7 @@ means may be more easily interpreted.
 
 In this section we first discuss the existing unconstrained maximum
 likelihood model, and then we discuss a more general framework for
-constrained maximum likle
+constrained maximum likelihood segmentation.
 
 \subsection{Unconstrained maximum likelihood segmentation}
 
@@ -145,7 +148,7 @@ s_{\max}\}$ piecewise constant segments:
   &\text{such that} && \Segments(\mathbf m)=s,
   \nonumber
 \end{align}
-where the loss function is
+where the Poisson loss function is
 \begin{equation}\label{eq:loss}
   \ell(\mathbf m, \mathbf y)= \sum_{j=1}^d m_j - y_j \log m_j.
 \end{equation} 
@@ -367,30 +370,33 @@ and for $b\in\{s+1, ..., B\}$
 where * means less-min for even-numbered segments $s$, and more-min
 for odd-numbered segments.
 
-\subsection{Optimal Partitioning}
+\subsection{Example of algorithm on a small data set}
 
-\section{Figures}
-
-\subsection{Simple data set analysis}
-
-In this section we analyze the simple data
+In this section we analyze the data
 $\mathbf z = \left[\begin{array}{cccc} 1 & 10 & 14 & 13
 \end{array}\right]\in\ZZ_+^4
 $. For $s=3$ segments there are only 3 possible segmentations:
 $[1][10][14, 13]$, $[1][10, 14][13]$ and $[1, 10][14][13]$. If we use
 max-likelihood estimates for each segment mean, then only the last
-segmentation obeys the \ref{PenPeakSeg} model constraints. However the
-constrained Dynamic Programming Algorithm of \citet{PeakSeg} does not
-recover it. However this last segmentation is more costly than a
-simpler segmentation with a single change after the first data point
-(see figure below).
+segmentation obeys the \ref{PeakSeg} model constraints
+($\mathbf m =\left[\begin{array}{cccc} 5.5 & 5.5 & 14 &
+    13\end{array}\right]$). However using the square loss, this model
+has a cost of 40.5, which is clearly not optimal. For example the
+model
+$\mathbf m =\left[\begin{array}{cccc} 1 & 13 & 13 &
+    12\end{array}\right]$ has a lower cost of only 11. In fact the
+constrained PDPA recovers the optimal model
+$\mathbf m =\left[\begin{array}{cccc} 1 & 37/3 & 37/3 &
+    37/3\end{array}\right]$ which has a cost of $26/3\approx
+8.67$. Since the strict inequality is not satisfied (the second and
+third segment means are exactly equal), this model is not feasible for
+the \ref{PeakSeg} problem. For these data, the minimum of the
+\ref{PeakSeg} problem (with strict inequality constraints) is
+undefined.
 
-The figure above plots the cost of a segmentation in two segments, up
-to data point 3. There are two possible change-points: after 1 [1][10
-14], and after 2 [1 10][14]. The minimum cost of a change after 2 is
-40.5, but the other change is less costly for those mean values (5.5,
-14). Thus it is clear that although the segmentation [1 10][14][13] is
-feasible for the PeakSeg problem, it is clearly not optimal.
+\subsection{Optimal Partitioning}
+
+TODO: describe OP version.
 
 %%%% update rules
 \newcommand{\FCC}{\widetilde{C}}
@@ -410,6 +416,8 @@ Each of these constraint imply only
 
 \subsection{Example}
 Isotonic regression
+
+Unimodal regression
 
 Up-Down model
 

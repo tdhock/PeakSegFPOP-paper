@@ -23,8 +23,12 @@ ggplot()+
 
 ##options(warn=2)
 
+
 ploss <- function(dt, x){
-  dt[, Log*log(x) + Linear*x + Constant]
+  ## need to make a new data table, otherwise ifelse may only get one
+  ## element, and return only one element.
+  new.dt <- data.table(dt, x)
+  new.dt[, ifelse(Log==0, 0, Log*log(x)) + Linear*x + Constant]
 }
 pderiv <- function(dt, x){
   dt[, Linear+Log/x]
@@ -79,22 +83,11 @@ less.more.min.list <- list(
   less=function(dt){
     new.dt.list <- list()
     prev.min.cost <- NULL
+    prev.data.i <- NULL
     row.i <- 1
     prev.min.mean <- dt$min.mean[1]
     while(row.i <= nrow(dt)){
       this.row <- dt[row.i,]
-      gg <- ggplot()+
-        geom_vline(xintercept=prev.min.mean)+
-        geom_line(aes(mean, cost),
-                  color="grey",
-                  size=4,
-                  data=getLines(dt))+
-        geom_line(aes(mean, cost),
-                  data=getLines(this.row))
-      if(is.numeric(prev.min.cost)){
-        gg <- gg+
-          geom_hline(yintercept=prev.min.cost)
-      }
       if(is.null(prev.min.cost)){
         ## Look for min achieved in this interval.
         mu <- getMinMean(this.row)
@@ -124,55 +117,57 @@ less.more.min.list <- list(
         }
       }else{
         ## Look for a function with prev.min.cost.
-        discriminant <- this.row[, Linear/Log*exp((prev.min.cost-Constant)/Log)]
-        if(-1/exp(1) < discriminant){
-          ## Since the Log constant is negative, the principal branch
-          ## W(,0) results in the smaller of the two mean values.
-          mu <- this.row[, Log/Linear*LambertW::W(discriminant, 0)]
-          if(this.row[, min.mean < mu & mu < max.mean]){
-            ##browser()
-            new.dt.list[[paste(row.i, "constant")]] <- data.table(
-              Linear=0,
-              Log=0,
-              Constant=prev.min.cost,
-              min.mean=prev.min.mean,
-              max.mean=mu,
-              data.i=prev.data.i)
-            prev.min.cost <- NULL
-            prev.min.mean <- mu
-            row.i <- row.i-1
+        if(this.row$Log==0){
+          ## degenerate linear case.
+          if(this.row$Linear < 0){
+            ## decreasing linear function
+            stop("this should never happen")
+          }else{
+            ##increasing linear function, so will not intersect the
+            ##constant below.
           }
-        }
-      }
+        }else{
+          discriminant <-
+            this.row[, Linear/Log*exp((prev.min.cost-Constant)/Log)]
+          if(-1/exp(1) < discriminant){
+            ## Since the Log constant is negative, the principal branch
+            ## W(,0) results in the smaller of the two mean values.
+            mu <- this.row[, Log/Linear*LambertW::W(discriminant, 0)]
+            if(this.row[, min.mean < mu & mu < max.mean]){
+              new.dt.list[[paste(row.i, "constant")]] <- data.table(
+                Linear=0,
+                Log=0,
+                Constant=prev.min.cost,
+                min.mean=prev.min.mean,
+                max.mean=mu,
+                data.i=prev.data.i)
+              prev.min.cost <- NULL
+              prev.min.mean <- mu
+              row.i <- row.i-1
+            }
+          }#if(there are two roots
+        }#if(degenerate linear) else
+      }#if(looking for a min)else
       row.i <- row.i+1
     }
-    new.dt.list[["last"]] <- data.table(
-      Linear=0,
-      Log=0,
-      Constant=prev.min.cost,
-      min.mean=prev.min.mean,
-      max.mean=this.row$max.mean,
-      data.i=prev.data.i)
+    if(!is.null(prev.data.i)){
+      new.dt.list[["last"]] <- data.table(
+        Linear=0,
+        Log=0,
+        Constant=prev.min.cost,
+        min.mean=prev.min.mean,
+        max.mean=this.row$max.mean,
+        data.i=prev.data.i)
+    }
     do.call(rbind, new.dt.list)
   }, more=function(dt){
     new.dt.list <- list()
     prev.min.cost <- NULL
+    prev.data.i <- NULL
     row.i <- nrow(dt)
     prev.max.mean <- dt$max.mean[row.i]
     while(1 <= row.i){
       this.row <- dt[row.i,]
-      gg <- ggplot()+
-        geom_vline(xintercept=prev.max.mean)+
-        geom_line(aes(mean, cost),
-                  color="grey",
-                  size=4,
-                  data=getLines(dt))+
-        geom_line(aes(mean, cost),
-                  data=getLines(this.row))
-      if(is.numeric(prev.min.cost)){
-        gg <- gg+
-          geom_hline(yintercept=prev.min.cost)
-      }
       if(is.null(prev.min.cost)){
         ## Look for min achieved in this interval.
         mu <- getMinMean(this.row)
@@ -202,70 +197,46 @@ less.more.min.list <- list(
         }
       }else{
         ## Look for a function with prev.min.cost.
-        discriminant <- this.row[, Linear/Log*exp((prev.min.cost-Constant)/Log)]
-        if(-1/exp(1) < discriminant){
-          ## Since the Log constant is negative, the non-principal
-          ## branch W(,-1) results in the larger of the two mean
-          ## values.
-          mu <- this.row[, Log/Linear*LambertW::W(discriminant, -1)]
-          if(this.row[, min.mean < mu & mu < max.mean]){
-            browser()
-            new.dt.list[[paste(row.i, "constant")]] <- data.table(
-              Linear=0,
-              Log=0,
-              Constant=prev.min.cost,
-              min.mean=mu,
-              max.mean=prev.max.mean,
-              data.i=prev.data.i)
-            prev.min.cost <- NULL
-            prev.max.mean <- mu
-            row.i <- row.i+1
-          }
+        mu <- if(this.row$Log==0){
+          ## degenerate case where the function is linear.
+          this.row[, (prev.min.cost - Constant)/Linear]
+        }else{
+          discriminant <-
+            this.row[, Linear/Log*exp((prev.min.cost-Constant)/Log)]
+          if(-1/exp(1) < discriminant){
+            ## Since the Log constant is negative, the non-principal
+            ## branch W(,-1) results in the larger of the two mean
+            ## values.
+            browser(expr=!is.finite(discriminant))
+            this.row[, Log/Linear*LambertW::W(discriminant, -1)]
+          }#if(-1/e < discriminant
         }
-      }
+        if(is.numeric(mu) && this.row[, min.mean < mu & mu < max.mean]){
+          new.dt.list[[paste(row.i, "constant")]] <- data.table(
+            Linear=0,
+            Log=0,
+            Constant=prev.min.cost,
+            min.mean=mu,
+            max.mean=prev.max.mean,
+            data.i=prev.data.i)
+          prev.min.cost <- NULL
+          prev.max.mean <- mu
+          row.i <- row.i+1
+        }#if(mu in interval
+      }#if(is.null(prev.min.cost)else
       row.i <- row.i-1
     }
-    new.dt.list[["last"]] <- data.table(
-      Linear=0,
-      Log=0,
-      Constant=prev.min.cost,
-      min.mean=this.row$min.mean,
-      max.mean=prev.max.mean,
-      data.i=prev.data.i)
+    if(!is.null(prev.data.i)){
+      new.dt.list[["last"]] <- data.table(
+        Linear=0,
+        Log=0,
+        Constant=prev.min.cost,
+        min.mean=this.row$min.mean,
+        max.mean=prev.max.mean,
+        data.i=prev.data.i)
+    }
     do.call(rbind, rev(new.dt.list))
   })
-less.more.test.list <- list()
-for(test.case.name in names(less.more.test.list)){
-  test.case <- less.more.test.list[[test.case.name]]
-  input <- test.case$input
-  for(min.fun.name in names(test.case$output)){
-    expected <- test.case$output[[min.fun.name]]
-    min.fun <- less.more.min.list[[min.fun.name]]
-    computed <- min.fun(input)
-    test.lines.list <- list()
-    for(object.name in c("input","expected","computed")){
-      dt <- get(object.name)
-      if(nrow(dt)){
-        test.lines.list[[object.name]] <- data.table(
-          object.name=factor(object.name, c("input", "expected", "computed")),
-          getLines(dt))
-      }
-    }
-    test.lines <- do.call(rbind, test.lines.list)
-    gg.test <- ggplot()+
-      ggtitle(paste(test.case.name, min.fun.name))+
-      scale_size_manual(values=c(input=3, expected=2, computed=1))+
-      scale_color_manual(values=c(
-        input="grey", expected="black", computed="red"))+
-      geom_line(aes(mean, cost, color=object.name, size=object.name),
-                data=test.lines)
-    if(!identical(expected, computed)){
-      print(gg.test)
-      print(list(input=input, expected=expected, computed=computed))
-      stop("expected not identical to computed")
-    }
-  }
-}
 
 Minimize <- function(dt, from=min(dt$min.mean), to=max(dt$max.mean)){
   stopifnot(from < to)
@@ -291,21 +262,6 @@ sameFuns <- function(row1, row2){
 CompareRows <- function(dt1, dt2, i1, i2){
   row1 <- dt1[i1,]
   row2 <- dt2[i2,]
-  ggplot()+
-    ##coord_cartesian(xlim=c(-0.1, 0), ylim=c(0,0.2))+
-    geom_line(aes(mean, cost, color=fun.i),
-              size=2,
-              data=data.table(getLines(dt1), fun.i=factor(1)))+
-    geom_line(aes(mean, cost, color=fun.i),
-              size=1,
-              data=data.table(getLines(dt2), fun.i=factor(2)))+
-    geom_line(aes(mean, cost),
-              linetype="dashed",
-              data=getLines(row1))+
-    geom_line(aes(mean, cost),
-              linetype="dotted",
-              size=1,
-              data=getLines(row2))
   if(row1$min.mean < row2$min.mean){
     prev2 <- dt2[i2-1, ]
     same.at.left <- sameFuns(prev2, row1)
@@ -344,7 +300,8 @@ CompareRows <- function(dt1, dt2, i1, i2){
     }
   }
   stopifnot(last.min.mean < first.max.mean)
-  if(sameFuns(row1, row2)){
+  is.same <- sameFuns(row1, row2)
+  if(is.same){
     ## The functions are exactly equal over the entire interval so we
     ## can return either one of them.
     row1$min.mean <- last.min.mean
@@ -361,16 +318,39 @@ CompareRows <- function(dt1, dt2, i1, i2){
     new.row$max.mean <- first.max.mean
     return(new.row)
   }
+  if(row.diff$Log==0){
+    mean.at.equal.cost <- row.diff[, -Constant/Linear]
+    root.in.interval <-
+      last.min.mean < mean.at.equal.cost &&
+      mean.at.equal.cost < first.max.mean
+    if(root.in.interval){
+      new.rows <- if(0 < row.diff$Linear){
+        rbind(row1, row2)
+      }else{
+        rbind(row2, row1)
+      }
+      new.rows$min.mean <- c(last.min.mean, mean.at.equal.cost)
+      new.rows$max.mean <- c(mean.at.equal.cost, first.max.mean)
+      return(new.rows)
+    }else{
+      new.row <- if(mean.at.equal.cost < last.min.mean)row1 else row2
+      new.row$min.mean <- last.min.mean
+      new.row$max.mean <- first.max.mean
+      return(new.row)
+    }
+  }
+  ## cost2.left <- ploss(row2, last.min.mean)
+  ## cost1.left <- ploss(row1, last.min.mean)
+  ## cost1.right <- ploss(row1, first.max.mean)
+  ## cost2.right <- ploss(row2, first.max.mean)
+  cost.diff.right <- ploss(row.diff, first.max.mean)
+  cost.diff.left <- ploss(row.diff, last.min.mean)
   discriminant <- row.diff[, Linear/Log*exp(-Constant/Log)]
+  ## The discriminant could be -Inf, if the exp argument is larger
+  ## than about 700.
   two.roots <- -1/exp(1) < discriminant
-  root.right <- row.diff[, Log/Linear*LambertW::W(discriminant, -1)]
-  root.left <- row.diff[, Log/Linear*LambertW::W(discriminant, 0)]
-  cost2.left <- ploss(row2, last.min.mean)
-  cost1.left <- ploss(row1, last.min.mean)
-  cost1.right <- ploss(row1, first.max.mean)
-  cost2.right <- ploss(row2, first.max.mean)
   if(!same.at.right){
-    row1.min.on.right <- cost1.right < cost2.right
+    row1.min.on.right <- cost.diff.right < 0
   }else{
     ## They are equal on the right limit, so use the first and second
     ## derivatives to see which is minimal just before the right
@@ -387,12 +367,13 @@ CompareRows <- function(dt1, dt2, i1, i2){
       (row1$Log < row2$Log && 0 < sign1)
     if(two.roots && maybe.cross){
       ## There could be a crossing point to the left.
+      root.left <- row.diff[, Log/Linear*LambertW::W(discriminant, 0)]
       mean.at.equal.cost <- root.left
       in.interval <-
         last.min.mean < mean.at.equal.cost &
         mean.at.equal.cost < first.max.mean
       if(in.interval){
-        new.rows <- if(cost1.left < cost2.left){
+        new.rows <- if(cost.diff.left < 0){
           rbind(row1, row2)
         }else{
           rbind(row2, row1)
@@ -403,7 +384,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
       }
     }
     row1.min.before.right <- if(sign1==sign2){
-      cost1.left < cost2.left
+      cost.diff.left < 0
     }else{
       deriv2.right < deriv1.right 
     }
@@ -413,7 +394,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
     return(this.row)
   }
   if(!same.at.left){
-    row1.min.on.left <- cost1.left < cost2.left
+    row1.min.on.left <- cost.diff.left < 0
   }else{
     ## Equal on the left.
     deriv1.left <- pderiv(row1, last.min.mean)
@@ -425,12 +406,13 @@ CompareRows <- function(dt1, dt2, i1, i2){
       (row1$Log < row2$Log && sign1 < 0)
     if(two.roots && maybe.cross){
       ## There could be a crossing point to the right.
+      root.right <- row.diff[, Log/Linear*LambertW::W(discriminant, -1)]
       mean.at.equal.cost <- root.right
       in.interval <-
         last.min.mean < mean.at.equal.cost &
         mean.at.equal.cost < first.max.mean
       if(in.interval){
-        new.rows <- if(cost1.right < cost2.right){
+        new.rows <- if(cost.diff.right < 0){
           rbind(row2, row1)
         }else{
           rbind(row1, row2)
@@ -441,7 +423,7 @@ CompareRows <- function(dt1, dt2, i1, i2){
       }
     }
     row1.min.after.left <- if(sign1==sign2){
-      cost1.right < cost2.right
+      cost.diff.right < 0
     }else{
       deriv1.left < deriv2.left
     }
@@ -454,6 +436,8 @@ CompareRows <- function(dt1, dt2, i1, i2){
   ## the left nor on the right of the interval. However they may be
   ## equal inside the interval, so let's check for that.
   mean.in.interval <- if(two.roots){
+    root.right <- row.diff[, Log/Linear*LambertW::W(discriminant, -1)]
+    root.left <- row.diff[, Log/Linear*LambertW::W(discriminant, 0)]
     mean.at.equal.cost <- sort(c(root.left, root.right))
     in.interval <-
       last.min.mean < mean.at.equal.cost &
@@ -516,62 +500,41 @@ MinEnvelope <- function(dt1, dt2){
   new.dt.list[["last"]] <- row.to.add
   do.call(rbind, new.dt.list)
 }
-## Test cases for MinEnvelope: list format is: input1, input2,
-## [output]. If output is omitted then it is the same as input2.
-min.env.test.list <- list()
-for(min.env.test.name in names(min.env.test.list)){
-  test <- min.env.test.list[[min.env.test.name]]
-  dt1 <- test[[1]]
-  dt2 <- test[[2]]
-  computed <- MinEnvelope(dt1, dt2)
-  expected <- if(length(test)==3)test[[3]] else test[[2]]
-  gg.test <- ggplot()+
-    ggtitle(min.env.test.name)+
-    scale_color_manual(values=c(
-      input1="#4DAF4A",
-      input2="#FF7F00", #orange
-      computed="black",
-      expected="grey"))+
-    geom_line(aes(mean, cost, color=fun.i),
-              size=4,
-              data=data.table(getLines(expected), fun.i="expected"))+
-    geom_line(aes(mean, cost, color=fun.i),
-              size=2.5,
-              data=data.table(getLines(dt1), fun.i="input1"))+
-    geom_line(aes(mean, cost, color=fun.i),
-              size=1.5,
-              data=data.table(getLines(dt2), fun.i="input2"))+
-    geom_line(aes(mean, cost, color=fun.i),
-              size=0.5,
-              data=data.table(getLines(computed), fun.i="computed"))
-  if(!identical(expected, computed)){
-    print(gg.test)
-    print(list(expected=expected, computed=computed))
-    stop("expected not identical to computed")
-  }
-}
+
+
+one.bins$weight <- with(one.bins, chromEnd-chromStart)
+input.dt <- data.table(one.bins)#[1:20]
+
+load("data/H3K4me3_XJ_immune/1/counts.RData")
+input.dt <- data.table(counts)[sample.id=="McGill0024",]
+input.dt[, weight := chromEnd-chromStart]
+input.dt[, count := coverage]
+
+ggplot()+
+  geom_step(aes(chromStart/1e3, count),
+            color="grey50",
+            data=input.dt)
 
 all.cost.models <- list()
 cost.lines.list <- list()
 minima.list <- list()
 envelope.list <- list()
-one.bins$weight <- with(one.bins, chromEnd-chromStart)
-input.dt <- data.table(one.bins)#[1:20]
 min.mean <- min(input.dt$count)
 max.mean <- max(input.dt$count)
 gamma.dt <- input.dt[, data.table(
   Linear=weight,
   Log=-count*weight,
-  Constant=weight*count*(log(count)-1))]
+  Constant=ifelse(count==0, 0, weight*count*(log(count)-1)))]
 C1.dt <- cumsum(gamma.dt)
 gamma.dt$min.mean <- C1.dt$min.mean <- min.mean
 gamma.dt$max.mean <- C1.dt$max.mean <- max.mean
 gamma.dt$data.i <- C1.dt$data.i <- 0
 cost.models.list <- list()
+
 for(data.i in 1:nrow(C1.dt)){
   cost.models.list[[paste(1, data.i)]] <- C1.dt[data.i,]
 }
-max.segments <- 5
+max.segments <- 19
 for(total.segments in 2:max.segments){
   prev.cost.model <-
     cost.models.list[[paste(total.segments-1, total.segments-1)]]
@@ -587,63 +550,65 @@ for(total.segments in 2:max.segments){
   cost.model <- AddFuns(first.data, first.min)
   cost.models.list[[paste(total.segments, total.segments)]] <- cost.model
   for(timestep in (total.segments+1):length(input.dt$count)){
-    cat(sprintf("%4d / %4d segments %4d / %4d data points %d intervals\n",
-                total.segments, max.segments, timestep, length(input.dt$count),
-                nrow(cost.model)))
-    prev.cost.model <- cost.models.list[[paste(total.segments-1, timestep-1)]]
-    compare.cost <- min.fun(prev.cost.model)
-    compare.cost$data.i <- timestep-1
-    cost.model <- cost.models.list[[paste(total.segments, timestep-1)]]
-    cost.minima <- Minimize(cost.model)
-    compare.minima <- Minimize(compare.cost)
-    gg <- ggplot()+
-      ggtitle(paste(total.segments, "segments,", timestep, "data points"))
-    if(nrow(compare.cost)){
-      cost.lines.list[[
-        paste(total.segments, timestep, "compare")]] <-
-        data.table(total.segments, timestep,
-                   cost.type="compare",
-                   compare.cost.lines <- getLines(compare.cost))
-      gg <- gg+
-        geom_line(aes(mean, cost,
-                      color=factor(data.i),
-                      group=piece.i),
-                  compare.cost.lines)
+    if(!paste(total.segments, timestep) %in% names(cost.models.list)){
+      prev.cost.model <- cost.models.list[[paste(total.segments-1, timestep-1)]]
+      compare.cost <- min.fun(prev.cost.model)
+      compare.cost$data.i <- timestep-1
+      cost.model <- cost.models.list[[paste(total.segments, timestep-1)]]
+      cat(sprintf("%4d / %4d segments %4d / %4d data points %d intervals\n",
+                  total.segments, max.segments, timestep, length(input.dt$count),
+                  nrow(cost.model)))
+      cost.minima <- Minimize(cost.model)
+      compare.minima <- Minimize(compare.cost)
+      gg <- ggplot()+
+        ggtitle(paste(total.segments, "segments,", timestep, "data points"))
+      if(nrow(compare.cost)){
+        cost.lines.list[[
+          paste(total.segments, timestep, "compare")]] <-
+          data.table(total.segments, timestep,
+                     cost.type="compare",
+                     compare.cost.lines <- getLines(compare.cost))
+        gg <- gg+
+          geom_line(aes(mean, cost,
+                        color=factor(data.i),
+                        group=piece.i),
+                    compare.cost.lines)
+      }
+      if(nrow(cost.model)){ # may be Inf over entire interval.
+        cost.lines.list[[paste(total.segments, timestep)]] <-
+          data.table(total.segments, timestep,
+                     cost.type="model",
+                     cost.model.lines <- getLines(cost.model))
+        gg <- gg+
+          geom_line(aes(mean, cost,
+                        group=piece.i,
+                        color=factor(data.i)),
+                    cost.model.lines)
+      }
+      one.env <- MinEnvelope(compare.cost, cost.model)
+      stopifnot(one.env[, min.mean < max.mean])
+      if(nrow(one.env)){
+        envelope.list[[paste(total.segments, timestep)]] <-
+          data.table(total.segments, timestep,
+                     env.lines <- getLines(one.env))
+        gg <- gg+
+          geom_line(aes(mean, cost),
+                    env.lines,
+                    color="grey",
+                    size=2,
+                    alpha=0.5)
+      }
+      if(nrow(cost.minima)){
+        minima.list[[paste(total.segments, timestep)]] <-
+          data.table(total.segments, timestep, rbind(
+            cost.minima, compare.minima))
+      }
+      ## Now that we are done with this step, we can perform the
+      ## recursion by setting the new model of the cost to the min
+      ## envelope, plus a new data point.
+      cost.model <- AddFuns(one.env, gamma.dt[timestep,])
+      cost.models.list[[paste(total.segments, timestep)]] <- cost.model
     }
-    if(nrow(cost.model)){ # may be Inf over entire interval.
-      cost.lines.list[[paste(total.segments, timestep)]] <-
-        data.table(total.segments, timestep,
-                   cost.type="model",
-                   cost.model.lines <- getLines(cost.model))
-      gg <- gg+
-        geom_line(aes(mean, cost,
-                      group=piece.i,
-                      color=factor(data.i)),
-                  cost.model.lines)
-    }
-    one.env <- MinEnvelope(compare.cost, cost.model)
-    stopifnot(one.env[, min.mean < max.mean])
-    if(nrow(one.env)){
-      envelope.list[[paste(total.segments, timestep)]] <-
-        data.table(total.segments, timestep,
-                   env.lines <- getLines(one.env))
-      gg <- gg+
-        geom_line(aes(mean, cost),
-                  env.lines,
-                  color="grey",
-                  size=2,
-                  alpha=0.5)
-    }
-    if(nrow(cost.minima)){
-      minima.list[[paste(total.segments, timestep)]] <-
-        data.table(total.segments, timestep, rbind(
-          cost.minima, compare.minima))
-    }
-    ## Now that we are done with this step, we can perform the
-    ## recursion by setting the new model of the cost to the min
-    ## envelope, plus a new data point.
-    cost.model <- AddFuns(one.env, gamma.dt[timestep,])
-    cost.models.list[[paste(total.segments, timestep)]] <- cost.model
   }#for(timestep
 }#for(total.segments
 cost.lines <- do.call(rbind, cost.lines.list)
