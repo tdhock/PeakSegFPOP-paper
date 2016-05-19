@@ -81,32 +81,50 @@
 
 \section{Introduction}
 
-Change-point detection is a central problem in many fields. TODO ref
-isotonic regression, unimodal regression, PAVA.
+Change-point detection is a central problem in many fields. When there
+are no constraints other than the number of change-points or segments,
+the Pruned Dynamic Programming Algorithm (PDPA) can be used to recover
+the change-points with minimum cost \citep{pruned-dp}. The Functional
+Pruning Optimal Partitioning (FPOP) algorithm can be used when there
+is no constraint on the number of change-points, but there is a
+positive penalty constant \citep{FPOP}. 
 
-An algorithm with quadratic time complexity was proposed to solve the
-peak detection problem \citep{PeakSeg}. 
+In the unconstrained change-point detection model, there is no
+constraint on the direction of changes that can be recovered. However,
+in several kinds of data it is desirable to constrain the possible
+change-points to obtain a more interpretable model. For example, in
+genomic data it is desirable to only consider models that can be
+easily interpreted in terms of peaks and background
+\citep{PeakSeg}. This amounts to forcing an up change after each down
+change, and vice versa.
 
-\citet{pruned-dp} proposed a Pruned Dynamic Programming Algorithm
-(PDPA) to exactly solve the unconstrained segmentation
-problem. \citet{FPOP} proposed the Functional Pruning Optimal
-Partitioning (FPOP) algorithm for solving the equivalent penalized
-segmentation problem.
+The isotonic regression problem is another example of constrained
+change-point detection. Typically there is no limit on the number of
+changes, as long as they are all in the same direction. This problem
+can be solved using the pool-adjacent-violators algorithm
+\citep{mair2009isotone}. An L1 relaxed version of this problem is
+nearly-isotonic regression \citep{tibshirani2011nearly}.
+
+TODO discuss isotonic DP \citep{isotonic-dp}, functional pruning
+\citep{phd-johnson}, reduced isotonic regression
+\citep{hardwick2014optimal}, unimodal segmentation
+\citep{haiminen2008algorithms}, histogram construction
+\citep{halim2009fast}.
 
 \subsection{Contributions}
 
 The main contribution of this paper is a family of algorithms for
 solving constrained segmentation problems. These algorithms are
-guaranteed to recover the exact solution and have linear time
-complexity (empirically).
+guaranteed to recover the exact solution to the constrained
+segmentation problem. Furthermore, we show that these algorithms have
+empirical time complexity which is linear in the number of data
+points.
 
 \section{Related work}
 \label{sec:related}
 
-\subsection{Maximum likelihood segmentation models}
-
 The models we consider in this paper are constrained versions of the
-optimal segmentation model \citep{TODO_MORE_REFS,Segmentor}. The
+optimal segmentation model \citep{Segmentor}. The
 unconstrained model can be computed using a dynamic programming
 algorithm (DPA) \citep{bellman}, or a pruned dynamic programming
 algorithm (pDPA) \citep{pruned-dp}. Both algorithms are guaranteed to
@@ -485,20 +503,20 @@ $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{
 
 
 
-\section{Timings}
+\section{Results}
+
+\subsection{Accuracy on ChIP-seq data}
+
+TODO: apply constrained PDPA PeakSeg algo to McGill benchmark data
+set. Compute the minimum train error, feasibility, and loss. Compare
+with cDPA from PeakSeg paper.
+
+\subsection{Timings}
 
 TODO: plot the number of intervals over time.
 
 TODO: show that the time complexity is empirically linear in the
 number of data points.
-
-\section{Comparison with two-state HMM}
-
-TODO: first run two-state HMM, which will assign a certain number of
-peaks. Compute the Poisson loss for that model, and compare it to the
-optimal Poisson loss recovered by the PDPA.
-
-\includegraphics[width=\textwidth]{figure-NA-timings}
 
 \bibliographystyle{abbrvnat}
 \bibliography{refs}
