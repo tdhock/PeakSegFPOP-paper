@@ -515,10 +515,11 @@ ggplot()+
             color="grey50",
             data=input.dt)
 
-all.cost.models <- list()
 cost.lines.list <- list()
 minima.list <- list()
 envelope.list <- list()
+cost.models.list <- list()
+
 min.mean <- min(input.dt$count)
 max.mean <- max(input.dt$count)
 gamma.dt <- input.dt[, data.table(
@@ -529,7 +530,6 @@ C1.dt <- cumsum(gamma.dt)
 gamma.dt$min.mean <- C1.dt$min.mean <- min.mean
 gamma.dt$max.mean <- C1.dt$max.mean <- max.mean
 gamma.dt$data.i <- C1.dt$data.i <- 0
-cost.models.list <- list()
 
 for(data.i in 1:nrow(C1.dt)){
   cost.models.list[[paste(1, data.i)]] <- C1.dt[data.i,]
@@ -611,6 +611,10 @@ for(total.segments in 2:max.segments){
     }
   }#for(timestep
 }#for(total.segments
+
+save(cost.lines.list, minima.list, envelope.list, cost.models.list,
+     file="problematic.some.RData")
+
 cost.lines <- do.call(rbind, cost.lines.list)
 cost.lines[, minimization := paste(
   total.segments, "segments up to data point", timestep)]
