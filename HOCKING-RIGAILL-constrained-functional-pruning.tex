@@ -404,7 +404,7 @@ TODO: describe OP version.
 \section{Constrained DP Problem}
 \subsection{Some definition}
 
-A segmentation $m$ is described as a set of contiguous segments $\{s_1, ... s_|m|\}$, where $|m|$ is the number of segments of $m$
+A segmentation $m$ is described as a set of contiguous segments $\{s_1, ... s_{|m|} \}$, where $|m|$ is the number of segments of $m$
 We consider the set of all segmentation up to $n$: $\M_n$ 
 or the set of all possible segmentation in $k$ segments: $\M^K_n$.
 We define $r_m$ as the last segment of $m$.
@@ -417,13 +417,22 @@ the following $K-1$ linear constraints.
 \begin{eqnarray*}
 a_{1,1}.\mu_1 + & a_{1,2}.\mu_2  & \geq  b_1 \\
 ... & + ... & \geq ... \\
-a_{k,k}.\mu_{k} + &a_{k,k+1}.\mu_{k+1}  & \geq  b_{k} \\
+a_{k,k}.\mu_{k} + & a_{k,k+1}.\mu_{k+1}  & \geq  b_{k} \\
 ... & + ... & \geq ...  \\
-a_{K-1,K-1}.\mu_{K-1} +& a_{K-1,K}.\mu_K & \geq  b_{K-1}
+a_{K-1,K-1}.\mu_{K-1} +& a_{K-1,K}.\mu_K & \geq  b_{K-1},
 \end{eqnarray*}
 
-\subsection{Fonctional cost representation}
-To optimize this quantity we will consider the following quantity
+with all $a_{k,k+1} \neq 0$,  $a_{k,k} \in \mathbb{R}$ and $b_{k} \in \bar{\mathbb{R}}.$
+In other word we aim at recovering the best segmentation with successive mean parameter validation the constraint.
+
+Some examples:
+\begin{enumerate}
+\item If we take all $a_{k,k+1} =1$, $a_{k,k}=0$ and $b_{k} = - \infty$ we recover the standard segmentation in the mean problem.
+\item If we take all $a_{k,k+1} =1$, $a_{k,k}=-1$ and $b_{k} = 0$ we recover the isotonic regression problem.
+\end{enumerate}
+
+\subsection{Functional cost representation}
+To optimize this quantity we will consider the following functional quantity:
 
 \begin{equation}
 \FCC^k_t(\mu) =  \underset{m \in \M^K_n, \mu_r |  r \neq r_m}{\min} 
@@ -435,18 +444,17 @@ To optimize this quantity we will consider the following quantity
 		\}  
 \end{equation}
 
+
+
 \begin{eqnarray*}
 \text{subject to} \\
 a_{1,1}. \mu_1 + & a_{1,2}. \mu_2  & \geq  b_1 \\
 ... & + ... & \geq ... \\
-a_{k,k}. \mu_{k} + &a_{k,k+1}. \mu_{k+1}  & \geq  b_{k} \\
-... & + ... & \geq ...  \\
-a_{K-1,K-1}.\mu_{K-1} +& a_{K-1,K}. \mu & \geq  b_{K-1}
+a_{k-1,k-1}. \mu_{k-1} + &a_{k-1,k}. \mu_{k}  & \geq  b_{k-1} \\
 \end{eqnarray*}
 
-
-
-
+$\FCC^k_t(\mu)$ is the best possible cost achievable in $k$ segment up to point $t$ with a $k$-th
+segment mean of $mu$.
 
 \subsection{Update rule}
 We can then consider the following update rule
@@ -455,7 +463,26 @@ We can then consider the following update rule
 \FCC^{k+1}_{t+1}(\mu) = \min \{ \FCC^{k+1}_{t}(\mu)  , \underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}  \} + \gamma(y_{t+1}, \mu)
 \end{equation}
 
-\subsection{Examples}
+This update rule states that the best segmentation up to $t+1$ in $k+1$ segment with a last mean element of $\mu$ either has its $k$-th changepoint:
+\begin{itemize}
+\item before $t$ and in that case we should take the best possible segmentation up to $t$ in $k+1$
+segments with a last mean of $\mu$ and then add  $\gamma(y_{t+1}, \mu)$, that is:
+$$\FCC^{k+1}_{t}(\mu) + \gamma(y_{t+1}, \mu),$$
+
+\item at $t$ and in that case we should take the best possible segmentation up to $t$ in $k$ segments
+such that the last mean $\mu_k=\mu'$ validates the $k-th$ constraint with $\mu_{k+1}=\mu$ and then add  $\gamma(y_{t+1}, \mu)$, that is:
+ $$\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \} + \gamma(y_{t+1}, \mu).$$
+\end{itemize}
+
+
+\subsection{Constraint}
+Assuming we have a piecewise description of $\FCC^{k}_{t}(\mu')$ on $I$ ordered intervals of $\mathbb{R}$
+then it is straightforward to recover the function:
+$\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}.$
+
+The update rule is a priori valid for more complex constraints, typically quadratic constraints, yet recovering
+$\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}$ from $\FCC^{k}_{t}(\mu')$ would possibly be much more difficult.
+
 
 
 \section{Timings}
