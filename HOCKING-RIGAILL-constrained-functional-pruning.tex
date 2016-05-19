@@ -418,43 +418,63 @@ TODO: describe OP version.
 
 %%%% update rules
 \newcommand{\FCC}{\widetilde{C}}
-\newcommand{\MK}{\mathcal{M}^k}
+\newcommand{\M}{\mathcal{M}}
 \section{Constrained DP Problem}
 \subsection{Some definition}
 
-We aim at optimizing over all possible segmentations $m$ in $\MK_n$
-described as a set of segments $\{s_1, ... s_K\}$ the quantity
-$\sum_{k \in [1..K]} \sum_{i \in s_{k}} (y_i - \mu_{k})^2$ subject to
-the following $K-1$ linear constraints. For every
-$k\in\{1, \dots, K-1\}$ we have
-\begin{equation}
-a_{kk} \mu_1 + a_{k,k+1} \mu_2 + b_k \geq 0.
-\end{equation}
-Each of these constraint imply only 
+A segmentation $m$ is described as a set of contiguous segments $\{s_1, ... s_|m|\}$, where $|m|$ is the number of segments of $m$
+We consider the set of all segmentation up to $n$: $\M_n$ 
+or the set of all possible segmentation in $k$ segments: $\M^K_n$.
+We define $r_m$ as the last segment of $m$.
 
-\subsection{Example}
-Isotonic regression
+We aim at optimizing over all possible segmentations $m$ in $\M^K_n$ or $\M_n$
+ the quantity
+$\sum_{r \in m} \sum_{i \in s_{r}} \gamma(y_i, \mu_{r})$ subject to
+the following $K-1$ linear constraints. 
 
-Unimodal regression
-
-Up-Down model
+\begin{eqnarray*}
+a_{1,1}.\mu_1 + & a_{1,2}.\mu_2  & \geq  b_1 \\
+... & + ... & \geq ... \\
+a_{k,k}.\mu_{k} + &a_{k,k+1}.\mu_{k+1}  & \geq  b_{k} \\
+... & + ... & \geq ...  \\
+a_{K-1,K-1}.\mu_{K-1} +& a_{K-1,K}.\mu_K & \geq  b_{K-1}
+\end{eqnarray*}
 
 \subsection{Fonctional cost representation}
+To optimize this quantity we will consider the following quantity
 
-We will consider the optimal fonctionnal cost up to in $k$ which is 
-\begin{equation*}
-\begin{aligned}
-& \FCC^k_t(\mu) = \underset{x}{\text{minimize}} 
-& & \sum_{r \in [1..k]} \sum_{i \in r} (x_i - \mu_r)^2 \\
-& \text{subject to}
-& & \mu_{2i} \geq \mu_{2i+1} \ \text{and} \ \mu_{2i} \geq \mu_{2i-1}
-\end{aligned}
-\end{equation*}
-$\FCC^k_t(\mu) = min $
-If
+\begin{equation}
+\FCC^k_t(\mu) =  \underset{m \in \M^K_n, \mu_r |  r \neq r_m}{\min} 
+		\{ 
+		   \underset{r \in m, r \neq r_m}{\sum} 
+		   \underset{i \in r, i \leq t  }{\sum} \gamma(y_i, \mu_{r}) 
+		+ 
+		   \underset{i \in r_m, i \leq t}{\sum} \gamma(y_i, \mu)
+		\}  
+\end{equation}
+
+\begin{eqnarray*}
+\text{subject to} \\
+a_{1,1}. \mu_1 + & a_{1,2}. \mu_2  & \geq  b_1 \\
+... & + ... & \geq ... \\
+a_{k,k}. \mu_{k} + &a_{k,k+1}. \mu_{k+1}  & \geq  b_{k} \\
+... & + ... & \geq ...  \\
+a_{K-1,K-1}.\mu_{K-1} +& a_{K-1,K}. \mu & \geq  b_{K-1}
+\end{eqnarray*}
+
+
+
+
 
 \subsection{Update rule}
-%%%%
+We can then consider the following update rule
+
+\begin{equation}
+\FCC^{k+1}_{t+1}(\mu) = \min \{ \FCC^{k+1}_{t}(\mu)  , \underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}  \} + \gamma_(y_{t+1}, \mu
+\end{equation}
+
+\subsection{Examples}
+
 
 \section{Results}
 
