@@ -136,8 +136,8 @@ time whereas the DPA takes $O(d^2)$ time.
 
 The constraints that we consider in this paper are a generalization of
 the peak detection model \citep{PeakSeg} and the isotonic regression
-model \citep{isotonic}. Rather than searching all possible
-change-points to find the most likely model with $s$ segments, we
+model \citep{mair2009isotone}. Rather than searching all possible
+change-points to find the most likely model with $k$ segments, we
 propose to constrain the possible change-points so that the segment
 means may be more easily interpreted.
 
@@ -151,71 +151,69 @@ constrained maximum likelihood segmentation.
 
 \subsection{Unconstrained maximum likelihood segmentation}
 
-For a sequence of $d$ data points $\mathbf y\in\ZZ_+^d$ to segment, we
-fix a maximum number of segments $ s_{\text{\text{max}}}\leq d$. The
-unconstrained maximum likelihood segmentation model is defined as the
-most likely mean vector $\mathbf m\in\RR^d$ with $s\in\{1, 2, \dots,
-s_{\max}\}$ piecewise constant segments:
+Assume we have a sequence of $n$ count data $\mathbf y\in\ZZ_+^n$ to
+segment. For the Segment Neighborhood model we first fix a maximum
+number of segments $ K\leq n$. The unconstrained
+maximum likelihood segmentation model is defined as the most likely
+mean vector $\mathbf m\in\RR^n$ with $k\in\{1, 2, \dots, s_{\max}\}$
+piecewise constant segments:
 \begin{align}
   \label{unconstrained}
-  \mathbf{\hat m}^s(\mathbf y)  =\ 
-  &\argmin_{\mathbf m\in\RR^{d}} && 
-  \ell
+  \mathbf{\hat m}^k(\mathbf y)  =\ 
+  &\argmin_{\mathbf m\in\RR^{n}} && 
+\sum_{t=1}^n  \ell
   %\tag{\textbf{Unconstrained}}
-  (\mathbf m, \mathbf y) \\
-  &\text{such that} && \Segments(\mathbf m)=s,
+  (m_t,  y_t) \\
+  &\text{such that} && \Segments(\mathbf m)=k,
   \nonumber
 \end{align}
 where the Poisson loss function is
 \begin{equation}\label{eq:loss}
-  \ell(\mathbf m, \mathbf y)= \sum_{j=1}^d m_j - y_j \log m_j.
+  \ell( m,  y)= m - y \log m.
 \end{equation} 
 The model complexity is the number of piecewise constant segments
 \begin{equation}
-  \Segments(\mathbf m)=1+\sum_{j=2}^d I(m_j \neq m_{j-1}),
+  \Segments(\mathbf m)=1+\sum_{j=2}^n I(m_j \neq m_{j-1}),
 \end{equation}
 where $I$ is the indicator function. 
 
 Although it is a non-convex optimization problem, the sequence of
 segmentations $\mathbf{\hat m}^1(\mathbf y), \dots, \mathbf{\hat
-  m}^{s_{\text{\text{max}}}}(\mathbf y)$ can be computed in
-$O(s_{\text{\text{max}}} d^2)$ time using dynamic programming
-\citep{bellman}, or in $O(s_{\text{\text{max}}} d \log d)$
+  m}^{K}(\mathbf y)$ can be computed in
+$O(K n^2)$ time using dynamic programming
+\citep{bellman}, or in $O(K n \log n)$
 time using pruned dynamic programming \citep{pruned-dp, Segmentor}.
 
 We refer to (\ref{unconstrained}) as the ``unconstrained'' model
-since $\mathbf{\hat m}^s(\mathbf y)$ is the most likely segmentation
-of all possible models with $s$ piecewise constant segments ($s-1$
-change-points). Several unconstrained models are shown on the left of
-Figure~\ref{fig:Segmentor-PeakSeg}, and for example the second segment
-of the model with $s=3$ segments appears to capture the peak in the
-data.
-% In general, we would like to use the 2nd, 4th,
-% ... segments as peaks, and the 1st, 3rd, ... segments as
-% background. 
-To construct a peak detector $c$, we first define the peak indicator at base
-$j\in\{2, \dots, d\}$ as
+since $\mathbf{\hat m}^k(\mathbf y)$ is the most likely segmentation
+of all possible models with $k$ piecewise constant segments ($k-1$
+change-points). 
+
+\subsection{The PeakSeg constrained maximum likelihood model}
+\label{sec:constrained}
+
+To introduce the PeakSeg model constraint \citep{PeakSeg}, we first define
+the peak indicator at data point $t\in\{2, \dots, n\}$ as
 \begin{equation}
   \label{eq:peaks}
-  P_j(\mathbf m) = \sum_{k=2}^j \sign( m_{k} - m_{k-1} ),
+  P_t(\mathbf m) = \sum_{k=2}^t \sign( m_{k} - m_{k-1} ),
 \end{equation}
-where $P_1(\mathbf m)=0$ by convention. $P_j(\mathbf m)$ is the
-cumulative sum of signs of changes up to point $j$ in the piecewise
+where $P_1(\mathbf m)=0$ by convention. $P_t(\mathbf m)$ is the
+cumulative sum of signs of changes up to point $t$ in the piecewise
 constant vector $\mathbf m$. We define the vector of peak indicators
 as
 \begin{equation}
   \mathbf
 P[\mathbf m] = \left[\begin{array}{ccc} P_1(\mathbf m) & \cdots &
-    P_d(\mathbf m)
+    P_n(\mathbf m)
 \end{array}\right].
 \end{equation}
 
-\subsection{PeakSeg: constrained maximum likelihood}
-\label{sec:constrained}
-
-In general for the unconstrained model $P_j(\mathbf m)\in\ZZ$, which
-is problematic since we want to use it as a peak detector with binary
-outputs $P_j(\mathbf m)\in \{0, 1\}$. 
+In general for the unconstrained model $P_t(\mathbf m)\in\ZZ$, which
+is problematic since in our biological application (ChIP-seq peak
+detection), we want to classify each segment and data point into one
+of two states $P_t(\mathbf m)\in \{0, 1\}$ (0 for background noise
+after a change down, 1 for a peak after a change up).
 
 For example, if $\mathbf m = \left[\begin{array}{ccccccc}1.1 &
     1.1 & 2 & 2 & 4 & 4 & 3\end{array}\right]$, with two changes up
@@ -223,57 +221,141 @@ followed by one change down, then $\mathbf P(\mathbf m) =
 \left[\begin{array}{ccccccc}0 & 0 & 1 & 1 & 2 & 2 &
     1 \end{array}\right]$.
 
-% This is also a practical problem that can be observed in real data
-% sets. For example in Figure~\ref{fig:Segmentor-PeakSeg} there is a position $j$ for
-% which $P_j\left[ \mathbf{\hat m}^5(\mathbf y) \right]=2$ (since the
-% mean changes up, up, down, down). 
-
-Thus we constrain the peak indicator $P_j(\mathbf
+Thus we constrain the peak indicator $P_t(\mathbf
 m)\in\{0, 1\}$, which results
 in the constrained problem
 \begin{align*}
   \label{PeakSeg}
-  \mathbf{\tilde m}^s(\mathbf y)  =
-    \argmin_{\mathbf m\in\RR^{d}} &\ \ 
-    \rho(\mathbf m, \mathbf y) 
+  \mathbf{\tilde m}^k(\mathbf y)  =
+    \argmin_{\mathbf m\in\RR^{n}} &\ \ 
+    \sum_{t=1}^n \ell( m_t,  y_t) 
     \tag{\textbf{PeakSeg}}
 \\
-    \text{such that} &\ \  \Segments(\mathbf m)=s,  \\
-     \forall j\in\{1, \dots, d\}, &\ \ P_j(\mathbf m) \in\{0, 1\}.
+    \text{such that} &\ \  \Segments(\mathbf m)=k,  \\
+     \forall t\in\{1, \dots, n\}, &\ \ P_t(\mathbf m) \in\{0, 1\}.
 \end{align*}
-Note that one must specify the number of segments $s$ or,
-equivalently, the number of peaks $p=(s-1)/2$. Another way to
+Note that one must specify the number of segments $k$ or,
+equivalently, the number of peaks $p=(k-1)/2$. Another way to
 interpret the constrained \ref{PeakSeg} problem is that the sequence
 of changes in the segment means $\mathbf m$ must begin with a positive
 change and then alternate: up, down, up, down, ... (and not up, up,
 down). Thus the even-numbered segments may be interpreted as peaks
-$P_j(\mathbf m)=1$, and the odd-numbered segments may be interpreted
-as background $P_j(\mathbf m)=0$.
+$P_t(\mathbf m)=1$, and the odd-numbered segments may be interpreted
+as background $P_t(\mathbf m)=0$.
 
-For example, the good peaks in Figure~\ref{fig:good-bad} are the
-second and fourth segments of the \ref{PeakSeg} solution for $s=5$
-segments.
+\subsection{The isotonic regression model}
 
-Figure~\ref{fig:Segmentor-PeakSeg} shows a profile where the constraint is
-necessary for the even-numbered segments to be interpreted as
-peaks. In particular, it is clear that unconstrained models with
-$s\in\{5, 7\}$ segments do not satisfy $P_j[\mathbf{\hat m}^s(\mathbf
-y)]\in\{0, 1\}$ for all positions $j\in\{1,\dots, d\}$ (since they
-have up, up, down changes).
+TODO: discuss the isotonic regression model.
 
-\section{Algorithm}
+%%%% update rules
+\newcommand{\FCC}{\widetilde{C}}
+\newcommand{\M}{\mathcal{M}}
+\section{Constrained Dynamic Programming Problem}
+In this section we explain the general form of the problem that our algorithm solves.
+\subsection{Some definitions}
 
-\subsection{Constrained PeakSeg model}
+A segmentation $m$ is described as a set of contiguous segments $\{s_1, ... s_{|m|} \}$, where $|m|$ is the number of segments of $m$
+We consider the set of all segmentation up to $n$: $\M_n$ 
+or the set of all possible segmentation in $k$ segments: $\M^K_n$.
+We define $r_m$ as the last segment of $m$.
+
+We aim at optimizing over all possible segmentations $m$ in $\M^K_n$ or $\M_n$
+ the quantity
+$\sum_{r \in m} \sum_{i \in s_{r}} \ell(y_i, \mu_{r})$ subject to
+the following $K-1$ linear constraints. 
+
+\begin{eqnarray*}
+a_{1,1}.\mu_1 \ + & a_{1,2}.\mu_2  & \geq  b_1 \\
+\cdots \ +&  \cdots & \geq \cdots \\
+a_{k,k}.\mu_{k} + & a_{k,k+1}.\mu_{k+1}  & \geq  b_{k} \\
+\cdots \ +&  \cdots & \geq \cdots  \\
+a_{K-1,K-1}.\mu_{K-1} \ +& a_{K-1,K}.\mu_K & \geq  b_{K-1},
+\end{eqnarray*}
+with all $a_{k,k+1} \neq 0$, $a_{k,k} \in \mathbb{R}$ and
+$b_{k} \in \bar{\mathbb{R}}.$ In other words we aim at recovering the
+best segmentation with successive mean parameters that obey the
+constraints.
+
+Some examples:
+\begin{enumerate}
+\item If we take all $a_{k,k+1} =1$, $a_{k,k}=0$ and $b_{k} = - \infty$ we recover the standard segmentation in the mean problem.
+\item If we take all $a_{k,k+1} =1$, $a_{k,k}=-1$ and $b_{k} = 0$ we
+  recover the isotonic regression problem (segment means always
+  increasing).
+\item For the PeakSeg model we take all $b_{k} = 0$. For odd $k$ we
+  take $a_{k,k+1} =1$, $a_{k,k}=-1$ and for even $k$ we take
+  $a_{k,k+1} =-1$, $a_{k,k}=1$.
+\end{enumerate}
+
+\subsection{Functional cost representation}
+To optimize this quantity we will consider the following functional quantity:
+
+\begin{equation}
+\FCC^k_t(\mu) =  \underset{m \in \M^K_n, \mu_r |  r \neq r_m}{\min} 
+		\{ 
+		   \underset{r \in m, r \neq r_m}{\sum} 
+		   \underset{i \in r, i \leq t  }{\sum} \ell(y_i, \mu_{r}) 
+		+ 
+		   \underset{i \in r_m, i \leq t}{\sum} \ell(y_i, \mu)
+		\}  
+\end{equation}
+
+
+
+\begin{eqnarray*}
+\text{subject to} \\
+a_{1,1}. \mu_1 \ + & a_{1,2}. \mu_2  & \geq  b_1 \\
+\cdots \ + & \cdots & \geq \cdots \\
+a_{k-1,k-1}. \mu_{k-1} \ + &a_{k-1,k}. \mu_{k}  & \geq  b_{k-1} \\
+\end{eqnarray*}
+
+$\FCC^k_t(\mu)$ is the best possible cost achievable in $k$ segment up to point $t$ with a $k$-th
+segment mean of $mu$.
+
+\subsection{Update rule}
+We can then consider the following update rule
+
+\begin{equation}
+\FCC^{k+1}_{t+1}(\mu) = \min \{ \FCC^{k+1}_{t}(\mu)  , \underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}  \} + \ell(y_{t+1}, \mu)
+\end{equation}
+
+This update rule states that the best segmentation up to $t+1$ in $k+1$ segment with a last mean element of $\mu$ either has its $k$-th changepoint:
+\begin{itemize}
+\item before $t$ and in that case we should take the best possible segmentation up to $t$ in $k+1$
+segments with a last mean of $\mu$ and then add  $\ell(y_{t+1}, \mu)$, that is:
+$$\FCC^{k+1}_{t}(\mu) + \ell(y_{t+1}, \mu),$$
+
+\item at $t$ and in that case we should take the best possible segmentation up to $t$ in $k$ segments
+such that the last mean $\mu_k=\mu'$ validates the $k-th$ constraint with $\mu_{k+1}=\mu$ and then add  $\ell(y_{t+1}, \mu)$, that is:
+ $$\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \} + \ell(y_{t+1}, \mu).$$
+\end{itemize}
+
+
+\subsection{Constraint}
+Assuming we have a piecewise description of $\FCC^{k}_{t}(\mu')$ on $I$ ordered intervals of $\mathbb{R}$
+then it is straightforward to recover the function:
+$\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}.$
+
+The update rule is a priori valid for more complex constraints, typically quadratic constraints, yet recovering
+$\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}$ from $\FCC^{k}_{t}(\mu')$ would possibly be much more difficult.
+
+
+\section{Algorithm for PeakSeg model}
+
+In this section we explain how our method works for the PeakSeg model.
+
+\subsection{Segment Neighborhood version}
 
 For the Segment Neighborhood algorithm we begin as usual by computing
 a functional representation of the optimal cost in 1 segment up to
-base $b$. 
+data point $t$. 
 \begin{equation*}
   \label{eq:C1b}
-  C_{1,b}(\mu) = \sum_{i=1}^b \gamma_b(\mu),
+  C_{1,t}(\mu) = \sum_{i=1}^t \gamma_t(\mu),
 \end{equation*}
-where $\gamma_b(\mu)$ is the cost of using the mean $\mu$ for single
-data point $b$ (for example the Gaussian or Poisson loss).
+where $\gamma_t(\mu)=\ell(y_t, \mu)$ is the cost of using the mean
+$\mu$ for single data point $t$ (for example the Gaussian or Poisson
+loss).
 
 Next we define the minimum cost in 2 segments up to data point 2 as
 \begin{equation*}
@@ -287,14 +369,15 @@ yields another function $f\leq:\RR\rightarrow\RR$ such that
   f^{\leq}(\mu) = \min_{x\leq \mu} f(x).
 \end{equation}
 The algorithm relies on the ability to compute an exact representation
-of functions such as $C_{1,1}^{\leq}$. Since the cost functions $f$
-are quasiconvex, we can easily find the minimum $\mu^*$, and then
-compute the following exact representation
+of functions such as $C_{1,1}^{\leq}$
+(Figure~\ref{fig:min-operators}). Since the cost functions $C_{1,t}$
+are convex, we can easily find the minimum $\mu_t^*$, and then compute
+the following exact representation
 \begin{equation*}
-  f^\leq(\mu)
+  C_{1,t}^\leq(\mu)=
   \begin{cases}
-    f(\mu^*) & \text{ if } \mu \geq \mu^*,\\
-    f(\mu) & \text{ otherwise.}
+    C_{1,t}(\mu_t^*) & \text{ if } \mu \geq \mu_t^*,\\
+    C_{1,t}(\mu) & \text{ otherwise.}
   \end{cases}
 \end{equation*}
 
@@ -329,7 +412,8 @@ term, which is the cost a change after the first data point. Now we
 need to compare it with the $C_{1,2}^{\leq}$ term, which is the cost
 of a change after the second data point. This is a crucial step in
 which the \texttt{MinEnvelope} sub-routine computes an exact
-representation of the minimum of these two functions.
+representation of the minimum of these two functions
+(Figure~\ref{fig:min-envelope}).
 
 \begin{figure}[!t]
   \begin{center}
@@ -350,12 +434,12 @@ representation of the minimum of these two functions.
     ending at data point $t=35$ (cost $C^{\geq}_{2,35}$).}
 \end{figure}
 
-The updates continue for every data point $b\in\{3, ..., B\}$
+The updates continue for every data point $t\in\{3, ..., n\}$
 \begin{equation*}
-  C_{2,b}(\mu) = \min
+  C_{2,t}(\mu) = \min
   \begin{cases}
-    C_{2,b-1}(\mu) + \gamma_b(\mu),\\
-    C_{1,b-1}^{\leq}(\mu) + \gamma_b(\mu).
+    C_{2,t-1}(\mu) + \gamma_t(\mu),\\
+    C_{1,t-1}^{\leq}(\mu) + \gamma_t(\mu).
   \end{cases}
 \end{equation*}
 
@@ -363,26 +447,26 @@ For the third segment we first compute the minimum cost up to data point 3
 \begin{equation*}
   C_{3,3}(\mu) = C_{2,2}^{\geq}(\mu) + \gamma_3(\mu),
 \end{equation*}
-where the more-min operator $f^\geq$ is defined analogously. The
-update formula for the minimum cost up to data point
-$b\in\{4, ..., B\}$ is
+where the more-min operator $f^\geq$ is defined analogously to the
+min-less operator (Figure~\ref{fig:min-operators}). The update formula
+for the minimum cost up to data point $t\in\{4, ..., n\}$ is
 \begin{equation*}
-  C_{3,b}(\mu) = \min
+  C_{3,t}(\mu) = \min
   \begin{cases}
-    C_{3,b-1}^{\geq}(\mu)+\gamma_b(\mu),\\
-    C_{2,b-1}^{\geq}(\mu)+\gamma_b(\mu)
+    C_{3,t-1}^{\geq}(\mu)+\gamma_t(\mu),\\
+    C_{2,t-1}^{\geq}(\mu)+\gamma_t(\mu)
   \end{cases}
 \end{equation*}
 In general for $s$ segments, we use
 \begin{equation}
   C_{s,s}(\mu) = C_{s-1,s-1}^{*}(\mu) + \gamma_s(\mu),
 \end{equation}
-and for $b\in\{s+1, ..., B\}$
+and for $t\in\{s+1, ..., n\}$
 \begin{equation}
-  C_{s,b}(\mu) = \min
+  C_{s,t}(\mu) = \min
   \begin{cases}
-    C_{s,b-1}^{*}(\mu)+\gamma_b(\mu),\\
-    C_{s-1,b-1}^{*}(\mu)+\gamma_b(\mu),
+    C_{s,t-1}^{*}(\mu)+\gamma_t(\mu),\\
+    C_{s-1,t-1}^{*}(\mu)+\gamma_t(\mu),
   \end{cases}
 \end{equation}
 where * means less-min for even-numbered segments $s$, and more-min
@@ -412,9 +496,13 @@ the \ref{PeakSeg} problem. For these data, the minimum of the
 \ref{PeakSeg} problem (with strict inequality constraints) is
 undefined.
 
+TODO: add figure that shows the representation of the cost that is
+recovered for this example.
+
 \subsection{Optimal Partitioning}
 
 TODO: describe OP version.
+
 
 %%%% update rules
 \newcommand{\FCC}{\widetilde{C}}
@@ -500,6 +588,7 @@ $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{
 
 The update rule is a priori valid for more complex constraints, typically quadratic constraints, yet recovering
 $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}$ from $\FCC^{k}_{t}(\mu')$ would possibly be much more difficult.
+
 
 
 
