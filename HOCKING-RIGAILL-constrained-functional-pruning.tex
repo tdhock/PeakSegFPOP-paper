@@ -351,7 +351,7 @@ a functional representation of the optimal cost in 1 segment up to
 data point $t$. 
 \begin{equation*}
   \label{eq:C1b}
-  C_{1,t}(\mu) = \sum_{i=1}^t \gamma_t(\mu),
+  \FCC_{1,t}(\mu) = \sum_{i=1}^t \gamma_t(\mu),
 \end{equation*}
 where $\gamma_t(\mu)=\ell(y_t, \mu)$ is the cost of using the mean
 $\mu$ for single data point $t$ (for example the Gaussian or Poisson
@@ -360,7 +360,7 @@ loss).
 Next we define the minimum cost in 2 segments up to data point 2 as
 \begin{equation*}
   \label{eq:C22}
-  C_{2,2}(\mu) = C_{1,1}^{\leq}(\mu) + \gamma_2(\mu),
+  \FCC_{2,2}(\mu) = \FCC_{1,1}^{\leq}(\mu) + \gamma_2(\mu),
 \end{equation*}
 where for a function $f:\RR\rightarrow\RR$ the min-less operator
 yields another function $f\leq:\RR\rightarrow\RR$ such that
@@ -374,10 +374,10 @@ of functions such as $C_{1,1}^{\leq}$
 are convex, we can easily find the minimum $\mu_t^*$, and then compute
 the following exact representation
 \begin{equation*}
-  C_{1,t}^\leq(\mu)=
+  \FCC_{1,t}^\leq(\mu)=
   \begin{cases}
-    C_{1,t}(\mu_t^*) & \text{ if } \mu \geq \mu_t^*,\\
-    C_{1,t}(\mu) & \text{ otherwise.}
+    \FCC_{1,t}(\mu_t^*) & \text{ if } \mu \geq \mu_t^*,\\
+    \FCC_{1,t}(\mu) & \text{ otherwise.}
   \end{cases}
 \end{equation*}
 
@@ -401,10 +401,10 @@ the following exact representation
 The next step is to compute the minimum cost in 2 segments up to data
 point 3, for which there is a choice of two change-points.
 \begin{equation*}
-  C_{2,3}(\mu) = \min
+  \FCC_{2,3}(\mu) = \min
   \begin{cases}
-    C_{2,2}(\mu)+\gamma_3(\mu), \\
-    C_{1,2}^{\leq}(\mu)+\gamma_3(\mu)
+    \FCC_{2,2}(\mu)+\gamma_3(\mu), \\
+    \FCC_{1,2}^{\leq}(\mu)+\gamma_3(\mu)
   \end{cases}
 \end{equation*}
 We have already computed an exact representation of the $C_{2,2}$
@@ -436,37 +436,37 @@ representation of the minimum of these two functions
 
 The updates continue for every data point $t\in\{3, ..., n\}$
 \begin{equation*}
-  C_{2,t}(\mu) = \min
+  \FCC_{2,t}(\mu) = \min
   \begin{cases}
-    C_{2,t-1}(\mu) + \gamma_t(\mu),\\
-    C_{1,t-1}^{\leq}(\mu) + \gamma_t(\mu).
+    \FCC_{2,t-1}(\mu) + \gamma_t(\mu),\\
+    \FCC_{1,t-1}^{\leq}(\mu) + \gamma_t(\mu).
   \end{cases}
 \end{equation*}
 
 For the third segment we first compute the minimum cost up to data point 3
 \begin{equation*}
-  C_{3,3}(\mu) = C_{2,2}^{\geq}(\mu) + \gamma_3(\mu),
+  \FCC_{3,3}(\mu) = \FCC_{2,2}^{\geq}(\mu) + \gamma_3(\mu),
 \end{equation*}
 where the more-min operator $f^\geq$ is defined analogously to the
 min-less operator (Figure~\ref{fig:min-operators}). The update formula
 for the minimum cost up to data point $t\in\{4, ..., n\}$ is
 \begin{equation*}
-  C_{3,t}(\mu) = \min
+  \FCC_{3,t}(\mu) = \min
   \begin{cases}
-    C_{3,t-1}^{\geq}(\mu)+\gamma_t(\mu),\\
-    C_{2,t-1}^{\geq}(\mu)+\gamma_t(\mu)
+    \FCC_{3,t-1}^{\geq}(\mu)+\gamma_t(\mu),\\
+    \FCC_{2,t-1}^{\geq}(\mu)+\gamma_t(\mu)
   \end{cases}
 \end{equation*}
 In general for $s$ segments, we use
 \begin{equation}
-  C_{s,s}(\mu) = C_{s-1,s-1}^{*}(\mu) + \gamma_s(\mu),
+  \FCC_{s,s}(\mu) = \FCC_{s-1,s-1}^{*}(\mu) + \gamma_s(\mu),
 \end{equation}
 and for $t\in\{s+1, ..., n\}$
 \begin{equation}
-  C_{s,t}(\mu) = \min
+  \FCC_{s,t}(\mu) = \min
   \begin{cases}
-    C_{s,t-1}^{*}(\mu)+\gamma_t(\mu),\\
-    C_{s-1,t-1}^{*}(\mu)+\gamma_t(\mu),
+    \FCC_{s,t-1}^{*}(\mu)+\gamma_t(\mu),\\
+    \FCC_{s-1,t-1}^{*}(\mu)+\gamma_t(\mu),
   \end{cases}
 \end{equation}
 where * means less-min for even-numbered segments $s$, and more-min
