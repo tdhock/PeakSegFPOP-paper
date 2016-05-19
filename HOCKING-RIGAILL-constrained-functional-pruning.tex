@@ -452,7 +452,7 @@ a_{K-1,K-1}.\mu_{K-1} +& a_{K-1,K}. \mu & \geq  b_{K-1}
 We can then consider the following update rule
 
 \begin{equation}
-\FCC^{k+1}_{t+1}(\mu) = \min \{ \FCC^{k+1}_{t}(\mu)  , \underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k+1}_{t}(\mu') \}  \}
+\FCC^{k+1}_{t+1}(\mu) = \min \{ \FCC^{k+1}_{t}(\mu)  , \underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}  \} + \gamma_(y_{t+1}, \mu
 \end{equation}
 
 \subsection{Examples}
