@@ -1,19 +1,19 @@
 \documentclass{article}
-\usepackage{nips_2016}
+\usepackage{fullpage}
 
 \usepackage[utf8]{inputenc} % allow utf-8 input
 \usepackage[T1]{fontenc}    % use 8-bit T1 fonts
-\usepackage{hyperref}       % hyperlinks
-\usepackage{url}            % simple URL typesetting
-\usepackage{booktabs}       % professional-quality tables
+%\usepackage{hyperref}       % hyperlinks
+%\usepackage{url}            % simple URL typesetting
+%\usepackage{booktabs}       % professional-quality tables
 \usepackage{amsfonts}       % blackboard math symbols
-\usepackage{nicefrac}       % compact symbols for 1/2, etc.
-\usepackage{microtype}      % microtypography
+%\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+%\usepackage{microtype}      % microtypography
 
-\usepackage{graphicx}
+%\usepackage{graphicx}
 \usepackage{tikz}
 \usepackage{amssymb,amsmath}
-%\usepackage{natbib}
+\usepackage{natbib}
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\sign}{sign}
 \DeclareMathOperator*{\Lik}{Lik}
@@ -35,8 +35,7 @@
 
 \begin{document}
 
-\title{A linear time algorithm for peak detection using constrained
-  optimal segmentation}
+\title{A functional pruning algorithm for constrained optimal segmentation}
 
 \author{
   Toby Dylan Hocking\\
@@ -45,7 +44,7 @@
   Montreal, QC H2R-2G9 Canada \\
   \texttt{toby.hocking@mail.mcgill.ca} \\
   %% examples of more authors
-  \And
+   \\
   Guillem Rigaill \\
   University of Evry \\
   Evry, France \\
@@ -131,8 +130,8 @@ algorithm (pDPA) \citep{pruned-dp}. Both algorithms are guaranteed to
 recover the exact solution to the unconstrained model, but there are
 two important differences. The pDPA is more complicated to implement,
 but is also computationally faster than the DPA. For segmenting a
-sequence of $d$ data points, the pDPA takes on average $O(d\log d)$
-time whereas the DPA takes $O(d^2)$ time.
+sequence of $n$ data points, the pDPA takes on average $O(n\log n)$
+time whereas the DPA takes $O(n^2)$ time.
 
 The constraints that we consider in this paper are a generalization of
 the peak detection model \citep{PeakSeg} and the isotonic regression
@@ -251,7 +250,9 @@ TODO: discuss the isotonic regression model.
 \newcommand{\FCC}{\widetilde{C}}
 \newcommand{\M}{\mathcal{M}}
 \section{Constrained Dynamic Programming Problem}
+
 In this section we explain the general form of the problem that our algorithm solves.
+
 \subsection{Some definitions}
 
 A segmentation $m$ is described as a set of contiguous segments $\{s_1, ... s_{|m|} \}$, where $|m|$ is the number of segments of $m$
@@ -351,7 +352,7 @@ a functional representation of the optimal cost in 1 segment up to
 data point $t$. 
 \begin{equation*}
   \label{eq:C1b}
-  C_{1,t}(\mu) = \sum_{i=1}^t \gamma_t(\mu),
+  C_{1,t}(\mu) = \sum_{i=1}^t \gamma_i(\mu),
 \end{equation*}
 where $\gamma_t(\mu)=\ell(y_t, \mu)$ is the cost of using the mean
 $\mu$ for single data point $t$ (for example the Gaussian or Poisson
