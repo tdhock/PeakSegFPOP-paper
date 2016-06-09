@@ -287,14 +287,21 @@ CompareRows <- function(dt1, dt2, i1, i2){
   row.diff <- row1-row2
   row.diff$min.mean <- last.min.mean
   row.diff$max.mean <- first.max.mean
-  if(row.diff$Linear==0 && row.diff$Log==0){
-    ## They are offset by a constant.
-    new.row <- if(row.diff$Constant < 0)row1 else row2
-    new.row$min.mean <- last.min.mean
-    new.row$max.mean <- first.max.mean
-    return(new.row)
-  }
   if(row.diff$Log==0){
+    if(row.diff$Linear==0){
+      ## They are offset by a constant.
+      new.row <- if(row.diff$Constant < 0)row1 else row2
+      new.row$min.mean <- last.min.mean
+      new.row$max.mean <- first.max.mean
+      return(new.row)
+    }
+    if(row.diff$Constant==0){
+      ## The only difference is the Linear coef.
+      new.row <- if(row.diff$Linear < 0)row1 else row2
+      new.row$min.mean <- last.min.mean
+      new.row$max.mean <- first.max.mean
+      return(new.row)
+    }
     mean.at.equal.cost <- row.diff[, -Constant/Linear]
     root.in.interval <-
       last.min.mean < mean.at.equal.cost &&

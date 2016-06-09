@@ -7,13 +7,16 @@ input.dt <- data.table(counts)[sample.id=="McGill0024",]
 input.dt[, weight := chromEnd-chromStart]
 input.dt[, count := coverage]
 (objs <- load("data/H3K4me3_XJ_immune/1/dp.model.RData"))
-dp.model$McGill0024$error
+(loss.mat <- rbind(
+  cDPA=dp.model$McGill0024$error$error,
+  PDPA=result$model$models$min.cost,
+  min=NA))
 
 ggplot()+
   geom_step(aes(chromStart/1e3, count),
             color="grey50",
             data=input.dt)
-load("problematic.cost.models.RData")
+(objs <- load("problematic.some.RData"))
 
 getMinMean <- function(dt){
   dt[, -Log/Linear]
@@ -41,14 +44,63 @@ Minimize <- function(dt, from=min(dt$min.mean), to=max(dt$max.mean)){
   feasible[which.min(min.cost),]
 }
 
-loss.list <- list()
-for(total.segments in 17:19){
+timestep <- nrow(input.dt)
+for(col.i in 1:10){
+  peaks <- col.i-1
+  total.segments <- peaks*2+1
+  cost.model <- cost.models.list[[paste(total.segments, timestep)]]
+  loss.mat["min", col.i] <- Minimize(cost.model)$min.cost
+}
+loss.mat
+
+fit <- cDPA(input.dt$count, input.dt$weight, maxSegments=19)
+
+PDPA.loss <- matrix(NA, 19, 376)
+for(total.segments in 1:19){
   for(timestep in total.segments:nrow(input.dt)){
     cost.model <- cost.models.list[[paste(total.segments, timestep)]]
-    min.row <- Minimize(cost.model)
+    PDPA.loss[total.segments, timestep] <- Minimize(cost.model)$min.cost
   }
 }
 
+scatter.dt.list <- list()
+for(total.segments in 1:nrow(PDPA.loss)){
+  scatter.dt.list[[paste(total.segments)]] <- data.table(
+    total.segments,
+    cDPA=fit$loss[total.segments,],
+    PDPA=PDPA.loss[total.segments,],
+    data.i=1:ncol(PDPA.loss))
+}
+scatter.dt <- do.call(rbind, scatter.dt.list)
+
+scatter.dt[, should.be.positive := cDPA-PDPA]
+scatter.dt[, problem := ifelse(should.be.positive > 0, 0, should.be.positive)]
+abline.dt <- data.table(slope=1, intercept=0)
+ggplot()+
+  geom_point(aes(cDPA, PDPA, color=problem), shape=1, data=scatter.dt)+
+  theme_bw()+
+  facet_wrap("total.segments")+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  coord_equal()+
+  geom_abline(aes(slope=slope, intercept=intercept), data=abline.dt)
+
+ggplot()+
+  geom_point(aes(cDPA, PDPA, color=problem), shape=1,
+             data=scatter.dt[total.segments==14,])+
+  theme_bw()+
+  facet_wrap("total.segments")+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  coord_equal()+
+  geom_abline(aes(slope=slope, intercept=intercept), data=abline.dt)
+
+scatter.dt[total.segments==14 & PDPA > cDPA,]
+scatter.dt[total.segments==12 & PDPA > cDPA,]
+scatter.dt[PDPA > cDPA,]
+scatter.dt[should.be.positive < -1e-10,]
+
+## After examining MinEnv gg.pruning plots in
+## figure-constrained-PDPA-poisson-real.R, it is clear that the bug in
+## the MinEnv computation starts at total.segments=14, timestep=299.
 
 data.lines.list <- list()
 data.minima.list <- list()

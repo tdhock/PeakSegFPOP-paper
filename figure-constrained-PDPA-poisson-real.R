@@ -262,6 +262,21 @@ sameFuns <- function(row1, row2){
 CompareRows <- function(dt1, dt2, i1, i2){
   row1 <- dt1[i1,]
   row2 <- dt2[i2,]
+  ## ggplot()+
+  ##   ##coord_cartesian(xlim=c(-0.1, 0), ylim=c(0,0.2))+
+  ##   geom_line(aes(mean, cost, color=fun.i),
+  ##             size=2,
+  ##             data=data.table(getLines(dt1), fun.i=factor(1)))+
+  ##   geom_line(aes(mean, cost, color=fun.i),
+  ##             size=1,
+  ##             data=data.table(getLines(dt2), fun.i=factor(2)))+
+  ##   geom_line(aes(mean, cost),
+  ##             linetype="dashed",
+  ##             data=getLines(row1))+
+  ##   geom_line(aes(mean, cost),
+  ##             linetype="dotted",
+  ##             size=1,
+  ##             data=getLines(row2))
   if(row1$min.mean < row2$min.mean){
     prev2 <- dt2[i2-1, ]
     same.at.left <- sameFuns(prev2, row1)
@@ -311,14 +326,21 @@ CompareRows <- function(dt1, dt2, i1, i2){
   row.diff <- row1-row2
   row.diff$min.mean <- last.min.mean
   row.diff$max.mean <- first.max.mean
-  if(row.diff$Linear==0 && row.diff$Log==0){
-    ## They are offset by a constant.
-    new.row <- if(row.diff$Constant < 0)row1 else row2
-    new.row$min.mean <- last.min.mean
-    new.row$max.mean <- first.max.mean
-    return(new.row)
-  }
   if(row.diff$Log==0){
+    if(row.diff$Linear==0){
+      ## They are offset by a constant.
+      new.row <- if(row.diff$Constant < 0)row1 else row2
+      new.row$min.mean <- last.min.mean
+      new.row$max.mean <- first.max.mean
+      return(new.row)
+    }
+    if(row.diff$Constant==0){
+      ## The only difference is the Linear term.
+      new.row <- if(row.diff$Linear < 0)row1 else row2
+      new.row$min.mean <- last.min.mean
+      new.row$max.mean <- first.max.mean
+      return(new.row)
+    }
     mean.at.equal.cost <- row.diff[, -Constant/Linear]
     root.in.interval <-
       last.min.mean < mean.at.equal.cost &&
@@ -525,7 +547,9 @@ max.mean <- max(input.dt$count)
 gamma.dt <- input.dt[, data.table(
   Linear=weight,
   Log=-count*weight,
-  Constant=ifelse(count==0, 0, weight*count*(log(count)-1)))]
+  ##Constant=ifelse(count==0, 0, weight*count*(log(count)-1))
+  Constant=0
+  )]
 C1.dt <- cumsum(gamma.dt)
 gamma.dt$min.mean <- C1.dt$min.mean <- min.mean
 gamma.dt$max.mean <- C1.dt$max.mean <- max.mean
@@ -648,7 +672,8 @@ gg.pruning <- ggplot()+
   geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
              data=minima)
 
-ti <- 60
+ti <- 299
+tsegs <- 14
 gg.pruning <- ggplot()+
   ##coord_cartesian(xlim=c(-0.2, 0), ylim=c(0, 0.3))+
   theme_bw()+
@@ -664,12 +689,12 @@ gg.pruning <- ggplot()+
   geom_line(aes(mean, cost),
             color="grey",
             size=2,
-            data=envelope[timestep==ti,])+
+            data=envelope[timestep==ti & tsegs==total.segments,])+
   geom_line(aes(mean, cost, group=paste(data.i.fac, piece.i),
                 color=data.i.fac),
-            data=cost.lines[timestep==ti,])+
+            data=cost.lines[timestep==ti & tsegs==total.segments,])+
   geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
-             data=minima[timestep==ti,])
+             data=minima[timestep==ti & tsegs==total.segments,])
 print(gg.pruning)
 
 data.lines.list <- list()
