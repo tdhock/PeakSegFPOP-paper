@@ -1,4 +1,5 @@
 library(parallel)
+library(coseg)
 
 maxPeaks <- 9L
 argv <- "/home/tdhock/projects/PeakSegFPOP-paper/data/H3K36me3_AM_immune/11/counts.RData"
