@@ -53,11 +53,12 @@ suppressPackageStartupMessages({
   works_with_R("3.2.2",
                tikzDevice="0.9",
                LambertW="0.6.2",
+               microbenchmark="1.4.2",
+               Segmentor3IsBack="2.0",
+               "tdhock/coseg@073dcf152355e6de32236f9556d97dda29574bf5",
                "tdhock/PeakError@d9196abd9ba51ad1b8f165d49870039593b94732",
                "tdhock/PeakSegDP@b9ae720406f07346150905541635d67c7c3c6e70",
-               "hadley/scales@2c3edf45de56d617444dc38e47e0404173817886",
-               "tdhock/ggplot2@a8b06ddb680acdcdbd927773b1011c562134e4d2",
-               "tdhock/animint@6b1c9e588b03f632cd39cdec9bbcfa730db9e889",
-               "tdhock/directlabels@7b4b08a5dd0ab86e0b90902b3a233903ddd42311",
+               "tdhock/animint@f11dd20b8938808f2cbe06beebb85ea9e8d67a0d",
+               "tdhock/directlabels@8a1f6f3501d5badf061d15abd23e4e42d5d32bbe",
                data.table="1.9.6")
 })

@@ -20,8 +20,9 @@ gg <- ggplot()+
             vjust=1)+
   scale_y_continuous(
     "intervals stored by the constrained optimal segmentation algorithm",
-    breaks=seq(0, 40, by=20))
+    breaks=c(20, 40))
 
 png("figure-PDPA-intervals.png", w=7, h=6, units="in", res=200)
 print(gg)
 dev.off()
+
