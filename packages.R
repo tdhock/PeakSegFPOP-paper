@@ -55,10 +55,11 @@ suppressPackageStartupMessages({
                LambertW="0.6.2",
                microbenchmark="1.4.2",
                Segmentor3IsBack="2.0",
-               "tdhock/coseg@073dcf152355e6de32236f9556d97dda29574bf5",
+               ##"tdhock/coseg@073dcf152355e6de32236f9556d97dda29574bf5",
                "tdhock/PeakError@d9196abd9ba51ad1b8f165d49870039593b94732",
                "tdhock/PeakSegDP@b9ae720406f07346150905541635d67c7c3c6e70",
                "tdhock/animint@f11dd20b8938808f2cbe06beebb85ea9e8d67a0d",
                "tdhock/directlabels@8a1f6f3501d5badf061d15abd23e4e42d5d32bbe",
                data.table="1.9.6")
 })
+library(coseg)
