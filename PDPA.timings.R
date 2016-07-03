@@ -1,12 +1,11 @@
 source("packages.R")
-source("PeakSegPDPA.R")
 
 library(parallel)
 
 prefix <- "http://cbio.ensmp.fr/~thocking/chip-seq-chunk-db/"
 u <- paste0(prefix, "RData.count.signal.txt")
 count.files <- read.table(u, header=TRUE)
-maxPeaks <- 9L
+max.segments <- 19L
 PDPA.timings.list <- list()
 for(file.i in 1:nrow(count.files)){
   f <- count.files$file[[file.i]]
@@ -33,29 +32,27 @@ for(file.i in 1:nrow(count.files)){
     counts$count <- counts$coverage
     sample.list <- split(counts, counts$sample.id, drop=TRUE)
     sample.ids <- names(sample.list)
-    sample.results <- mclapply(seq_along(sample.ids), function(sample.i){
+    sample.results <- lapply(seq_along(sample.ids), function(sample.i){
       sample.id <- sample.ids[[sample.i]]
       compressed <- data.table(sample.list[[sample.id]])
       bases <- sum(compressed$bases)
       n.data <- nrow(compressed)
-      ## the biggest profile for which we could not compute all 10
-      ## models in the forward direction.
-      if(n.data <= 5116){ 
-        cat(sprintf("%4d / %4d chunks %4d / %4d sample %s %d bases %d data\n",
-                    file.i, nrow(count.files),
-                    sample.i, length(sample.list),
-                    sample.id,
-                    bases, n.data))
-        result <- list()
-        seconds <- system.time({
-          model.list <- PeakSegPDPAchrom(compressed, maxPeaks=maxPeaks)
-        })[["elapsed"]]
-        result$model <- model.list
-        result$timing <- 
-          data.frame(set.name, chunk.id, sample.id,
-                     seconds, data=n.data, bases)
-        result
-      }
+      cat(sprintf("%4d / %4d chunks %4d / %4d sample %s %d bases %d data\n",
+                  file.i, nrow(count.files),
+                  sample.i, length(sample.list),
+                  sample.id,
+                  bases, n.data))
+      bases.vec <- compressed$bases
+      data.vec <- compressed$count
+      seconds <- system.time({
+        model.list <- PeakSegPDPA(data.vec, bases.vec, max.segments)
+      })[["elapsed"]]
+      list(
+        model=model.list,
+        timing=data.frame(
+          set.name, chunk.id, sample.id,
+          seconds, data=n.data, bases)
+        )
     })
     names(sample.results) <- sample.ids
     PDPA.model <- lapply(sample.results, "[[", "model")
