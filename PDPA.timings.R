@@ -3,8 +3,8 @@ source("packages.R")
 count.files <- Sys.glob("data/*/*/counts.RData")
 max.segments <- 19L
 PDPA.timings.list <- list()
-file.i <- 13
-sample.i <- 17
+file.i <- 29
+sample.i <- 6
 file.i.vec <- seq_along(count.files)
 for(file.i in file.i.vec){
   local.f <- count.files[[file.i]]
