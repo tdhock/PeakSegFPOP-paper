@@ -1,26 +1,17 @@
 source("packages.R")
 
-library(parallel)
-
-prefix <- "http://cbio.ensmp.fr/~thocking/chip-seq-chunk-db/"
-u <- paste0(prefix, "RData.count.signal.txt")
-count.files <- read.table(u, header=TRUE)
+count.files <- Sys.glob("data/H3K4*/*/counts.RData")
 max.segments <- 19L
 PDPA.timings.list <- list()
-for(file.i in 1:nrow(count.files)){
-  f <- count.files$file[[file.i]]
-  chunk.id.dir <- dirname(paste(f))
+file.i <- 8
+sample.i <- 23
+for(file.i in seq_along(count.files)){
+  local.f <- count.files[[file.i]]
+  chunk.id.dir <- dirname(paste(local.f))
   chunk.id <- basename(chunk.id.dir)
   set.dir <- dirname(chunk.id.dir)
   set.name <- basename(set.dir)
-  u <- paste0(prefix, f)
-  local.f <- file.path("data", f)
   print(local.f)
-  if(!file.exists(local.f)){
-    local.dir <- dirname(local.f)
-    dir.create(local.dir, showWarnings=FALSE, recursive=TRUE)
-    download.file(u, local.f)
-  }
   time.f <- sub("counts", "PDPA.timing", local.f)
   model.f <- sub("counts", "PDPA.model", local.f)
   ## run DP based on if we have a model computed or not.
@@ -38,7 +29,7 @@ for(file.i in 1:nrow(count.files)){
       bases <- sum(compressed$bases)
       n.data <- nrow(compressed)
       cat(sprintf("%4d / %4d chunks %4d / %4d sample %s %d bases %d data\n",
-                  file.i, nrow(count.files),
+                  file.i, length(count.files),
                   sample.i, length(sample.list),
                   sample.id,
                   bases, n.data))
