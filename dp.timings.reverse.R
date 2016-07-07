@@ -37,41 +37,37 @@ for(file.i in 1:nrow(count.files)){
       compressed <- sample.list[[sample.id]]
       bases <- sum(compressed$bases)
       n.data <- nrow(compressed)
-      ## the biggest profile for which we could not compute all 10
-      ## models in the forward direction.
-      if(n.data <= 5116){ 
-        reverse <- compressed[n.data:1,]
-        chromStart <- reverse$chromStart
-        reverse$chromStart <- -reverse$chromEnd
-        reverse$chromEnd <- -chromStart
-        cat(sprintf("%4d / %4d chunks %4d / %4d sample %s %d bases %d data\n",
-                    file.i, nrow(count.files),
-                    sample.i, length(sample.list),
-                    sample.id,
-                    bases, n.data))
-        result <- list()
-        seconds <- system.time({
-          model.list <- PeakSegDP(reverse, maxPeaks=maxPeaks)
-        })[["elapsed"]]
-        for(peaks.str in names(model.list$peaks)){
-          peaks.df <- model.list$peaks[[peaks.str]]
-          chromStart <- -peaks.df$chromStart
-          peaks.df$chromStart <- -peaks.df$chromEnd
-          peaks.df$chromEnd <- chromStart
-          model.list$peaks[[peaks.str]] <- peaks.df
-        }
-        chromStart <- -model.list$segments$chromStart
-        model.list$segments$chromStart <- -model.list$segments$chromEnd
-        model.list$segments$chromEnd <- chromStart
-        if(is.numeric(model.list$breaks$chromEnd)){
-          model.list$breaks$chromEnd <- -model.list$breaks$chromEnd
-        }
-        result$model <- model.list
-        result$timing <- 
-          data.frame(set.name, chunk.id, sample.id,
-                     seconds, data=n.data, bases)
-        result
+      reverse <- compressed[n.data:1,]
+      chromStart <- reverse$chromStart
+      reverse$chromStart <- -reverse$chromEnd
+      reverse$chromEnd <- -chromStart
+      cat(sprintf("%4d / %4d chunks %4d / %4d sample %s %d bases %d data\n",
+                  file.i, nrow(count.files),
+                  sample.i, length(sample.list),
+                  sample.id,
+                  bases, n.data))
+      result <- list()
+      seconds <- system.time({
+        model.list <- PeakSegDP(reverse, maxPeaks=maxPeaks)
+      })[["elapsed"]]
+      for(peaks.str in names(model.list$peaks)){
+        peaks.df <- model.list$peaks[[peaks.str]]
+        chromStart <- -peaks.df$chromStart
+        peaks.df$chromStart <- -peaks.df$chromEnd
+        peaks.df$chromEnd <- chromStart
+        model.list$peaks[[peaks.str]] <- peaks.df
       }
+      chromStart <- -model.list$segments$chromStart
+      model.list$segments$chromStart <- -model.list$segments$chromEnd
+      model.list$segments$chromEnd <- chromStart
+      if(is.numeric(model.list$breaks$chromEnd)){
+        model.list$breaks$chromEnd <- -model.list$breaks$chromEnd
+      }
+      result$model <- model.list
+      result$timing <- 
+        data.frame(set.name, chunk.id, sample.id,
+                   seconds, data=n.data, bases)
+      result
     })
     names(sample.results) <- sample.ids
     dp.model <- lapply(sample.results, "[[", "model")

@@ -1,11 +1,12 @@
 source("packages.R")
 
-count.files <- Sys.glob("data/H3K4*/*/counts.RData")
+count.files <- Sys.glob("data/*/*/counts.RData")
 max.segments <- 19L
 PDPA.timings.list <- list()
-file.i <- 8
-sample.i <- 23
-for(file.i in seq_along(count.files)){
+file.i <- 13
+sample.i <- 17
+file.i.vec <- seq_along(count.files)
+for(file.i in file.i.vec){
   local.f <- count.files[[file.i]]
   chunk.id.dir <- dirname(paste(local.f))
   chunk.id <- basename(chunk.id.dir)
@@ -38,6 +39,22 @@ for(file.i in seq_along(count.files)){
       seconds <- system.time({
         model.list <- PeakSegPDPA(data.vec, bases.vec, max.segments)
       })[["elapsed"]]
+      dp.file <- sub("counts", "dp.model", local.f)
+      if(file.exists(dp.file)){
+        load(dp.file)
+        dp <- dp.model[[sample.id]]$error
+        if(is.numeric(dp$error)){
+          compare.mat <- rbind(
+            dp=dp$error,
+            pdpa=model.list$cost.mat[dp$segments, n.data])
+          should.be.positive <- compare.mat["dp",]-compare.mat["pdpa",]
+          if(any(should.be.positive < -1e-8)){
+            print(should.be.positive)
+            print(compare.mat)
+            stop("dp model more likely than pdpa model")
+          }
+        }
+      }
       list(
         model=model.list,
         timing=data.frame(
