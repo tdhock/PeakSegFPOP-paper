@@ -1,4 +1,4 @@
-HOCKING-RIGAILL-constrained-functional-pruning.pdf: HOCKING-RIGAILL-constrained-functional-pruning.tex refs.bib figure-1-min-operators.pdf figure-2-min-envelope.tex figure-PDPA-microbenchmark.pdf figure-PDPA-intervals.png
+HOCKING-RIGAILL-constrained-functional-pruning.pdf: HOCKING-RIGAILL-constrained-functional-pruning.tex refs.bib figure-1-min-operators.pdf figure-2-min-envelope.tex figure-PDPA-microbenchmark.pdf figure-PDPA-intervals.png figure-PDPA-timings.pdf
 	rm -rf *.aux *.bbl
 	pdflatex HOCKING-RIGAILL-constrained-functional-pruning
 	bibtex HOCKING-RIGAILL-constrained-functional-pruning
@@ -51,6 +51,8 @@ PDPA.timings.RData: PDPA.timings.R
 PDPA.microbenchmark.RData: PDPA.microbenchmark.R
 	R --no-save < $<
 figure-PDPA-microbenchmark.pdf: figure-PDPA-microbenchmark.R PDPA.microbenchmark.RData
+	R --no-save < $<
+figure-PDPA-timings.pdf: figure-PDPA-timings.R PDPA.timings.RData
 	R --no-save < $<
 PDPA.intervals.RData: PDPA.intervals.R
 	R --no-save < $<
