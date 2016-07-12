@@ -22,12 +22,8 @@ for(file.i in file.i.vec){
     for(sample.id in names(PDPA.model)){
       model.list <- PDPA.model[[sample.id]]
       q.vec <- quantile(model.list$intervals.mat[, -(1:19)])
-      PDPA.intervals.list[[paste(model.file, sample.id)]] <-
-        with(model.list, data.table(
-          n.data,
-          max.intervals=max(intervals.mat),
-          median.intervals=median()
-          ))
+      PDPA.intervals.list[[paste(model.file, sample.id)]] <- data.table(
+          n.data=model.list$n.data, t(q.vec))
     }
   }
 }
