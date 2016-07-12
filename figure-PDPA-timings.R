@@ -3,14 +3,17 @@ source("packages.R")
 load("../PeakSeg-paper/dp.timings.RData")
 load("PDPA.timings.RData")
 (objs <- load("dp.timings.reverse.RData"))
+stopifnot(nrow(PDPA.timings)==2752)
+stopifnot(nrow(dp.timings)==2752)
+stopifnot(nrow(dp.timings.reverse)==2752)
 
 algo <- function(algorithm, ...){
   data.frame(algorithm, ...)
 }
 all.timings <- rbind(
   algo("cDPA\nO(N^2)", dp.timings),
-  ##algo("DP.fwd", dp.timings),
-  ##algo("DP.rev", dp.timings.reverse),
+  ## algo("DP.fwd", dp.timings),
+  ## algo("DP.rev", dp.timings.reverse),
   algo("cPDPA\nO(N log N)", PDPA.timings))
   
 gg.linear <- ggplot()+
@@ -37,7 +40,7 @@ gg.log <- ggplot()+
 print(gg.log)
 
 my.method <- list("last.points", dl.trans(x=x+0.1))
-dl.log <- direct.label(gg.log, "my.method")+
+dl.log <- direct.label(gg.log, "last.polygons")+
   scale_x_continuous(
     "log10(data points to segment)",
     limits=c(min(log10(all.timings$data)), 6.2))

@@ -3,11 +3,11 @@ source("packages.R")
 library(data.table)
 library(coseg)
 
-count.files <- Sys.glob("data/*/*/counts.RData")
+count.files <- Sys.glob("data/H*/*/counts.RData")
 max.segments <- 19L
 PDPA.timings.list <- list()
-file.i <- 29
-sample.i <- 6
+file.i <- 42
+sample.i <- 24
 file.i.vec <- seq_along(count.files)
 for(file.i in file.i.vec){
   local.f <- count.files[[file.i]]
@@ -55,6 +55,16 @@ for(file.i in file.i.vec){
             print(should.be.positive)
             print(compare.mat)
             stop("dp model more likely than pdpa model")
+            
+            fit <- cDPA(data.vec, bases.vec, 19L)
+            all.loss <- data.table(
+              dp=as.numeric(fit$loss),
+              pdpa=as.numeric(model.list$cost.mat),
+              segments=as.integer(row(fit$loss)),
+              data=as.integer(col(fit$loss)))
+            all.loss[, should.be.positive := dp - pdpa]
+            all.loss[should.be.positive < -1e-8,]
+            
           }
         }
       }

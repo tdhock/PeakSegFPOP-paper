@@ -56,5 +56,9 @@ figure-PDPA-timings.pdf: figure-PDPA-timings.R PDPA.timings.RData
 	R --no-save < $<
 PDPA.intervals.RData: PDPA.intervals.R
 	R --no-save < $<
+PDPA.intervals.all.RData: PDPA.intervals.all.R
+	R --no-save < $<
 figure-PDPA-intervals.png: figure-PDPA-intervals.R PDPA.intervals.RData
+	R --no-save < $<
+figure-PDPA-intervals-all.png: figure-PDPA-intervals-all.R PDPA.intervals.all.RData
 	R --no-save < $<
