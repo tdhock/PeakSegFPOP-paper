@@ -128,6 +128,11 @@ maxIter 20
   \includegraphics[width=1\textwidth]{figure-macs-problem.png}
 \end{frame}
 
+% \begin{frame}
+%   \frametitle{Compute likelihood/loss of piecewise constant model}
+%   \includegraphics[width=1\textwidth]{figure-macs-problem-1-30103.png}
+% \end{frame}
+
 \begin{frame}
   \frametitle{Compute likelihood/loss of piecewise constant model}
   \includegraphics[width=1\textwidth]{figure-macs-problem-7-5.png}
@@ -147,5 +152,16 @@ maxIter 20
 \end{frame}
 
 \section{Algorithm: constrained optimal segmentation}
+
+\begin{frame}
+  \frametitle{Linear time algorithm faster for larger data sets}
+  \includegraphics[width=1\textwidth]{figure-PDPA-timings.pdf}
+
+  Total time to compute 10 models (0, ..., 9 peaks) for all data sets:
+  \begin{itemize}
+  \item cDPA: 156 hours, inexact.
+  \item cPDPA: 6 hours, exact.
+  \end{itemize}
+\end{frame}
 
 \end{document}

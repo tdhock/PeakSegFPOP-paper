@@ -8,13 +8,17 @@ stopifnot(nrow(dp.timings)==2752)
 stopifnot(nrow(dp.timings.reverse)==2752)
 
 algo <- function(algorithm, ...){
-  data.frame(algorithm, ...)
+  data.table(algorithm, ...)
 }
 all.timings <- rbind(
   algo("cDPA\nO(N^2)", dp.timings),
   ## algo("DP.fwd", dp.timings),
   ## algo("DP.rev", dp.timings.reverse),
   algo("cPDPA\nO(N log N)", PDPA.timings))
+
+totals <- all.timings[, list(seconds=sum(seconds)), by=algorithm]
+totals[, minutes := seconds/60]
+totals[, hours := minutes/60]
   
 gg.linear <- ggplot()+
   ylab("hours")+
@@ -45,6 +49,6 @@ dl.log <- direct.label(gg.log, "last.polygons")+
     "log10(data points to segment)",
     limits=c(min(log10(all.timings$data)), 6.2))
 
-pdf("figure-PDPA-timings.pdf", 5, 5)
+pdf("figure-PDPA-timings.pdf", 8, 5)
 print(dl.log)
 dev.off()

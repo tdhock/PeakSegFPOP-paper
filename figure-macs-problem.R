@@ -17,7 +17,10 @@ n.peaks[order(as.numeric(names(n.peaks)))]
 
 png.h <- 4
 png.w <- 6
-param.vec <- c("7.5"=-5, "15"=-10)
+param.vec <- c(
+  "1.30103"=-5,
+  "7.5"=-10,
+  "15"=-15)
 param.labels <- data.table(
   param.name=names(param.vec),
   y=param.vec,
@@ -25,7 +28,8 @@ param.labels <- data.table(
 setkey(param.labels, param.name)
 param.peaks.list <- list()
 param.segs.list <- list()
-y.val <- -3
+y.val <- -5
+x.val <- 118097
 for(param.name in names(param.vec)){
   one.param <- data.table(sample.peak.list[[param.name]])
   change.vec <- one.param[, sort(c(chromStart, chromEnd))]
@@ -63,13 +67,6 @@ for(param.name in names(param.vec)){
                      xend=chromEnd/1e3, yend=y.val),
                  size=2,
                  data=one.param)+
-    geom_text(aes(
-      118096, y.val,
-      label=sprintf(
-        "macs log(qvalue)=%s, Poisson loss = %.1f", param.name, ploss)),
-              hjust=0,
-              size=3,
-              data=param.labels[param.name,])+
     coord_cartesian(
       ylim=range(param.vec, sample.counts$coverage))+
     geom_step(aes(chromStart/1e3, coverage),
@@ -84,6 +81,14 @@ for(param.name in names(param.vec)){
                  size=1,
                  color="green",
                  data=seg.means)+
+    geom_text(aes(
+      x.val, y.val*2,
+      label=sprintf(
+        "macs log(qvalue)=%s, Poisson loss = %.1f",
+        sub("0103", "", param.name), ploss)),
+              hjust=0,
+              ##size=3,
+              data=param.labels[param.name,])+
     scale_y_continuous("aligned read counts")+
     scale_x_continuous("position on chromosome (kb = kilo bases)")
   print(gg)
@@ -115,9 +120,10 @@ ggplot()+
   coord_cartesian(
     ylim=range(param.vec, sample.counts$coverage))+
   geom_text(aes(
-    118096, y.val,
+    x.val, y.val,
     label=sprintf(
-      "macs log(qvalue)=%s, Poisson loss = %.1f", param.name, PoissonLoss)),
+      "macs log(qvalue)=%s, Poisson loss = %.1f",
+      sub("0103", "", param.name), PoissonLoss)),
             hjust=0,
             data=param.labels)+
   geom_step(aes(chromStart/1e3, coverage),
@@ -140,14 +146,6 @@ gg <- ggplot()+
                    xend=chromEnd/1e3, yend=y.val),
                size=2,
                data=subset(peakseg.means, status=="peak"))+
-  geom_text(aes(
-    118096, y.val,
-    label=sprintf(
-      "PeakSeg(maxPeaks=2), Poisson loss = %.1f",
-      PoissonLoss)),
-            hjust=0,
-            size=3,
-            data=fit$loss[3,])+
   geom_step(aes(chromStart/1e3, coverage),
             color="grey50",
             data=sample.counts)+
@@ -160,6 +158,14 @@ gg <- ggplot()+
                size=1,
                color="green",
                data=peakseg.means)+
+  geom_text(aes(
+    x.val, y.val*2,
+    label=sprintf(
+      "PeakSeg(maxPeaks=2), Poisson loss = %.1f",
+      PoissonLoss)),
+            hjust=0,
+            ##size=3,
+            data=fit$loss[3,])+
   coord_cartesian(
     ylim=range(param.vec, sample.counts$coverage))+
   scale_y_continuous("aligned read counts")+
@@ -175,7 +181,8 @@ gg <- ggplot()+
                    xend=chromEnd/1e3, yend=y),
                size=2,
                data=param.peaks)+
-  geom_text(aes(118096, y, label=paste0("macs log(qvalue)=", param.name)),
+  geom_text(aes(x.val, y, label=paste0("macs log(qvalue)=",
+                            sub("0103", "", param.name))),
             hjust=0,
             data=param.labels)+
   geom_step(aes(chromStart/1e3, coverage),
