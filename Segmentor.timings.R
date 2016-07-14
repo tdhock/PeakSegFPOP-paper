@@ -84,8 +84,9 @@ for(file.i in file.i.vec){
           status=factor(status.str, c("background", "peak")),
           peaks=peaks.str,
           segments=n.segments)
-        seg.list[[peaks.str]] <- segs
-        if(n.segments %% 2){
+        seg.list[[paste(n.segments)]] <- segs
+        peakseg.feasible <- all(cumsum(sign(diff(segs$mean))) %in% c(0, 1))
+        if(n.segments %% 2 && peakseg.feasible){
           peak.list[[peaks.str]] <- subset(segs, status=="peak")
         }
       }
