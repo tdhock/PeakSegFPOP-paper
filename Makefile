@@ -68,3 +68,5 @@ HOCKING-PeakSeg-functional-pruning-slides.pdf: HOCKING-PeakSeg-functional-prunin
 	pdflatex $<
 figure-macs-problem.png: figure-macs-problem.R
 	R --no-save < $<
+Segmentor.timings.RData: Segmentor.timings.R
+	R --no-save < $<
