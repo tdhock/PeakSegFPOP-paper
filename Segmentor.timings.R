@@ -63,7 +63,7 @@ for(file.i in file.i.vec){
       compare.mat <- rbind(
         Segmentor=model.list$Likelihood,
         coseg=constrained.lik)
-      if(any(should.be.positive < -1e-8)){
+      if(any(should.be.positive < -1e-7)){
         print(should.be.positive)
         print(compare.mat)
         stop("coseg model more likely than Segmentorx model")

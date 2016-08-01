@@ -2,7 +2,9 @@ source("packages.R")
 
 load("../PeakSeg-paper/dp.timings.RData")
 load("PDPA.timings.RData")
+load("Segmentor.timings.RData")
 (objs <- load("dp.timings.reverse.RData"))
+stopifnot(nrow(Segmentor.timings)==2752)
 stopifnot(nrow(PDPA.timings)==2752)
 stopifnot(nrow(dp.timings)==2752)
 stopifnot(nrow(dp.timings.reverse)==2752)
@@ -12,6 +14,7 @@ algo <- function(algorithm, ...){
 }
 all.timings <- rbind(
   algo("cDPA\nO(N^2)", dp.timings),
+  algo("PDPA\nO(N log N)", Segmentor.timings),
   ## algo("DP.fwd", dp.timings),
   ## algo("DP.rev", dp.timings.reverse),
   algo("cPDPA\nO(N log N)", PDPA.timings))
