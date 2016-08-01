@@ -70,3 +70,9 @@ figure-macs-problem.png: figure-macs-problem.R
 	R --no-save < $<
 Segmentor.timings.RData: Segmentor.timings.R
 	R --no-save < $<
+Segmentor.peaks.error.RData: Segmentor.peaks.error.R
+	R --no-save < $<
+PDPA.peaks.error.RData: PDPA.peaks.error.R
+	R --no-save < $<
+figure-min-train-error.pdf: figure-min-train-error.R PDPA.peaks.error.RData Segmentor.peaks.error.RData
+	R --no-save < $<
