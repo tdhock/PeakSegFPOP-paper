@@ -64,7 +64,7 @@ figure-PDPA-intervals.png: figure-PDPA-intervals.R PDPA.intervals.RData
 	R --no-save < $<
 figure-PDPA-intervals-all.png: figure-PDPA-intervals-all.R PDPA.intervals.all.RData
 	R --no-save < $<
-HOCKING-PeakSeg-functional-pruning-slides.pdf: HOCKING-PeakSeg-functional-pruning-slides.tex figure-macs-problem.png
+HOCKING-PeakSeg-functional-pruning-slides.pdf: HOCKING-PeakSeg-functional-pruning-slides.tex figure-macs-problem.png figure-min-train-error.pdf
 	pdflatex $<
 figure-macs-problem.png: figure-macs-problem.R
 	R --no-save < $<

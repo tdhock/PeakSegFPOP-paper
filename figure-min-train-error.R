@@ -1,8 +1,10 @@
 source("packages.R")
 
 load("../PeakSeg-paper/dp.peaks.error.RData")
+##load("../PeakSeg-paper/dp.peaks.RData")
 load("PDPA.peaks.error.RData")
 load("Segmentor.peaks.error.RData")
+load("PDPA.peaks.RData")
 
 names(dp.peaks.error)
 pdpa <- data.table(PDPA.peaks.error)
@@ -40,11 +42,185 @@ train.error.wide <-
 train.error.wide[PeakSegDP < coseg & coseg < Segmentor,]
 ## nice example to show the difference between algos.
 ##  8:  H3K4me3_TDH_immune/4 McGill0005         1         4     2
+train.error.wide[coseg==0 & Segmentor==6,]
+train.error.wide[coseg==5 & PeakSegDP==1,]
+
+setkey(train.error.wide, chunk.name, sample.id)
+show.dt <- train.error.wide[J(
+  c("H3K4me3_PGP_immune/15", "H3K4me3_PGP_immune/14", "H3K4me3_TDH_immune/4"),
+  c("McGill0079", "McGill0095", "McGill0005")),]
+
 table(train.error.wide[, coseg-PeakSegDP])
 table(train.error.wide[, coseg-Segmentor])
+
+train.error.wide[, table(PeakSegDP, coseg)]
+train.error.wide[, table(Segmentor, coseg)]
+
+abline.dt <- data.table(slope=1, intercept=0)
+molt.list <- list()
+for(other.name in c("PeakSegDP", "Segmentor")){
+  table.args <- list()
+  for(col.name in c(other.name, "coseg")){
+    table.args[[col.name]] <- train.error.wide[[col.name]]
+  }
+  tab <- do.call(table, table.args)
+  molt <- melt(tab, value.name="problems")
+  molt$log10.problems <- log10(molt$problems)
+  gg <- ggplot()+
+    xlab(paste(
+      "incorrect labels in best",
+      other.name,
+      "model"))+
+    ylab(paste(
+      "incorrect labels in best",
+      "coseg",
+      "model"))+
+    theme_bw()+
+    geom_abline(aes(slope=slope, intercept=intercept), data=abline.dt, color="grey")+
+    coord_equal()+
+    scale_fill_gradient(low="grey90", high=scales::muted("red"), na.value="white")+
+    geom_tile(aes_string(x=other.name, y="coseg", fill="log10.problems"), data=molt)+
+    geom_text(aes_string(x=other.name, y="coseg", label="problems"),
+              data=subset(molt, 0 < problems))
+  pdf(sprintf("figure-min-train-error-%s.pdf", other.name), h=5)
+  print(gg)
+  dev.off()
+  names(molt)[1] <- "other.errors"
+  molt.list[[other.name]] <- data.table(other.name, molt)
+}
+prob.counts <- do.call(rbind, molt.list)
+
+gg.counts <- ggplot()+
+  geom_abline(aes(slope=slope, intercept=intercept), data=abline.dt, color="grey")+
+  xlab(paste(
+    "incorrect labels in best",
+    "competing",
+    "model"))+
+  ylab(paste(
+    "incorrect labels in best",
+    "coseg",
+    "model"))+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  facet_grid(. ~ other.name)+
+  coord_equal()+
+  scale_fill_gradient(low="grey90", high=scales::muted("red"), na.value="white")+
+  geom_tile(aes(other.errors, coseg, fill=log10.problems), data=prob.counts)+
+  geom_text(aes(other.errors, coseg, label=problems),
+            size=3,
+            data=subset(prob.counts, 0 < problems))
+
+ann.colors <-
+  c(noPeaks="#f6f4bf",
+    peakStart="#ffafaf",
+    peakEnd="#ff4c4c",
+    peaks="#a445ee")
+setkey(error.regions, chunk.name, sample.id)
+setkey(error.counts, chunk.name, sample.id)
+for(show.row.i in 1:nrow(show.dt)){
+  show.row <- show.dt[show.row.i,]
+  counts.file <- paste0("data/", show.row$chunk.name, "/counts.RData")
+  load(counts.file)
+  counts.by.sample <- split(counts, counts$sample.id)
+  sample.counts <- data.table(counts.by.sample[[paste(show.row$sample.id)]])
+  sample.regions <- error.regions[show.row]
+  sample.error <- error.counts[show.row]
+  print(dcast(sample.error, param.name ~ algorithm, value.var="errors"))
+  load(sub("counts", "Segmentor.model", counts.file))
+  load(sub("counts", "dp.model", counts.file))
+  sample.peaks.raw <- list(
+    coseg=PDPA.peaks[[paste(show.row$chunk.name)]][[paste(show.row$sample.id)]],
+    Segmentor=Segmentor.model[[paste(show.row$sample.id)]]$peaks,
+    PeakSegDP=dp.model[[paste(show.row$sample.id)]]$peaks)
+  col.name.vec <- c("chromStart", "chromEnd", "peaks")
+  sample.peaks.list <- list()
+  for(algorithm in names(sample.peaks.raw)){
+    algo.peaks <- sample.peaks.raw[[algorithm]]
+    sample.peaks.list[[algorithm]] <-
+      data.table(algorithm, do.call(rbind, algo.peaks)[, col.name.vec])
+  }
+  sample.peaks <- do.call(rbind, sample.peaks.list)
+
+  gg.counts.prob <- gg.counts+
+    geom_tile(aes(PeakSegDP, coseg),
+              fill=NA,
+              color="black",
+              size=2,
+              data=data.table(show.row, other.name="PeakSegDP"))+
+    geom_tile(aes(Segmentor, coseg),
+              fill=NA,
+              color="black",
+              size=2,
+              data=data.table(show.row, other.name="Segmentor"))
+  pdf(sprintf("figure-min-train-error-problem%d.pdf", show.row.i))
+  print(gg.counts.prob)
+  dev.off()
+
+  max.coverage <- max(sample.counts$coverage)
+  first.chromStart <- min(sample.regions$chromStart)
+  last.chromEnd <- max(sample.regions$chromEnd)
+  y.key <- c(coseg=1, Segmentor=2, PeakSegDP=3)*max.coverage*-0.1
+  h <- abs(diff(y.key)[1]/3)
+
+  for(peaks.str in paste(0:5)){
+    pdf.name <- sprintf("figure-min-train-error-problem%d-%speaks.pdf", show.row.i, peaks.str)
+    sample.gg <- ggplot()+
+      theme_bw()+
+      ggtitle(show.row[, paste(peaks.str, "peak models of problem", chunk.name, sample.id)])+
+      xlab("position on chromosome (kb = kilo bases)")+
+      ylab("aligned sequence reads")+
+      scale_fill_manual(values=ann.colors)+
+      geom_tallrect(aes(xmin=chromStart/1e3, xmax=chromEnd/1e3, fill=annotation),
+                    color="grey",
+                    alpha=0.5,
+                    data=sample.regions[algorithm=="coseg" & param.name==0,])+
+      geom_step(aes(chromStart/1e3, coverage),
+                color="grey50",
+                data=sample.counts)+
+      scale_linetype_manual("error type",
+                            values=c(correct=0,
+                              "false negative"=3,
+                              "false positive"=1))+
+      geom_rect(aes(xmin=chromStart/1e3, xmax=chromEnd/1e3,
+                    linetype=status,
+                    ymin=y.key[algorithm]-h, ymax=y.key[algorithm]+h),
+                size=0.75,
+                color="black",
+                fill=NA,
+                data=sample.regions[param.name==peaks.str,])
+    these.peaks <- sample.peaks[peaks==peaks.str,]
+    if(nrow(these.peaks)){
+      sample.gg <- sample.gg+
+      geom_segment(aes(chromStart/1e3, y.key[algorithm],
+                       xend=chromEnd/1e3, yend=y.key[algorithm]),
+                   size=2,
+                   color="deepskyblue",
+                   data=these.peaks)
+    }
+    sample.gg <- sample.gg+
+      geom_text(aes(first.chromStart/1e3, y.key[algorithm], label=algorithm),
+                hjust=1,
+                size=3.5,
+                data=sample.error[param.name==peaks.str,])+
+      geom_text(aes(last.chromEnd/1e3, y.key[algorithm], label=paste(errors, "errors")),
+                hjust=0,
+                size=3.5,
+                data=sample.error[param.name==peaks.str,])
+    print(pdf.name)
+    pdf(pdf.name, 9, 6)
+    print(sample.gg)
+    dev.off()
+  }
+
+}
+
 train.error.wide[order(PeakSegDP-coseg),]
 sort(train.error.wide[PeakSegDP<coseg, table(chunk.name)])
 train.error.wide[PeakSegDP<coseg & grepl("TDH", chunk.name),]
 error.counts[chunk.name=="H3K4me3_PGP_immune/15" & sample.id=="McGill0079",]
 error.counts[chunk.name=="H3K4me3_PGP_immune/15" & algorithm=="coseg",]
 error.counts[chunk.name=="H3K4me3_TDH_immune/1" & sample.id=="McGill0011",]
+
+pdf("figure-min-train-error.pdf")
+print(gg.counts)
+dev.off()

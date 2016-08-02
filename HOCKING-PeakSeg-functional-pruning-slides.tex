@@ -154,6 +154,16 @@ maxIter 20
 \section{Algorithm: constrained optimal segmentation}
 
 \begin{frame}
+  \frametitle{TODO: unconstrained model slide}
+\end{frame}
+
+\begin{frame}
+  \frametitle{TODO: functional pruning example}
+\end{frame}
+
+\section{Results on benchmark data set}
+
+\begin{frame}
   \frametitle{Linear time algorithm faster for larger data sets}
   \includegraphics[width=1\textwidth]{figure-PDPA-timings.pdf}
 
@@ -163,5 +173,93 @@ maxIter 20
   \item cPDPA: 6 hours, exact.
   \end{itemize}
 \end{frame}
+
+\begin{frame}
+  \frametitle{New coseg algorithm more accurate than unconstrained
+    maximum likelihood Poisson model (Segmentor)}
+  \includegraphics[width=\textwidth]{figure-min-train-error-Segmentor}
+\end{frame}
+
+\begin{frame}
+  \frametitle{New coseg algorithm mostly agrees with slower inexact DP}
+  \includegraphics[width=\textwidth]{figure-min-train-error-PeakSegDP}
+\end{frame}
+
+\begin{frame}
+  \frametitle{0 errors for coseg/PeakSegDP, 6 errors for Segmentor}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem2}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem2-0peaks.pdf}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem2-1peaks.pdf}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem2-2peaks.pdf}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem2-3peaks.pdf}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem2-4peaks.pdf}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Errors: PeakSegDP $<$ coseg $<$ Segmentor}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem3}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem3-0peaks.pdf}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem3-1peaks.pdf}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem3-2peaks.pdf}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem3-3peaks.pdf}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem3-4peaks.pdf}
+\end{frame}
+
+\begin{frame}
+  \frametitle{5 error for coseg/Segmentor, only 1 error for PeakSegDP}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem1}
+\end{frame}
+
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem1-0peaks.pdf}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem1-1peaks.pdf}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem1-2peaks.pdf}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem1-3peaks.pdf}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem1-4peaks.pdf}
+\end{frame}
+
 
 \end{document}
