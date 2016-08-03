@@ -1,6 +1,11 @@
 The goal of this paper is to implement a fast algorithm for solving
 the PeakSeg problem described in
 http://jmlr.org/proceedings/papers/v37/hocking15.html
+** 3 Aug 2016
+- C++ algo implemented in [[https://github.com/tdhock/coseg][coseg]] package.
+- [[file:figure-PeakSegPDPA-demo.R]] created
+  http://bl.ocks.org/tdhock/raw/8c5dd0af533e24a893e7c5232f9bc94c/
+  using average loss instead of total loss.
 ** 13 May 2016
 
 [[file:figure-cDPA-PDPA-all.R]] visualizes the optimality and feasibility
