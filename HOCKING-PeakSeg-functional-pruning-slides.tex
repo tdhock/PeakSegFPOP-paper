@@ -271,7 +271,13 @@ maxIter 20
   \includegraphics[width=\textwidth]{figure-min-train-error-problem1-4peaks.pdf}
 \end{frame}
 
-\section{Future work}
+\section{Conclusions and future work}
+
+
+\begin{frame}
+  \frametitle{Segmenting whole chromosomes?}
+  \includegraphics[width=\textwidth]{screenshot-gap-peaks}
+\end{frame}
 
 \begin{frame}
   \frametitle{Timings on subsets of human chr1}
@@ -283,10 +289,13 @@ maxIter 20
   \includegraphics[width=\textwidth]{figure-cosegData-timings.pdf}
 \end{frame}
 
-
 \begin{frame}
   \frametitle{Predicted memory requirements too large...}
   \includegraphics[width=\textwidth]{figure-cosegData-timings-memory.pdf}
+  \begin{itemize}
+  \item Current implementation: $O(N \log N)$ memory.
+  \item Future work: $O(N \log N)$ disk space, $O(1)$ memory.
+  \end{itemize}
 \end{frame}
 
 \end{document}
