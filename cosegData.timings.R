@@ -118,10 +118,66 @@ all.between <-
     problemEnd=chromStart[-1]), by=chrom]
 all.between[, max(problemEnd-problemStart)]
 
-N <- 1e5
+biggest <- chr1.problems.cov[(problemEnd-problemStart)==max(problemEnd-problemStart),]
+biggest[chromStart < problemStart, chromStart := problemStart]
+biggest[problemEnd < chromEnd, chromEnd := problemEnd]
+biggest[chromEnd <= chromStart,]
+biggest[, stopifnot(chromStart < chromEnd)]
+
+## infer a gap track: all lines with zero counts which are longer than
+## the biggest line with a positive count?
+biggest.nonzero <- chr1.cov[0 < count, max(chromEnd-chromStart)]
+maybe.gaps <- chr1.cov[count==0 & biggest.nonzero < chromEnd-chromStart, ]
+maybe.gaps[, bases := chromEnd-chromStart]
+other.problems <- maybe.gaps[, data.table(problemStart=chromEnd[-.N], problemEnd=chromStart[-1])]
+other.problems[, stopifnot(problemStart < problemEnd)]
+other.problems[, bases := problemEnd-problemStart]
+## The inferred gap track heuristic looks like it is making too man
+## segmentation problems, at least for these data.
+ggplot()+
+  geom_segment(aes(problemStart/1e3, 0,
+                   xend=problemEnd/1e3, yend=0),
+               size=1,
+               data=chr1.problems)+
+  geom_point(aes(problemStart/1e3, 0,
+                   xend=problemEnd/1e3, yend=0),
+               data=chr1.problems)+
+  geom_segment(aes(problemStart/1e3, 1,
+                   xend=problemEnd/1e3, yend=1),
+               color="red",
+               data=other.problems[38311 <= bases,])+
+  geom_point(aes(problemStart/1e3, 1),
+               color="red",
+             data=other.problems[38311 <= bases,])
+
+mid <- 121485434-5e7
+w <- 1e5
+some <- chr1.cov[!(chromStart < mid-w | mid+w < chromEnd),]
+other.some <- other.problems[!(problemStart < mid-w | mid+w < problemEnd),]
+some.gaps <- chr1.gap[!(chromStart < mid-w | mid+w < chromEnd),]
+gg <- ggplot()+
+  geom_step(aes(chromStart/1e3, count),
+            color="grey50",
+            data=some)+
+  geom_segment(aes(problemStart/1e3, 0, xend=problemEnd/1e3, yend=0),
+               color="red",
+               data=other.some)+
+  geom_point(aes(problemStart/1e3, 0, xend=problemEnd/1e3, yend=0),
+               color="red",
+             data=other.some)
+if(nrow(some.gaps)){
+  gg <- gg+  geom_segment(aes(chromStart/1e3, 0, xend=chromEnd/1e3, yend=0),
+               size=2,
+                          data=some.gaps)
+}
+print(gg)
+
+N <- 10^6
+divisor <- 10^3.5
+
 pen.info.list <- list()
 for(N in 10^seq(4, 6, by=0.5)){
-  some <- McGill0003_H3K4me3_chr1[1:N,]
+  some <- biggest[1:N,]
   for(divisor in 10^seq(0, 3, by=0.5)){
     lambda <- N/divisor
     cat(sprintf("N=%f divisor=%f\n", N, divisor))

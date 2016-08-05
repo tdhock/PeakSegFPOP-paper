@@ -13,11 +13,21 @@ algo <- function(algorithm, ...){
   data.table(algorithm, ...)
 }
 all.timings <- rbind(
-  algo("cDPA\nO(N^2)", dp.timings),
-  algo("PDPA\nO(N log N)", Segmentor.timings),
+  algo("PeakSegDP\nO(N^2)", dp.timings),
+  algo("Segmentor\nO(N log N)", Segmentor.timings),
   ## algo("DP.fwd", dp.timings),
   ## algo("DP.rev", dp.timings.reverse),
-  algo("cPDPA\nO(N log N)", PDPA.timings))
+  algo("coseg\nO(N log N)", PDPA.timings))
+
+gg.quad <- ggplot()+
+  ylab("hours of computation time")+
+  xlab("data points to segment N")+
+  geom_point(aes(data, seconds/60/60),
+             shape=1,
+             data=dp.timings)
+pdf("figure-PDPA-timings-dp.pdf", h=4)
+print(gg.quad)
+dev.off()
 
 totals <- all.timings[, list(seconds=sum(seconds)), by=algorithm]
 totals[, minutes := seconds/60]

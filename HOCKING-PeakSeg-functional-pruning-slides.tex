@@ -151,37 +151,231 @@ maxIter 20
   \includegraphics[width=1\textwidth]{figure-macs-problem-PeakSeg.png}
 \end{frame}
 
-\section{Algorithm: constrained optimal segmentation}
+\section{Review of constrained dynamic programming algorithm}
+
+\begin{frame}
+  \frametitle{Maximum likelihood Poisson segmentation models}
+  \includegraphics[width=1\textwidth]{figure-Segmentor-PeakSeg}
+
+  \begin{itemize}
+  \item Previous work: unconstrained maximum likelihood mean\\
+    for $s$ segments ($s-1$ changes).
+  \item Hocking et al, ICML 2015: PeakSeg constraint enforces up, down, up,
+    down (and not up, up, down). 
+  \item Odd-numbered segments are background noise,\\
+    even-numbered segments are peaks.
+  \item Constrained Dynamic Programming Algorithm, $O(N^2)$ time for $N$ data points.
+  \end{itemize}
+\end{frame}
+
+\input{figure-dp-first}
+
+\input{figure-dp-short}
+
+\input{figure-dp}
+
+\begin{frame}
+  \frametitle{Dynamic programming is faster than grid search for $s>
+    2$ segments}
+
+  Computation time in number of data points $N$:
+
+  \vskip 1cm
+
+  \begin{tabular}{ccc}
+    segments $s$ & grid search & dynamic programming \\
+    \hline
+    1 & $O(N)$ & $O(N)$ \\
+    2 & $O(N^2)$ & $O(N^2)$ \\
+    3 & $O(N^3)$ & $O(N^2)$ \\
+    4 & $O(N^4)$ & $O(N^2)$ \\
+    $\vdots$ &     $\vdots$ &     $\vdots$ 
+  \end{tabular}
+
+  \vskip 1cm
+
+  For example $N = 5735$ data points to segment.\\
+  $N^2 = 32890225$\\
+  $N^3 = 188625440375$\\
+  $\vdots$
+\end{frame}
+
+\input{figure-dp-third}
+
+\begin{frame}
+  \frametitle{But quadratic time is not fast enough for genomic data!}
+  \includegraphics[width=\textwidth]{figure-PDPA-timings-dp}
+  \begin{itemize}
+  \item Genomic data is large, $N \geq 10^6$.
+  \item Split into subsets? What if we split a peak in half?
+  \item Need linear time algorithm for analyzing whole data set.
+  \end{itemize}
+\end{frame}
+
+\section{New linear time algorithm using functional pruning}
+
+\begin{frame}
+  \frametitle{Relation to previous work}
+  \begin{tabular}{r|c|c}
+    & no pruning & functional pruning \\
+    \hline
+    unconstrained & \alert<1>{Dynamic Programming} & \alert<2>{Pruned DP} \\
+     & \alert<1>{exact $O(N^2)$} & \alert<2>{exact $O(N\log N)$}\\
+    R pkgs: & \alert<1>{changepoint} & \alert<2>{cghseg, Segmentor}\\
+    \hline
+    up-down constrained & \alert<3>{constrained DP} & \alert<4>{\textbf{this work}} \\
+     & \alert<3>{inexact $O(N^2)$} & \alert<4>{exact $O(N\log N)$}\\
+    R pkgs: & \alert<3>{PeakSegDP} & \alert<4>{coseg}\\
+    \hline
+  \end{tabular}
+  \begin{itemize}
+  \item \alert<1>{Auger and Lawrence 1989, Jackson et al 2005}.
+  \item \alert<2>{Rigaill 2010, Johnson 2013}.
+  \item \alert<3>{Hocking, Rigaill, Bourque 2015}.
+  \item \alert<4>{\textbf{Contribution}: new algorithm that
+      \textbf{exactly} computes the \textbf{constrained} optimal
+      segmentation for $N$ data points in linear $O(N\log N)$ time}.
+  \end{itemize}
+\end{frame}
+
+% \begin{frame}
+%   \frametitle{TODO: difference with unconstrained PDPA figure
+%     (min-less function vs min constant)}
+% \end{frame}
+
+\begin{frame}
+  \frametitle{Functional pruning idea}
+  Instead of computing the matrix of optimal loss in $S$ segments up
+  to $N$ data points,
+$$
+\begin{array}{ccc}
+  \mathcal L_{1,1} & \cdots &   \mathcal L_{1,N}\\
+  \vdots &  & \vdots\\
+  \mathcal L_{S,1} & \cdots & \mathcal L_{S,N}\\
+\end{array}
+$$
+We compute a matrix of loss \textbf{functions}
+$$
+\begin{array}{ccc}
+   L_{1,1}(\mu_1) & \cdots & L_{1,N}(\mu_1)\\
+  \vdots &  & \vdots\\
+   L_{S,1}(\mu_S) & \cdots & L_{S,N}(\mu_S),\\
+\end{array}
+$$
+the optimal loss up to $N$ data points if segment $S$ has mean
+$\mu_S$.
+\end{frame}
+
+\begin{frame}
+  \frametitle{First segment}
+  \begin{itemize}
+  \item   For data $z_1, \dots, z_N\in\ZZ_+$ let
+  \begin{equation*}
+    \gamma_t(\mu) = \mu - z_t \log \mu
+  \end{equation*}
+  be the Poisson loss for each $t\in\{1, \dots, N\}$.
+\item
+  The optimal cost of the first segment up to data point $t$ is
+  \begin{equation*}
+    \label{eq:C1b}
+    L_{1,t}(\mu) = \sum_{i=1}^t \gamma_i(\mu).
+  \end{equation*}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Second segment, up to data point 2}
+  \begin{itemize}
+  \item The cost up to data point 2 is
+\begin{equation*}
+  \label{eq:C22}
+  L_{2,2}(\mu) = L_{1,1}^{\leq}(\mu) + \gamma_2(\mu),
+\end{equation*}
+\item Min-less operator is $C^\leq(\mu) = \min_{x\leq\mu} C(x),$
+    \begin{center}
+      \input{figure-1-min-less-operator}
+    \end{center}
+\item The min-less operation is sub-linear time complexity.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Second segment, up to data point t}
+  \begin{itemize}
+\item The updates continue for every data point $t\in\{3, ..., N\}$
+\begin{equation*}
+  L_{2,t}(\mu) =  \gamma_t(\mu) + \min
+  \begin{cases}
+    L_{2,t-1}(\mu),\\
+    L_{1,t-1}^{\leq}(\mu).
+  \end{cases}
+\end{equation*}
+\item The $\min$ operation is sub-linear time complexity.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Functional pruning example}
+\includegraphics[width=\textwidth]{screenshot-PDPA-demo}
+
+  \url{http://bl.ocks.org/tdhock/raw/8c5dd0af533e24a893e7c5232f9bc94c/}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Functional pruning equation}
+  \begin{equation*}
+    L_{s,t}(\mu) = \gamma_t(\mu) + \min
+    \begin{cases}
+      L_{s,t-1}(\mu),\\
+      L_{s-1,t-1}^{*}(\mu),
+    \end{cases}
+  \end{equation*}
+\end{frame}
 
 \begin{frame}
   \frametitle{TODO: PeakSeg undefined slides}
 \end{frame}
 
-\begin{frame}
-  \frametitle{TODO: unconstrained model not feasible slide}
-\end{frame}
-
-\begin{frame}
-  \frametitle{TODO: difference with unconstrained PDPA figure
-    (min-less function vs min constant)}
-\end{frame}
-
-\begin{frame}
-  \frametitle{TODO: functional pruning example}
-  \url{http://bl.ocks.org/tdhock/raw/8c5dd0af533e24a893e7c5232f9bc94c/}
-\end{frame}
-
 \section{Results on benchmark data set}
 
 \begin{frame}
-  \frametitle{Linear time algorithm faster for larger data sets}
+  \frametitle{Benchmark data, algorithms}
+
+  Data: \url{http://cbio.ensmp.fr/~thocking/chip-seq-chunk-db/}
+  \begin{itemize}
+  \item 4 annotators (AM, TDH, PGP, XJ).
+  \item 8 cell types.
+  \item 37 annotated H3K4me3 profiles (sharp peaks).
+  \item 29 annotated H3K36me3 profiles (broadly enriched domains).
+  \item 2,752 separate segmentation problems.
+  \end{itemize}
+
+  Algorithms for segmenting $N$ data points:
+  \begin{center}
+  \begin{tabular}{ccccc}
+    package & constraint & exact? & complexity \\
+    \hline
+    coseg & $\mu_1 \leq \mu_2 \geq \mu_3 \dots$ & yes & $O(N\log N)$ \\
+    PeakSegDP & $\mu_1 < \mu_2 > \mu_3 \dots$ & no & $O(N^2)$\\
+    Segmentor & none & yes & $O(N\log N)$
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Linear time algorithms faster for larger data sets}
   \includegraphics[width=1\textwidth]{figure-PDPA-timings.pdf}
 
   Total time to compute 10 models (0, ..., 9 peaks) for all data sets:
   \begin{itemize}
-  \item cDPA: 156 hours, inexact.
-  \item cPDPA: 6 hours, exact.
+  \item PeakSegDP: 156 hours, inexact.
+  \item coseg: 6 hours, exact.
   \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Number of intervals is sub-linear}
+  \includegraphics[width=1\textwidth]{figure-PDPA-intervals-all}
 \end{frame}
 
 \begin{frame}
@@ -221,32 +415,7 @@ maxIter 20
 \end{frame}
 
 \begin{frame}
-  \frametitle{Errors: PeakSegDP $<$ coseg $<$ Segmentor}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem3}
-\end{frame}
-
-\begin{frame}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem3-0peaks.pdf}
-\end{frame}
-
-\begin{frame}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem3-1peaks.pdf}
-\end{frame}
-
-\begin{frame}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem3-2peaks.pdf}
-\end{frame}
-
-\begin{frame}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem3-3peaks.pdf}
-\end{frame}
-
-\begin{frame}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem3-4peaks.pdf}
-\end{frame}
-
-\begin{frame}
-  \frametitle{5 error for coseg/Segmentor, only 1 error for PeakSegDP}
+  \frametitle{5 errors for coseg/Segmentor, only 1 error for PeakSegDP}
   \includegraphics[width=\textwidth]{figure-min-train-error-problem1}
 \end{frame}
 
@@ -273,11 +442,41 @@ maxIter 20
 
 \section{Conclusions and future work}
 
+\begin{frame}
+  \frametitle{Conclusions}
+  \begin{tabular}{r|c|c}
+    & no pruning & functional pruning \\
+    \hline
+    unconstrained & Dynamic Programming & Pruned DP \\
+     & exact $O(N^2)$ & exact $O(N\log N)$\\
+    R pkgs: & changepoint & cghseg, Segmentor\\
+    \hline
+    up-down constrained & constrained DP & \textbf{this work} \\
+     & inexact $O(N^2)$ & exact $O(N\log N)$\\
+    R pkgs: & PeakSegDP & \textbf{coseg}\\
+    \hline
+  \end{tabular}
+  \begin{itemize}
+  \item New algorithm that \textbf{exactly} computes the
+    \textbf{constrained} optimal change-points/peaks for $N$ data points.
+  \item C++ implementation in coseg R package, 
+    \url{https://github.com/tdhock/coseg}
+  \item TODO: regularized isotonic regression solver.
+  \item TODO: supervised peak calling on entire genomes.
+  \end{itemize}
+\end{frame}
 
 \begin{frame}
   \frametitle{Segmenting whole chromosomes?}
   \includegraphics[width=\textwidth]{screenshot-gap-peaks}
+  \begin{itemize}
+  \item 365 regions with no gaps in hg19.
+  \item 272 regions with no gaps on chr1-22, X, Y.
+  \item Smallest: 31,833 bases (chr6:157,609,467-157,641,300).
+  \item Largest: 115,591,997 bases (chr4:75,452,279-191,044,276).
+  \end{itemize}
 \end{frame}
+
 
 \begin{frame}
   \frametitle{Timings on subsets of human chr1}
@@ -296,6 +495,44 @@ maxIter 20
   \item Current implementation: $O(N \log N)$ memory.
   \item Future work: $O(N \log N)$ disk space, $O(1)$ memory.
   \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Thanks for your attention!}
+
+  Questions? 
+  \begin{itemize}
+  \item 
+  coseg R package with linear time C++ code,
+  \url{https://github.com/tdhock/coseg}
+\item   source code for these slides:
+  \url{https://github.com/tdhock/PeakSegFPOP-paper}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Errors: PeakSegDP $<$ coseg $<$ Segmentor}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem3}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem3-0peaks.pdf}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem3-1peaks.pdf}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem3-2peaks.pdf}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem3-3peaks.pdf}
+\end{frame}
+
+\begin{frame}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem3-4peaks.pdf}
 \end{frame}
 
 \end{document}

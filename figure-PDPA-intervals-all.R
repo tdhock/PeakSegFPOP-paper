@@ -26,7 +26,7 @@ gg <- ggplot()+
   scale_x_continuous(
     "log10(data points to segment)")+
   scale_y_continuous(
-    "intervals stored by the constrained optimal segmentation algorithm")
+    "intervals stored by the algorithm")
 
 PDPA.intervals.all[, log10.data := log10(n.data)]
 PDPA.intervals.all[, log10.data1 := log10(n.data)]
@@ -67,7 +67,7 @@ ggplot()+
     "log10(data points to segment)")+
   scale_y_continuous("median(intervals)")
 
-pdf("figure-PDPA-intervals-all.pdf", w=7, h=6)
+pdf("figure-PDPA-intervals-all.pdf", w=7, h=5)
 print(gg)
 dev.off()
 
