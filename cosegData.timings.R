@@ -1,8 +1,7 @@
+source("packages.R")
+
 data("McGill0003_H3K4me3_chr1", package="cosegData")
 data("hg19.gap", package="cosegData")
-library(coseg)
-library(memtime)
-library(data.table)
 
 last <- 1e5
 w <- 1e4
@@ -176,20 +175,65 @@ N <- 10^6
 divisor <- 10^3.5
 
 pen.info.list <- list()
-for(N in 10^seq(4, 6, by=0.5)){
+N.vec <- as.integer(10^seq(4, 6, by=0.5))
+div.vec <- as.integer(10^seq(0, 3, by=0.5))
+for(N in N.vec){
   some <- biggest[1:N,]
-  for(divisor in 10^seq(0, 3, by=0.5)){
+  for(divisor in div.vec){
     lambda <- N/divisor
-    cat(sprintf("N=%f divisor=%f\n", N, divisor))
+    cat(sprintf("N=%d divisor=%f\n", N, divisor))
     for(rep.i in 1:2){
       info <- memtime({
         fpop <- PeakSegFPOPchrom(some, lambda)
       })
       pen.info.list[[paste(N, divisor, rep.i)]] <- data.table(
+        algorithm="in.memory",
         fpop$loss, lambda, N, rep.i, seconds=info$time[["elapsed"]],
-        kilobytes=info$memory["max.increase", "kilobytes"])
+        memory.kilobytes=info$memory["max.increase", "kilobytes"],
+        disk.kilobytes=0)
     }
   }
 }
+
+N <- nrow(biggest)
+biggest$chrom <- "chr1"
+for(N in c(N.vec, nrow(biggest))){
+  some <- biggest[1:N,]
+  some[, chromStart1 := chromStart + 1L]
+  setkey(some, chrom, chromStart1, chromEnd)
+  fwrite(some[, .(chrom, chromStart, chromEnd, count)], "memtest.bedGraph", col.names=FALSE, sep="\t")
+  for(divisor in div.vec){
+    lambda <- N/divisor
+    cat(sprintf("N=%d divisor=%f\n", N, divisor))
+    cmd <- paste("PeakSegFPOP memtest.bedGraph", lambda)
+    for(rep.i in 1:2){
+      unlink("tmp.db")
+      info <- memtime({
+        system(cmd)
+      })
+      bed.file <- paste0("memtest.bedGraph_penalty=", lambda, "_segments.bed")
+      segs <- fread(bed.file)
+      setnames(segs, c("chrom", "segStart", "segEnd", "status", "mean"))
+      segs[, segStart1 := segStart+1L]
+      setkey(segs, chrom, segStart1, segEnd)
+      over.dt <- foverlaps(some, segs, nomatch=0L)
+      stopifnot(nrow(over.dt)==nrow(some))
+      ploss <- over.dt[, PoissonLoss(count, mean, chromEnd-chromStart)]
+      peaks <- sum(segs$status=="peak")
+      feasible <- all(diff(segs$mean) != 0)
+      loss.dt <- data.table(
+        segments=nrow(segs),
+        peaks,
+        penalized.loss=ploss+peaks*lambda,
+        feasible)
+      pen.info.list[[paste("on.disk", N, divisor, rep.i)]] <- data.table(
+        algorithm="on.disk",
+        loss.dt, lambda, N, rep.i, seconds=info$time[["elapsed"]],
+        memory.kilobytes=info$memory["max.increase", "kilobytes"],
+        disk.kilobytes=file.size("tmp.db")/1024)
+    }
+  }
+}
+
 cosegData.timings <- do.call(rbind, pen.info.list)
 save(cosegData.timings, file="cosegData.timings.RData")
