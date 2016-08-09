@@ -231,33 +231,54 @@ $\mu_S$.
 \end{frame}
 
 \begin{frame}
-  \frametitle{First segment}
+  \frametitle{First segment, first data point}
   \begin{itemize}
   \item   For data $z_1, \dots, z_N\in\ZZ_+$ let
   \begin{equation*}
     \gamma_t(\mu) = \mu - z_t \log \mu
   \end{equation*}
   be the Poisson loss for each $t\in\{1, \dots, N\}$.
+\item For example $z = 2, 1, 10, 14, 5, 6$.
+\item Then $\gamma_1(\mu)=L_{1,1}(\mu)= \mu - 2\log \mu + 0$.
+\item Need to store 3 coefficients (linear, log, constant) and an
+  interval (min mean, max mean).
+  \end{itemize}
+  \begin{center}
+    \includegraphics[width=0.7\textwidth]{figure-PeakSegPDPA-demo-cost-1segments-1data}
+  \end{center}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Second segment, second data point}
+  \begin{itemize}
 \item
   The optimal cost of the first segment up to data point $t$ is
   \begin{equation*}
     \label{eq:C1b}
     L_{1,t}(\mu) = \sum_{i=1}^t \gamma_i(\mu).
   \end{equation*}
+\item For example $z = 2, 1, 10, 14, 5, 6$.
+\item $L_{1,2}(\mu) = (2\mu - 3\log\mu + 0)/2 = 1\mu - 1.5\log\mu + 0$.
+\item $L_{1,3}(\mu) = (3\mu - 13\log\mu + 0)/3 = 1\mu - 4.333\log\mu + 0$.
+\item ...
   \end{itemize}
+  \begin{center}
+    \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-cost-1segments-2data}
+    \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-cost-1segments-3data}
+  \end{center}
 \end{frame}
 
 \begin{frame}
   \frametitle{Second segment, up to data point 2}
   \begin{itemize}
-  \item The cost up to data point 2 is
+  \item The cost in 2 segments up to data point 2 is
 \begin{equation*}
   \label{eq:C22}
   L_{2,2}(\mu) = L_{1,1}^{\leq}(\mu) + \gamma_2(\mu),
 \end{equation*}
 \item Min-less operator is $C^\leq(\mu) = \min_{x\leq\mu} C(x),$
     \begin{center}
-      \input{figure-1-min-less-operator}
+      \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minlessmore-2segments-2data}
     \end{center}
 \item The min-less operation is sub-linear time complexity.
 \end{itemize}

@@ -109,7 +109,7 @@ for(fig.i in seq_along(dist.vec)){
   
 }
 
-mean.vec <- c(mid, mid, mid, ,1)
+mean.vec <- c(mid, mid, mid, 1)
 Poisson.Loss <- PoissonLoss(dt$count, mean.vec)
 loss <- data.table(Poisson.Loss)
 segs <- data.table(mean=mean.vec, pos=1:4)

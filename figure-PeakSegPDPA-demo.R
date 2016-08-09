@@ -532,7 +532,7 @@ Multiply <- function(dt, x){
   new.dt
 }
 
-input.dt <- data.table(count=c(1, 2, 10, 14, 5, 6), weight=1)
+input.dt <- data.table(count=c(2, 1, 10, 14, 5, 6), weight=1)
 
 cost.lines.list <- list()
 minima.list <- list()
@@ -553,6 +553,16 @@ gamma.dt$min.mean <- C1.dt$min.mean <- min.mean
 gamma.dt$max.mean <- C1.dt$max.mean <- max.mean
 gamma.dt$data.i <- C1.dt$data.i <- 0
 
+data.colors <- c(
+  "1"="#E41A1C",
+  "2"="#377EB8",
+  "3"="#4DAF4A",
+  "4"="#984EA3",
+  "5"="#FF7F00",
+  "6"="#FFFF33",
+  "0"="black",
+  "#A65628", "#F781BF", "#999999")
+
 for(data.i in 1:nrow(C1.dt)){
   cost.models.list[[paste(1, data.i)]] <- C1.dt[data.i,]
 }
@@ -567,6 +577,21 @@ for(total.segments in 2:max.segments){
   }
   min.fun <- less.more.min.list[[min.fun.name]]
   first.min.average <- min.fun(prev.cost.model)
+  gg.prev <- ggplot()+
+    ggtitle(paste(total.segments, "segments,", total.segments, "data points"))+
+    scale_x_continuous(breaks=c(range(input.dt$count), 5, 10))+
+    scale_color_manual("prev seg end", values=data.colors)+
+    geom_line(aes(mean, cost),
+              getLines(first.min.average),
+              color="grey",
+              size=2)+
+    geom_line(aes(mean, cost,
+                  color=factor(data.i),
+                  group=piece.i),
+              data=getLines(prev.cost.model))
+  pdf(sprintf("figure-PeakSegPDPA-demo-minlessmore-%dsegments-%ddata.pdf", total.segments, total.segments), 5, 3)
+  print(gg.prev)
+  dev.off()
   first.data <- gamma.dt[total.segments,]
   first.data$data.i <- total.segments-1
   first.min.total <- Multiply(first.min.average, cum.weight[total.segments-1])
@@ -576,6 +601,16 @@ for(total.segments in 2:max.segments){
   for(timestep in (total.segments+1):length(input.dt$count)){
     if(!paste(total.segments, timestep) %in% names(cost.models.list)){
       prev.cost.model <- cost.models.list[[paste(total.segments-1, timestep-1)]]
+      gg.prev <- ggplot()+
+        ggtitle(paste(total.segments, "segments,", timestep, "data points"))+
+        scale_color_manual("prev seg end", values=data.colors)+
+          geom_line(aes(mean, cost,
+                        color=factor(data.i),
+                        group=piece.i),
+                    data=getLines(prev.cost.model))
+      ## pdf(sprintf("figure-PeakSegPDPA-demo-cost-%dsegments-%ddata.pdf", total.segments, timestep), 5, 3)
+      ## print(gg.prev)
+      ## dev.off()
       compare.cost <- min.fun(prev.cost.model)
       compare.cost$data.i <- timestep-1
       cost.model <- cost.models.list[[paste(total.segments, timestep-1)]]
@@ -585,6 +620,8 @@ for(total.segments in 2:max.segments){
       cost.minima <- Minimize(cost.model)
       compare.minima <- Minimize(compare.cost)
       gg <- ggplot()+
+        scale_x_continuous(breaks=c(range(input.dt$count), 5, 10))+
+        scale_color_manual(values=data.colors)+
         ggtitle(paste(total.segments, "segments,", timestep, "data points"))
       if(nrow(compare.cost)){
         cost.lines.list[[
@@ -597,6 +634,21 @@ for(total.segments in 2:max.segments){
                         color=factor(data.i),
                         group=piece.i),
                     compare.cost.lines)
+        gg.prev <- ggplot()+
+          ggtitle(paste(total.segments-1, "segments,", timestep-1, "data points"))+
+          scale_x_continuous(breaks=c(range(input.dt$count), 5, 10))+
+          scale_color_manual("prev seg end", values=data.colors)+
+          geom_line(aes(mean, cost),
+                    compare.cost.lines,
+                    color="grey",
+                    size=2)+
+          geom_line(aes(mean, cost,
+                        color=factor(data.i),
+                        group=piece.i),
+                    data=getLines(prev.cost.model))
+        pdf(sprintf("figure-PeakSegPDPA-demo-minlessmore-%dsegments-%ddata.pdf", total.segments, timestep), 5, 3)
+        print(gg.prev)
+        dev.off()
       }
       if(nrow(cost.model)){ # may be Inf over entire interval.
         cost.lines.list[[paste(total.segments, timestep)]] <-
@@ -620,9 +672,11 @@ for(total.segments in 2:max.segments){
           geom_line(aes(mean, cost),
                     env.lines,
                     color="grey",
-                    size=2,
-                    alpha=0.5)
+                    size=2)
       }
+      pdf(sprintf("figure-PeakSegPDPA-demo-minenv-%dsegments-%ddata.pdf", total.segments, timestep), 5, 3)
+      print(gg)
+      dev.off()
       if(nrow(cost.minima)){
         minima.list[[paste(total.segments, timestep)]] <-
           data.table(total.segments, timestep, rbind(
@@ -637,6 +691,23 @@ for(total.segments in 2:max.segments){
     }
   }#for(timestep
 }#for(total.segments
+
+for(total.segments in 1:max.segments){
+  for(timestep in total.segments:length(input.dt$count)){
+    cost.model <- cost.models.list[[paste(total.segments, timestep)]]
+    gg.cost <- ggplot()+
+      ggtitle(paste(total.segments, "segments,", timestep, "data points"))+
+      scale_x_continuous(breaks=c(range(input.dt$count), 5, 10))+
+      scale_color_manual("prev seg end", values=data.colors)+
+      geom_line(aes(mean, cost,
+                    color=factor(data.i),
+                    group=piece.i),
+                data=getLines(cost.model))
+    pdf(print(sprintf("figure-PeakSegPDPA-demo-cost-%dsegments-%ddata.pdf", total.segments, timestep)), 5, 3)
+    print(gg.cost)
+    dev.off()
+  }
+}
 
 cost.lines <- do.call(rbind, cost.lines.list)
 cost.lines[, minimization := paste(
@@ -770,17 +841,6 @@ for(total.segments in 1:max.segments){
     }#while(...
   }#for(timestep
 }#for(total.segments
-
-data.colors <- c(
-  "1"="#E41A1C",
-  "2"="#377EB8",
-  "3"="#4DAF4A",
-  "4"="#984EA3",
-  "5"="#FF7F00",
-  "6"="#FFFF33",
-  "0"="black",
-  "#A65628", "#F781BF", "#999999")
-
 
 data.intervals <- do.call(rbind, data.intervals.list)
 data.dt <- data.table(
