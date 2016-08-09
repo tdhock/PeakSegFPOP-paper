@@ -151,8 +151,6 @@ maxIter 20
   \includegraphics[width=1\textwidth]{figure-macs-problem-PeakSeg.png}
 \end{frame}
 
-\section{Review of constrained dynamic programming algorithm}
-
 \begin{frame}
   \frametitle{Maximum likelihood Poisson segmentation models}
   \includegraphics[width=1\textwidth]{figure-Segmentor-PeakSeg}
@@ -167,40 +165,6 @@ maxIter 20
   \item Constrained Dynamic Programming Algorithm, $O(N^2)$ time for $N$ data points.
   \end{itemize}
 \end{frame}
-
-\input{figure-dp-first}
-
-\input{figure-dp-short}
-
-\input{figure-dp}
-
-\begin{frame}
-  \frametitle{Dynamic programming is faster than grid search for $s>
-    2$ segments}
-
-  Computation time in number of data points $N$:
-
-  \vskip 1cm
-
-  \begin{tabular}{ccc}
-    segments $s$ & grid search & dynamic programming \\
-    \hline
-    1 & $O(N)$ & $O(N)$ \\
-    2 & $O(N^2)$ & $O(N^2)$ \\
-    3 & $O(N^3)$ & $O(N^2)$ \\
-    4 & $O(N^4)$ & $O(N^2)$ \\
-    $\vdots$ &     $\vdots$ &     $\vdots$ 
-  \end{tabular}
-
-  \vskip 1cm
-
-  For example $N = 5735$ data points to segment.\\
-  $N^2 = 32890225$\\
-  $N^3 = 188625440375$\\
-  $\vdots$
-\end{frame}
-
-\input{figure-dp-third}
 
 \begin{frame}
   \frametitle{But quadratic time is not fast enough for genomic data!}
@@ -555,5 +519,41 @@ $\mu_S$.
 \begin{frame}
   \includegraphics[width=\textwidth]{figure-min-train-error-problem3-4peaks.pdf}
 \end{frame}
+
+%\section{Review of constrained dynamic programming algorithm}
+
+\input{figure-dp-first}
+
+\input{figure-dp-short}
+
+\input{figure-dp}
+
+\begin{frame}
+  \frametitle{Dynamic programming is faster than grid search for $s>
+    2$ segments}
+
+  Computation time in number of data points $N$:
+
+  \vskip 1cm
+
+  \begin{tabular}{ccc}
+    segments $s$ & grid search & dynamic programming \\
+    \hline
+    1 & $O(N)$ & $O(N)$ \\
+    2 & $O(N^2)$ & $O(N^2)$ \\
+    3 & $O(N^3)$ & $O(N^2)$ \\
+    4 & $O(N^4)$ & $O(N^2)$ \\
+    $\vdots$ &     $\vdots$ &     $\vdots$ 
+  \end{tabular}
+
+  \vskip 1cm
+
+  For example $N = 5735$ data points to segment.\\
+  $N^2 = 32890225$\\
+  $N^3 = 188625440375$\\
+  $\vdots$
+\end{frame}
+
+\input{figure-dp-third}
 
 \end{document}
