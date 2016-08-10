@@ -635,7 +635,7 @@ for(total.segments in 2:max.segments){
                         group=piece.i),
                     compare.cost.lines)
         gg.prev <- ggplot()+
-          ggtitle(paste(total.segments-1, "segments,", timestep-1, "data points"))+
+          ggtitle(paste(total.segments, "segments,", timestep, "data points"))+
           scale_x_continuous(breaks=c(range(input.dt$count), 5, 10))+
           scale_color_manual("prev seg end", values=data.colors)+
           geom_line(aes(mean, cost),
@@ -647,6 +647,31 @@ for(total.segments in 2:max.segments){
                         group=piece.i),
                     data=getLines(prev.cost.model))
         pdf(sprintf("figure-PeakSegPDPA-demo-minlessmore-%dsegments-%ddata.pdf", total.segments, timestep), 5, 3)
+        print(gg.prev)
+        dev.off()
+        gg.prev <- ggplot()+
+          ggtitle(paste(total.segments, "segments,", timestep, "data points"))+
+          scale_x_continuous(breaks=c(range(input.dt$count), 5, 10))+
+          scale_color_manual(values=c(
+            "prev cost"="black",
+            "constrained min"="grey",
+            "unconstrained min"="red"))+
+          geom_line(aes(mean, cost, color=fun.type),
+                    data=data.table(
+                      fun.type="constrained min",
+                      compare.cost.lines),
+                    size=3)+
+          geom_hline(aes(yintercept=min.cost, color=fun.type),
+                     data=data.table(
+                       fun.type="unconstrained min",
+                       compare.minima))+
+          geom_line(aes(mean, cost,
+                        color=fun.type,
+                        group=piece.i),
+                    data=data.table(
+                      fun.type="prev cost",
+                      getLines(prev.cost.model)))
+        pdf(sprintf("figure-PeakSegPDPA-demo-mincompare-%dsegments-%ddata.pdf", total.segments, timestep), 5, 3)
         print(gg.prev)
         dev.off()
       }
