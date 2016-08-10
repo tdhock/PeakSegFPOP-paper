@@ -239,7 +239,7 @@ $\mu_S$.
   \end{equation*}
   be the Poisson loss for each $t\in\{1, \dots, N\}$.
 \item For example $z = 2, 1, 10, 14, 5, 6$.
-\item Then $\gamma_1(\mu)=L_{1,1}(\mu)= \mu - 2\log \mu + 0$.
+\item Then $\gamma_1(\mu)=L_{1,1}(\mu)= 1\mu - 2\log \mu + 0$.
 \item Need to store 3 coefficients (linear, log, constant) and an
   interval (min mean, max mean).
   \end{itemize}
@@ -249,7 +249,7 @@ $\mu_S$.
 \end{frame}
 
 \begin{frame}
-  \frametitle{Second segment, second data point}
+  \frametitle{First segment, second data point}
   \begin{itemize}
 \item
   The optimal cost of the first segment up to data point $t$ is
@@ -258,8 +258,10 @@ $\mu_S$.
     L_{1,t}(\mu) = \sum_{i=1}^t \gamma_i(\mu).
   \end{equation*}
 \item For example $z = 2, 1, 10, 14, 5, 6$.
-\item $L_{1,2}(\mu) = (2\mu - 3\log\mu + 0)/2 = 1\mu - 1.5\log\mu + 0$.
-\item $L_{1,3}(\mu) = (3\mu - 13\log\mu + 0)/3 = 1\mu - 4.333\log\mu + 0$.
+% \item $L_{1,2}(\mu) = (2\mu - 3\log\mu + 0)/2 = 1\mu - 1.5\log\mu + 0$.
+% \item $L_{1,3}(\mu) = (3\mu - 13\log\mu + 0)/3 = 1\mu - 4.333\log\mu + 0$.
+\item $L_{1,2}(\mu) = 2\mu - 3\log\mu + 0$.
+\item $L_{1,3}(\mu) = 3\mu - 13\log\mu + 0$.
 \item ...
   \end{itemize}
   \begin{center}
@@ -271,32 +273,93 @@ $\mu_S$.
 \begin{frame}
   \frametitle{Second segment, up to data point 2}
   \begin{itemize}
-  \item The cost in 2 segments up to data point 2 is
-\begin{equation*}
-  \label{eq:C22}
-  L_{2,2}(\mu) = L_{1,1}^{\leq}(\mu) + \gamma_2(\mu),
-\end{equation*}
-\item Min-less operator is $C^\leq(\mu) = \min_{x\leq\mu} C(x),$
+  \item The mean cost in 2 segments up to data point 2 is
+% \begin{eqnarray*}
+%   L_{2,2}(\mu_2) &=& \left(
+%    L_{1,1}^{\leq}(\mu_2) + \gamma_2(\mu_2)
+%   \right)/2\\
+%   &=& \left(
+%    \min_{\mu_1 \leq \mu_2} L_{1,1}(\mu_1) + \gamma_2(\mu_2)
+%   \right)/2.
+% \end{eqnarray*}
+\begin{eqnarray*}
+  L_{2,2}(\mu_2) &=& \gamma_2(\mu_2)+
+   L_{1,1}^{\leq}(\mu_2)\\
+  &=&  \gamma_2(\mu_2)+
+   \min_{\mu_1 \leq \mu_2} L_{1,1}(\mu_1).
+\end{eqnarray*}
+\item Min-less operator is $L^\leq(\mu) = \min_{x\leq\mu} L(x),$
     \begin{center}
       \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minlessmore-2segments-2data}
     \end{center}
-\item The min-less operation is sub-linear time complexity.
 \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Comparison with unconstrained Pruned DPA}
+  \begin{itemize}
+  \item For our constrained algorithm we have
+    \begin{equation*}
+      L_{2,2}(\mu_2) &=&  \gamma_2(\mu_2)+
+      \min_{\mu_1 \leq \mu_2} L_{1,1}(\mu_1).
+    \end{equation*}
+  \item For the unconstrained algorithm the first segment cost is constant:
+    \begin{equation*}
+      \widehat{L}_{2,2}(\mu_2) &=& \gamma_2(\mu_2)+
+      \underbrace{\min_{\mu_1} L_{1,1}(\mu_1)}_{\mathcal L_{1,1}}.
+    \end{equation*}
+  \item For example $z = 2, 1, 10, 14, 5, 6$.
+    \begin{center}
+      \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-mincompare-2segments-2data}
+    \end{center}
+  \item Storage: 
+    \begin{equation*}
+      L_{2,2}(\mu) &=&
+      \begin{cases}
+        L_{1,1}(\mu) = 1\mu - 2\log \mu + 0 & \text{ if } \mu\in[1,2],\\
+        \mathcal L_{1,1} = 1*2 - 2\log 2 & \text{ if } \mu\in[2,14].
+      \end{cases}
+    \end{equation*}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Second segment, up to data point 3}
+  \begin{itemize}
+  \item For data point 3 we need to consider two change-points:
+    \begin{equation*}
+      L_{2,3}(\mu) =  \gamma_3(\mu_2) + \min
+      \begin{cases}
+        L_{1,2}^{\leq}(\mu), & \text{ change up after data point 2},
+        L_{2,2}(\mu), & \text{ change up after data point 1}. \\
+      \end{cases}
+    \end{equation*}
+  \item For $z = 2, 1, 10, 14, 5, 6$ the $\min$ operation prunes a
+    change after data point 1.
+    \begin{center}
+      \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minenv-2segments-3data}
+    \end{center}
+  \end{itemize}
 \end{frame}
 
 \begin{frame}
   \frametitle{Second segment, up to data point t}
   \begin{itemize}
-\item The updates continue for every data point $t\in\{3, ..., N\}$
-\begin{equation*}
-  L_{2,t}(\mu) =  \gamma_t(\mu) + \min
-  \begin{cases}
-    L_{2,t-1}(\mu),\\
-    L_{1,t-1}^{\leq}(\mu).
-  \end{cases}
-\end{equation*}
-\item The $\min$ operation is sub-linear time complexity.
-\end{itemize}
+  \item The updates continue for every data point $t\in\{3, ..., N\}$
+    \begin{equation*}
+      L_{2,t}(\mu) =  \gamma_t(\mu) + \min
+      \begin{cases}
+        L_{2,t-1}(\mu),\\
+        L_{1,t-1}^{\leq}(\mu).
+      \end{cases}
+    \end{equation*}
+  \item For example for $z = 2, 1, 10, 14, 5, 6$, at data point $t=4$
+    we only need to consider changes after 2 and 3 (1 has been
+    pruned).
+    \begin{center}
+      \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-mincompare-2segments-4data}
+    \end{center}
+  \end{itemize}
 \end{frame}
 
 \begin{frame}
@@ -307,14 +370,57 @@ $\mu_S$.
 \end{frame}
 
 \begin{frame}
-  \frametitle{Functional pruning equation}
-  \begin{equation*}
-    L_{s,t}(\mu) = \gamma_t(\mu) + \min
-    \begin{cases}
-      L_{s,t-1}(\mu),\\
-      L_{s-1,t-1}^{*}(\mu),
-    \end{cases}
-  \end{equation*}
+  \frametitle{General functional pruning equation}
+  \begin{itemize}
+  \item The constrained cost of a mean $\mu$ for the segment $s$,
+    up to data point $t$:
+    \begin{equation*}
+      L_{s,t}(\mu) = \gamma_t(\mu) + \min
+      \begin{cases}
+        L_{s,t-1}(\mu),\\
+        L_{s-1,t-1}^{*}(\mu),
+      \end{cases}
+    \end{equation*}
+  \item The time complexity of the $\min$ operation and min-less/more
+    operations * depends on the number of intervals, which is
+    empirically sub-linear $O(\log N)$.
+    \begin{center}
+      \includegraphics[width=0.5\textwidth]{figure-PDPA-intervals-all}
+    \end{center}
+  \item Total time complexity: $O(S N\log N)$ (need to compute $O(SN)$
+    functions $L_{s,t}(\mu)$).
+  \end{itemize}
+\end{frame}
+
+\section{Interpretation of equal segment means}
+
+\begin{frame}
+  \frametitle{What does our solution say about the PeakSeg solution?}
+  \begin{itemize}
+  \item Our algo exactly solves a problem with \textbf{non-strict
+      inequality} constraints.
+  \item For example, $N=3$ data points and $S=3$ segments,
+    \begin{equation*}
+      \min_{\mu_1\leq\mu_2\geq\mu_3}
+      \sum_{t=1}^N m_t - z_t\log m_t.
+    \end{equation*}
+  \item But the PeakSeg problem has \textbf{strict inequality}
+    constraints:
+    \begin{equation*}
+      \min_{\mu_1<\mu_2 >\mu_3}
+      \sum_{t=1}^N m_t - z_t\log m_t.
+    \end{equation*}
+  \end{itemize}
+  When our algo returns equal values for adjacent segment means,
+  \begin{itemize}
+  \item Our solution is not feasible for the PeakSeg problem, and
+  \item The PeakSeg solution is undefined.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Example: 13, 14, 10, 1}
+  What do you think is the best model?
 \end{frame}
 
 \begin{frame}
@@ -377,11 +483,6 @@ $\mu_S$.
   \item PeakSegDP: 156 hours, inexact.
   \item coseg: 6 hours, exact.
   \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Number of intervals is sub-linear}
-  \includegraphics[width=1\textwidth]{figure-PDPA-intervals-all}
 \end{frame}
 
 \begin{frame}
