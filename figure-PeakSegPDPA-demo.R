@@ -589,6 +589,10 @@ for(total.segments in 2:max.segments){
                   color=factor(data.i),
                   group=piece.i),
               data=getLines(prev.cost.model))
+  i <- unique(prev.cost.model$data.i)
+  if(length(i)==1 && i==0){
+    gg.prev <- gg.prev+guides(color="none")
+  }
   pdf(sprintf("figure-PeakSegPDPA-demo-minlessmore-%dsegments-%ddata.pdf", total.segments, total.segments), 5, 3)
   print(gg.prev)
   dev.off()
@@ -672,6 +676,10 @@ for(total.segments in 2:max.segments){
                         color=factor(data.i),
                         group=piece.i),
                     data=getLines(prev.cost.model))
+        i <- unique(prev.cost.model$data.i)
+        if(length(i)==1 && i==0){
+          gg.prev <- gg.prev+guides(color="none")
+        }
         pdf(sprintf("figure-PeakSegPDPA-demo-minlessmore-%dsegments-%ddata.pdf", total.segments, timestep), 5, 3)
         print(gg.prev)
         dev.off()
@@ -763,13 +771,20 @@ for(total.segments in 1:max.segments){
   for(timestep in total.segments:length(input.dt$count)){
     cost.model <- cost.models.list[[paste(total.segments, timestep)]]
     gg.cost <- ggplot()+
-      ggtitle(paste(total.segments, "segments,", timestep, "data points"))+
+      ggtitle(paste0(
+        total.segments, " segment",
+        ifelse(total.segments==1, "", "s"),
+        ", ", timestep, " data points"))+
       scale_x_continuous(breaks=c(range(input.dt$count), 5, 10))+
       scale_color_manual("prev seg end", values=data.colors)+
       geom_line(aes(mean, cost,
                     color=factor(data.i),
                     group=piece.i),
                 data=getLines(cost.model))
+    i <- unique(cost.model$data.i)
+    if(length(i)==1 && i==0){
+      gg.cost <- gg.cost+guides(color="none")
+    }
     pdf(print(sprintf("figure-PeakSegPDPA-demo-cost-%dsegments-%ddata.pdf", total.segments, timestep)), 5, 3)
     print(gg.cost)
     dev.off()

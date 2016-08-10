@@ -1,6 +1,11 @@
 The goal of this paper is to implement a fast algorithm for solving
 the PeakSeg problem described in
 http://jmlr.org/proceedings/papers/v37/hocking15.html
+
+** 10 Aug 2016
+
+[[http://cbio.ensmp.fr/~thocking/HOCKING-PeakSeg-functional-pruning-slides.pdf][Slides]] for group meeting presentation 11 Aug 2016.
+
 ** 3 Aug 2016
 - C++ algo implemented in [[https://github.com/tdhock/coseg][coseg]] package.
 - [[file:figure-PeakSegPDPA-demo.R]] created

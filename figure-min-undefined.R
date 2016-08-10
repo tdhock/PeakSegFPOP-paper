@@ -109,6 +109,38 @@ for(fig.i in seq_along(dist.vec)){
   
 }
 
+mean.vec <- c(13, 14, 5.5, 5.5)
+Poisson.Loss <- PoissonLoss(dt$count, mean.vec)
+loss <- data.table(Poisson.Loss)
+segs <- data.table(mean=mean.vec, pos=1:4)
+mean.text <- data.table(
+  mean=c(5.5),
+  x=c(3.5),
+  vjust=c(-0.5))
+gg <- ggplot()+
+  theme_bw()+
+  geom_text(aes(
+    x, mean, label=sprintf("%.1f", mean), vjust=vjust),
+    data=mean.text)+
+  geom_text(aes(
+    2.5, 0,
+    label=sprintf("Poisson Loss = %f", Poisson.Loss)),
+    data=loss)+
+  geom_segment(aes(
+    pos-0.5, mean, xend=pos+0.5, yend=mean),
+    color="green",
+    size=1,
+    data=segs)+
+  geom_point(aes(chromEnd, count),
+             size=4,
+             data=dt)+
+  xlab("position on chromosome")+
+  theme(panel.grid.minor=element_blank())+
+  scale_y_continuous("align read counts", breaks=dt$count)
+pdf("figure-min-undefined-suboptimal.pdf", w=5, h=3)
+print(gg)
+dev.off()
+
 mean.vec <- c(mid, mid, mid, 1)
 Poisson.Loss <- PoissonLoss(dt$count, mean.vec)
 loss <- data.table(Poisson.Loss)

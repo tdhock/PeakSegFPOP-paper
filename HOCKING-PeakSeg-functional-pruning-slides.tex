@@ -124,7 +124,7 @@ maxIter 20
 \end{frame}
 
 \begin{frame}
-  \frametitle{Which macs parameter is better for these data?}
+  \frametitle{Which macs parameter is best for these data?}
   \includegraphics[width=1\textwidth]{figure-macs-problem.png}
 \end{frame}
 
@@ -270,7 +270,7 @@ $\mu_S$.
   \end{center}
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
   \frametitle{Second segment, up to data point 2}
   \begin{itemize}
   \item The mean cost in 2 segments up to data point 2 is
@@ -298,43 +298,55 @@ $\mu_S$.
 \begin{frame}
   \frametitle{Comparison with unconstrained Pruned DPA}
   \begin{itemize}
-  \item For our constrained algorithm we have
+  \item For our constrained algorithm, the first segment mean must be
+    less than the second, and the first segment cost is a function:
     \begin{equation*}
-      L_{2,2}(\mu_2) &=&  \gamma_2(\mu_2)+
+      L_{2,2}(\mu_2) = \gamma_2(\mu_2)+
       \min_{\mu_1 \leq \mu_2} L_{1,1}(\mu_1).
     \end{equation*}
-  \item For the unconstrained algorithm the first segment cost is constant:
+  \item For the unconstrained algorithm, the first segment cost is constant:
     \begin{equation*}
-      \widehat{L}_{2,2}(\mu_2) &=& \gamma_2(\mu_2)+
+      \widehat{L}_{2,2}(\mu_2) = \gamma_2(\mu_2)+
       \underbrace{\min_{\mu_1} L_{1,1}(\mu_1)}_{\mathcal L_{1,1}}.
     \end{equation*}
   \item For example $z = 2, 1, 10, 14, 5, 6$.
     \begin{center}
       \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-mincompare-2segments-2data}
     \end{center}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Storage as a piecewise function on intervals}
+  \begin{itemize}
+  \item For example $z = 2, 1, 10, 14, 5, 6$.
+    \begin{center}
+      \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minlessmore-2segments-2data}
+    \end{center}
   \item Storage: 
     \begin{equation*}
-      L_{2,2}(\mu) &=&
+      L_{2,2}(\mu) = \gamma_2(\mu) + 
       \begin{cases}
         L_{1,1}(\mu) = 1\mu - 2\log \mu + 0 & \text{ if } \mu\in[1,2],\\
-        \mathcal L_{1,1} = 1*2 - 2\log 2 & \text{ if } \mu\in[2,14].
+        \mathcal L_{1,1} = 1(2) - 2\log(2) & \text{ if } \mu\in[2,14].
       \end{cases}
     \end{equation*}
   \end{itemize}
 \end{frame}
 
-\begin{frame}
+ 
+\begin{frame}[fragile]
   \frametitle{Second segment, up to data point 3}
   \begin{itemize}
   \item For data point 3 we need to consider two change-points:
     \begin{equation*}
-      L_{2,3}(\mu) =  \gamma_3(\mu_2) + \min
+      L_{2,3}(\mu) =  \gamma_3(\mu) + \min
       \begin{cases}
-        L_{1,2}^{\leq}(\mu), & \text{ change up after data point 2},
-        L_{2,2}(\mu), & \text{ change up after data point 1}. \\
+        L_{1,2}^{\leq}(\mu), & \text{ change up after data point 2},\\
+        L_{2,2}(\mu), & \text{ change up after data point 1}. 
       \end{cases}
     \end{equation*}
-  \item For $z = 2, 1, 10, 14, 5, 6$ the $\min$ operation prunes a
+  \item For $z = 2, 1, 10, 14, 5, 6$ the min operation prunes a
     change after data point 1.
     \begin{center}
       \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minenv-2segments-3data}
@@ -357,13 +369,14 @@ $\mu_S$.
     we only need to consider changes after 2 and 3 (1 has been
     pruned).
     \begin{center}
-      \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-mincompare-2segments-4data}
+      \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minenv-2segments-4data}
     \end{center}
   \end{itemize}
 \end{frame}
 
+
 \begin{frame}
-  \frametitle{Functional pruning example}
+  \frametitle{Functional pruning complete example}
 \includegraphics[width=\textwidth]{screenshot-PDPA-demo}
 
   \url{http://bl.ocks.org/tdhock/raw/8c5dd0af533e24a893e7c5232f9bc94c/}
@@ -387,8 +400,7 @@ $\mu_S$.
     \begin{center}
       \includegraphics[width=0.5\textwidth]{figure-PDPA-intervals-all}
     \end{center}
-  \item Total time complexity: $O(S N\log N)$ (need to compute $O(SN)$
-    functions $L_{s,t}(\mu)$).
+  \item Total time complexity: $O(S N\log N)$.
   \end{itemize}
 \end{frame}
 
@@ -420,31 +432,37 @@ $\mu_S$.
 
 \begin{frame}
   \frametitle{Example: 13, 14, 10, 1}
-  What do you think is the best model?
+  What do you think is the best model with 1 peak?\\
+  (3 segments, 1 change up, 1 change down)
 \end{frame}
 
 \begin{frame}
-  \frametitle{TODO: PeakSeg undefined slides}
+  \frametitle{PeakSegDP returns this model}
+  \includegraphics[width=\textwidth]{figure-min-undefined-suboptimal}
+\end{frame}
+
+\begin{frame}
+  \frametitle{A better model}
   \includegraphics[width=\textwidth]{figure-min-undefined-1}
 \end{frame}
 
 \begin{frame}
-  \frametitle{TODO: PeakSeg undefined slides}
+  \frametitle{Even better}
   \includegraphics[width=\textwidth]{figure-min-undefined-2}
 \end{frame}
 
 \begin{frame}
-  \frametitle{TODO: PeakSeg undefined slides}
+  \frametitle{Still better}
   \includegraphics[width=\textwidth]{figure-min-undefined-3}
 \end{frame}
 
 \begin{frame}
-  \frametitle{TODO: PeakSeg undefined slides}
+  \frametitle{We can keep going forever}
   \includegraphics[width=\textwidth]{figure-min-undefined-4}
 \end{frame}
 
 \begin{frame}
-  \frametitle{TODO: PeakSeg undefined slides}
+  \frametitle{Best model is not feasible}
   \includegraphics[width=\textwidth]{figure-min-undefined}
 \end{frame}
 
@@ -549,6 +567,47 @@ $\mu_S$.
 
 \section{Conclusions and future work}
 
+\begin{frame}[fragile]
+  \frametitle{How to choose parameters of unsupervised peak
+    detectors?}
+\scriptsize
+19 parameters for Model-based analysis of ChIP-Seq (MACS), Zhang et al, 2008.
+\begin{verbatim}
+  [-g GSIZE]
+  [-s TSIZE] [--bw BW] [-m MFOLD MFOLD] [--fix-bimodal]
+  [--nomodel] [--extsize EXTSIZE | --shiftsize SHIFTSIZE]
+  [-q QVALUE | -p PVALUE | -F FOLDENRICHMENT] [--to-large]
+  [--down-sample] [--seed SEED] [--nolambda]
+  [--slocal SMALLLOCAL] [--llocal LARGELOCAL]
+  [--shift-control] [--half-ext] [--broad]
+  [--broad-cutoff BROADCUTOFF] [--call-summits]
+\end{verbatim}
+10 parameters for Histone modifications in cancer (HMCan),
+Ashoor et al, 2013.
+\begin{verbatim}
+minLength 145
+medLength 150
+maxLength 155
+smallBinLength 50
+largeBinLength 100000
+pvalueThreshold 0.01
+mergeDistance 200
+iterationThreshold 5
+finalThreshold 0
+maxIter 20
+\end{verbatim}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Which macs parameter is best for these data?}
+  \includegraphics[width=1\textwidth]{figure-macs-problem.png}
+\end{frame}
+
+\begin{frame}
+  \frametitle{PeakSeg: search for the peaks with lowest loss}
+  \includegraphics[width=1\textwidth]{figure-macs-problem-PeakSeg.png}
+\end{frame}
+
 \begin{frame}
   \frametitle{Conclusions}
   \begin{tabular}{r|c|c}
@@ -586,21 +645,29 @@ $\mu_S$.
 
 
 \begin{frame}
-  \frametitle{Timings on subsets of human chr1}
-  \includegraphics[width=\textwidth]{figure-cosegData-timings-observed.pdf}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Reasonable predicted time to segment all of chr1}
+  \frametitle{Reasonable time to segment biggest region on chr1}
   \includegraphics[width=\textwidth]{figure-cosegData-timings.pdf}
+  \begin{itemize}
+  \item R package in memory: $O(N \log N)$ time.
+  \item Command line program on disk: $O(N \log N)$ time.
+  \end{itemize}
 \end{frame}
 
 \begin{frame}
-  \frametitle{Predicted memory requirements too large...}
-  \includegraphics[width=\textwidth]{figure-cosegData-timings-memory.pdf}
+  \frametitle{Memory requirements reasonable for on-disk version}
+  \includegraphics[width=\textwidth]{figure-cosegData-timings-memory-disk.pdf}
   \begin{itemize}
-  \item Current implementation: $O(N \log N)$ memory.
-  \item Future work: $O(N \log N)$ disk space, $O(1)$ memory.
+  \item R package in memory: $O(N \log N)$ memory.
+  \item Command line program on disk: $O(1)$ memory.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Disk usage reasonable}
+  \includegraphics[width=\textwidth]{figure-cosegData-timings-disk.pdf}
+  \begin{itemize}
+  \item R package in memory: no disk usage.
+  \item Command line program on disk: $O(N \log N)$ disk space.
   \end{itemize}
 \end{frame}
 

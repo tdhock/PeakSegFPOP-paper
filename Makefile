@@ -82,3 +82,5 @@ figure-cosegData-timings.pdf: figure-cosegData-timings.R cosegData.timings.RData
 	R --no-save < $<
 figure-min-undefined.pdf: figure-min-undefined.R
 	R --no-save < $<
+macs.peaks.error.RData: macs.peaks.error.R
+	R --no-save < $<
