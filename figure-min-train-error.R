@@ -5,8 +5,9 @@ load("../PeakSeg-paper/dp.peaks.error.RData")
 load("PDPA.peaks.error.RData")
 load("Segmentor.peaks.error.RData")
 load("PDPA.peaks.RData")
+load("macs.peaks.error.RData")
 
-names(dp.peaks.error)
+macs.peaks.error$algorithm <- "macs"
 pdpa <- data.table(PDPA.peaks.error)
 names(pdpa)[3] <- "param.name"
 pdpa$algorithm <- "coseg"
@@ -14,6 +15,7 @@ Seg <- data.table(Segmentor.peaks.error)
 names(Seg)[3] <- "param.name"
 Seg$algorithm <- "Segmentor"
 error.regions.list <- list(
+  macs=macs.peaks.error,
   coseg=pdpa,
   Segmentor=Seg)
 for(chunk.name in names(dp.peaks.error)){
@@ -44,21 +46,25 @@ train.error.wide[PeakSegDP < coseg & coseg < Segmentor,]
 ##  8:  H3K4me3_TDH_immune/4 McGill0005         1         4     2
 train.error.wide[coseg==0 & Segmentor==6,]
 train.error.wide[coseg==5 & PeakSegDP==1,]
+train.error.wide[coseg==3 & macs==0,]
+train.error.wide[coseg==0 & macs==7,]
 
 setkey(train.error.wide, chunk.name, sample.id)
 show.dt <- train.error.wide[J(
-  c("H3K4me3_PGP_immune/15", "H3K4me3_PGP_immune/14", "H3K4me3_TDH_immune/4"),
-  c("McGill0079", "McGill0095", "McGill0005")),]
+  c("H3K4me3_PGP_immune/15", "H3K4me3_PGP_immune/14", "H3K4me3_TDH_immune/4",
+    "H3K4me3_TDH_immune/3", "H3K36me3_TDH_immune/2"),
+  c("McGill0079", "McGill0095", "McGill0005", "McGill0091", "McGill0009")),]
 
 table(train.error.wide[, coseg-PeakSegDP])
 table(train.error.wide[, coseg-Segmentor])
 
 train.error.wide[, table(PeakSegDP, coseg)]
 train.error.wide[, table(Segmentor, coseg)]
+train.error.wide[, table(macs, coseg)]
 
 abline.dt <- data.table(slope=1, intercept=0)
 molt.list <- list()
-for(other.name in c("PeakSegDP", "Segmentor")){
+for(other.name in c("PeakSegDP", "Segmentor", "macs")){
   table.args <- list()
   for(col.name in c(other.name, "coseg")){
     table.args[[col.name]] <- train.error.wide[[col.name]]
@@ -147,23 +153,28 @@ for(show.row.i in 1:nrow(show.dt)){
               color="black",
               size=2,
               data=data.table(show.row, other.name="PeakSegDP"))+
+    geom_tile(aes(macs, coseg),
+              fill=NA,
+              color="black",
+              size=2,
+              data=data.table(show.row, other.name="macs"))+
     geom_tile(aes(Segmentor, coseg),
               fill=NA,
               color="black",
               size=2,
               data=data.table(show.row, other.name="Segmentor"))
-  pdf(sprintf("figure-min-train-error-problem%d.pdf", show.row.i))
+  pdf(sprintf("figure-min-train-error-problem%d.pdf", show.row.i), w=10)
   print(gg.counts.prob)
   dev.off()
 
   max.coverage <- max(sample.counts$coverage)
   first.chromStart <- min(sample.regions$chromStart)
   last.chromEnd <- max(sample.regions$chromEnd)
-  y.key <- c(coseg=1, Segmentor=2, PeakSegDP=3)*max.coverage*-0.1
+  y.key <- c(coseg=1, Segmentor=2, PeakSegDP=3, macs=4)*max.coverage*-0.15
   h <- abs(diff(y.key)[1]/3)
 
   for(peaks.str in paste(0:5)){
-    pdf.name <- sprintf("figure-min-train-error-problem%d-%speaks.pdf", show.row.i, peaks.str)
+    png.name <- sprintf("figure-min-train-error-problem%d-%speaks.png", show.row.i, peaks.str)
     sample.gg <- ggplot()+
       theme_bw()+
       ggtitle(show.row[, paste(peaks.str, "peak models of problem", chunk.name, sample.id)])+
@@ -206,12 +217,89 @@ for(show.row.i in 1:nrow(show.dt)){
                 hjust=0,
                 size=3.5,
                 data=sample.error[param.name==peaks.str,])
-    print(pdf.name)
-    pdf(pdf.name, 9, 6)
+    print(png.name)
+    png(png.name, 9, 6, res=100, units="in")
     print(sample.gg)
     dev.off()
   }
 
+  load(sub("counts", "peaks/macs.trained", counts.file))
+  sample.error.min <- sample.error[, .SD[which.min(errors),], by=.(algorithm)]
+  setkey(sample.error.min, algorithm, param.name)
+  macs.one.param <- peaks[[paste(sample.error.min["macs"]$param.name)]]
+  macs.one.sample <- subset(macs.one.param, paste(show.row$sample.id)==sample.id)
+  sample.peaks[, param.name := peaks]
+  setkey(sample.peaks, algorithm, param.name)
+  not.macs <- sample.error.min[algorithm!="macs",]
+  best.peaks <- rbind(
+    data.table(algorithm="macs", macs.one.sample[, c("chromStart", "chromEnd")]),
+    sample.peaks[not.macs, .(algorithm, chromStart, chromEnd)])
+  setkey(sample.regions, algorithm, param.name)
+  best.regions <- sample.regions[sample.error.min]
+
+  png.name <- sprintf("figure-min-train-error-problem%d-best.png", show.row.i)
+  sample.gg <- ggplot()+
+    theme_bw()+
+    ggtitle(show.row[, paste("best models for problem", chunk.name, sample.id)])+
+    xlab("position on chromosome (kb = kilo bases)")+
+    ylab("aligned sequence reads")+
+    scale_fill_manual(values=ann.colors)+
+    geom_tallrect(aes(xmin=chromStart/1e3, xmax=chromEnd/1e3, fill=annotation),
+                  color="grey",
+                  alpha=0.5,
+                  data=sample.regions[algorithm=="coseg" & param.name==0,])+
+    geom_step(aes(chromStart/1e3, coverage),
+              color="grey50",
+              data=sample.counts)+
+    scale_linetype_manual("error type",
+                          values=c(correct=0,
+                            "false negative"=3,
+                            "false positive"=1))+
+    geom_rect(aes(xmin=chromStart/1e3, xmax=chromEnd/1e3,
+                  linetype=status,
+                  ymin=y.key[algorithm]-h, ymax=y.key[algorithm]+h),
+              size=0.75,
+              color="black",
+              fill=NA,
+              data=best.regions)
+  if(nrow(best.peaks)){
+    sample.gg <- sample.gg+
+      geom_segment(aes(chromStart/1e3, y.key[algorithm],
+                       xend=chromEnd/1e3, yend=y.key[algorithm]),
+                   size=2,
+                   color="deepskyblue",
+                   data=best.peaks)
+  }
+  sample.gg <- sample.gg+
+    geom_text(aes(
+      first.chromStart/1e3, y.key[algorithm],
+      label=sprintf(
+        "%s\n%s=%s",
+        algorithm,
+        ifelse(algorithm=="macs", "log(q)", "peaks"),
+        paste(param.name)
+        )),
+              hjust=1,
+              size=3.5,
+              data=sample.error.min)+
+    geom_text(aes(last.chromEnd/1e3, y.key[algorithm], label=paste(errors, "errors")),
+              hjust=0,
+              size=3.5,
+              data=sample.error.min)
+  print(png.name)
+  png(png.name, 9, 6, res=100, units="in")
+  print(sample.gg)
+  dev.off()
+
+  if(show.row.i==4){
+    png.name <- sprintf("figure-min-train-error-problem%d-best-zoom.png", show.row.i)
+    zoom.gg <- sample.gg+
+      coord_cartesian(xlim=c(5440, 5465))
+    print(png.name)
+    png(png.name, 9, 6, res=100, units="in")
+    print(zoom.gg)
+    dev.off()
+  }
 }
 
 train.error.wide[order(PeakSegDP-coseg),]

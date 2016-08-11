@@ -4,7 +4,9 @@ http://jmlr.org/proceedings/papers/v37/hocking15.html
 
 ** 10 Aug 2016
 
-[[http://cbio.ensmp.fr/~thocking/HOCKING-PeakSeg-functional-pruning-slides.pdf][Slides]] for group meeting presentation 11 Aug 2016.
+- [[http://cbio.ensmp.fr/~thocking/HOCKING-PeakSeg-functional-pruning-slides.pdf][Slides]] for group meeting presentation 11 Aug 2016.
+- http://bl.ocks.org/tdhock/raw/b796b4be10aa431575bb01ec16035b23/
+  shows min env in addition to min/less more computation.
 
 ** 3 Aug 2016
 - C++ algo implemented in [[https://github.com/tdhock/coseg][coseg]] package.

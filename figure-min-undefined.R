@@ -67,7 +67,7 @@ guess <- function(...){
   animint2dir(viz, "figure-min-undefined")
 }
 
-dist.vec <- 10^seq(0, -3, by=-1)
+dist.vec <- 2^seq(0, -3, by=-1)
 mid <- 37/3
 for(fig.i in seq_along(dist.vec)){
   dist.to.opt <- dist.vec[[fig.i]]

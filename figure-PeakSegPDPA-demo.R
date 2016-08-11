@@ -532,7 +532,7 @@ Multiply <- function(dt, x){
   new.dt
 }
 
-input.dt <- data.table(count=c(2, 1, 10, 14, 5, 6), weight=1)
+input.dt <- data.table(count=c(2, 1, 9, 5, 10, 3), weight=1)
 
 cost.lines.list <- list()
 minima.list <- list()
@@ -596,7 +596,6 @@ for(total.segments in 2:max.segments){
   pdf(sprintf("figure-PeakSegPDPA-demo-minlessmore-%dsegments-%ddata.pdf", total.segments, total.segments), 5, 3)
   print(gg.prev)
   dev.off()
-  first.min <- Minimize(prev.cost.model)
   gg.prev <- ggplot()+
     ggtitle(paste(total.segments, "segments,", total.segments, "data points"))+
     scale_x_continuous(breaks=c(range(input.dt$count), 5, 10))+
@@ -609,16 +608,19 @@ for(total.segments in 2:max.segments){
                 fun.type="constrained min",
                 getLines(first.min.average)),
               size=3)+
-    geom_hline(aes(yintercept=min.cost, color=fun.type),
-               data=data.table(
-                 fun.type="unconstrained min",
-                 first.min))+
     geom_line(aes(mean, cost,
                   color=fun.type,
                   group=piece.i),
               data=data.table(
                 fun.type="prev cost",
                 getLines(prev.cost.model)))
+  first.min <- Minimize(prev.cost.model)
+  if(nrow(first.min)){
+    gg.prev <- gg.prev+    geom_hline(aes(yintercept=min.cost, color=fun.type),
+               data=data.table(
+                 fun.type="unconstrained min",
+                 first.min))
+  }
   pdf(sprintf("figure-PeakSegPDPA-demo-mincompare-%dsegments-%ddata.pdf", total.segments, total.segments), 5, 3)
   print(gg.prev)
   dev.off()
@@ -695,16 +697,18 @@ for(total.segments in 2:max.segments){
                       fun.type="constrained min",
                       compare.cost.lines),
                     size=3)+
-          geom_hline(aes(yintercept=min.cost, color=fun.type),
-                     data=data.table(
-                       fun.type="unconstrained min",
-                       compare.minima))+
           geom_line(aes(mean, cost,
                         color=fun.type,
                         group=piece.i),
                     data=data.table(
                       fun.type="prev cost",
                       getLines(prev.cost.model)))
+        if(nrow(compare.minima)){
+          gg.prev <- gg.prev+          geom_hline(aes(yintercept=min.cost, color=fun.type),
+                     data=data.table(
+                       fun.type="unconstrained min",
+                       compare.minima))
+        }
         pdf(sprintf("figure-PeakSegPDPA-demo-mincompare-%dsegments-%ddata.pdf", total.segments, timestep), 5, 3)
         print(gg.prev)
         dev.off()
