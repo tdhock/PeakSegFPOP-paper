@@ -116,7 +116,7 @@ TODO discuss isotonic DP \citep{isotonic-dp}, functional pruning
 The main contribution of this paper is a family of algorithms for
 solving constrained segmentation problems. These algorithms are
 guaranteed to recover the exact solution to the constrained
-segmentation problem. Furthermore, we will hopefully show that these algorithms have
+segmentation problem. Furthermore, we show that these algorithms have
 empirical time complexity which is linear in the number of data
 points.
 
@@ -153,19 +153,25 @@ constrained maximum likelihood segmentation.
 
 Assume we have a sequence of $n$ count data $\mathbf y\in\ZZ_+^n$ to
 segment. For the Segment Neighborhood model we first fix a maximum
-number of segments $ K\leq n$. The unconstrained
-maximum likelihood segmentation model is defined as the most likely
-mean vector $\mathbf m\in\RR^n$ with $k\in\{1, 2, \dots, s_{\max}\}$
-piecewise constant segments:
+number of segments $ K_{\max}\leq n$. The unconstrained maximum
+likelihood segmentation model is defined as the most likely mean
+vector $\mathbf m\in\RR^n$ with exactly
+$K\in\{1, 2, \dots, K_{\max}\}$ distinct piecewise constant segments:
 \begin{align}
   \label{unconstrained}
-  \mathbf{\hat m}^k(\mathbf y)  =\ 
-  &\argmin_{\mathbf m\in\RR^{n}} && 
-\sum_{t=1}^n  \ell
-  %\tag{\textbf{Unconstrained}}
-  (m_t,  y_t) \\
-  &\text{such that} && \Segments(\mathbf m)=k,
-  \nonumber
+  \mathbf{\hat m}^K(\mathbf y) =
+    \argmin_{\substack{
+  \mathbf m\in\RR^{n}
+  \\
+  \mathbf c\in\{-1,0,1\}^{n-1}
+  }} &\ \ 
+    \sum_{t=1}^n \ell( m_t,  y_t) 
+\\
+    \text{subject to} &\ \  \sum_{t=2}^n I(c_t \neq 0) = K, \\
+& \ \ c_t = -1 \Leftrightarrow m_{t-1} > m_t\\
+& \ \ c_t = 0 \Leftrightarrow m_{t-1} = m_t\\
+& \ \ c_t = 1 \Leftrightarrow m_{t-1} < m_t
+\nonumber
 \end{align}
 where the Poisson loss function is
 \begin{equation}\label{eq:loss}
@@ -173,9 +179,10 @@ where the Poisson loss function is
 \end{equation} 
 The model complexity is the number of piecewise constant segments
 \begin{equation}
-  \Segments(\mathbf m)=1+\sum_{j=2}^n I(m_j \neq m_{j-1}),
+  \Segments(\mathbf m)=1+\sum_{j=2}^n I(m_{j-1} \neq m_{j}),
 \end{equation}
 where $I$ is the indicator function. 
+
 
 Although it is a non-convex optimization problem, the sequence of
 segmentations $\mathbf{\hat m}^1(\mathbf y), \dots, \mathbf{\hat
@@ -185,8 +192,8 @@ $O(K n^2)$ time using dynamic programming
 time using pruned dynamic programming \citep{pruned-dp, Segmentor}.
 
 We refer to (\ref{unconstrained}) as the ``unconstrained'' model
-since $\mathbf{\hat m}^k(\mathbf y)$ is the most likely segmentation
-of all possible models with $k$ piecewise constant segments ($k-1$
+since $\mathbf{\hat m}^K(\mathbf y)$ is the most likely segmentation
+of all possible models with $K$ piecewise constant segments ($K-1$
 change-points). 
 
 \subsection{The PeakSeg constrained maximum likelihood model}
@@ -196,52 +203,53 @@ To introduce the PeakSeg model constraint \citep{PeakSeg}, we first define
 the peak indicator at data point $t\in\{2, \dots, n\}$ as
 \begin{equation}
   \label{eq:peaks}
-  P_t(\mathbf m) = \sum_{k=2}^t \sign( m_{k} - m_{k-1} ),
+  P_t(\mathbf m) = \sum_{i=2}^t \sign( m_{i} - m_{i-1} ),
 \end{equation}
 where $P_1(\mathbf m)=0$ by convention. $P_t(\mathbf m)$ is the
 cumulative sum of signs of changes up to point $t$ in the piecewise
-constant vector $\mathbf m$. We define the vector of peak indicators
-as
-\begin{equation}
-  \mathbf
-P[\mathbf m] = \left[\begin{array}{ccc} P_1(\mathbf m) & \cdots &
-    P_n(\mathbf m)
-\end{array}\right].
-\end{equation}
-
-In general for the unconstrained model $P_t(\mathbf m)\in\ZZ$, which
-is problematic since in our biological application (ChIP-seq peak
-detection), we want to classify each segment and data point into one
-of two states $P_t(\mathbf m)\in \{0, 1\}$ (0 for background noise
-after a change down, 1 for a peak after a change up).
-
-For example, if $\mathbf m = \left[\begin{array}{ccccccc}1.1 &
-    1.1 & 2 & 2 & 4 & 4 & 3\end{array}\right]$, with two changes up
-followed by one change down, then $\mathbf P(\mathbf m) =
-\left[\begin{array}{ccccccc}0 & 0 & 1 & 1 & 2 & 2 &
-    1 \end{array}\right]$.
-
+constant vector $\mathbf m$. In general for the unconstrained model
+$P_t(\mathbf m)\in\ZZ$, which is problematic since in our biological
+application (ChIP-seq peak detection), we want to classify each
+segment and data point into one of two states
+$P_t(\mathbf m)\in \{0, 1\}$ (0 for background noise after a change
+down, 1 for a peak after a change up).
+% For example, if
+% $\mathbf m = \left[\begin{array}{ccccccc}1.1 & 1.1 & 2 & 2 & 4 & 4 &
+%     3\end{array}\right]$, with two changes up followed by one change
+% down, then
+% $\mathbf P(\mathbf m) = \left[\begin{array}{ccccccc}0 & 0 & 1 & 1 & 2
+%     & 2 & 1 \end{array}\right]$ and so this model is not feasible for
+% the peaks constraint $P_t(\mathbf m)\in \{0, 1\}$.
 Thus we constrain the peak indicator $P_t(\mathbf
 m)\in\{0, 1\}$, which results
 in the constrained problem
 \begin{align*}
   \label{PeakSeg}
-  \mathbf{\tilde m}^k(\mathbf y)  =
+  \mathbf{\tilde m}^K(\mathbf y)  =
     \argmin_{\mathbf m\in\RR^{n}} &\ \ 
     \sum_{t=1}^n \ell( m_t,  y_t) 
     \tag{\textbf{PeakSeg}}
 \\
-    \text{such that} &\ \  \Segments(\mathbf m)=k,  \\
-     \forall t\in\{1, \dots, n\}, &\ \ P_t(\mathbf m) \in\{0, 1\}.
+    \text{subject to} &\ \  \Segments(\mathbf m) = K,  \\
+     \forall t\in\{2, \dots, n\}, &\ \ P_t(\mathbf m) \in\{0, 1\}.
 \end{align*}
-Note that one must specify the number of segments $k$ or,
-equivalently, the number of peaks $p=(k-1)/2$. Another way to
+Note that one must specify the number of segments $K$ or,
+equivalently, the number of peaks $p=(K-1)/2$. Another way to
 interpret the constrained \ref{PeakSeg} problem is that the sequence
 of changes in the segment means $\mathbf m$ must begin with a positive
 change and then alternate: up, down, up, down, ... (and not up, up,
 down). Thus the even-numbered segments may be interpreted as peaks
 $P_t(\mathbf m)=1$, and the odd-numbered segments may be interpreted
 as background $P_t(\mathbf m)=0$.
+
+In fact, there are data sets $\mathbf y$ for which the \ref{PeakSeg}
+solution above is not well-defined. For example,
+$\mathbf{\tilde m}(\mathbf y)$ is undefined for
+$\mathbf y = \left[\begin{array}{ccc} 1 & 2 & 3 \end{array}\right]$.
+
+\subsection{The problem our algorithm solves}
+
+
 
 \subsection{The isotonic regression model}
 
