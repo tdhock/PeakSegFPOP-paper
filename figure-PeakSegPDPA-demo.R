@@ -774,7 +774,8 @@ for(total.segments in 1:max.segments){
       ggtitle(paste0(
         total.segments, " segment",
         ifelse(total.segments==1, "", "s"),
-        ", ", timestep, " data points"))+
+        ", ", timestep, " data point",
+        ifelse(timestep==1, "", "s")))+
       scale_x_continuous(breaks=c(range(input.dt$count), 5, 10))+
       scale_color_manual("prev seg end", values=data.colors)+
       geom_line(aes(mean, cost,

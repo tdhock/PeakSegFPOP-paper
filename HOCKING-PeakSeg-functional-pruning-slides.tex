@@ -66,7 +66,7 @@ optimal segmentation}
 
   Black bars are ``peaks'' called by MACS2 (Zhang et al, 2008):
   \begin{itemize}
-  \item many false positives.
+  \item \alert<1>{many false positives}.
   \item overlapping peaks have different start/end positions.
   \end{itemize}
 \end{frame}
@@ -88,7 +88,7 @@ optimal segmentation}
   Two big questions: how to choose the best...
   \begin{itemize}
   \item ...algorithm? (testing)
-  \item ...parameters? (training)
+  \item \alert<1>{...parameters? (training)}
   \end{itemize}
 \end{frame}
 
@@ -149,6 +149,8 @@ maxIter 20
 \begin{frame}
   \frametitle{PeakSeg: search for the peaks with lowest loss}
   \includegraphics[width=1\textwidth]{figure-macs-problem-PeakSeg.png}
+  
+  Simple model with only one parameter to train (maxPeaks).
 \end{frame}
 
 \begin{frame}
@@ -161,7 +163,7 @@ maxIter 20
   \item Hocking et al, ICML 2015: PeakSeg constraint enforces up, down, up,
     down (and not up, up, down). 
   \item Odd-numbered segments are background noise,\\
-    even-numbered segments are peaks.
+    even-numbered segments are peaks ($p = (s-1)/2$).
   \item Constrained Dynamic Programming Algorithm, $O(N^2)$ time for $N$ data points.
   \end{itemize}
 \end{frame}
@@ -194,7 +196,7 @@ maxIter 20
   \end{tabular}
   \begin{itemize}
   \item \alert<1>{Auger and Lawrence 1989, Jackson et al 2005}.
-  \item \alert<2>{Rigaill 2010, Johnson 2013}.
+  \item \alert<2>{Rigaill 2010, Johnson 2013, Cleynen et al 2014}.
   \item \alert<3>{Hocking, Rigaill, Bourque 2015}.
   \item \alert<4>{\textbf{Contribution}: new algorithm that
       \textbf{exactly} computes the \textbf{constrained} optimal
@@ -240,8 +242,7 @@ $\mu_S$.
   be the Poisson loss for each $t\in\{1, \dots, N\}$.
 \item For example $z = 2, 1, 10, 14, 5, 6$.
 \item Then $\gamma_1(\mu)=L_{1,1}(\mu)= 1\mu - 2\log \mu + 0$.
-\item Need to store 3 coefficients (linear, log, constant) and an
-  interval (min mean, max mean).
+\item Need to store 3 coefficients (linear, log, constant).
   \end{itemize}
   \begin{center}
     \includegraphics[width=0.7\textwidth]{figure-PeakSegPDPA-demo-cost-1segments-1data}
@@ -249,10 +250,10 @@ $\mu_S$.
 \end{frame}
 
 \begin{frame}
-  \frametitle{First segment, second data point}
+  \frametitle{First segment, other data points}
   \begin{itemize}
 \item
-  The optimal cost of the first segment up to data point $t$ is
+  The loss of the first segment up to data point $t$ is
   \begin{equation*}
     \label{eq:C1b}
     L_{1,t}(\mu) = \sum_{i=1}^t \gamma_i(\mu).
@@ -274,19 +275,10 @@ $\mu_S$.
   \frametitle{Second segment, up to data point 2}
   \begin{itemize}
   \item The mean cost in 2 segments up to data point 2 is
-% \begin{eqnarray*}
-%   L_{2,2}(\mu_2) &=& \left(
-%    L_{1,1}^{\leq}(\mu_2) + \gamma_2(\mu_2)
-%   \right)/2\\
-%   &=& \left(
-%    \min_{\mu_1 \leq \mu_2} L_{1,1}(\mu_1) + \gamma_2(\mu_2)
-%   \right)/2.
-% \end{eqnarray*}
 \begin{eqnarray*}
-  L_{2,2}(\mu_2) &=& \gamma_2(\mu_2)+
-   L_{1,1}^{\leq}(\mu_2)\\
-  &=&  \gamma_2(\mu_2)+
-   \min_{\mu_1 \leq \mu_2} L_{1,1}(\mu_1).
+  L_{2,2}(\mu_2) 
+  &=&  \gamma_2(\mu_2)+\min_{\mu_1 \leq \mu_2} L_{1,1}(\mu_1)\\
+  &=& \gamma_2(\mu_2)+L_{1,1}^{\leq}(\mu_2)
 \end{eqnarray*}
 \item Min-less operator is $L^\leq(\mu) = \min_{x\leq\mu} L(x),$
     \begin{center}
@@ -302,7 +294,7 @@ $\mu_S$.
     less than the second, and the first segment cost is a function:
     \begin{equation*}
       L_{2,2}(\mu_2) = \gamma_2(\mu_2)+
-      \min_{\mu_1 \leq \mu_2} L_{1,1}(\mu_1).
+      \underbrace{\min_{\mu_1 \leq \mu_2} L_{1,1}(\mu_1)}_{L^\leq_{1,1}(\mu_2)}.
     \end{equation*}
   \item For the unconstrained algorithm, the first segment cost is constant:
     \begin{equation*}
@@ -328,7 +320,7 @@ $\mu_S$.
       L_{2,2}(\mu) = \gamma_2(\mu) + 
       \begin{cases}
         L_{1,1}(\mu) = 1\mu - 2\log \mu + 0 & \text{ if } \mu\in[1,2],\\
-        \mathcal L_{1,1} = 1(2) - 2\log(2) & \text{ if } \mu\in[2,14].
+        \mathcal L_{1,1} = 0\mu -0\log\mu + 0.6137 & \text{ if } \mu\in[2,14].
       \end{cases}
     \end{equation*}
   \end{itemize}
@@ -379,7 +371,8 @@ $\mu_S$.
   \frametitle{Functional pruning complete example}
 \includegraphics[width=\textwidth]{screenshot-PDPA-demo}
 
-  \url{http://bl.ocks.org/tdhock/raw/8c5dd0af533e24a893e7c5232f9bc94c/}
+  \url{https://github.com/tdhock/PeakSegFPOP-paper}
+  %\url{http://bl.ocks.org/tdhock/raw/8c5dd0af533e24a893e7c5232f9bc94c/}
 \end{frame}
 
 \begin{frame}
@@ -434,6 +427,12 @@ $\mu_S$.
   \frametitle{Example: 13, 14, 10, 1}
   What do you think is the best model with 1 peak?\\
   (3 segments, 1 change up, 1 change down)
+  
+  \vskip 1cm
+
+  Guessing game:
+
+  \url{https://github.com/tdhock/PeakSegFPOP-paper/blob/master/figure-min-undefined.R} 
 \end{frame}
 
 \begin{frame}
@@ -606,6 +605,8 @@ maxIter 20
 \begin{frame}
   \frametitle{PeakSeg: search for the peaks with lowest loss}
   \includegraphics[width=1\textwidth]{figure-macs-problem-PeakSeg.png}
+  
+  Simple model with only one parameter to train (maxPeaks).
 \end{frame}
 
 \begin{frame}
@@ -658,7 +659,7 @@ maxIter 20
   \includegraphics[width=\textwidth]{figure-cosegData-timings-memory-disk.pdf}
   \begin{itemize}
   \item R package in memory: $O(N \log N)$ memory.
-  \item Command line program on disk: $O(1)$ memory.
+  \item Command line program on disk: $O(\log N)$ memory.
   \end{itemize}
 \end{frame}
 
@@ -709,7 +710,7 @@ maxIter 20
   \includegraphics[width=\textwidth]{figure-min-train-error-problem3-4peaks.pdf}
 \end{frame}
 
-%\section{Review of constrained dynamic programming algorithm}
+\section*{Review of constrained dynamic programming algorithm}
 
 \input{figure-dp-first}
 

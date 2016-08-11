@@ -67,7 +67,7 @@ ggplot()+
     "log10(data points to segment)")+
   scale_y_continuous("median(intervals)")
 
-pdf("figure-PDPA-intervals-all.pdf", w=7, h=5)
+pdf("figure-PDPA-intervals-all.pdf", w=5, h=4)
 print(gg)
 dev.off()
 
