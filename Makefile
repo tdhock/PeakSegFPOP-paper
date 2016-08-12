@@ -1,4 +1,4 @@
-HOCKING-RIGAILL-constrained-functional-pruning.pdf: HOCKING-RIGAILL-constrained-functional-pruning.tex refs.bib figure-1-min-operators.pdf figure-2-min-envelope.tex figure-PDPA-microbenchmark.pdf figure-PDPA-intervals.png figure-PDPA-timings.pdf
+HOCKING-RIGAILL-constrained-functional-pruning.pdf: HOCKING-RIGAILL-constrained-functional-pruning.tex refs.bib figure-1-min-operators.pdf figure-2-min-envelope.tex figure-PDPA-microbenchmark.pdf figure-PDPA-intervals.png figure-PDPA-timings.pdf figure-test-error-dots.pdf
 	rm -rf *.aux *.bbl
 	pdflatex HOCKING-RIGAILL-constrained-functional-pruning
 	bibtex HOCKING-RIGAILL-constrained-functional-pruning
@@ -36,7 +36,7 @@ figure-NA-timings.pdf: figure-NA-timings.R dp.peaks.NA.RData
 ## Copied from PeakSeg paper.
 dp.peaks.NA.RData: dp.peaks.NA.R dp.peaks.matrices.RData
 	R --no-save < $<
-dp.peaks.matrices.RData: dp.peaks.matrices.R dp.peaks.error.RData
+dp.peaks.matrices.RData: dp.peaks.matrices.R dp.peaks.error.RData PDPA.peaks.error.RData Segmentor.peaks.error.RData
 	R --no-save < $<
 dp.peaks.error.RData: dp.peaks.error.R dp.peaks.RData
 	R --no-save < $<
@@ -88,7 +88,11 @@ unsupervised.pdpa.RData: unsupervised.pdpa.R
 	R --no-save < $<
 unsupervised.RData: unsupervised.R
 	R --no-save < $<
-test.error.RData: test.error.R unsupervised.RData dp.peaks.matrices.RData dp.peaks.sets.RData
+test.error.RData: test.error.R unsupervised.RData unsupervised.pdpa.RData dp.peaks.matrices.RData dp.peaks.sets.RData unsupervised.Segmentor.RData
 	R --no-save < $<
 dp.peaks.sets.RData: dp.peaks.sets.R dp.peaks.matrices.RData
+	R --no-save < $<
+figure-test-error-dots.pdf: figure-test-error-dots.R test.error.RData
+	R --no-save < $<
+unsupervised.Segmentor.RData: unsupervised.Segmentor.R
 	R --no-save < $<
