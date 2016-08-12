@@ -84,3 +84,5 @@ figure-min-undefined.pdf: figure-min-undefined.R
 	R --no-save < $<
 macs.peaks.error.RData: macs.peaks.error.R
 	R --no-save < $<
+unsupervised.pdpa.RData: unsupervised.pdpa.R
+	R --no-save < $<

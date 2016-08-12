@@ -3,6 +3,15 @@ library(data.table)
 load("cosegData.timings.RData")
 
 disk.timings <- cosegData.timings[algorithm=="on.disk",]
+disk.timings[, disk.megabytes := disk.kilobytes/1024]
+disk.timings[, minutes := seconds/60]
+disk.timings[, list(
+  min.megabytes=min(disk.megabytes),
+  max.megabytes=max(disk.megabytes),
+  min.minutes=min(minutes),
+  max.minutes=max(minutes),
+  min.seconds=min(seconds),
+  max.seconds=max(seconds)), by=N]
 R.timings <- cosegData.timings[algorithm=="in.memory",]
 txt <- R.timings[, .SD[which.min(seconds),], by=.(lambda, N)]
 lab.df <- data.frame(

@@ -58,8 +58,8 @@ suppressPackageStartupMessages({
                "tdhock/memtime@8b80d7d2b151cf5e877b27138c2791eca365e7b1",
                ##"tdhock/coseg@073dcf152355e6de32236f9556d97dda29574bf5",
                "tdhock/PeakError@d9196abd9ba51ad1b8f165d49870039593b94732",
-               "tdhock/PeakSegDP@72f74d3f759ed9569460637d529ca17290810017",
-               "tdhock/animint@03735869af84629d269556442345b2ea506ab42a",
+               "tdhock/PeakSegDP@4e476f1ddf8b6252179b73dfec8c4cd616e9b5ad",
+               ##"tdhock/animint@03735869af84629d269556442345b2ea506ab42a",
                "tdhock/directlabels@8a1f6f3501d5badf061d15abd23e4e42d5d32bbe",
                "Rdatatable/data.table@1033340375b2a56f8e67ba922f6ad52c147beff3")
 })
