@@ -238,8 +238,8 @@ PoissonLik <- function(count, bases, end.mat){
   lik
 }
 
-unsupervised <- list()
-oracle.segments <- list()
+unsupervised.pdpa <- list()
+oracle.pdpa <- list()
 model.files <- Sys.glob("data/H*/*/PDPA.model.RData")
 i.vec <- seq_along(model.files)
 ##i.vec <- 1:2
@@ -282,11 +282,11 @@ for(model.file.i in i.vec){
     names(selected.segs) <- names(selected.rows)
     segments.list[[sample.id]] <- selected.segs
   }
-  unsupervised[[chunk.name]] <- do.call(rbind, segments.list)
-  oracle.segments[[chunk.name]] <- do.call(rbind, oseg.list)
+  unsupervised.pdpa[[chunk.name]] <- do.call(rbind, segments.list)
+  oracle.pdpa[[chunk.name]] <- do.call(rbind, oseg.list)
 }
-test <- do.call(rbind, unsupervised)
+test <- do.call(rbind, unsupervised.pdpa)
 stopifnot(!is.null(test))
 
-save(unsupervised, oracle.segments, 
+save(unsupervised.pdpa, oracle.pdpa, 
      file="unsupervised.pdpa.RData")
