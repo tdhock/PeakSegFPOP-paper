@@ -242,16 +242,15 @@ unsupervised <- list()
 oracle.segments <- list()
 model.files <- Sys.glob("data/H*/*/PDPA.model.RData")
 i.vec <- seq_along(model.files)
-i.vec <- 1:2
+##i.vec <- 1:2
 for(model.file.i in i.vec){
   model.file <- model.files[[model.file.i]]
   chunk.name <- sub("data/", "", dirname(model.file))
   cat(sprintf("%4d / %4d %s\n", model.file.i, length(model.files), chunk.name))
   load(model.file)
-  sample.list <- split(counts, counts$sample.id)
   segments.list <- list()
   oseg.list <- list()
-  for(sample.id in names(sample.list)){
+  for(sample.id in names(PDPA.model)){
     fit <- PDPA.model[[sample.id]]
     lik.vec <- rep(NA, 19L)
     force.na <- rep(FALSE, 19L)
