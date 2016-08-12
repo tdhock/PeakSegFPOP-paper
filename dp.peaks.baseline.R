@@ -43,12 +43,13 @@ for(set.name in names(dp.peaks.sets)){
       }
       param.name <- colnames(test.tp)
       tp.fp <-
-        data.frame(set.name, set.i,
+        data.table(set.name, set.i,
                    algorithm, param.name,
                    tp=colSums(test.tp),
-                   fp=colSums(test.fp)) %>%
-        mutate(TPR=tp/test.possible.tp,
-               FPR=fp/test.possible.fp)
+                   fp=colSums(test.fp))
+      tp.fp[, `:=`(
+        TPR=tp/test.possible.tp,
+        FPR=fp/test.possible.fp)]
       tp.fp.chosen <- tp.fp[picked, ]
       algo.code <- paste(set.name, set.i, algorithm)
       dp.peaks.baseline.roc[[algo.code]] <- tp.fp

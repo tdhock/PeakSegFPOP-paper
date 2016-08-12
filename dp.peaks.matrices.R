@@ -1,8 +1,8 @@
 source("packages.R")
 
 load("dp.peaks.error.RData")
-
-prefix <- "http://cbio.ensmp.fr/~thocking/chip-seq-chunk-db"
+load("PDPA.peaks.error.RData")
+setkey(PDPA.peaks.error, chunk.name)
 
 set.names <- unique(sub("/.*", "", names(dp.peaks.error)))
 
@@ -25,11 +25,18 @@ for(set.name in set.names){
         possible.fp=sum(possible.fp),
         possible.tp=sum(possible.tp),
         regions=.N), by=.(sample.id, param.num)]
+      pdpa <- PDPA.peaks.error[chunk.name, list(
+        errors=sum(fp+fn),
+        fp=sum(fp),
+        tp=sum(tp),
+        possible.fp=sum(possible.fp),
+        possible.tp=sum(possible.tp),
+        regions=.N), by=.(sample.id, peaks)]
       long.list <- split(long, long$sample.id, drop=TRUE)
-      err.mat <- fp.mat <- tp.mat <-
+      err.mat <- pdpa.mat <- fp.mat <- tp.mat <-
         matrix(NA, length(long.list), 10,
                dimnames=list(sample.id=names(long.list),
-                             param.name=0:9))
+                 param.name=0:9))
       for(row.i in seq_along(long.list)){
         sample.df <- long.list[[row.i]]
         param.name <- as.character(sample.df$param.num)
@@ -37,19 +44,23 @@ for(set.name in set.names){
         fp.mat[row.i, param.name] <- sample.df$fp
         tp.mat[row.i, param.name] <- sample.df$tp
       }
+      pdpa.by.peaks <- split(pdpa, pdpa$peaks)
+      for(peaks.str in names(pdpa.by.peaks)){
+        peaks.dt <- pdpa.by.peaks[[peaks.str]]
+        pdpa.mat[paste(peaks.dt$sample.id), peaks.str] <- peaks.dt$errors
+      }
       err.list <-
-        list(PeakSeg=err.mat,
+        list(PeakSegDP=err.mat,
+             coseg=pdpa.mat,
              regions=sapply(long.list, function(x)x$regions[[1]]))
       fp.list <-
-        list(PeakSeg=fp.mat,
+        list(PeakSegDP=fp.mat,
              possible.fp=sapply(long.list, function(x)x$possible.fp[[1]]))
       tp.list <-
-        list(PeakSeg=tp.mat,
+        list(PeakSegDP=tp.mat,
              possible.tp=sapply(long.list, function(x)x$possible.tp[[1]]))
       for(algorithm in c("macs.trained", "hmcan.broad.trained")){
-        u <- url(sprintf("%s/%s/error/%s.RData", prefix, chunk.name, algorithm))
-        load(u)
-        close(u)
+        load(sprintf("data/%s/error/%s.RData", chunk.name, algorithm))
         error.subset <- data.table(error)[sample.id %in% rownames(err.mat),]
         error.subset[, param.num := as.numeric(as.character(param.name))]
         a.df <- error.subset[, list(
