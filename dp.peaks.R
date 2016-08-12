@@ -1,6 +1,6 @@
 source("packages.R")
 
-files <- Sys.glob("data/*/*/dp.model.RData")
+files <- Sys.glob("data/H*/*/dp.model.RData")
 
 ## Parse the first occurance of pattern from each of several strings
 ## using (named) capturing regular expressions, returning a matrix

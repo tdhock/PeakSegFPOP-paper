@@ -86,3 +86,9 @@ macs.peaks.error.RData: macs.peaks.error.R
 	R --no-save < $<
 unsupervised.pdpa.RData: unsupervised.pdpa.R
 	R --no-save < $<
+unsupervised.RData: unsupervised.R
+	R --no-save < $<
+dp.peaks.sets.RData: dp.peaks.sets.R dp.peaks.matrices.RData
+	R --no-save < $<
+dp.peaks.baseline.RData: dp.peaks.baseline.R dp.peaks.sets.RData dp.peaks.matrices.RData
+	R --no-save < $<
