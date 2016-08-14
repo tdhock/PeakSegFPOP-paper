@@ -42,7 +42,9 @@ for(set.name in set.names){
         possible.tp=sum(possible.tp),
         regions=.N), by=.(sample.id, peaks)]
       long.list <- split(long, long$sample.id, drop=TRUE)
-      err.mat <- Seg.mat <- pdpa.mat <- fp.mat <- tp.mat <-
+      err.mat <- fp.mat <- tp.mat <-
+        Seg.mat <- Seg.fp <- Seg.tp <- 
+          pdpa.mat <- pdpa.fp <- pdpa.tp <- 
         matrix(NA, length(long.list), 10,
                dimnames=list(sample.id=names(long.list),
                  param.name=0:9))
@@ -57,11 +59,15 @@ for(set.name in set.names){
       for(peaks.str in names(pdpa.by.peaks)){
         peaks.dt <- pdpa.by.peaks[[peaks.str]]
         pdpa.mat[paste(peaks.dt$sample.id), peaks.str] <- peaks.dt$errors
+        pdpa.fp[paste(peaks.dt$sample.id), peaks.str] <- peaks.dt$fp
+        pdpa.tp[paste(peaks.dt$sample.id), peaks.str] <- peaks.dt$tp
       }
       Seg.by.peaks <- split(Seg, Seg$peaks)
       for(peaks.str in names(Seg.by.peaks)){
-        peaks.dt <- Seg.by.peaks[[peaks.str]]
+        peaks.dt <- Seg.by.peaks[[peaks.str]] 
         Seg.mat[paste(peaks.dt$sample.id), peaks.str] <- peaks.dt$errors
+        Seg.fp[paste(peaks.dt$sample.id), peaks.str] <- peaks.dt$fp
+        Seg.tp[paste(peaks.dt$sample.id), peaks.str] <- peaks.dt$tp
       }
       err.list <-
         list(PeakSegDP=err.mat,
@@ -70,9 +76,13 @@ for(set.name in set.names){
              regions=sapply(long.list, function(x)x$regions[[1]]))
       fp.list <-
         list(PeakSegDP=fp.mat,
+             coseg=pdpa.fp,
+             Segmentor=Seg.fp
              possible.fp=sapply(long.list, function(x)x$possible.fp[[1]]))
       tp.list <-
         list(PeakSegDP=tp.mat,
+             coseg=pdpa.tp,
+             Segmentor=Seg.tp
              possible.tp=sapply(long.list, function(x)x$possible.tp[[1]]))
       for(algorithm in c("macs.trained", "hmcan.broad.trained")){
         load(sprintf("data/%s/error/%s.RData", chunk.name, algorithm))

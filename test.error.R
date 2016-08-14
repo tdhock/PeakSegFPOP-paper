@@ -17,9 +17,12 @@ seg.mat.list <- list(
   PeakSegDP=oracle.segments)
 
 elist <- list()
+roc.list <- list()
 for(set.name in names(dp.peaks.sets)){
   train.sets <- dp.peaks.sets[[set.name]]
   chunk.list <- dp.peaks.matrices[[set.name]]
+  tp.list <- dp.peaks.matrices.tp[[set.name]]
+  fp.list <- dp.peaks.matrices.fp[[set.name]]
   for(set.i in seq_along(train.sets)){
     testSet <- paste(set.name, "split", set.i)
     test.chunks <- train.sets[[set.i]]
@@ -65,6 +68,8 @@ for(set.name in names(dp.peaks.sets)){
     cat(sprintf("%d / %d %s\n", set.i, length(train.sets), set.name))
     for(test.chunk in test.chunks){
       test.info <- chunk.list[[test.chunk]]
+      test.tp <- tp.list[[test.chunk]]
+      test.fp <- fp.list[[test.chunk]]
       pred.seg.list <- list(
         unsupervised=list(
           PeakSegDP=unsupervised[[test.chunk]][, "oracle"],
@@ -75,29 +80,55 @@ for(set.name in names(dp.peaks.sets)){
         pred.seg.list[["supervised"]][[algorithm]] <-
           seg.mat.list[[algorithm]][[test.chunk]][, best.beta]
       }
+      ## optimal segmentation based methods.
       for(train.type in names(pred.seg.list)){
         pred.seg.by.algo <- pred.seg.list[[train.type]]
         for(algorithm in names(pred.seg.by.algo)){
           pred.seg.vec <- pred.seg.by.algo[[algorithm]]
-          err.mat <- chunk.list[[test.chunk]][[algorithm]]
+          err.mat <- test.info[[algorithm]]
+          tp.mat <- test.tp[[algorithm]]
+          fp.mat <- test.fp[[algorithm]]
           pred.peaks.vec <- (pred.seg.vec-1)/2
           param.name <- as.character(pred.peaks.vec)
           sample.id <- names(pred.seg.vec)
           i.mat <- cbind(sample.id, param.name)
-          errors <- err.mat[i.mat]
-          stopifnot(!is.na(errors))
+          if(train.type=="supervised"){
+            seg.mat <- seg.mat.list[[algorithm]][[test.chunk]]
+            ## seg.mat[sample.id, param.name]
+            tp.big <- apply(seg.mat, 2, function(segs){
+              tp.mat[cbind(seq_along(segs), (segs-1)/2+1)]
+            })
+            fp.big <- apply(seg.mat, 2, function(segs){
+              fp.mat[cbind(seq_along(segs), (segs-1)/2+1)]
+            })
+            roc.list[[paste(set.name, set.i, test.chunk, algorithm)]] <-
+              data.table(set.name, set.i, test.chunk, algorithm,
+                         ## param.name is the penalty here.
+                         param.name=colnames(tp.big),
+                         tp=colSums(tp.big),
+                         possible.tp=test.tp$possible.tp,
+                         fp=colSums(fp.big),
+                         possible.fp=test.fp$possible.fp)
+          }
           elist[[paste(set.name, set.i, test.chunk, algorithm, train.type)]] <- 
             data.table(set.name, set.i, testSet, test.chunk,
                        algorithm, train.type,
-                       param.name, sample.id, errors,
+                       ## param.name is the number of peaks here.
+                       param.name, sample.id,
+                       errors=err.mat[i.mat],
+                       tp=tp.mat[i.mat],
+                       fp=fp.mat[i.mat],
                        regions=test.info$regions)
         }
       }
+      ## other baseline methods:
       for(algorithm in names(default.params)){
         param.list <- list(
           unsupervised=default.params[[algorithm]],
           supervised=baseline.list[[algorithm]])
         err.mat <- test.info[[algorithm]]
+        tp.mat <- test.tp[[algorithm]]
+        fp.mat <- test.fp[[algorithm]]
         for(train.type in names(param.list)){
           param.name <- param.list[[train.type]]
           errors <- err.mat[, param.name]
@@ -108,13 +139,25 @@ for(set.name in names(dp.peaks.sets)){
                          algorithm=="macs.trained", "MACS", "HMCanBroad"),
                        train.type,
                        param.name, sample.id, errors,
+                       tp=tp.mat[, param.name],
+                       possible.tp=test.tp$possible.tp,
+                       fp=fp.mat[, param.name],
+                       possible.fp=test.tp$possible.fp,
                        regions=test.info$regions)
         }#train.type
+        roc.list[[paste(set.name, set.i, test.chunk, algorithm)]] <-
+          data.table(set.name, set.i, test.chunk, algorithm,
+                     param.name=colnames(tp.mat),
+                     tp=colSums(tp.mat),
+                     possible.tp=test.tp$possible.tp,
+                     fp=colSums(fp.mat),
+                     possible.fp=test.fp$possible.fp)
       }#algorithm
     }#test.chunk
   }#set.i
 }#set
 
 test.error <- do.call(rbind, elist)
+roc <- do.call(rbind, roc.list)
 
-save(test.error, file="test.error.RData")
+save(test.error, roc, file="test.error.RData")
