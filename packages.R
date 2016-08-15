@@ -65,3 +65,8 @@ suppressPackageStartupMessages({
                "Rdatatable/data.table@1033340375b2a56f8e67ba922f6ad52c147beff3")
 })
 library(coseg)
+options(
+  tikzDocumentDeclaration=paste(
+    "\\documentclass{article}",
+    "\\usepackage{amsmath,amssymb,amsthm}"),
+  tikzMetricsDictionary="tikzMetrics")

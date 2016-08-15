@@ -1,7 +1,6 @@
 \documentclass{article}
 \usepackage{fullpage}
 
-
 \usepackage[utf8]{inputenc} % allow utf-8 input
 \usepackage[T1]{fontenc}    % use 8-bit T1 fonts
 %\usepackage{hyperref}       % hyperlinks
@@ -520,27 +519,41 @@ TODO: describe OP version.
 
 \subsection{Accuracy on ChIP-seq data}
 
-TODO: some commentary about PeakSegDP vs coseg feasibility in the
-benchmark data set.
+TODO: some commentary about PeakSegDP vs coseg vs Segmentor
+feasibility and optimality in the benchmark data set.
 
-\includegraphics[width=\textwidth]{figure-test-error-dots}
-
+\begin{figure}[b!]
+  \centering
+  \includegraphics[width=\textwidth]{figure-test-error-dots}
+  \caption{Test AUC on 7 benchmark data sets}
+  \label{fig:test-error-dots}
+\end{figure}
 % \includegraphics[width=0.45\textwidth]{figure-min-train-error-Segmentor}
 % \includegraphics[width=0.45\textwidth]{figure-min-train-error-PeakSegDP}
 
-
 TODO: some more in-depth discussion on the difference between train
 and test error results. coseg is always better than Segmentor in terms
-of minimum train error. But Segmentor has a low false positive and
-true positive rate, so it is easy to get a low test error (just pick
-the model with the most peaks). But coseg has a significantly higher
-AUC, about the same as PeakSegDP.
+of minimum train error (figure?). But Segmentor has a low false
+positive and true positive rate, so it is easy to get a low test error
+(just pick the model with the most peaks). But coseg has a
+significantly higher AUC, about the same as PeakSegDP.
 
 \subsection{Timings}
 
 %TODO make small versions of these figures.
-\includegraphics[width=0.45\textwidth]{figure-PDPA-intervals-all}
-\includegraphics[width=0.45\textwidth]{figure-PDPA-timings}
+\begin{figure}[b!]
+  \centering
+  \parbox{0.49\textwidth}{
+    %\includegraphics[width=0.45\textwidth]{figure-PDPA-intervals-all}
+    \input{figure-PDPA-intervals-small}
+  }
+  \parbox{0.49\textwidth}{
+    %\includegraphics[width=0.45\textwidth]{figure-PDPA-timings}
+    \input{figure-PDPA-timings-small}
+  }
+  \caption{Left: number of intervals stored by the algorithm, Right: timings in seconds}
+  \label{fig:timings}
+\end{figure}
 
 \bibliographystyle{abbrvnat}
 \bibliography{refs}

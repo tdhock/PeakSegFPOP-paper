@@ -52,6 +52,42 @@ median.dt <- over.dt[, list(
   ), by=mid]
 
 ggplot()+
+  geom_ribbon(aes(mid, ymin=min, ymax=max),
+              alpha=0.5,
+              data=median.dt)+
+  geom_line(aes(mid, median),
+            data=median.dt)+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  scale_x_continuous(
+    "log10(data points to segment)")+
+  scale_y_continuous("median(intervals)")
+
+gg <- ggplot()+
+  geom_text(aes(3, 200, label="max"),
+            color="blue")+
+  geom_text(aes(4, 0, label="median and inter-quartile range"),
+            color="black")+
+  geom_point(aes(log10(n.data), `100%`),
+             color="blue",
+             shape=21,
+             data=PDPA.intervals.all)+
+  geom_ribbon(aes(log10(n.data), ymin=`25%`, ymax=`75%`),
+              alpha=0.5,
+              data=PDPA.intervals.all)+
+  geom_line(aes(log10(n.data), `50%`),
+            data=PDPA.intervals.all)+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  scale_x_continuous(
+    "log10(data points to segment)")+
+  scale_y_continuous(
+    "intervals stored")
+tikz("figure-PDPA-intervals-small.tex", w=3.3, h=2.5)
+print(gg)
+dev.off()
+
+ggplot()+
   ggtitle(paste(
     "2752 segmentation problems",
     "max segments = 19",

@@ -271,7 +271,7 @@ dots <- ggplot()+
   theme(panel.margin=grid::unit(0, "cm"),
         legend.position="top")+
   scale_x_continuous(
-    "Test accuracy (area under the Receiver Operating Characteristic curve)",
+    "Test AUC (area under the Receiver Operating Characteristic curve)",
     breaks=c(0.6, 0.8, 1),
     labels=c("0.6", "0.8", "1"))
 pdf("figure-test-error-dots.pdf", h=2, w=8)
