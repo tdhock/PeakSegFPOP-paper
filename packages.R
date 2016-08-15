@@ -55,6 +55,7 @@ suppressPackageStartupMessages({
                LambertW="0.6.2",
                microbenchmark="1.4.2",
                Segmentor3IsBack="2.0",
+               geometry="0.3.6",
                "tdhock/memtime@8b80d7d2b151cf5e877b27138c2791eca365e7b1",
                ##"tdhock/coseg@073dcf152355e6de32236f9556d97dda29574bf5",
                "tdhock/PeakError@d9196abd9ba51ad1b8f165d49870039593b94732",

@@ -525,12 +525,16 @@ benchmark data set.
 
 \includegraphics[width=\textwidth]{figure-test-error-dots}
 
-\includegraphics[width=0.45\textwidth]{figure-min-train-error-Segmentor}
-\includegraphics[width=0.45\textwidth]{figure-min-train-error-PeakSegDP}
+% \includegraphics[width=0.45\textwidth]{figure-min-train-error-Segmentor}
+% \includegraphics[width=0.45\textwidth]{figure-min-train-error-PeakSegDP}
 
 
 TODO: some more in-depth discussion on the difference between train
-and test error results.
+and test error results. coseg is always better than Segmentor in terms
+of minimum train error. But Segmentor has a low false positive and
+true positive rate, so it is easy to get a low test error (just pick
+the model with the most peaks). But coseg has a significantly higher
+AUC, about the same as PeakSegDP.
 
 \subsection{Timings}
 

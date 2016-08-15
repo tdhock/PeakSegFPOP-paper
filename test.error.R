@@ -103,12 +103,11 @@ for(set.name in names(dp.peaks.sets)){
             })
             roc.list[[paste(set.name, set.i, test.chunk, algorithm)]] <-
               data.table(set.name, set.i, test.chunk, algorithm,
-                         ## param.name is the penalty here.
-                         param.name=colnames(tp.big),
+                         param.i=1:ncol(tp.big),
                          tp=colSums(tp.big),
-                         possible.tp=test.tp$possible.tp,
+                         possible.tp=sum(test.tp$possible.tp),
                          fp=colSums(fp.big),
-                         possible.fp=test.fp$possible.fp)
+                         possible.fp=sum(test.fp$possible.fp))
           }
           elist[[paste(set.name, set.i, test.chunk, algorithm, train.type)]] <- 
             data.table(set.name, set.i, testSet, test.chunk,
@@ -117,7 +116,9 @@ for(set.name in names(dp.peaks.sets)){
                        param.name, sample.id,
                        errors=err.mat[i.mat],
                        tp=tp.mat[i.mat],
+                       possible.tp=test.tp$possible.tp,
                        fp=fp.mat[i.mat],
+                       possible.fp=test.fp$possible.fp,
                        regions=test.info$regions)
         }
       }
@@ -142,16 +143,22 @@ for(set.name in names(dp.peaks.sets)){
                        tp=tp.mat[, param.name],
                        possible.tp=test.tp$possible.tp,
                        fp=fp.mat[, param.name],
-                       possible.fp=test.tp$possible.fp,
+                       possible.fp=test.fp$possible.fp,
                        regions=test.info$regions)
         }#train.type
+        ord <- order(as.numeric(colnames(err.mat)))
+        roc.dt <- data.table(
+          set.name, set.i, test.chunk, 
+          algorithm=ifelse(
+            algorithm=="macs.trained", "MACS", "HMCanBroad"),
+          param.i=NA_integer_,
+          tp=colSums(tp.mat),
+          possible.tp=sum(test.tp$possible.tp),
+          fp=colSums(fp.mat),
+          possible.fp=sum(test.fp$possible.fp))[ord,]
+        roc.dt[, param.i := 1:.N]
         roc.list[[paste(set.name, set.i, test.chunk, algorithm)]] <-
-          data.table(set.name, set.i, test.chunk, algorithm,
-                     param.name=colnames(tp.mat),
-                     tp=colSums(tp.mat),
-                     possible.tp=test.tp$possible.tp,
-                     fp=colSums(fp.mat),
-                     possible.fp=test.fp$possible.fp)
+          roc.dt
       }#algorithm
     }#test.chunk
   }#set.i

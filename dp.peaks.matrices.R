@@ -77,12 +77,12 @@ for(set.name in set.names){
       fp.list <-
         list(PeakSegDP=fp.mat,
              coseg=pdpa.fp,
-             Segmentor=Seg.fp
+             Segmentor=Seg.fp,
              possible.fp=sapply(long.list, function(x)x$possible.fp[[1]]))
       tp.list <-
         list(PeakSegDP=tp.mat,
              coseg=pdpa.tp,
-             Segmentor=Seg.tp
+             Segmentor=Seg.tp,
              possible.tp=sapply(long.list, function(x)x$possible.tp[[1]]))
       for(algorithm in c("macs.trained", "hmcan.broad.trained")){
         load(sprintf("data/%s/error/%s.RData", chunk.name, algorithm))
