@@ -73,8 +73,8 @@ ggplot()+
              data=test.counts)
 
 roc.not.cvx <- roc.total[, list(
-  FPR=c(FPR, 0, 1, 1),
-  TPR=c(TPR, 0, 0, 1)
+  FPR=c(1, FPR, 0, 1, 1),
+  TPR=c(1, TPR, 0, 0, 1)
   ), by=.(set.name, set.i, algorithm)]
 auc <- roc.not.cvx[, list(
   auc=geometry::polyarea(FPR, TPR)
@@ -108,6 +108,7 @@ ggplot()+
   scale_fill_manual(values=c(unsupervised="white", supervised="black"))+
   geom_path(aes(FPR, TPR, color=algorithm, group=paste(set.i, algorithm)),
             data=some.algos(roc.total))+
+  coord_cartesian(xlim=c(0,0.5), ylim=c(0.5,1))+
   geom_point(aes(FPR, TPR, color=algorithm, fill=train.type),
              shape=21,
              stroke=1,
@@ -118,7 +119,6 @@ ggplot()+
 levs <- c("MACS", "HMCanBroad", "PeakSegDP", "Segmentor", "coseg")
 test.mean[, algo.fac := factor(algorithm, levs)]
 auc[, algo.fac := factor(algorithm, levs)]
-best.auc[, algo.fac := factor(algorithm, levs)]
 mean.auc[, algo.fac := factor(algorithm, levs)]
 test.counts[, algo.fac := factor(algorithm, levs)]
 set.best <- test.mean[, list(min.percent=max(mean.percent)), by=set.name]
@@ -142,6 +142,117 @@ dots <- ggplot()+
         legend.position="top")+
   scale_x_continuous("percent incorrect peak region labels (test accuracy)",
                      breaks=seq(0, 60, by=20))
+
+test.counts[, testSet := paste(set.name, "split", set.i)]
+auc[, testSet := paste(set.name, "split", set.i)]
+roc.total[, testSet := paste(set.name, "split", set.i)]
+roc.not.cvx[, testSet := paste(set.name, "split", set.i)]
+viz <- list(
+  title="Peak detection test accuracy (4-fold cross-validation)",
+  error=ggplot()+
+    ggtitle("Click to select test set")+
+    scale_fill_manual(values=c(unsupervised="white", supervised="black"))+
+    geom_vline(aes(xintercept=min.percent),
+               color="grey",
+               data=set.best)+
+    geom_point(aes(mean.percent, algo.fac, color=algorithm,
+                  showSelectedalgo=algorithm,
+                   showSelected=train.type),
+               alpha=0.3,
+               size=4,
+               data=test.mean)+
+    geom_point(aes(percent.accuracy, algo.fac, color=algorithm,
+                  showSelectedalgo=algorithm,
+                   clickSelects=testSet,
+                   fill=train.type),
+               stroke=1,
+               size=3,
+               data=test.counts,
+               shape=21)+
+    scale_color_manual(values=algo.colors)+
+    facet_grid(. ~ set.name, labeller=function(df){
+      df$set.name <- gsub("_", "\n", df$set.name)
+      df
+    })+
+    guides(color="none")+
+    scale_y_discrete("algorithm")+
+    theme_bw()+
+    theme(panel.margin=grid::unit(0, "cm"),
+          legend.position="top")+
+    theme_animint(width=1100, height=170)+
+    scale_x_continuous(
+      "Test accuracy (percent correct peak region labels)",
+      breaks=c(40, 60, 80, 100)),
+  auc=ggplot()+
+    geom_vline(aes(xintercept=min.auc),
+               color="grey",
+               data=best.auc)+
+    scale_color_manual(values=algo.colors)+
+    guides(color="none")+
+    geom_point(aes(mean.auc, algo.fac,
+                  showSelectedalgo=algorithm,
+                   color=algorithm),
+               alpha=0.3,
+               size=4,
+               data=mean.auc)+
+    geom_point(aes(auc, algo.fac, color=algorithm,
+                  showSelectedalgo=algorithm,
+                   clickSelects=testSet),
+               size=3,
+               data=auc, pch=1)+
+    facet_grid(. ~ set.name, labeller=function(df){
+      df$set.name <- gsub("_", "\n", df$set.name)
+      df
+    })+
+    scale_y_discrete("algorithm")+
+    theme_bw()+
+    theme_animint(width=1100, height=140)+
+    theme(panel.margin=grid::unit(0, "cm"),
+          legend.position="top")+
+    scale_x_continuous(
+      "Test AUC (area under the Receiver Operating Characteristic curve)",
+      breaks=c(0.6, 0.8, 1),
+      labels=c("0.6", "0.8", "1")),
+  rocZoom=ggplot()+
+    ggtitle("Upper left corner of ROC space")+
+    guides(color="none", fill="none")+
+    scale_color_manual(values=algo.colors)+
+    scale_fill_manual(values=c(unsupervised="white", supervised="black"))+
+    geom_path(aes(FPR, TPR, color=algorithm,
+                  showSelected=testSet,
+                  showSelectedalgo=algorithm,
+                  group=algorithm),
+              alpha=0.5,
+              data=roc.total)+
+    coord_cartesian(xlim=c(0,0.5), ylim=c(0.5,1))+
+    geom_point(aes(FPR, TPR, color=algorithm,
+                  showSelectedalgo=algorithm,
+                   showSelected=testSet,
+                   showSelectedtype=train.type,
+                   fill=train.type),
+               shape=21,
+               stroke=1,
+               data=test.counts),
+  roc=ggplot()+
+    ggtitle("AUC computation (full ROC space)")+
+    scale_color_manual(values=algo.colors)+
+    scale_fill_manual(values=c(unsupervised="white", supervised="black"))+
+    geom_polygon(aes(FPR, TPR, color=algorithm,
+                     showSelected=testSet,
+                     group=algorithm),
+                 alpha=0.5,
+                 fill=NA,
+                 data=roc.not.cvx)+
+    geom_point(aes(FPR, TPR, color=algorithm,
+                   showSelected=testSet,
+                   fill=train.type),
+               shape=21,
+               stroke=1,
+               data=test.counts))
+##print(viz$error)
+##print(viz$auc)
+library(animint)
+animint2dir(viz, "figure-test-error-dots")
 
 dots <- ggplot()+
   geom_vline(aes(xintercept=min.auc), data=best.auc)+

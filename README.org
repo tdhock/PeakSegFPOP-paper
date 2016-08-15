@@ -2,6 +2,12 @@ The goal of this paper is to implement a fast algorithm for solving
 the PeakSeg problem described in
 http://jmlr.org/proceedings/papers/v37/hocking15.html
 
+** 15 Aug 2016
+
+Test accuracy and AUC data viz, explains why Segmentor gets such a
+high test accuracy (it has a low true positive and false positive
+rate) http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/
+
 ** 10 Aug 2016
 
 - [[http://cbio.ensmp.fr/~thocking/HOCKING-PeakSeg-functional-pruning-slides.pdf][Slides]] for group meeting presentation 11 Aug 2016.
