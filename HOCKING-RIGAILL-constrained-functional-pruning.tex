@@ -161,27 +161,27 @@ $K\in\{1, 2, \dots, K_{\max}\}$ distinct piecewise constant segments:
   \mathbf{\hat m}^K(\mathbf y) =
     \argmin_{\substack{
   \mathbf m\in\RR^{n}
-  \\
+\\
   \mathbf c\in\{-1,0,1\}^{n-1}
   }} &\ \ 
     \sum_{t=1}^n \ell( m_t,  y_t) 
-\\
-    \text{subject to} &\ \  \sum_{t=2}^n I(c_t \neq 0) = K, \\
-& \ \ c_t = -1 \Leftrightarrow m_{t-1} > m_t\\
-& \ \ c_t = 0 \Leftrightarrow m_{t-1} = m_t\\
-& \ \ c_t = 1 \Leftrightarrow m_{t-1} < m_t
+\nonumber\\
+    \text{subject to} &\ \  \sum_{t=1}^{n-1} I(c_t \neq 0) = K, \\
+& \ \ c_t = -1 \Leftrightarrow m_{t} > m_{t+1} \text{ (change down)}
+\nonumber\\
+& \ \ c_t = 0 \Leftrightarrow m_{t} = m_{t+1}  \text{ (no change)}
+\nonumber\\
+& \ \ c_t = 1 \Leftrightarrow m_{t} < m_{t+1} \text{ (change up)}
 \nonumber
 \end{align}
 where the Poisson loss function is
 \begin{equation}\label{eq:loss}
   \ell( m,  y)= m - y \log m.
 \end{equation} 
-The model complexity is the number of piecewise constant segments
-\begin{equation}
-  \Segments(\mathbf m)=1+\sum_{j=2}^n I(m_{j-1} \neq m_{j}),
-\end{equation}
-where $I$ is the indicator function. 
-
+The $c_t = \sign(m_{t+1} - m_{t})$ variable is the sign of the change
+after data point $t$. Every $t$ such that $c_t \neq 0$ is a
+change-point, and the model complexity is the number of change-points
+$\sum_{t=1}^{n-1} I(c_t \neq 0)$, where $I$ is the indicator function.
 
 Although it is a non-convex optimization problem, the sequence of
 segmentations $\mathbf{\hat m}^1(\mathbf y), \dots, \mathbf{\hat
@@ -202,15 +202,14 @@ To introduce the PeakSeg model constraint \citep{PeakSeg}, we first define
 the peak indicator at data point $t\in\{2, \dots, n\}$ as
 \begin{equation}
   \label{eq:peaks}
-  P_t(\mathbf m) = \sum_{i=2}^t \sign( m_{i} - m_{i-1} ),
+  P_t(\mathbf c) = \sum_{i=2}^t c_t,
 \end{equation}
-where $P_1(\mathbf m)=0$ by convention. $P_t(\mathbf m)$ is the
-cumulative sum of signs of changes up to point $t$ in the piecewise
-constant vector $\mathbf m$. In general for the unconstrained model
-$P_t(\mathbf m)\in\ZZ$, which is problematic since in our biological
+which is the cumulative sum of change-point variables $c_t$ up to data
+point $t$. In general for the unconstrained model
+$P_t(\mathbf c)\in\ZZ$, which is problematic since in our biological
 application (ChIP-seq peak detection), we want to classify each
 segment and data point into one of two states
-$P_t(\mathbf m)\in \{0, 1\}$ (0 for background noise after a change
+$P_t(\mathbf c)\in \{0, 1\}$ (0 for background noise after a change
 down, 1 for a peak after a change up).
 % For example, if
 % $\mathbf m = \left[\begin{array}{ccccccc}1.1 & 1.1 & 2 & 2 & 4 & 4 &
@@ -220,26 +219,38 @@ down, 1 for a peak after a change up).
 %     & 2 & 1 \end{array}\right]$ and so this model is not feasible for
 % the peaks constraint $P_t(\mathbf m)\in \{0, 1\}$.
 Thus we constrain the peak indicator $P_t(\mathbf
-m)\in\{0, 1\}$, which results
+c)\in\{0, 1\}$, which results
 in the constrained problem
 \begin{align*}
   \label{PeakSeg}
-  \mathbf{\tilde m}^K(\mathbf y)  =
-    \argmin_{\mathbf m\in\RR^{n}} &\ \ 
-    \sum_{t=1}^n \ell( m_t,  y_t) 
-    \tag{\textbf{PeakSeg}}
+  \mathbf{\tilde m}^K(\mathbf y) =
+    \argmin_{\substack{
+  \mathbf m\in\RR^{n}
+\tag{PeakSeg}
 \\
-    \text{subject to} &\ \  \Segments(\mathbf m) = K,  \\
-     \forall t\in\{2, \dots, n\}, &\ \ P_t(\mathbf m) \in\{0, 1\}.
+  \mathbf c\in\{-1,0,1\}^{n-1}
+  }} &\ \ 
+    \sum_{t=1}^n \ell( m_t,  y_t) 
+\nonumber\\
+    \text{subject to} &\ \  \sum_{t=1}^{n-1} I(c_t \neq 0) = K, \\
+& \ \ c_t = -1 \Leftrightarrow m_{t} > m_{t+1} \text{ (change down)}
+\nonumber\\
+& \ \ c_t = 0 \Leftrightarrow m_{t} = m_{t+1}  \text{ (no change)}
+\nonumber\\
+& \ \ c_t = 1 \Leftrightarrow m_{t} < m_{t+1} \text{ (change up)}
+\nonumber\\
+\forall t\in\{1, \dots, n-1\}, &\ \ P_t(\mathbf c) \in\{0, 1\}.
+\nonumber
 \end{align*}
-Note that one must specify the number of segments $K$ or,
-equivalently, the number of peaks $p=(K-1)/2$. Another way to
-interpret the constrained \ref{PeakSeg} problem is that the sequence
-of changes in the segment means $\mathbf m$ must begin with a positive
-change and then alternate: up, down, up, down, ... (and not up, up,
-down). Thus the even-numbered segments may be interpreted as peaks
-$P_t(\mathbf m)=1$, and the odd-numbered segments may be interpreted
-as background $P_t(\mathbf m)=0$.
+The only difference with the unconstrained problem
+(\ref{unconstrained}) is that we have added the constraint
+$P_t(\mathbf c) \in\{0, 1\}$. Another way to interpret the constrained
+\ref{PeakSeg} problem is that the sequence of changes in the segment
+means $\mathbf m$ must begin with a positive change and then
+alternate: up, down, up, down, ... (and not up, up, down). Thus the
+even-numbered segments may be interpreted as peaks $P_t(\mathbf m)=1$,
+and the odd-numbered segments may be interpreted as background
+$P_t(\mathbf m)=0$.
 
 In fact, there are data sets $\mathbf y$ for which the \ref{PeakSeg}
 solution above is not well-defined. For example,
@@ -248,7 +259,37 @@ $\mathbf y = \left[\begin{array}{ccc} 1 & 2 & 3 \end{array}\right]$.
 
 \subsection{The problem our algorithm solves}
 
+\begin{align*}
+  \label{coseg}
+  \mathbf{\bar m}^K(\mathbf y) =
+    \argmin_{\substack{
+  \mathbf m\in\RR^{n}
+\\
+  \mathbf c\in\{-1,0,1\}^{n-1}
+  }} &\ \ 
+    \sum_{t=1}^n \ell( m_t,  y_t) 
+\nonumber\\
+    \text{subject to} &\ \  \sum_{t=1}^{n-1} I(c_t \neq 0) = K, \\
+& \ \ c_t = -1 \Rightarrow m_{t} \geq m_{t+1} \text{ (change down)}
+\nonumber\\
+& \ \ c_t = 0 \Rightarrow m_{t} = m_{t+1}  \text{ (no change)}
+\nonumber\\
+& \ \ c_t = 1 \Rightarrow m_{t} \leq m_{t+1} \text{ (change up)}
+\nonumber\\
+\forall t\in\{2, \dots, n\}, &\ \ P_t(\mathbf c) \in\{0, 1\}.
+\nonumber
+\end{align*}
+The only difference with the \ref{PeakSeg} problem is that we have
+changed the strict inequality constraints to non-strict inequality
+constraints.
 
+$(\mathbf m = \left[\begin{array}{cccc}1 & 2 & 2 & 3 \end{array}\right],
+  \mathbf c = \left[\begin{array}{cccc}  1 & -1 & 1 \end{array}\right]$
+is feasible for this problem (\ref{coseg}), 
+but is not feasible for \ref{PeakSeg} (since $c_2=-1$ but $m_2 = m_3$).
+
+Note that unlike the unconstrained model, in this model there are
+sometimes larger models with larger cost. TODO example.
 
 \subsection{The isotonic regression model}
 

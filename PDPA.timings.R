@@ -40,7 +40,7 @@ for(file.i in file.i.vec){
       bases.vec <- compressed$bases
       data.vec <- compressed$count
       seconds <- system.time({
-        model.list <- PeakSegPDPALog(data.vec, bases.vec, max.segments)
+        model.list <- PeakSegPDPA(data.vec, bases.vec, max.segments)
       })[["elapsed"]]
       dp.file <- sub("counts", "dp.model", local.f)
       if(file.exists(dp.file)){
