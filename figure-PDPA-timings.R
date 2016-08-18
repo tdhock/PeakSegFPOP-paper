@@ -68,6 +68,7 @@ gg.log <- ggplot()+
   geom_hline(aes(yintercept=log10(seconds)),
              data=lab.df,
              color="grey")+
+  xlab("log10(seconds)")+
   ## geom_point(aes(log10(data), log10(seconds), color=algo.tex),
   ##            shape=1,
   ##            data=all.timings)+

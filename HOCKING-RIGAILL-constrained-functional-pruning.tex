@@ -3,7 +3,7 @@
 
 \usepackage[utf8]{inputenc} % allow utf-8 input
 \usepackage[T1]{fontenc}    % use 8-bit T1 fonts
-%\usepackage{hyperref}       % hyperlinks
+\usepackage{hyperref}       % hyperlinks
 %\usepackage{url}            % simple URL typesetting
 %\usepackage{booktabs}       % professional-quality tables
 \usepackage{amsfonts}       % blackboard math symbols
@@ -157,7 +157,7 @@ segment. For the Segment Neighborhood model we first fix a maximum
 number of segments $ K_{\max}\leq n$. The unconstrained maximum
 likelihood segmentation model is defined as the most likely mean
 vector $\mathbf m\in\RR^n$ with exactly 
-$K\in\{0, 1, \dots, K_{\max}\}$ distinct piecewise constant segments:
+$K\in\{1, \dots, K_{\max}\}$ distinct piecewise constant segments:
 \begin{align}
   \label{unconstrained}
   \mathbf{\hat m}^K(\mathbf y) =
@@ -202,12 +202,12 @@ using dynamic programming with functional pruning \citep{pruned-dp,
 \label{sec:constrained}
 
 To introduce the PeakSeg model constraint \citep{PeakSeg}, we first define
-the peak indicator at data point $t\in\{2, \dots, n\}$ as
+the peak indicator for $t\in\{1, \dots, n-1\}$ as
 \begin{equation}
   \label{eq:peaks}
-  P_t(\mathbf c) = \sum_{i=2}^t c_t,
+  P_t(\mathbf c) = \sum_{i=1}^t c_i,
 \end{equation}
-which is the cumulative sum of change-point variables $c_t$ up to data
+which is the cumulative sum of change-point variables $c_i$ up to data
 point $t$. In general for the unconstrained model
 $P_t(\mathbf c)\in\ZZ$, which is problematic in our biological
 application (ChIP-seq peak detection), since we want to classify each
@@ -252,9 +252,9 @@ $P_t(\mathbf c) \in\{0, 1\}$. Another way to interpret the constrained
 \ref{PeakSeg} problem is that the sequence of changes in the segment
 means $\mathbf m$ must begin with a positive change and then
 alternate: up, down, up, down, ... (and not up, up, down). Thus the
-even-numbered segments may be interpreted as peaks $P_t(\mathbf m)=1$,
+even-numbered segments may be interpreted as peaks $P_t(\mathbf c)=1$,
 and the odd-numbered segments may be interpreted as background
-$P_t(\mathbf m)=0$.
+$P_t(\mathbf c)=0$.
 
 \subsection{The problem our algorithm solves}
 
@@ -284,9 +284,10 @@ following optimization problem.
 \end{align}
 The only difference with the \ref{PeakSeg} problem is that we have
 changed the strict inequality constraints to non-strict inequality
-constraints.
-
-Note that 
+constraints. Thus the \ref{PeakSeg} model has exactly $K$ distinct
+segment means, but this model (\ref{PeakSegPDPA}) has \emph{at most}
+$K$ distinct segment means (some may be equal due to the non-strict
+equality constraints). Note that for $K=4$, the solution
 $(\mathbf m = \left[\begin{array}{cccc}1 & 2 & 2 & 3 \end{array}\right],
   \mathbf c = \left[\begin{array}{ccc}  1 & -1 & 1 \end{array}\right])$
 is feasible for this problem (\ref{PeakSegPDPA}), 
@@ -311,10 +312,11 @@ $(\mathbf m = \left[\begin{array}{ccc}1 & 6 & 6 \end{array}\right],
 Note that the \ref{PeakSeg} solution with $K=3$ is undefined for this data set.
 
 \begin{Proposition}
-  Let $(\mathbf m, \mathbf c)$ be the solution to (\ref{PeakSegPDPA}). If
-  $c_t=0 \Leftrightarrow m_t = m_t+1$ then $(\mathbf m, \mathbf c)$ is
-  also the solution to \ref{PeakSeg}. Otherwise, the \ref{PeakSeg}
-  solution is undefined.
+  Let $(\mathbf m, \mathbf c)$ be the solution to
+  (\ref{PeakSegPDPA}). If $c_t=0 \Leftrightarrow m_t = m_{t+1}$ for
+  all $t\in\{1, \dots, n-1\}$ then $(\mathbf m, \mathbf c)$ is also
+  the solution to \ref{PeakSeg}. Otherwise, the \ref{PeakSeg} solution
+  is undefined.
 \end{Proposition}
 
 \begin{proof}
@@ -327,7 +329,7 @@ In real ChIP-seq data sets we are only interested in the \ref{PeakSeg}
 solutions
 $\mathbf{\tilde m}^1(\mathbf y), \mathbf{\tilde m}^3(\mathbf y), \dots$
 which start with a change up, and end with a change down. To select
-one of those segmentations we typically the following criterion
+one of those segmentations we typically use the following criterion
 \begin{equation}
   \label{eq:selection}
   K^*_\lambda = \argmin_{k\in 1,3, \dots}
@@ -371,11 +373,11 @@ optimization problem,
 \end{align}
 
 We refer to problem (\ref{PeakSegFPOP}) as the penalized version of
-(\ref{PeakSegPDPA}). The constraint on the number of non-zero change
-variables $c_t\neq 0$ has been removed, and term penalizing the number
-of up changes $c_t=1$ has been added to the optimization objective.
-The solution to this problem is computed by the PeakSegFPOP function
-of the coseg R package.
+the constrained problem (\ref{PeakSegPDPA}). The constraint on the
+number of non-zero change variables $c_t\neq 0$ has been removed, and
+term penalizing the number of up changes $c_t=1$ has been added to the
+optimization objective.  The solution to this problem is computed by
+the PeakSegFPOP function of the coseg R package.
 
 \begin{Proposition}
   For any data set $\mathbf y\in\ZZ_+^n$ and any penalty parameter
@@ -617,38 +619,9 @@ and for $t\in\{s+1, ..., n\}$
 where * means less-min for even-numbered segments $s$, and more-min
 for odd-numbered segments.
 
-\subsection{Example of algorithm on a small data set}
-
-In this section we analyze the data
-$\mathbf z = \left[\begin{array}{cccc} 1 & 10 & 14 & 13
-\end{array}\right]\in\ZZ_+^4
-$. For $s=3$ segments there are only 3 possible segmentations:
-$[1][10][14, 13]$, $[1][10, 14][13]$ and $[1, 10][14][13]$. If we use
-max-likelihood estimates for each segment mean, then only the last
-segmentation obeys the \ref{PeakSeg} model constraints
-($\mathbf m =\left[\begin{array}{cccc} 5.5 & 5.5 & 14 &
-    13\end{array}\right]$). However using the square loss, this model
-has a cost of 40.5, which is clearly not optimal. For example the
-model
-$\mathbf m =\left[\begin{array}{cccc} 1 & 13 & 13 &
-    12\end{array}\right]$ has a lower cost of only 11. In fact the
-constrained PDPA recovers the optimal model
-$\mathbf m =\left[\begin{array}{cccc} 1 & 37/3 & 37/3 &
-    37/3\end{array}\right]$ which has a cost of $26/3\approx
-8.67$. Since the strict inequality is not satisfied (the second and
-third segment means are exactly equal), this model is not feasible for
-the \ref{PeakSeg} problem. For these data, the minimum of the
-\ref{PeakSeg} problem (with strict inequality constraints) is
-undefined.
-
-TODO: add figure that shows the representation of the cost that is
-recovered for this example.
-
 \subsection{Optimal Partitioning}
 
 TODO: describe OP version.
-
-
 
 \section{Results}
 
@@ -660,7 +633,8 @@ feasibility and optimality in the benchmark data set.
 \begin{figure}[b!]
   \centering
   \includegraphics[width=\textwidth]{figure-test-error-dots}
-  \caption{Test AUC on 7 benchmark data sets, interactive version at \url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}}
+  \caption{Test AUC on 7 benchmark data sets, interactive version at 
+\url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}}
   \label{fig:test-error-dots}
 \end{figure}
 % \includegraphics[width=0.45\textwidth]{figure-min-train-error-Segmentor}
