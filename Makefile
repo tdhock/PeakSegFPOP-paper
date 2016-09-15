@@ -96,3 +96,7 @@ figure-test-error-dots.pdf: figure-test-error-dots.R test.error.RData
 	R --no-save < $<
 unsupervised.Segmentor.RData: unsupervised.Segmentor.R
 	R --no-save < $<
+PDPA.cDPA.compare.RData: PDPA.cDPA.compare.R
+	R --no-save < $<
+figure-PDPA-cDPA-compare.pdf: figure-PDPA-cDPA-compare.R PDPA.cDPA.compare.RData
+	R --no-save < $<

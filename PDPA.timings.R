@@ -51,7 +51,7 @@ for(file.i in file.i.vec){
             dp=dp$error,
             pdpa=model.list$cost.mat[dp$segments, n.data])
           should.be.positive <- compare.mat["dp",]-compare.mat["pdpa",]
-          if(any(should.be.positive < -1e-8)){
+          if(any(should.be.positive < -1e-6)){
             print(should.be.positive)
             print(compare.mat)
             stop("dp model more likely than pdpa model")

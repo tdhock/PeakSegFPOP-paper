@@ -333,7 +333,7 @@ one of those segmentations we typically use the following criterion
 \begin{equation}
   \label{eq:selection}
   K^*_\lambda = \argmin_{k\in 1,3, \dots}
-  \lambda k +
+  \lambda k/2 +
 \sum_{t=1}^n
   \ell[ \tilde m_t^k(\mathbf y),  y_t ],
 \end{equation}
@@ -368,7 +368,7 @@ optimization problem,
 \nonumber\\
 & \ \ c_t = 1 \Rightarrow m_{t} \leq m_{t+1} \text{ (change up or no change)}
 \nonumber\\
-\forall t\in\{2, \dots, n\}, &\ \ P_t(\mathbf c) \in\{0, 1\}.
+\forall t\in\{1, \dots, n-1\}, &\ \ P_t(\mathbf c) \in\{0, 1\}.
 \nonumber
 \end{align}
 
@@ -548,10 +548,10 @@ the following exact representation
 The next step is to compute the minimum cost in 2 segments up to data
 point 3, for which there is a choice of two change-points.
 \begin{equation*}
-  \FCC_{2,3}(\mu) = \min
+  \FCC_{2,3}(\mu) = \gamma_3(\mu)+\min
   \begin{cases}
-    \FCC_{2,2}(\mu)+\gamma_3(\mu), \\
-    \FCC_{1,2}^{\leq}(\mu)+\gamma_3(\mu)
+    \FCC_{2,2}(\mu) \\
+    \FCC_{1,2}^{\leq}(\mu)
   \end{cases}
 \end{equation*}
 We have already computed an exact representation of the $C_{2,2}$
@@ -583,10 +583,10 @@ representation of the minimum of these two functions
 
 The updates continue for every data point $t\in\{3, ..., n\}$
 \begin{equation*}
-  \FCC_{2,t}(\mu) = \min
+  \FCC_{2,t}(\mu) =  \gamma_t(\mu) + \min
   \begin{cases}
-    \FCC_{2,t-1}(\mu) + \gamma_t(\mu),\\
-    \FCC_{1,t-1}^{\leq}(\mu) + \gamma_t(\mu).
+    \FCC_{2,t-1}(\mu),\\
+    \FCC_{1,t-1}^{\leq}(\mu) 
   \end{cases}
 \end{equation*}
 
@@ -598,10 +598,10 @@ where the more-min operator $f^\geq$ is defined analogously to the
 min-less operator (Figure~\ref{fig:min-operators}). The update formula
 for the minimum cost up to data point $t\in\{4, ..., n\}$ is
 \begin{equation*}
-  \FCC_{3,t}(\mu) = \min
+  \FCC_{3,t}(\mu) = \gamma_t(\mu) + \min
   \begin{cases}
-    \FCC_{3,t-1}^{\geq}(\mu)+\gamma_t(\mu),\\
-    \FCC_{2,t-1}^{\geq}(\mu)+\gamma_t(\mu)
+    \FCC_{3,t-1}(\mu),\\
+    \FCC_{2,t-1}^{\geq}(\mu)
   \end{cases}
 \end{equation*}
 In general for $s$ segments, we use
@@ -610,10 +610,10 @@ In general for $s$ segments, we use
 \end{equation}
 and for $t\in\{s+1, ..., n\}$
 \begin{equation}
-  \FCC_{s,t}(\mu) = \min
+  \FCC_{s,t}(\mu) = \gamma_t(\mu)+\min
   \begin{cases}
-    \FCC_{s,t-1}^{*}(\mu)+\gamma_t(\mu),\\
-    \FCC_{s-1,t-1}^{*}(\mu)+\gamma_t(\mu),
+    \FCC_{s,t-1}(\mu)\\
+    \FCC_{s-1,t-1}^{*}(\mu)
   \end{cases}
 \end{equation}
 where * means less-min for even-numbered segments $s$, and more-min
@@ -627,8 +627,14 @@ TODO: describe OP version.
 
 \subsection{Accuracy on ChIP-seq data}
 
-TODO: some commentary about PeakSegDP vs coseg vs Segmentor
-feasibility and optimality in the benchmark data set.
+We ran the Segmentor, PeakSegDP, and coseg algorithms on the 2752
+segmentation problems in the benchmark data set. For each problem we
+compute models from 0, ..., 9 peaks, so there are a total of 27520
+possible models. The cDPA (PeakSegDP R pkg) computes a sub-optimal
+model for 7246 / 27520 = 26\% of models. For 1032/7246 of these, the
+PeakSeg solution exists and is recovered by our new algo (coseg R pkg)
+but not the unconstrained algo (Segmentor R pkg). This provides a good
+justification for our new algo.
 
 \begin{figure}[b!]
   \centering

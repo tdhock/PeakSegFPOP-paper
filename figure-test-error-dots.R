@@ -1,4 +1,5 @@
 source("packages.R")
+library(animint)
 
 load("test.error.RData")
 
@@ -251,7 +252,6 @@ viz <- list(
                data=test.counts))
 ##print(viz$error)
 ##print(viz$auc)
-library(animint)
 animint2dir(viz, "figure-test-error-dots")
 
 dots <- ggplot()+
