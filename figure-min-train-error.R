@@ -96,6 +96,34 @@ for(other.name in c("PeakSegDP", "Segmentor", "macs")){
 }
 prob.counts <- do.call(rbind, molt.list)
 
+some.counts <- subset(prob.counts, 0 < problems & other.name != "macs")
+some.counts[, winner := ifelse(other.errors==coseg, "both", ifelse(other.errors<coseg, "other", "coseg"))]
+some.counts[, list(problems=sum(problems)), by=.(other.name, winner)]
+gg.some <- ggplot()+
+  geom_abline(aes(slope=slope, intercept=intercept), data=abline.dt, color="grey")+
+  xlab(paste(
+    "incorrect labels in best",
+    "competing",
+    "model"))+
+  ylab(paste(
+    "incorrect labels in best",
+    "coseg",
+    "model"))+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  facet_grid(. ~ other.name)+
+  coord_equal()+
+  scale_fill_gradient(low="grey90", high=scales::muted("red"), na.value="white")+
+  geom_tile(aes(other.errors, coseg, fill=log10.problems), data=some.counts)+
+  geom_text(aes(other.errors, coseg, label=problems),
+            size=3,
+            data=some.counts)
+print(gg.some)
+pdf("figure-min-train-error-some.pdf", h=2.9)
+print(gg.some)
+dev.off()
+
+nonzero.counts <- subset(prob.counts, 0 < problems)
 gg.counts <- ggplot()+
   geom_abline(aes(slope=slope, intercept=intercept), data=abline.dt, color="grey")+
   xlab(paste(
@@ -111,10 +139,11 @@ gg.counts <- ggplot()+
   facet_grid(. ~ other.name)+
   coord_equal()+
   scale_fill_gradient(low="grey90", high=scales::muted("red"), na.value="white")+
-  geom_tile(aes(other.errors, coseg, fill=log10.problems), data=prob.counts)+
+  geom_tile(aes(other.errors, coseg, fill=log10.problems), data=nonzero.counts)+
   geom_text(aes(other.errors, coseg, label=problems),
             size=3,
-            data=subset(prob.counts, 0 < problems))
+            data=nonzero.counts)
+print(gg.counts)
 
 ann.colors <-
   c(noPeaks="#f6f4bf",
@@ -173,7 +202,7 @@ for(show.row.i in 1:nrow(show.dt)){
   y.key <- c(coseg=1, Segmentor=2, PeakSegDP=3, macs=4)*max.coverage*-0.15
   h <- abs(diff(y.key)[1]/3)
 
-  for(peaks.str in paste(0:5)){
+  for(peaks.str in paste(0:6)){
     png.name <- sprintf("figure-min-train-error-problem%d-%speaks.png", show.row.i, peaks.str)
     sample.gg <- ggplot()+
       theme_bw()+
@@ -191,14 +220,15 @@ for(show.row.i in 1:nrow(show.dt)){
       scale_linetype_manual("error type",
                             values=c(correct=0,
                               "false negative"=3,
-                              "false positive"=1))+
+                              "false positive"=1),
+                            limits=c("correct", "false negative", "false positive"))+
       geom_rect(aes(xmin=chromStart/1e3, xmax=chromEnd/1e3,
                     linetype=status,
                     ymin=y.key[algorithm]-h, ymax=y.key[algorithm]+h),
                 size=0.75,
                 color="black",
                 fill=NA,
-                data=sample.regions[param.name==peaks.str,])
+                data=sample.regions[algorithm != "macs" & param.name==peaks.str,])
     these.peaks <- sample.peaks[peaks==peaks.str,]
     if(nrow(these.peaks)){
       sample.gg <- sample.gg+
@@ -206,17 +236,17 @@ for(show.row.i in 1:nrow(show.dt)){
                        xend=chromEnd/1e3, yend=y.key[algorithm]),
                    size=2,
                    color="deepskyblue",
-                   data=these.peaks)
+                   data=these.peaks[algorithm != "macs",])
     }
     sample.gg <- sample.gg+
       geom_text(aes(first.chromStart/1e3, y.key[algorithm], label=algorithm),
                 hjust=1,
                 size=3.5,
-                data=sample.error[param.name==peaks.str,])+
-      geom_text(aes(last.chromEnd/1e3, y.key[algorithm], label=paste(errors, "errors")),
+                data=sample.error[algorithm != "macs" & param.name==peaks.str,])+
+      geom_text(aes(last.chromEnd/1e3, y.key[algorithm], label=paste0(" ", errors, " errors")),
                 hjust=0,
                 size=3.5,
-                data=sample.error[param.name==peaks.str,])
+                data=sample.error[algorithm != "macs" & param.name==peaks.str,])
     print(png.name)
     png(png.name, 9, 6, res=100, units="in")
     print(sample.gg)

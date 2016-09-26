@@ -532,7 +532,7 @@ Multiply <- function(dt, x){
   new.dt
 }
 
-input.dt <- data.table(count=c(2, 1, 9, 5, 10, 3), weight=1)
+input.dt <- data.table(count=c(10, 1, 14, 13), weight=1)
 
 cost.lines.list <- list()
 minima.list <- list()

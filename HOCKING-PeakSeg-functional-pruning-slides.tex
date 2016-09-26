@@ -35,7 +35,7 @@
 \begin{document}
 
 \title{A linear time algorithm for constrained 
-optimal segmentation}
+optimal segmentation of ChIP-seq data}
 
 \author{
   Toby Dylan Hocking\\
@@ -43,7 +43,7 @@ optimal segmentation}
   joint work with Guillem Rigaill, Paul Fearnhead, 
   Guillaume Bourque}
 
-\date{11 Aug 2016}
+\date{29 Sep 2016}
 
 \maketitle
 
@@ -505,6 +505,42 @@ $\mu_S$.
 \end{frame}
 
 \begin{frame}
+  \frametitle{8 false negative labels for models with 0 peaks}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-0peaks}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Models with 1 peak are better (6 FN)}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-1peaks}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Models with 2 peaks are better still (4 FN)}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-2peaks}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Models with 3 peaks are the same (4 FN)}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-3peaks}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Models with 4 peaks are better (2 FN)}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-4peaks}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Models with 5 peaks have no incorrect labels}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-5peaks}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Models with 6 peaks are worse (1 false positive)}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-6peaks}
+\end{frame}
+
+\begin{frame}
   \frametitle{New coseg algorithm more accurate than unconstrained
     maximum likelihood Poisson model (Segmentor)}
   \includegraphics[width=\textwidth]{figure-min-train-error-Segmentor}
@@ -518,6 +554,16 @@ $\mu_S$.
 \begin{frame}
   \frametitle{New coseg algorithm sometimes disagrees with macs}
   \includegraphics[width=\textwidth]{figure-min-train-error-macs}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Constrained optimization better than macs}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Constrained optimization better than macs}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-best}
 \end{frame}
 
 \begin{frame}
@@ -551,16 +597,6 @@ $\mu_S$.
 %   \includegraphics[width=\textwidth]{figure-min-train-error-problem2-4peaks.png}
 % \end{frame}
 
-\begin{frame}
-  \frametitle{5 errors for coseg/Segmentor, only 1 error for PeakSegDP}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem1}
-\end{frame}
-
-\begin{frame}
-  \frametitle{5 errors for coseg/Segmentor, only 1 error for PeakSegDP}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem1-best.png}
-\end{frame}
-
 % \begin{frame}
 %   \includegraphics[width=\textwidth]{figure-min-train-error-problem1-0peaks.png}
 % \end{frame}
@@ -581,30 +617,18 @@ $\mu_S$.
 %   \includegraphics[width=\textwidth]{figure-min-train-error-problem1-4peaks.png}
 % \end{frame}
 
-\begin{frame}
-  \frametitle{Constrained optimization worse than macs}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem4}
-\end{frame}
 
 \begin{frame}
-  \frametitle{Constrained optimization worse than macs}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem4-best}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Constrained optimization worse than macs}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem4-best-zoom}
-\end{frame}
-
-
-\begin{frame}
-  \frametitle{Constrained optimization better than macs}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem5}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Constrained optimization better than macs}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-best}
+  \frametitle{Test AUC on 7 benchmark data sets}
+  \includegraphics[width=\textwidth]{figure-test-error-dots}
+  \begin{itemize}
+  \item HMCanBroad is accurate for broad H3K36me3 data but not sharp H3K4me3 data.
+  \item MACS is accurate for sharp H3K4me3 but not broad H3K36me3 data.
+  \item Proposed algorithm in coseg R package yields state-of-the-art
+    accuracy in all benchmark data sets.
+  \end{itemize}
+  \scriptsize
+\url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}
 \end{frame}
 
 \section{Conclusions and future work}
@@ -672,7 +696,7 @@ maxIter 20
   \item C++ implementation in coseg R package, 
     \url{https://github.com/tdhock/coseg}
   \item TODO: regularized isotonic regression solver.
-  \item TODO: supervised peak calling on entire genomes.
+  \item TODO: supervised peak calling for ENCODE, Roadmap, ...
   \end{itemize}
 \end{frame}
 
@@ -711,7 +735,7 @@ maxIter 20
   \includegraphics[width=\textwidth]{figure-cosegData-timings-disk.pdf}
   \begin{itemize}
   \item R package in memory: no disk usage.
-  \item Command line program on disk: $O(N \log N)$ disk space.
+  \item Command line program: $O(N \log N)$ disk space (temporary).
   \end{itemize}
 \end{frame}
 
@@ -721,8 +745,11 @@ maxIter 20
   Questions? 
   \begin{itemize}
   \item 
-  coseg R package with linear time C++ code,
+  coseg R package, \\
   \url{https://github.com/tdhock/coseg}
+  \item 
+    PeakSegFPOP command line program, 
+  \url{https://github.com/tdhock/PeakSegFPOP}
 \item   source code for these slides:
   \url{https://github.com/tdhock/PeakSegFPOP-paper}
   \end{itemize}
@@ -763,5 +790,30 @@ maxIter 20
 \end{frame}
 
 \input{figure-dp-third}
+
+\begin{frame}
+  \frametitle{5 errors for coseg/Segmentor, only 1 error for PeakSegDP}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem1}
+\end{frame}
+
+\begin{frame}
+  \frametitle{5 errors for coseg/Segmentor, only 1 error for PeakSegDP}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem1-best.png}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Constrained optimization worse than macs}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem4}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Constrained optimization worse than macs}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem4-best}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Constrained optimization worse than macs}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem4-best-zoom}
+\end{frame}
 
 \end{document}

@@ -65,6 +65,7 @@ lab.df <- data.frame(
   seconds=c(1, 60, 60*60),
   label=c("1 second", "1 minute", "1 hour"))
 gg.log <- ggplot()+
+  theme_bw()+
   geom_hline(aes(yintercept=log10(seconds)),
              data=lab.df,
              color="grey")+

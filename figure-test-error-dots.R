@@ -117,7 +117,7 @@ ggplot()+
 
 ## TODO: interactive data viz.
 
-levs <- c("MACS", "HMCanBroad", "PeakSegDP", "Segmentor", "coseg")
+levs <- c("MACS", "HMCanBroad", "Segmentor", "PeakSegDP", "coseg")
 test.mean[, algo.fac := factor(algorithm, levs)]
 auc[, algo.fac := factor(algorithm, levs)]
 mean.auc[, algo.fac := factor(algorithm, levs)]

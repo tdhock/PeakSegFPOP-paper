@@ -639,12 +639,22 @@ justification for our new algo.
 \begin{figure}[b!]
   \centering
   \includegraphics[width=\textwidth]{figure-test-error-dots}
-  \caption{Test AUC on 7 benchmark data sets, interactive version at 
-\url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}}
+  \caption{Test AUC on 7 benchmark data sets. Each black circle shows
+    the test AUC in one of four cross-validation folds, and the shaded
+    grey circle is the mean. Interactive version at
+    \url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}}
   \label{fig:test-error-dots}
 \end{figure}
-% \includegraphics[width=0.45\textwidth]{figure-min-train-error-Segmentor}
-% \includegraphics[width=0.45\textwidth]{figure-min-train-error-PeakSegDP}
+
+\begin{figure}[b!]
+  \centering
+  \includegraphics[width=\textwidth]{figure-min-train-error-some}
+  \caption{Comparison of minimum train error for 2752 segmentation
+    problems in the 7 ChIP-seq data sets. The new coseg algorithm is
+    always better than Segmentor, and mostly consistent with the
+    heuristic PeakSegDP.}
+  \label{fig:min-train-error}
+\end{figure}
 
 TODO: some more in-depth discussion on the difference between train
 and test error results. coseg is always better than Segmentor in terms
@@ -655,7 +665,6 @@ significantly higher AUC, about the same as PeakSegDP.
 
 \subsection{Timings}
 
-%TODO make small versions of these figures.
 \begin{figure}[b!]
   \centering
   \parbox{0.49\textwidth}{
