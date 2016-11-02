@@ -184,7 +184,8 @@ where the Poisson loss function is
 The $c_t = \sign(m_{t+1} - m_{t})$ variable is the sign of the change
 after data point $t$. Every $t$ such that $c_t \neq 0$ is a
 change-point, and the model complexity is the number of segments
-$1+\sum_{t=1}^{n-1} I(c_t \neq 0)$, where $I$ is the indicator function.
+$1+\sum_{t=1}^{n-1} I(c_t \neq 0)$, where $I$ is the indicator
+function. 
 
 We refer to (\ref{unconstrained}) as the ``unconstrained'' model
 since $\mathbf{\hat m}^K(\mathbf y)$ is the most likely segmentation
@@ -198,7 +199,7 @@ programming algorithm \citep{bellman}, or in $O(K n \log n)$ time
 using dynamic programming with functional pruning \citep{pruned-dp,
   johnson, Segmentor}.
 
-\subsection{The PeakSeg constrained maximum likelihood model}
+\subsection{The PeakSeg problem (strict inequality constraints)}
 \label{sec:constrained}
 
 To introduce the PeakSeg model constraint \citep{PeakSeg}, we first define
@@ -256,11 +257,19 @@ even-numbered segments may be interpreted as peaks $P_t(\mathbf c)=1$,
 and the odd-numbered segments may be interpreted as background
 $P_t(\mathbf c)=0$.
 
-\subsection{The problem our algorithm solves}
+Note that in the both the unconstrained problem (\ref{unconstrained})
+and the \ref{PeakSeg} problem, the change-point variable $\mathbf c$
+can be removed, resulting in a simpler problem with only one
+optimization variable (the segment mean $\mathbf m$). However, we
+state the problem in this form in order to make an explicit connection
+with the non-strict inequality constrained problem, which we introduce
+in the next section.
 
-The PeakSegPDPA code in the coseg R package exactly solves the
-following optimization problem.
+\subsection{The non-strict inequality constrained problem}
 
+Consider the following optimization problem, which replaces the strict
+inequality constraints of the \ref{PeakSeg} problem with non-strict
+inequality constraints.
 \begin{align}
   \mathbf{\bar m}^K(\mathbf y) =
     \argmin_{\substack{
@@ -269,7 +278,7 @@ following optimization problem.
   \mathbf c\in\{-1,0,1\}^{n-1}
   }} &\ \ 
     \sum_{t=1}^n \ell( m_t,  y_t) 
-  \label{PeakSegPDPA}
+       \label{PeakSegPDPA}
 \\
     \text{subject to} &\ \  1+ \sum_{t=1}^{n-1} I(c_t \neq 0) = K, 
 \nonumber\\
@@ -279,12 +288,10 @@ following optimization problem.
 \nonumber\\
 & \ \ c_t = 1 \Rightarrow m_{t} \leq m_{t+1} \text{ (change up or no change)}
 \nonumber\\
-\forall t\in\{2, \dots, n\}, &\ \ P_t(\mathbf c) \in\{0, 1\}.
+\forall t\in\{1, \dots, n-1\}, &\ \ P_t(\mathbf c) \in\{0, 1\}.
 \nonumber
 \end{align}
-The only difference with the \ref{PeakSeg} problem is that we have
-changed the strict inequality constraints to non-strict inequality
-constraints. Thus the \ref{PeakSeg} model has exactly $K$ distinct
+Thus the \ref{PeakSeg} model has exactly $K$ distinct
 segment means, but this model (\ref{PeakSegPDPA}) has \emph{at most}
 $K$ distinct segment means (some may be equal due to the non-strict
 equality constraints). Note that for $K=4$, the solution
@@ -311,6 +318,10 @@ $(\mathbf m = \left[\begin{array}{ccc}1 & 6 & 6 \end{array}\right],
   \mathbf c = \left[\begin{array}{cc}  1 & -1  \end{array}\right])$. 
 Note that the \ref{PeakSeg} solution with $K=3$ is undefined for this data set.
 
+More generally, we have the following result which relates the
+solutions of the \ref{PeakSeg} and the non-strict inequality
+constrained problems.
+
 \begin{Proposition}
   Let $(\mathbf m, \mathbf c)$ be the solution to
   (\ref{PeakSegPDPA}). If $c_t=0 \Leftrightarrow m_t = m_{t+1}$ for
@@ -323,80 +334,14 @@ Note that the \ref{PeakSeg} solution with $K=3$ is undefined for this data set.
   TODO
 \end{proof}
 
-\subsection{The FPOP version}
-
-In real ChIP-seq data sets we are only interested in the \ref{PeakSeg}
-solutions
-$\mathbf{\tilde m}^1(\mathbf y), \mathbf{\tilde m}^3(\mathbf y), \dots$
-which start with a change up, and end with a change down. To select
-one of those segmentations we typically use the following criterion
-\begin{equation}
-  \label{eq:selection}
-  K^*_\lambda = \argmin_{k\in 1,3, \dots}
-  \lambda k/2 +
-\sum_{t=1}^n
-  \ell[ \tilde m_t^k(\mathbf y),  y_t ],
-\end{equation}
-where $\lambda\in\RR_+$ is a non-negative penalty parameter 
-that controls the optimal number of segments $K^*_\lambda$
-(larger $\lambda$ yields fewer segments).
-When the number of segments is very large $K =O(N)$, 
-it computationally expensive to recover this model
-using the $O(K N\log N)$ PeakSegPDPA, 
-since it computes all models from 1 to $K$ segments.
-
-It would be computationally faster if we could recover the model
-$\mathbf{\tilde m}^{K}(\mathbf y)$ by itself, as in the $O(N\log N)$
-FPOP algorithm \citep{johnson, FPOP}. This motivates the following
-optimization problem,
-\begin{align}
-  \mathbf{\bar m}^\lambda(\mathbf y) =
-    \argmin_{\substack{
-  \mathbf m\in\RR^{n}
-\\
-  \mathbf c\in\{-1,0,1\}^{n-1}
-  }} &\ \ 
-\lambda\sum_{t=1}^{n-1} I(c_t =1)
-+
-\sum_{t=1}^n \ell( m_t,  y_t) 
-  \label{PeakSegFPOP}
-\\
-    \text{subject to} 
-& \ \ c_t = -1 \Rightarrow m_{t} \geq m_{t+1} \text{ (change down or no change)}
-\nonumber\\
-& \ \ c_t = 0 \Rightarrow m_{t} = m_{t+1}  \text{ (no change)}
-\nonumber\\
-& \ \ c_t = 1 \Rightarrow m_{t} \leq m_{t+1} \text{ (change up or no change)}
-\nonumber\\
-\forall t\in\{1, \dots, n-1\}, &\ \ P_t(\mathbf c) \in\{0, 1\}.
-\nonumber
-\end{align}
-
-We refer to problem (\ref{PeakSegFPOP}) as the penalized version of
-the constrained problem (\ref{PeakSegPDPA}). The constraint on the
-number of non-zero change variables $c_t\neq 0$ has been removed, and
-term penalizing the number of up changes $c_t=1$ has been added to the
-optimization objective.  The solution to this problem is computed by
-the PeakSegFPOP function of the coseg R package.
-
-\begin{Proposition}
-  For any data set $\mathbf y\in\ZZ_+^n$ and any penalty parameter
-  $\lambda\in\RR_+$, let $(\mathbf m,\mathbf c)$ be the solution to
-  the penalized problem (\ref{PeakSegFPOP}). It is the same as the
-  solution to the contrained problem (\ref{PeakSegPDPA}) with
-  $K=\sum_{t=1}^{n-1} c_t$ segments.
-\end{Proposition}
-
-\begin{proof}
-  TODO
-\end{proof}
-
 %%%% update rules
 \newcommand{\FCC}{\widetilde{C}}
 \newcommand{\M}{\mathcal{M}}
-\section{Constrained Dynamic Programming Problem}
+\section{Algorithm}
 
-In this section we explain the general form of the problem that our algorithm solves.
+In this section we explain our new algorithm that can be used to
+compute the solution to constrained optimization problems similar to
+(\ref{PeakSegPDPA}).
 
 \subsection{Some definitions}
 
@@ -456,13 +401,14 @@ a_{k-1,k-1}. \mu_{k-1} \ + &a_{k-1,k}. \mu_{k}  & \geq  b_{k-1} \\
 \end{eqnarray*}
 
 $\FCC^k_t(\mu)$ is the best possible cost achievable in $k$ segment up to point $t$ with a $k$-th
-segment mean of $mu$.
+segment mean of $\mu$.
 
 \subsection{Update rule}
 We can then consider the following update rule
 
 \begin{equation}
 \FCC^{k+1}_{t+1}(\mu) = \min \{ \FCC^{k+1}_{t}(\mu)  , \underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}  \} + \ell(y_{t+1}, \mu)
+\label{update}
 \end{equation}
 
 This update rule states that the best segmentation up to $t+1$ in $k+1$ segment with a last mean element of $\mu$ either has its $k$-th changepoint:
@@ -485,11 +431,249 @@ $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{
 The update rule is a priori valid for more complex constraints, typically quadratic constraints, yet recovering
 $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}$ from $\FCC^{k}_{t}(\mu')$ would possibly be much more difficult.
 
+\subsection{Proof of optimality}
 
-\section{Algorithm for PeakSeg model}
+In this section we prove that the dynamic programming update rule
+(\ref{update}) can be used to recover the optimal solution to the
+constrained optimization problem (\ref{PeakSegPDPA}). 
 
-In this section we explain how our method works for the PeakSeg model.
-To do this we are using a R beta implementation of the algorithm.
+% We need the
+% following lemma, which states that the dynamic programming
+% minimization over two candidates can be expanded to a minimization
+% over $n-K+1$ candidate change-points.
+
+% \begin{lemma}
+%   Let $\mathbf y\in\ZZ_+^n$ be a vector of count data. The minimum
+%   cost in $K=3$ segments computed using the update rule
+%   $\min_\mu \FCC_n^3(\mu)$ is equal to the minimum value of
+%   optimization problem (\ref{PeakSegPDPA}).
+% \end{lemma}
+
+% \begin{proof}
+%   First, 
+% \end{proof}
+
+\begin{proposition}
+  Let $\mathbf y\in\ZZ_+^n$ be a vector of count data. The minimum
+  cost in $K=3$ segments computed using the update rule
+  $\min_\mu \FCC_n^3(\mu)$ is equal to the minimum value of
+  optimization problem (\ref{PeakSegPDPA}).
+\end{proposition}
+
+\begin{proof}
+  First, for any indices $t_1<t_2$ define the helper function
+  $h_{t_1,t_2}(\mu)=\sum_{i=t_1+1}^{t_2}\gamma_i(\mu)$ as the total
+  cost of assigning mean $\mu$ from data point $t_1+1$ to data point
+  $t_2$. Now, the constraints $\mathcal C$ of (\ref{PeakSegPDPA}) imply that there
+  are at most $K=3$ distinct values $\mu_1\leq\mu_2\geq\mu_3$ of
+  segment means. This implies that the optimal cost
+  (\ref{PeakSegPDPA}) can be re-written as
+  \begin{eqnarray*}
+    \label{eq:long}
+    \min_{(\mathbf m, \mathbf c)\in\mathcal C}}
+    \sum_{i=1}^n \gamma_i(m_i)
+    &=&
+    \min_{\mu_3}
+    \min_{0 < t_1 < t_2 < n}
+    h_{t_2,n}(\mu_3)
+    +\min_{\mu_2\geq \mu_3}
+    h_{t_1,t_2}(\mu_2)
+    +\min_{\mu_1\leq\mu_2}
+    h_{0,t_1}(\mu_1)\\
+    &=&
+    \min_{\mu_3}
+    \min_{t_2 < n}
+    h_{t_2,n}(\mu_3)
+    +\min_{\mu_2\geq \mu_3}
+    \min_{t_1 < t_2}
+    h_{t_1,t_2}(\mu_2)
+    +\FCC_{1, t_1}^\leq(\mu_2)\\
+    &=&
+    \min_{\mu_3}
+    \min_{t_2 < n}
+    h_{t_2,n}(\mu_3)
+    +\min_{\mu_2\geq \mu_3}
+    +\FCC_{2, t_2}(\mu_2)\\
+    &=&
+    \min_{\mu_3}
+    \min_{t_2 < n}
+    h_{t_2,n}(\mu_3)
+    +\FCC_{2, t_2}^\geq(\mu_3)\\
+    &=&
+    \min_{\mu_3}
+    \FCC_{3, n}(\mu_3)\\
+  \end{eqnarray*}
+  where the change-point variables $\mathbf c$ have been replaced by
+  the change-point index variables $t_1,t_2$.
+\end{proof}
+
+\section{Variants of the algorithm}
+
+\subsection{The FPOP version}
+
+In real ChIP-seq data sets we are only interested in the \ref{PeakSeg}
+solutions
+$\mathbf{\tilde m}^1(\mathbf y), \mathbf{\tilde m}^3(\mathbf y), \dots$
+which start with a change up, and end with a change down. To select
+one of those segmentations we typically use the following criterion
+\begin{equation}
+  \label{eq:selection}
+  K^*_\lambda = \argmin_{k\in 1,3, \dots}
+  \lambda k/2 +
+\sum_{t=1}^n
+  \ell[ \tilde m_t^k(\mathbf y),  y_t ],
+\end{equation}
+where $\lambda\in\RR_+$ is a non-negative penalty parameter 
+that controls the optimal number of segments $K^*_\lambda$
+(larger $\lambda$ yields fewer segments).
+When the number of segments is very large $K =O(N)$, 
+it computationally expensive to recover this model
+using the $O(K N\log N)$ PeakSegPDPA, 
+since it computes all models from 1 to $K$ segments.
+
+It would be computationally faster if we could recover the model
+$\mathbf{\tilde m}^{K}(\mathbf y)$ by itself, as in the $O(N\log N)$
+FPOP algorithm \citep{johnson, FPOP}. This motivates the following
+optimization problem,
+\begin{align}
+  \mathbf{\bar m}^\lambda(\mathbf y) =
+    \argmin_{\substack{
+  \mathbf m\in\RR^{n}
+\\
+  \mathbf c\in\{-1,0,1\}^{n-1}
+  }} &\ \ 
+\lambda\sum_{t=1}^{n-1} I(c_t =1)
++
+\sum_{t=1}^n \ell( m_t,  y_t) 
+  \label{PeakSegFPOP}
+\\
+    \text{subject to} 
+& \ \ c_t = -1 \Rightarrow m_{t} \geq m_{t+1} \text{ (change down or no change)}
+\nonumber\\
+& \ \ c_t = 0 \Rightarrow m_{t} = m_{t+1}  \text{ (no change)}
+\nonumber\\
+& \ \ c_t = 1 \Rightarrow m_{t} \leq m_{t+1} \text{ (change up or no change)}
+\nonumber\\
+\forall t\in\{1, \dots, n-1\}, &\ \ P_t(\mathbf c) \in\{0, 1\}.
+\nonumber
+\end{align}
+
+We refer to problem (\ref{PeakSegFPOP}) as the penalized version of
+the constrained problem (\ref{PeakSegPDPA}). The constraint on the
+number of non-zero change variables $c_t\neq 0$ has been removed, and
+term penalizing the number of up changes $c_t=1$ has been added to the
+optimization objective.  
+%The solution to this problem is computed by the PeakSegFPOP function of the coseg R package.
+
+\begin{Proposition}
+  For any data set $\mathbf y\in\ZZ_+^n$ and any penalty parameter
+  $\lambda\in\RR_+$, let $(\mathbf m,\mathbf c)$ be the solution to
+  the penalized problem (\ref{PeakSegFPOP}). It is the same as the
+  solution to the contrained problem (\ref{PeakSegPDPA}) with
+  $K=\sum_{t=1}^{n-1} c_t$ segments.
+\end{Proposition}
+
+\begin{proof}
+  TODO
+\end{proof}
+
+\section{Results}
+
+\subsection{Accuracy on ChIP-seq data}
+
+We ran the Segmentor, PeakSegDP, and coseg algorithms on the McGill
+ChIP-seq benchmark data sets \citep{HOCKING2016-chipseq}. We
+considered 2752 segmentation problems consisting of chromosome subsets
+in samples with labels that indicate presence or absence of peaks. For
+each segmentation problem we attempt to compute models with 0, ..., 9
+peaks, so there are a total of 27520 possible models for each
+algorithm. The cDPA (PeakSegDP R pkg) computes a sub-optimal model for
+7246/27520 = 26\% of models. For 1032/7246 of these, the PeakSeg
+solution exists and is recovered by our new algo (coseg R pkg) but not
+the unconstrained algo (Segmentor R pkg). These results suggest that
+in ChIP-seq data sets, the new coseg algorithm is more accurate than
+PeakSegDP, in terms of the Poisson likelihood. Furthermore, these
+results suggest that coseg is more useful than Segmentor, since there
+are many problems for which Segmentor does not recover a model that
+verifies the \ref{PeakSeg} up-down constraint on the segment means.
+% Numbers come from figure-PDPA-cDPA-compare.R
+
+To compute the accuracy of the algorithms in the benchmark data sets,
+we quantified false positive and false negative peak detection error
+rates using the labels that indicate presence or absence of peaks in
+specific samples and genomic regions
+\citep{HOCKING2016-chipseq}. Briefly, a false negative occurs when no
+peak is predicted in a region with a positive label, and a false
+positive occurs when a peak is predicted in a region with a negative
+label.
+
+TODO The PeakSegDP package computed at least one model for
+2738/2752=99.5\% of segmentation problems, and 27469 models
+overall. first discarded models which were not feasible for the
+\ref{PeakSeg} problem using the some more in-depth discussion on the
+difference between train and test error results. In terms of minimum
+train error, the new coseg algorithm is always at least as accurate as
+the unconstrained Segmentor algorithm(figure?). 
+
+Finally, we performed 4-fold cross-validation to estimate the test
+error of each algorithm. For each of the 7 data sets, we randomly
+assigned labeled data to one of four folds. For each fold, we treat it
+as a test set, and train a model using all other folds. We  But Segmentor
+has a low false positive and true positive rate, so it is easy to get
+a low test error (just pick the model with the most peaks). But coseg
+has a significantly higher AUC, about the same as PeakSegDP.
+
+
+
+\begin{figure}[b!]
+  \centering
+  \includegraphics[width=\textwidth]{figure-test-error-dots}
+  \caption{Test AUC on 7 benchmark data sets. Each black circle shows
+    the test AUC in one of four cross-validation folds, and the shaded
+    grey circle is the mean. Interactive version at
+    \url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}}
+  \label{fig:test-error-dots}
+\end{figure}
+
+\begin{figure}[b!]
+  \centering
+  \includegraphics[width=\textwidth]{figure-min-train-error-some}
+  \caption{Comparison of minimum train error for 2752 segmentation
+    problems in the 7 ChIP-seq data sets. The new coseg algorithm is
+    always at least as accurate as Segmentor, and mostly consistent with the
+    heuristic PeakSegDP.}
+  \label{fig:min-train-error}
+\end{figure}
+
+\subsection{Timings}
+
+\begin{figure}[b!]
+  \centering
+  \parbox{0.49\textwidth}{
+    %\includegraphics[width=0.45\textwidth]{figure-PDPA-intervals-all}
+    \input{figure-PDPA-intervals-small}
+  }
+  \parbox{0.49\textwidth}{
+    %\includegraphics[width=0.45\textwidth]{figure-PDPA-timings}
+    \input{figure-PDPA-timings-small}
+  }
+  \caption{Timing results on 2752 segmentation problems from the
+    McGill histone mark ChIP-seq benchmark data. For each problem we
+    ran the PeakSegPDPA with $K_{\text{max}}=19$ segments.
+    \textbf{Left}: number of intervals stored by the algorithm,
+    \textbf{Right}: timings in seconds (median line and min/max
+    band).}
+  \label{fig:timings}
+\end{figure}
+
+\bibliographystyle{abbrvnat}
+\bibliography{refs}
+
+
+\section{Appendix}
+
+TODO: Empirical time analysis FPOP vs PeakSegFPOP on really large
+chromosome subsets $N>10^6$.
 
 \subsection{Segment Neighborhood version}
 
@@ -623,69 +807,6 @@ for odd-numbered segments.
 
 TODO: describe OP version.
 
-\section{Results}
-
-\subsection{Accuracy on ChIP-seq data}
-
-We ran the Segmentor, PeakSegDP, and coseg algorithms on the 2752
-segmentation problems in the benchmark data set. For each problem we
-compute models from 0, ..., 9 peaks, so there are a total of 27520
-possible models. The cDPA (PeakSegDP R pkg) computes a sub-optimal
-model for 7246 / 27520 = 26\% of models. For 1032/7246 of these, the
-PeakSeg solution exists and is recovered by our new algo (coseg R pkg)
-but not the unconstrained algo (Segmentor R pkg). This provides a good
-justification for our new algo.
-
-\begin{figure}[b!]
-  \centering
-  \includegraphics[width=\textwidth]{figure-test-error-dots}
-  \caption{Test AUC on 7 benchmark data sets. Each black circle shows
-    the test AUC in one of four cross-validation folds, and the shaded
-    grey circle is the mean. Interactive version at
-    \url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}}
-  \label{fig:test-error-dots}
-\end{figure}
-
-\begin{figure}[b!]
-  \centering
-  \includegraphics[width=\textwidth]{figure-min-train-error-some}
-  \caption{Comparison of minimum train error for 2752 segmentation
-    problems in the 7 ChIP-seq data sets. The new coseg algorithm is
-    always better than Segmentor, and mostly consistent with the
-    heuristic PeakSegDP.}
-  \label{fig:min-train-error}
-\end{figure}
-
-TODO: some more in-depth discussion on the difference between train
-and test error results. coseg is always better than Segmentor in terms
-of minimum train error (figure?). But Segmentor has a low false
-positive and true positive rate, so it is easy to get a low test error
-(just pick the model with the most peaks). But coseg has a
-significantly higher AUC, about the same as PeakSegDP.
-
-\subsection{Timings}
-
-\begin{figure}[b!]
-  \centering
-  \parbox{0.49\textwidth}{
-    %\includegraphics[width=0.45\textwidth]{figure-PDPA-intervals-all}
-    \input{figure-PDPA-intervals-small}
-  }
-  \parbox{0.49\textwidth}{
-    %\includegraphics[width=0.45\textwidth]{figure-PDPA-timings}
-    \input{figure-PDPA-timings-small}
-  }
-  \caption{Timing results on 2752 segmentation problems from the
-    McGill histone mark ChIP-seq benchmark data. For each problem we
-    ran the PeakSegPDPA with $K_{\text{max}}=19$ segments.
-    \textbf{Left}: number of intervals stored by the algorithm,
-    \textbf{Right}: timings in seconds (median line and min/max
-    band).}
-  \label{fig:timings}
-\end{figure}
-
-\bibliographystyle{abbrvnat}
-\bibliography{refs}
 
 \end{document}
 

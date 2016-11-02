@@ -6,8 +6,11 @@ load("PDPA.peaks.error.RData")
 load("Segmentor.peaks.error.RData")
 load("PDPA.peaks.RData")
 load("macs.peaks.error.RData")
+load("hmcan.broad.peaks.error.RData")
+load("PDPA.cDPA.compare.RData")
 
 macs.peaks.error$algorithm <- "macs"
+hmcan.broad.peaks.error$algorithm <- "macs"
 pdpa <- data.table(PDPA.peaks.error)
 names(pdpa)[3] <- "param.name"
 pdpa$algorithm <- "coseg"
@@ -16,6 +19,7 @@ names(Seg)[3] <- "param.name"
 Seg$algorithm <- "Segmentor"
 error.regions.list <- list(
   macs=macs.peaks.error,
+  hmcan.broad=hmcan.broad.error,
   coseg=pdpa,
   Segmentor=Seg)
 for(chunk.name in names(dp.peaks.error)){
@@ -28,6 +32,10 @@ error.regions <- do.call(rbind, error.regions.list)
 
 error.counts <- error.regions[, list(
   errors=sum(fp+fn),
+  fn=sum(fn),
+  possible.fn=sum(possible.tp),
+  fp=sum(fp),
+  possible.fp=sum(possible.fp),
   regions=.N
   ), by=.(algorithm, chunk.name, sample.id, param.name)]
 
@@ -36,8 +44,28 @@ min.train.error <-
 
 total.train.error <- min.train.error[, list(
   errors=sum(errors),
-  problems=.N
+  fp=sum(fp),
+  fn=sum(fn),
+  problems=.N,
+  labels=sum(regions)
   ), by=.(algorithm)]
+total.train.error[order(errors),]
+
+## For each algorithm, how many problems had all ten models? how many
+## models were computed and feasible in all?
+feasible <- PDPA.cDPA.compare$all.loss[, list(
+  PeakSegDP=sum(!is.na(dp.fwd)),
+  coseg=sum(PDPA.feasible),
+  Segmentor=sum(Seg.feasible),
+  rows=.N
+  ), by=.(chunk.name, sample.id)]
+stopifnot(all(feasible$rows==10))
+stopifnot(nrow(feasible)==2752)
+molt <- melt(feasible, measure.vars=c("dp", "PDPA", "Seg"))
+molt[, list(
+  models=sum(value),
+  ten=sum(value==10)
+  ), by=.(variable)]
 
 train.error.wide <-
   dcast(min.train.error, chunk.name + sample.id ~ algorithm, value.var="errors")
@@ -243,7 +271,10 @@ for(show.row.i in 1:nrow(show.dt)){
                 hjust=1,
                 size=3.5,
                 data=sample.error[algorithm != "macs" & param.name==peaks.str,])+
-      geom_text(aes(last.chromEnd/1e3, y.key[algorithm], label=paste0(" ", errors, " errors")),
+      geom_text(aes(
+        last.chromEnd/1e3, y.key[algorithm],
+        label=paste0(" ", errors, " error", ifelse(errors==1, "", "s"))
+        ),
                 hjust=0,
                 size=3.5,
                 data=sample.error[algorithm != "macs" & param.name==peaks.str,])
@@ -312,7 +343,10 @@ for(show.row.i in 1:nrow(show.dt)){
               hjust=1,
               size=3.5,
               data=sample.error.min)+
-    geom_text(aes(last.chromEnd/1e3, y.key[algorithm], label=paste(errors, "errors")),
+    geom_text(aes(
+      last.chromEnd/1e3, y.key[algorithm],
+      label=paste0(" ", errors, " error", ifelse(errors==1, "", "s"))
+      ),
               hjust=0,
               size=3.5,
               data=sample.error.min)

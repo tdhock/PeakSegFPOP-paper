@@ -136,7 +136,7 @@ ggplot()+
                data=param.segs)
 
 sample.counts[, count := coverage]
-fit <- PeakSegPDPAchrom(sample.counts, 2L)
+fit <- PeakSegPDPAchrom(sample.counts, 5L)
 
 peakseg.means <- subset(fit$segments, peaks==2)
 gg <- ggplot()+

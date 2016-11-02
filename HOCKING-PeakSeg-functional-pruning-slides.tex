@@ -128,11 +128,6 @@ maxIter 20
   \includegraphics[width=1\textwidth]{figure-macs-problem.png}
 \end{frame}
 
-% \begin{frame}
-%   \frametitle{Compute likelihood/loss of piecewise constant model}
-%   \includegraphics[width=1\textwidth]{figure-macs-problem-1-30103.png}
-% \end{frame}
-
 \begin{frame}
   \frametitle{Compute likelihood/loss of piecewise constant model}
   \includegraphics[width=1\textwidth]{figure-macs-problem-7-5.png}
@@ -149,8 +144,9 @@ maxIter 20
 \begin{frame}
   \frametitle{PeakSeg: search for the peaks with lowest loss}
   \includegraphics[width=1\textwidth]{figure-macs-problem-PeakSeg.png}
-  
-  Simple model with only one parameter to train (maxPeaks).
+
+  Choose the number of peaks via standard penalties (AIC, BIC,
+    ...)\\or learned penalties based on visual labels (more on this later).
 \end{frame}
 
 \begin{frame}
@@ -161,7 +157,7 @@ maxIter 20
   \item Previous work: unconstrained maximum likelihood mean\\
     for $s$ segments ($s-1$ changes).
   \item Hocking et al, ICML 2015: PeakSeg constraint enforces up, down, up,
-    down (and not up, up, down). 
+    down changes (and not up, up, down). 
   \item Odd-numbered segments are background noise,\\
     even-numbered segments are peaks.
   \item Constrained Dynamic Programming Algorithm, $O(N^2)$ time for $N$ data points.
@@ -204,15 +200,33 @@ maxIter 20
   \end{itemize}
 \end{frame}
 
-% \begin{frame}
-%   \frametitle{TODO: difference with unconstrained PDPA figure
-%     (min-less function vs min constant)}
-% \end{frame}
+\begin{frame}
+  \frametitle{Statistical model is Poisson with change constraints}
+  \begin{itemize}
+  \item We have $N$ count data $z_1, \dots, z_N\in\ZZ_+$.
+  \item Fix the number of segments $S\in\{1, 2, \dots, N\}$.
+  \item PeakSeg Model: $z_t \sim \text{Poisson}(m_t)$ such that $m_t$
+    has $S-1$ up-down changes.
+  \item Want to find means $m_t$ which maximize the Poisson likelihood:
+    $P(Z = z_t|m_t) = m_t^{z_t} e^{-m_t} / (z_t!)$.
+  \item Equivalent to finding means $m_t$ which minimize the Poisson
+    loss: $\ell(m_t, z_t) = m_t - z_t\log m_t$.
+  \item Naive computation is $O(N^S)$, since there are $O(N^{S-1})$ possible
+    positions for $S-1$ change-points, and it takes $O(N)$ operations to
+    compute the mean and loss for each.
+  \item Comparison to Hidden Markov Model:
+    \begin{description}
+    \item[Likelihood] Same emission terms, no transition terms.
+    \item[Constraint] Number of changes rather than values.
+    \end{description}
+  \end{itemize}
+\end{frame}
+
 
 \begin{frame}
-  \frametitle{Functional pruning idea}
-  Instead of computing the matrix of optimal loss in $S$ segments up
-  to $N$ data points,
+  \frametitle{Dynamic programming and functional pruning}
+  \textbf{Classical dynamic programming} (Auger and Lawrence 1989) computes the matrix of optimal loss
+  values in $S$ segments up to $N$ data points, $O(S N^2)$
 $$
 \begin{array}{ccc}
   \mathcal L_{1,1} & \cdots &   \mathcal L_{1,N}\\
@@ -220,7 +234,10 @@ $$
   \mathcal L_{S,1} & \cdots & \mathcal L_{S,N}\\
 \end{array}
 $$
-We compute a matrix of loss \textbf{functions}
+\textbf{Dynamic programming with functional pruning} (Rigaill
+2010) computes a matrix of loss \textbf{functions}, the
+optimal loss up to $N$ data points if segment $S$ has mean $\mu_S$,
+$O(S N\log N)$
 $$
 \begin{array}{ccc}
    L_{1,1}(\mu_1) & \cdots & L_{1,N}(\mu_1)\\
@@ -228,21 +245,21 @@ $$
    L_{S,1}(\mu_S) & \cdots & L_{S,N}(\mu_S),\\
 \end{array}
 $$
-the optimal loss up to $N$ data points if segment $S$ has mean
-$\mu_S$.
+\textbf{Contribution of this work}: a new algorithm that applies the
+functional pruning technique to the up-down constrained model.
 \end{frame}
 
 \begin{frame}
   \frametitle{First segment, first data point}
   \begin{itemize}
-  \item   For data $z_1, \dots, z_N\in\ZZ_+$ let
+  \item For data $z_1, \dots, z_N\in\ZZ_+$ let
   \begin{equation*}
-    \gamma_t(\mu) = \mu - z_t \log \mu
+    \gamma_t(\mu) = \ell(\mu, z_t) = \mu - z_t \log \mu
   \end{equation*}
   be the Poisson loss for each $t\in\{1, \dots, N\}$.
 \item For example $z = 2, 1, 9, 5, 10, 3$.
-\item Then $\gamma_1(\mu)=L_{1,1}(\mu)= 1\mu - 2\log \mu + 0$.
-\item Need to store 3 coefficients (linear, log, constant).
+\item Then $\gamma_1(\mu)=L_{1,1}(\mu)= \alert{1}\mu - \alert{2}\log \mu + \alert{0}$.
+\item Need to store 3 coefficients (\alert{linear}, \alert{log}, \alert{constant}).
   \end{itemize}
   \begin{center}
     \includegraphics[width=0.7\textwidth]{figure-PeakSegPDPA-demo-cost-1segments-1data}
@@ -320,7 +337,7 @@ $\mu_S$.
       L_{2,2}(\mu) = \gamma_2(\mu) + 
       \begin{cases}
         L_{1,1}(\mu) = 1\mu - 2\log \mu + 0 & \text{ if } \mu\in[1,2],\\
-        \mathcal L_{1,1} = 0\mu -0\log\mu + 0.6137 & \text{ if } \mu\in[2,14].
+        \mathcal L_{1,1} = 0\mu -0\log\mu + 0.6137 & \text{ if } \mu\in[2,10].
       \end{cases}
     \end{equation*}
   \end{itemize}
@@ -353,8 +370,8 @@ $\mu_S$.
     \begin{equation*}
       L_{2,t}(\mu) =  \gamma_t(\mu) + \min
       \begin{cases}
-        L_{2,t-1}(\mu),\\
-        L_{1,t-1}^{\leq}(\mu).
+        L_{1,t-1}^{\leq}(\mu), & \text{change up after $t-1$,}\\
+        L_{2,t-1}(\mu), & \text{change up before $t-1$.}
       \end{cases}
     \end{equation*}
   \item For example for $z = 2, 1, 9, 5, 10, 3$, at data point $t=4$
@@ -366,14 +383,6 @@ $\mu_S$.
   \end{itemize}
 \end{frame}
 
-
-\begin{frame}
-  \frametitle{Functional pruning complete example}
-\includegraphics[width=\textwidth]{screenshot-PDPA-demo}
-
-  \url{https://github.com/tdhock/PeakSegFPOP-paper}
-  %\url{http://bl.ocks.org/tdhock/raw/8c5dd0af533e24a893e7c5232f9bc94c/}
-\end{frame}
 
 \begin{frame}
   \frametitle{General functional pruning equation}
@@ -394,86 +403,18 @@ $\mu_S$.
   \end{itemize}
 \end{frame}
 
-\section{Interpretation of equal segment means}
+\section{Results on benchmark data sets}
 
 \begin{frame}
-  \frametitle{What does our solution say about the PeakSeg solution?}
+  \frametitle{Benchmark data sets, algorithms}
+
+ \url{http://cbio.ensmp.fr/~thocking/chip-seq-chunk-db/}
   \begin{itemize}
-  \item Our algo exactly solves a problem with \textbf{non-strict
-      inequality} constraints.
-  \item For example, $N=3$ data points and $S=3$ segments,
-    \begin{equation*}
-      \min_{\mu_1\leq\mu_2\geq\mu_3}
-      \sum_{t=1}^N m_t - z_t\log m_t.
-    \end{equation*}
-  \item But the PeakSeg problem has \textbf{strict inequality}
-    constraints:
-    \begin{equation*}
-      \min_{\mu_1<\mu_2 >\mu_3}
-      \sum_{t=1}^N m_t - z_t\log m_t.
-    \end{equation*}
-  \end{itemize}
-  When our algo returns equal values for adjacent segment means,
-  \begin{itemize}
-  \item Our solution is not feasible for the PeakSeg problem, and
-  \item The PeakSeg solution is undefined.
-  \end{itemize}
-\end{frame}
-
-
-\begin{frame}
-  \frametitle{Example: 13, 14, 10, 1}
-  What do you think is the best model with 1 peak?\\
-  (3 segments, 1 change up, 1 change down)
-  
-  \vskip 1cm
-
-  Guessing game:
-
-  \url{https://github.com/tdhock/PeakSegFPOP-paper/blob/master/figure-min-undefined.R} 
-\end{frame}
-
-\begin{frame}
-  \frametitle{PeakSegDP returns this highly suboptimal model}
-  \includegraphics[width=\textwidth]{figure-min-undefined-suboptimal}
-\end{frame}
-
-\begin{frame}
-  \frametitle{A better model}
-  \includegraphics[width=\textwidth]{figure-min-undefined-1}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Even better}
-  \includegraphics[width=\textwidth]{figure-min-undefined-2}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Still better}
-  \includegraphics[width=\textwidth]{figure-min-undefined-3}
-\end{frame}
-
-\begin{frame}
-  \frametitle{We can keep going forever}
-  \includegraphics[width=\textwidth]{figure-min-undefined-4}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Best model is not feasible}
-  \includegraphics[width=\textwidth]{figure-min-undefined}
-\end{frame}
-
-\section{Results on benchmark data set}
-
-\begin{frame}
-  \frametitle{Benchmark data, algorithms}
-
-  Data: \url{http://cbio.ensmp.fr/~thocking/chip-seq-chunk-db/}
-  \begin{itemize}
-  \item 4 annotators (AM, TDH, PGP, XJ).
+  \item 4 postdocs and PhD students (AM, TDH, PGP, XJ).
   \item 8 cell types.
-  \item 37 annotated H3K4me3 profiles (sharp peaks).
-  \item 29 annotated H3K36me3 profiles (broadly enriched domains).
+  \item 37 labeled H3K4me3 samples (sharp peak pattern).
+  \item 29 labeled H3K36me3 samples (broad peak pattern).
+  \item 12,826 labeled regions with and without peaks.
   \item 2,752 separate segmentation problems.
   \end{itemize}
 
@@ -541,34 +482,8 @@ $\mu_S$.
 \end{frame}
 
 \begin{frame}
-  \frametitle{New coseg algorithm more accurate than unconstrained
-    maximum likelihood Poisson model (Segmentor)}
-  \includegraphics[width=\textwidth]{figure-min-train-error-Segmentor}
-\end{frame}
-
-\begin{frame}
-  \frametitle{New coseg algorithm mostly agrees with slower inexact DP}
-  \includegraphics[width=\textwidth]{figure-min-train-error-PeakSegDP}
-\end{frame}
-
-\begin{frame}
-  \frametitle{New coseg algorithm sometimes disagrees with macs}
-  \includegraphics[width=\textwidth]{figure-min-train-error-macs}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Constrained optimization better than macs}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem5}
-\end{frame}
-
-\begin{frame}
   \frametitle{Constrained optimization better than macs}
   \includegraphics[width=\textwidth]{figure-min-train-error-problem5-best}
-\end{frame}
-
-\begin{frame}
-  \frametitle{0 errors for coseg/PeakSegDP, 6 errors for Segmentor}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem2}
 \end{frame}
 
 \begin{frame}
@@ -622,6 +537,7 @@ $\mu_S$.
   \frametitle{Test AUC on 7 benchmark data sets}
   \includegraphics[width=\textwidth]{figure-test-error-dots}
   \begin{itemize}
+  \item 4-fold cross-validation: train on 3/4 of labels, test on 1/4.
   \item HMCanBroad is accurate for broad H3K36me3 data but not sharp H3K4me3 data.
   \item MACS is accurate for sharp H3K4me3 but not broad H3K36me3 data.
   \item Proposed algorithm in coseg R package yields state-of-the-art
@@ -693,10 +609,29 @@ maxIter 20
   \begin{itemize}
   \item New algorithm that \textbf{exactly} computes the
     \textbf{constrained} optimal change-points/peaks for $N$ data points.
-  \item C++ implementation in coseg R package, 
+  \item C++ code in coseg R package, $O(N \log N)$ memory
     \url{https://github.com/tdhock/coseg}
+  \item PeakSegFPOP program for big $N > 10^6$ data,
+    $O(\log N)$ memory and $O(N\log N)$ disk space.
   \item TODO: regularized isotonic regression solver.
   \item TODO: supervised peak calling for ENCODE, Roadmap, ...
+  \item TODO: interactive web app for creating labels.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Thanks for your attention!}
+
+  Questions? toby.hocking@mail.mcgill.ca
+  \begin{itemize}
+  \item 
+  \textbf{coseg} R package, \\
+  \url{https://github.com/tdhock/coseg}
+  \item 
+    \textbf{PeakSegFPOP} command line program, 
+  \url{https://github.com/tdhock/PeakSegFPOP}
+  \item source code for these slides:
+  \url{https://github.com/tdhock/PeakSegFPOP-paper}
   \end{itemize}
 \end{frame}
 
@@ -740,20 +675,273 @@ maxIter 20
 \end{frame}
 
 \begin{frame}
-  \frametitle{Thanks for your attention!}
+  \frametitle{Previous work in computer vision: look and add labels
+    to...}
+  \begin{tabular}{ccc}
+    Photos & Cell images & Copy number profiles \\
+    \includegraphics[width=1.3in]{../chip-seq-paper/faces} &
+    \includegraphics[width=1.3in]{../chip-seq-paper/cellprofiler} &
+    \includegraphics[width=1.5in]{../chip-seq-paper/regions-axes}\\
+    Labels: names & phenotypes & alterations \\ \\
+    CVPR 2013 & CellProfiler & SegAnnDB \\
+    246 papers & 873 citations & Hocking et al, 2014. \\
+     &
+  \end{tabular}
+  Sources: \url{http://en.wikipedia.org/wiki/Face_detection}\\
+  Jones et al PNAS 2009. Scoring diverse cellular morphologies in
+  image-based screens with iterative feedback and machine learning.
+\end{frame}
 
-  Questions? 
+\begin{frame}
+  \frametitle{Two annotators provide consistent labels, but different
+    precision}
+  \includegraphics[width=1.1\textwidth]{../chip-seq-paper/screenshot-several-annotators}
+
   \begin{itemize}
-  \item 
-  coseg R package, \\
-  \url{https://github.com/tdhock/coseg}
-  \item 
-    PeakSegFPOP command line program, 
-  \url{https://github.com/tdhock/PeakSegFPOP}
-\item   source code for these slides:
-  \url{https://github.com/tdhock/PeakSegFPOP-paper}
+  \item TDH peakStart/peakEnd more precise than AM peaks.
+  \item AM noPeaks more precise than TDH no label.
   \end{itemize}
 \end{frame}
+
+\begin{frame}
+  \frametitle{Train on one person, test on another\\
+(same histone mark and samples)}
+  \includegraphics[width=1\textwidth]{../chip-seq-paper/figure-splits-H3K4me3-annotators.pdf}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Train on one person, test on another\\
+(same histone mark and samples)}
+  \includegraphics[width=1.1\textwidth]{../chip-seq-paper/figure-test-H3K4me3-annotators.pdf}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Train on some samples, test on others\\
+(same histone mark and person)}
+  \includegraphics[width=1\textwidth]{../chip-seq-paper/figure-splits-H3K4me3-types.pdf}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Train on some samples, test on others\\
+(same histone mark and person)}
+  \includegraphics[width=1.1\textwidth]{../chip-seq-paper/figure-test-H3K4me3-types.pdf}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Train on one histone mark, test on another\\
+(same person and samples)}
+  \includegraphics[width=1\textwidth]{../chip-seq-paper/figure-splits-TDH-experiments.pdf}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Train on one histone mark, test on another\\
+(same person and samples)}
+  \includegraphics[width=1.1\textwidth]{../chip-seq-paper/figure-test-TDH-experiments.pdf}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{PeakSeg with 2 peaks more likely than default macs}
+  \includegraphics[width=1\textwidth]{figure-macs-problem-1-30103.png}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Unconstrained model can have any changes}
+  \includegraphics[width=1\textwidth]{Seg_SansC.png}
+  \vskip -1cm
+  \begin{itemize}
+  \item The model above does NOT verify the PeakSeg up-down constraint
+    (second change is up, should be down).
+  \item Not directly interpretable as background and peaks.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{PeakSeg constraint forces up then down changes}
+  \includegraphics[width=1\textwidth]{Seg_AvecC1.png}
+  \vskip -1cm
+  \begin{itemize}
+  \item Novelty of PeakSeg model with respect to previous optimal
+    segmentation models: the up-down constraint.
+  \item Interpretable as background (S1, S3, ...)\\
+    and peaks (S2, S4, ...).
+  \end{itemize}
+\end{frame}
+
+\section*{Interpretation of equal segment means}
+
+\begin{frame}
+  \frametitle{What does our solution say about the PeakSeg solution?}
+  \begin{itemize}
+  \item Our algo exactly solves a problem with \textbf{non-strict
+      inequality} constraints.
+  \item For example, $N=3$ data points and $S=3$ segments,
+    \begin{equation*}
+      \min_{m_1\leq m_2\geq m_3}
+      \sum_{t=1}^N m_t - z_t\log m_t.
+    \end{equation*}
+  \item But the PeakSeg problem has \textbf{strict inequality}
+    constraints:
+    \begin{equation*}
+      \min_{m_1<m_2 >m_3}
+      \sum_{t=1}^N m_t - z_t\log m_t.
+    \end{equation*}
+  \end{itemize}
+  When our algo returns equal values for adjacent segment means,
+  \begin{itemize}
+  \item Our solution is not feasible for the PeakSeg problem, and
+  \item The PeakSeg solution is undefined.
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Example: 13, 14, 10, 1}
+  What do you think is the best model with 1 peak?\\
+  (3 segments, 1 change up, 1 change down)
+  
+  \vskip 1cm
+
+  Guessing game:
+
+  \url{https://github.com/tdhock/PeakSegFPOP-paper/blob/master/figure-min-undefined.R} 
+\end{frame}
+
+\begin{frame}
+  \frametitle{PeakSegDP returns this highly suboptimal model}
+  \includegraphics[width=\textwidth]{figure-min-undefined-suboptimal}
+\end{frame}
+
+\begin{frame}
+  \frametitle{A better model}
+  \includegraphics[width=\textwidth]{figure-min-undefined-1}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Even better}
+  \includegraphics[width=\textwidth]{figure-min-undefined-2}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Still better}
+  \includegraphics[width=\textwidth]{figure-min-undefined-3}
+\end{frame}
+
+\begin{frame}
+  \frametitle{We can keep going forever}
+  \includegraphics[width=\textwidth]{figure-min-undefined-4}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Best model is not feasible}
+  \includegraphics[width=\textwidth]{figure-min-undefined}
+\end{frame}
+
+\section*{Segmentation problem definitions}
+
+\begin{frame}
+  \frametitle{Unconstrained maximum likelihood segmentation}
+  \begin{itemize}
+  \item We have a sequence of $n$ count data $\mathbf y\in\ZZ_+^n$ to
+    segment. 
+  \item Choose the number of segments $S\in\{1, 2, \dots, n\}$.
+  \end{itemize}
+\begin{align*}
+  \minimize_{\substack{
+  \mathbf m\in\RR^{n}
+\\
+  \mathbf c\in\{-1,0,1\}^{n-1}
+  }} &\ \ 
+    \sum_{t=1}^n \ell( m_t,  z_t) 
+\\
+    \text{subject to} &\ \  1+\sum_{t=1}^{n-1} I(c_t \neq 0) = S, 
+\nonumber\\
+& \ \ c_t = -1 \Rightarrow m_{t} > m_{t+1} \text{ (change down)}
+\nonumber\\
+& \ \ c_t = 0 \Rightarrow m_{t} = m_{t+1}  \text{ (no change)}
+\nonumber\\
+& \ \ c_t = 1 \Rightarrow m_{t} < m_{t+1} \text{ (change up)}
+\nonumber
+\end{align*}
+\begin{itemize}
+\item The Poisson loss function is  $\ell( m,  y)= m - y \log m$.
+\item Every $t$ such that $c_t \neq 0$ is a
+change-point.
+\end{itemize}
+
+\end{frame}
+
+% We refer to (\ref{unconstrained}) as the ``unconstrained'' model
+% since $\mathbf{\hat m}^K(\mathbf y)$ is the most likely segmentation
+% of all possible models with $K$ piecewise constant segments ($K-1$
+% change-points). 
+% Although (\ref{unconstrained}) is a non-convex optimization problem,
+% the sequence of segmentations
+% $\mathbf{\hat m}^1(\mathbf y), \dots, \mathbf{\hat m}^{K}(\mathbf y)$
+% can be computed in $O(K n^2)$ time using the standard dynamic
+% programming algorithm \citep{bellman}, or in $O(K n \log n)$ time
+% using dynamic programming with functional pruning \citep{pruned-dp,
+%   johnson, Segmentor}.
+
+\begin{frame}
+  \frametitle{The PeakSeg constrained maximum likelihood model}
+\begin{align*}
+    \minimize_{\substack{
+  \mathbf m\in\RR^{n}
+\\
+  \mathbf c\in\{-1,0,1\}^{n-1}
+  }} &\ \ 
+    \sum_{t=1}^n \ell( m_t,  z_t) \\
+    \text{subject to} &\ \  1+\sum_{t=1}^{n-1} I(c_t \neq 0) = S, \\
+& \ \ c_t = -1 \Rightarrow m_{t} > m_{t+1} \text{ (change down)}\\
+& \ \ c_t = 0 \Rightarrow m_{t} = m_{t+1}  \text{ (no change)}\\
+& \ \ c_t = 1 \Rightarrow m_{t} < m_{t+1} \text{ (change up)}\\
+&\ \ \forall t\in\{1, \dots, n-1\},\, \alert{P_t(\mathbf c) \in\{0, 1\}}.
+\end{align*}
+The only difference with the unconstrained problem is that\\
+\alert{we
+have added the constraint $P_t(\mathbf c)=\sum_{i=1}^t c_i \in\{0, 1\}$}.
+% Another way to interpret the constrained
+% \ref{PeakSeg} problem is that the sequence of changes in the segment
+% means $\mathbf m$ must begin with a positive change and then
+% alternate: up, down, up, down, ... (and not up, up, down). Thus the
+% even-numbered segments may be interpreted as peaks $P_t(\mathbf c)=1$,
+% and the odd-numbered segments may be interpreted as background
+% $P_t(\mathbf c)=0$.
+\end{frame}
+
+\begin{frame}
+  \frametitle{The problem solved by the PeakSegPDPA}
+\begin{align*}
+    \minimize_{\substack{
+  \mathbf m\in\RR^{n}
+\\
+  \mathbf c\in\{-1,0,1\}^{n-1}
+  }} &\ \ 
+    \sum_{t=1}^n \ell( m_t,  z_t) 
+  \label{PeakSegPDPA}
+\\
+    \text{subject to} &\ \  1+ \sum_{t=1}^{n-1} I(c_t \neq 0) = S, 
+\nonumber\\
+& \ \ c_t = -1 \Rightarrow m_{t} \alert{\geq} m_{t+1} \text{ (change down or no change)}
+\nonumber\\
+& \ \ c_t = 0 \Rightarrow m_{t} = m_{t+1}  \text{ (no change)}
+\nonumber\\
+& \ \ c_t = 1 \Rightarrow m_{t} \alert{\leq} m_{t+1} \text{ (change up or no change)}
+\nonumber\\
+&\ \ \forall t\in\{1, \dots, n-1\},\, P_t(\mathbf c) \in\{0, 1\}.
+\nonumber
+\end{align*}
+\begin{itemize}
+\item The only difference with the \textbf{PeakSeg} problem is that\\
+  \alert{we have changed the strict inequality constraints to non-strict inequality
+constraints}. 
+\item This model has \textbf{at most} $S$ distinct
+  segment means (some may be equal due to the non-strict equality
+  constraints).
+\end{itemize}
+\end{frame}
+
 
 \section*{Review of constrained dynamic programming algorithm}
 
@@ -815,5 +1003,42 @@ maxIter 20
   \frametitle{Constrained optimization worse than macs}
   \includegraphics[width=\textwidth]{figure-min-train-error-problem4-best-zoom}
 \end{frame}
+
+
+\begin{frame}
+  \frametitle{Functional pruning complete example}
+%\includegraphics[width=\textwidth]{screenshot-PDPA-demo}
+    \input{figure-2-min-envelope}
+
+  \url{https://github.com/tdhock/PeakSegFPOP-paper}
+  %\url{http://bl.ocks.org/tdhock/raw/8c5dd0af533e24a893e7c5232f9bc94c/}
+\end{frame}
+
+\begin{frame}
+  \frametitle{New coseg algorithm more accurate than unconstrained
+    maximum likelihood Poisson model (Segmentor)}
+  \includegraphics[width=\textwidth]{figure-min-train-error-Segmentor}
+\end{frame}
+
+\begin{frame}
+  \frametitle{New coseg algorithm mostly agrees with slower inexact DP}
+  \includegraphics[width=\textwidth]{figure-min-train-error-PeakSegDP}
+\end{frame}
+
+\begin{frame}
+  \frametitle{New coseg algorithm sometimes disagrees with macs}
+  \includegraphics[width=\textwidth]{figure-min-train-error-macs}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Constrained optimization better than macs}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5}
+\end{frame}
+
+\begin{frame}
+  \frametitle{0 errors for coseg/PeakSegDP, 6 errors for Segmentor}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem2}
+\end{frame}
+
 
 \end{document}
