@@ -10,7 +10,7 @@ load("hmcan.broad.peaks.error.RData")
 load("PDPA.cDPA.compare.RData")
 
 macs.peaks.error$algorithm <- "macs"
-hmcan.broad.peaks.error$algorithm <- "macs"
+hmcan.broad.peaks.error$algorithm <- "hmcan.broad"
 pdpa <- data.table(PDPA.peaks.error)
 names(pdpa)[3] <- "param.name"
 pdpa$algorithm <- "coseg"
@@ -19,7 +19,7 @@ names(Seg)[3] <- "param.name"
 Seg$algorithm <- "Segmentor"
 error.regions.list <- list(
   macs=macs.peaks.error,
-  hmcan.broad=hmcan.broad.error,
+  hmcan.broad=hmcan.broad.peaks.error,
   coseg=pdpa,
   Segmentor=Seg)
 for(chunk.name in names(dp.peaks.error)){
@@ -47,9 +47,10 @@ total.train.error <- min.train.error[, list(
   fp=sum(fp),
   fn=sum(fn),
   problems=.N,
-  labels=sum(regions)
+  labels=sum(regions),
+  possible.fp=sum(possible.fp),
+  possible.fn=sum(possible.fn)
   ), by=.(algorithm)]
-total.train.error[order(errors),]
 
 ## For each algorithm, how many problems had all ten models? how many
 ## models were computed and feasible in all?
@@ -61,11 +62,23 @@ feasible <- PDPA.cDPA.compare$all.loss[, list(
   ), by=.(chunk.name, sample.id)]
 stopifnot(all(feasible$rows==10))
 stopifnot(nrow(feasible)==2752)
-molt <- melt(feasible, measure.vars=c("dp", "PDPA", "Seg"))
-molt[, list(
+molt <- melt(feasible, measure.vars=c("PeakSegDP", "coseg", "Segmentor"))
+model.counts <- molt[, list(
   models=sum(value),
   ten=sum(value==10)
   ), by=.(variable)]
+
+train.ord <- total.train.error[order(errors),]
+total.row <- train.ord[1, .(errors=labels, fp=possible.fp, fn=possible.fn, models=27520, problems=2752)]
+setkey(model.counts, variable)
+only.algos <- cbind(
+  train.ord[, .(errors, fp, fn)],
+  model.counts[paste(train.ord$algorithm), .(models, problems=ten)])
+no.names <- as.matrix(rbind(only.algos, total.row))
+rownames(no.names) <- c(train.ord$algorithm, "possible")
+library(xtable)
+xt <- xtable(no.names, digits=0)
+print(xt, file="table-min-train-error.tex", row.names=FALSE, floating=FALSE)
 
 train.error.wide <-
   dcast(min.train.error, chunk.name + sample.id ~ algorithm, value.var="errors")

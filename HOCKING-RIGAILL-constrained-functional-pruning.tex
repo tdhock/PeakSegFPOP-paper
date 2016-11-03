@@ -15,7 +15,7 @@
 \usepackage{amssymb,amsmath}
 \usepackage{natbib}
 \usepackage{amsthm}
-\newtheorem{Proposition}{Proposition}
+\newtheorem{proposition}{Proposition}
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\sign}{sign}
 \DeclareMathOperator*{\Lik}{Lik}
@@ -322,13 +322,13 @@ More generally, we have the following result which relates the
 solutions of the \ref{PeakSeg} and the non-strict inequality
 constrained problems.
 
-\begin{Proposition}
+\begin{proposition}
   Let $(\mathbf m, \mathbf c)$ be the solution to
   (\ref{PeakSegPDPA}). If $c_t=0 \Leftrightarrow m_t = m_{t+1}$ for
   all $t\in\{1, \dots, n-1\}$ then $(\mathbf m, \mathbf c)$ is also
   the solution to \ref{PeakSeg}. Otherwise, the \ref{PeakSeg} solution
   is undefined.
-\end{Proposition}
+\end{proposition}
 
 \begin{proof}
   TODO
@@ -460,6 +460,7 @@ constrained optimization problem (\ref{PeakSegPDPA}).
   optimization problem (\ref{PeakSegPDPA}).
 \end{proposition}
 
+
 \begin{proof}
   First, for any indices $t_1<t_2$ define the helper function
   $h_{t_1,t_2}(\mu)=\sum_{i=t_1+1}^{t_2}\gamma_i(\mu)$ as the total
@@ -470,7 +471,7 @@ constrained optimization problem (\ref{PeakSegPDPA}).
   (\ref{PeakSegPDPA}) can be re-written as
   \begin{eqnarray*}
     \label{eq:long}
-    \min_{(\mathbf m, \mathbf c)\in\mathcal C}}
+    \min_{(\mathbf m, \mathbf c)\in\mathcal C}
     \sum_{i=1}^n \gamma_i(m_i)
     &=&
     \min_{\mu_3}
@@ -565,13 +566,13 @@ term penalizing the number of up changes $c_t=1$ has been added to the
 optimization objective.  
 %The solution to this problem is computed by the PeakSegFPOP function of the coseg R package.
 
-\begin{Proposition}
+\begin{proposition}
   For any data set $\mathbf y\in\ZZ_+^n$ and any penalty parameter
   $\lambda\in\RR_+$, let $(\mathbf m,\mathbf c)$ be the solution to
   the penalized problem (\ref{PeakSegFPOP}). It is the same as the
   solution to the contrained problem (\ref{PeakSegPDPA}) with
   $K=\sum_{t=1}^{n-1} c_t$ segments.
-\end{Proposition}
+\end{proposition}
 
 \begin{proof}
   TODO
@@ -618,10 +619,15 @@ the unconstrained Segmentor algorithm(figure?).
 Finally, we performed 4-fold cross-validation to estimate the test
 error of each algorithm. For each of the 7 data sets, we randomly
 assigned labeled data to one of four folds. For each fold, we treat it
-as a test set, and train a model using all other folds. We  But Segmentor
-has a low false positive and true positive rate, so it is easy to get
-a low test error (just pick the model with the most peaks). But coseg
-has a significantly higher AUC, about the same as PeakSegDP.
+as a test set, and train a model using all other folds. For the
+optimal segmentation models (coseg, PeakSegDP, Segmentor), we define
+an oracle penalty \citep{cleynen2013segmentation}, equivalent to the
+oracle.1 model described by \citet{ We computed the area under the ROC curve (AUC) of each model
+for each test set.  The previous algorithm with state-of-the-art
+accuracy on this benchmark was PeakSegDP, and we observed that the new
+coseg algorithm achieves comparable test AUC
+(Figure~\ref{fig:test-error-dots}). In contrast, the unconstrained
+Segmentor algorithm has TODO 
 
 
 
@@ -635,15 +641,15 @@ has a significantly higher AUC, about the same as PeakSegDP.
   \label{fig:test-error-dots}
 \end{figure}
 
-\begin{figure}[b!]
+
+\begin{table}[b!]
   \centering
-  \includegraphics[width=\textwidth]{figure-min-train-error-some}
-  \caption{Comparison of minimum train error for 2752 segmentation
-    problems in the 7 ChIP-seq data sets. The new coseg algorithm is
-    always at least as accurate as Segmentor, and mostly consistent with the
-    heuristic PeakSegDP.}
-  \label{fig:min-train-error}
-\end{figure}
+  \input{table-min-train-error}
+  \caption{Comparison of minimum train error for 12,826 labels in the 7 ChIP-seq data sets. 
+    The new coseg algorithm is
+    always at least as accurate as Segmentor, and TODO.}
+  \label{tab:min-train-error}
+\end{table}
 
 \subsection{Timings}
 
