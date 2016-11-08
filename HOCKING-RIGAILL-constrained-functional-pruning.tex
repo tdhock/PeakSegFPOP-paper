@@ -16,6 +16,9 @@
 \usepackage{natbib}
 \usepackage{amsthm}
 \newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\sign}{sign}
 \DeclareMathOperator*{\Lik}{Lik}
@@ -96,7 +99,7 @@ in several kinds of data it is desirable to constrain the possible
 change-points to obtain a more interpretable model. For example, in
 genomic data it is desirable to only consider models that can be
 easily interpreted in terms of peaks and background
-\citep{PeakSeg}. This amounts to forcing an up change after each down
+\citep{HOCKING-PeakSeg}. This amounts to forcing an up change after each down
 change, and vice versa.
 
 The isotonic regression problem is another example of constrained
@@ -124,224 +127,456 @@ points.
 \section{Related work}
 \label{sec:related}
 
-The models we consider in this paper are constrained versions of the
-optimal segmentation model \citep{Segmentor}. The
-unconstrained model can be computed using a dynamic programming
-algorithm (DPA) \citep{bellman}, or a pruned dynamic programming
-algorithm (pDPA) \citep{pruned-dp}. Both algorithms are guaranteed to
-recover the exact solution to the unconstrained model, but there are
-two important differences. The pDPA is more complicated to implement,
-but is also computationally faster than the DPA. For segmenting a
-sequence of $n$ data points, the pDPA takes on average $O(n\log n)$
-time whereas the DPA takes $O(n^2)$ time.
+The models we consider in this paper can be considered constrained
+versions of optimal segmentation \citep{Segmentor} and isotonic
+regression \citep{mair2009isotone}. The optimal segmentation model can
+be computed using a dynamic programming algorithm (DPA)
+\citep{bellman, segment-neighborhood, optimal-partitioning}, or a
+pruned dynamic programming algorithm (pDPA) \citep{pruned-dp}. Both
+algorithms are guaranteed to recover the exact solution to the
+unconstrained model, but there are two important differences. The pDPA
+is more complicated to implement, but is also computationally faster
+than the DPA. For segmenting a sequence of $n$ data points, the pDPA
+takes on average $O(n\log n)$ time whereas the DPA takes $O(n^2)$
+time.
 
 The constraints that we consider in this paper are a generalization of
-the peak detection model \citep{PeakSeg} and the isotonic regression
-model \citep{mair2009isotone}. Rather than searching all possible
-change-points to find the most likely model with $k$ segments, we
-propose to constrain the possible change-points so that the segment
-means may be more easily interpreted.
+the peak detection model \citep{HOCKING-PeakSeg}. Rather than
+searching all possible change-points to find the most likely model
+with $K$ segments, we propose to constrain the possible change-points
+so that the segment means may be more easily interpreted.
 
-\section{From unconstrained to constrained maximum likelihoood
-  segmentation}
-\label{sec:model}
+\section{Isotonic regression models}
 
-In this section we first discuss the existing unconstrained maximum
-likelihood model, and then we discuss a more general framework for
-constrained maximum likelihood segmentation.
+We will first explain the classical isotonic regression model, and
+then we will introduce a regularized version that is solvable by our
+new algorithm.
 
-\subsection{Unconstrained maximum likelihood segmentation}
+\subsection{Classical isotonic regression}
 
-Assume we have a sequence of $n$ count data $\mathbf y\in\ZZ_+^n$ to
-segment. For the Segment Neighborhood model we first fix a maximum
-number of segments $ K_{\max}\leq n$. The unconstrained maximum
-likelihood segmentation model is defined as the most likely mean
-vector $\mathbf m\in\RR^n$ with exactly 
-$K\in\{1, \dots, K_{\max}\}$ distinct piecewise constant segments:
-\begin{align}
-  \label{unconstrained}
-  \mathbf{\hat m}^K(\mathbf y) =
-    \argmin_{\substack{
-  \mathbf m\in\RR^{n}
-\\
-  \mathbf c\in\{-1,0,1\}^{n-1}
-  }} &\ \ 
-    \sum_{t=1}^n \ell( m_t,  y_t) 
-\\
-    \text{subject to} &\ \  1+\sum_{t=1}^{n-1} I(c_t \neq 0) = K, 
-\nonumber\\
-& \ \ c_t = -1 \Rightarrow m_{t} > m_{t+1} \text{ (change down)}
-\nonumber\\
-& \ \ c_t = 0 \Rightarrow m_{t} = m_{t+1}  \text{ (no change)}
-\nonumber\\
-& \ \ c_t = 1 \Rightarrow m_{t} < m_{t+1} \text{ (change up)}
-\nonumber
-\end{align}
-where the Poisson loss function is
-\begin{equation}\label{eq:loss}
-  \ell( m,  y)= m - y \log m.
-\end{equation} 
-The $c_t = \sign(m_{t+1} - m_{t})$ variable is the sign of the change
-after data point $t$. Every $t$ such that $c_t \neq 0$ is a
-change-point, and the model complexity is the number of segments
-$1+\sum_{t=1}^{n-1} I(c_t \neq 0)$, where $I$ is the indicator
-function. 
-
-We refer to (\ref{unconstrained}) as the ``unconstrained'' model
-since $\mathbf{\hat m}^K(\mathbf y)$ is the most likely segmentation
-of all possible models with $K$ piecewise constant segments ($K-1$
-change-points). 
-Although (\ref{unconstrained}) is a non-convex optimization problem,
-the sequence of segmentations
-$\mathbf{\hat m}^1(\mathbf y), \dots, \mathbf{\hat m}^{K}(\mathbf y)$
-can be computed in $O(K n^2)$ time using the standard dynamic
-programming algorithm \citep{bellman}, or in $O(K n \log n)$ time
-using dynamic programming with functional pruning \citep{pruned-dp,
-  johnson, Segmentor}.
-
-\subsection{The PeakSeg problem (strict inequality constraints)}
-\label{sec:constrained}
-
-To introduce the PeakSeg model constraint \citep{PeakSeg}, we first define
-the peak indicator for $t\in\{1, \dots, n-1\}$ as
+For a data set $\mathbf y\in\RR^n$, the classical isotonic regression
+model is defined as the most likely sequence of increasing segment
+means $\mathbf m = \left[
+\begin{array}{ccc}
+  m_1& \cdots &m_n
+\end{array}
+\right]
+\in\RR^n$. More precisely, consider the following definition
+of the set of possible mean vectors.
 \begin{equation}
-  \label{eq:peaks}
-  P_t(\mathbf c) = \sum_{i=1}^t c_i,
+  \mathcal I^n = \{\mathbf m\in\RR^n \mid m_i \leq m_{i+1} \ \forall\ i<n\}
 \end{equation}
-which is the cumulative sum of change-point variables $c_i$ up to data
-point $t$. In general for the unconstrained model
-$P_t(\mathbf c)\in\ZZ$, which is problematic in our biological
-application (ChIP-seq peak detection), since we want to classify each
-segment and data point into one of two states
-$P_t(\mathbf c)\in \{0, 1\}$ (0 for background noise after a change
-down, 1 for a peak after a change up).
-% For example, if
-% $\mathbf m = \left[\begin{array}{ccccccc}1.1 & 1.1 & 2 & 2 & 4 & 4 &
-%     3\end{array}\right]$, with two changes up followed by one change
-% down, then
-% $\mathbf P(\mathbf m) = \left[\begin{array}{ccccccc}0 & 0 & 1 & 1 & 2
-%     & 2 & 1 \end{array}\right]$ and so this model is not feasible for
-% the peaks constraint $P_t(\mathbf m)\in \{0, 1\}$.
-Thus we constrain the peak indicator $P_t(\mathbf
-c)\in\{0, 1\}$, which results
-in the constrained problem
-\begin{align}
-  \label{PeakSeg}
-  \mathbf{\tilde m}^K(\mathbf y) =
-    \argmin_{\substack{
-  \mathbf m\in\RR^{n}
-\\
-  \mathbf c\in\{-1,0,1\}^{n-1}
-  }} &\ \ 
-    \sum_{t=1}^n \ell( m_t,  y_t) 
-\tag{\textbf{PeakSeg}}
-\\
-    \text{subject to} &\ \  1+\sum_{t=1}^{n-1} I(c_t \neq 0) = K, 
-\nonumber\\
-& \ \ c_t = -1 \Rightarrow m_{t} > m_{t+1} \text{ (change down)}
-\nonumber\\
-& \ \ c_t = 0 \Rightarrow m_{t} = m_{t+1}  \text{ (no change)}
-\nonumber\\
-& \ \ c_t = 1 \Rightarrow m_{t} < m_{t+1} \text{ (change up)}
-\nonumber\\
-\forall t\in\{1, \dots, n-1\}, &\ \ P_t(\mathbf c) \in\{0, 1\}.
-\nonumber
-\end{align}
-The only difference with the unconstrained problem
-(\ref{unconstrained}) is that we have added the constraint
-$P_t(\mathbf c) \in\{0, 1\}$. Another way to interpret the constrained
-\ref{PeakSeg} problem is that the sequence of changes in the segment
-means $\mathbf m$ must begin with a positive change and then
-alternate: up, down, up, down, ... (and not up, up, down). Thus the
-even-numbered segments may be interpreted as peaks $P_t(\mathbf c)=1$,
-and the odd-numbered segments may be interpreted as background
-$P_t(\mathbf c)=0$.
+Now, assume that the data are a realization of a probability
+distribution with mean parameter $\mathbf m$. For example, assuming
+$y_i \sim \mathcal N(m_i, \sigma^2)$ results in the following maximum
+likelihood segmentation problem
 
-Note that in the both the unconstrained problem (\ref{unconstrained})
-and the \ref{PeakSeg} problem, the change-point variable $\mathbf c$
-can be removed, resulting in a simpler problem with only one
-optimization variable (the segment mean $\mathbf m$). However, we
-state the problem in this form in order to make an explicit connection
-with the non-strict inequality constrained problem, which we introduce
-in the next section.
+\begin{equation}
+  \label{eq:max_lik}
+  \maximize_{\mathbf m\in\mathcal I^n, \sigma} \sum_{i=1}^n \Lik(y_i| m_i, \sigma^2).
+\end{equation}
 
-\subsection{The non-strict inequality constrained problem}
+It is easy to show that the above concave maximization problem is equivalent
+to the convex minimization problem below,
+\begin{equation}
+  \label{eq:isotonic}
+  %\tag{\textbf{IsotonicRegression}}
+  \minimize_{\mathbf m\in\mathcal I^n} \sum_{i=1}^n \ell(y_i, m_i),
+\end{equation}
+where the convex loss function $\ell:\RR\times \RR\rightarrow\RR$ in
+this case is the square loss $\ell(y, m) = (y-m)^2$. This optimization
+problem (\ref{eq:isotonic}) is referred to as ``isotonic regression''
+\citep{mair2009isotone}.
 
-Consider the following optimization problem, which replaces the strict
-inequality constraints of the \ref{PeakSeg} problem with non-strict
-inequality constraints.
-\begin{align}
-  \mathbf{\bar m}^K(\mathbf y) =
-    \argmin_{\substack{
-  \mathbf m\in\RR^{n}
-\\
-  \mathbf c\in\{-1,0,1\}^{n-1}
-  }} &\ \ 
-    \sum_{t=1}^n \ell( m_t,  y_t) 
-       \label{PeakSegPDPA}
-\\
-    \text{subject to} &\ \  1+ \sum_{t=1}^{n-1} I(c_t \neq 0) = K, 
-\nonumber\\
-& \ \ c_t = -1 \Rightarrow m_{t} \geq m_{t+1} \text{ (change down or no change)}
-\nonumber\\
-& \ \ c_t = 0 \Rightarrow m_{t} = m_{t+1}  \text{ (no change)}
-\nonumber\\
-& \ \ c_t = 1 \Rightarrow m_{t} \leq m_{t+1} \text{ (change up or no change)}
-\nonumber\\
-\forall t\in\{1, \dots, n-1\}, &\ \ P_t(\mathbf c) \in\{0, 1\}.
-\nonumber
-\end{align}
-Thus the \ref{PeakSeg} model has exactly $K$ distinct
-segment means, but this model (\ref{PeakSegPDPA}) has \emph{at most}
-$K$ distinct segment means (some may be equal due to the non-strict
-equality constraints). Note that for $K=4$, the solution
-$(\mathbf m = \left[\begin{array}{cccc}1 & 2 & 2 & 3 \end{array}\right],
-  \mathbf c = \left[\begin{array}{ccc}  1 & -1 & 1 \end{array}\right])$
-is feasible for this problem (\ref{PeakSegPDPA}), 
-but is not feasible for \ref{PeakSeg} (since $c_2=-1$ but $m_2 = m_3$).
+One potential problem with the isotonic regression model is that it
+has no limit on the number of change-points where $m_i < m_{i+1}$. In
+particular, for an ever-increasing data set with $y_i < y_{i+1}$ for
+all $i<n$, it is clear that the solution to the isotonic regression
+problem (\ref{eq:isotonic}) is $m_i=y_i$ for all $i$, which means
+$n-1$ change-points. 
 
-Note that unlike the unconstrained model, increasing the number of
-non-zero change variables ($c_t\neq 0$) does not always decrease the
-cost. For example, consider the data set
-$\mathbf y = \left[\begin{array}{ccc}1 & 3 & 9 \end{array}\right]$.
-For $K=2$ segments both models have the same optimal solution,
-$(\mathbf m = \left[\begin{array}{ccc}2 & 2 & 9 \end{array}\right],
-  \mathbf c = \left[\begin{array}{cc}  0 & 1 \end{array}\right])$,
-which has a Poisson loss of $\approx -9.6$. 
-For $K=3$ segments the solution of unconstrained model
-(\ref{unconstrained}) has a smaller loss of $\approx -10.1$
-$(\mathbf m = \left[\begin{array}{ccc}1 & 3 & 9 \end{array}\right],
-  \mathbf c = \left[\begin{array}{cc}  1 & 1 \end{array}\right])$,
-but the solution of the constrained model (\ref{PeakSegPDPA})
-has a larger loss of $\approx -8.5$
-$(\mathbf m = \left[\begin{array}{ccc}1 & 6 & 6 \end{array}\right],
-  \mathbf c = \left[\begin{array}{cc}  1 & -1  \end{array}\right])$. 
-Note that the \ref{PeakSeg} solution with $K=3$ is undefined for this data set.
+In contrast, it may be preferable to recover the $K<n$ most likely
+segments (the $K-1$ most likely changes). For example, consider the
+toy data set $\mathbf y= \left[
+\begin{array}{cccccc}
+  2 & 5 & 30 & 34 & 600 & 621
+\end{array}
+\right] \in\RR^6$. These data are strictly increasing, so the isotonic
+regression (\ref{eq:isotonic}) solution is the trivial model
+$m_i=y_i$. However, these data contain only two abrupt changes. To
+recover these changes, we propose an additional constraint on the
+number of segments. This results in the regularized isotonic
+regression problem, which we introduce in the next section.
 
-More generally, we have the following result which relates the
-solutions of the \ref{PeakSeg} and the non-strict inequality
-constrained problems.
+\subsection{Regularized isotonic regression}
 
-\begin{proposition}
-  Let $(\mathbf m, \mathbf c)$ be the solution to
-  (\ref{PeakSegPDPA}). If $c_t=0 \Leftrightarrow m_t = m_{t+1}$ for
-  all $t\in\{1, \dots, n-1\}$ then $(\mathbf m, \mathbf c)$ is also
-  the solution to \ref{PeakSeg}. Otherwise, the \ref{PeakSeg} solution
-  is undefined.
-\end{proposition}
+\begin{definition}[Regularized isotonic regression constraints]
+  \label{def:I}
+  Let $(\mathbf m, \mathbf c)\in\mathcal I_K^n$ be the set of all segment means
+  $\mathbf m\in\RR^n$ and change-point indicators
+  $\mathbf c\in\{0,1\}^{n-1}$ such that the following constraints are
+  verified. The total number of non-zero change-point indicators is $K-1$:
+  \begin{equation}
+    \label{eq:isotonic_segments}
+    \sum_{i=1}^{n-1} I(c_i = 1) = K-1.
+  \end{equation}
+  Every zero-valued change-point indicator has an equal segment mean
+  after:
+  \begin{equation}
+    \label{eq:isotonic_0}
+    c_i = 0 \Rightarrow m_i = m_{i+1}.
+  \end{equation}
+  Every one-valued change-point indicator may have a greater segment
+  mean after:
+  \begin{equation}
+    \label{eq:isotonic_1}
+    c_i = 1 \Rightarrow m_i \leq m_{i+1}.
+  \end{equation}
+\end{definition}
 
-\begin{proof}
-  TODO
-\end{proof}
+For a given data set $\mathbf y\in\RR^n$, loss function $\ell$, and
+number of segments $K$, we define the regularized isotonic regression
+problem as
+\begin{equation}
+  \label{eq:regularized_isotonic}
+  \minimize_{(\mathbf m, \mathbf c)\in\mathcal I_K^n} \sum_{i=1}^n \ell(y_i, m_i).
+\end{equation}
 
 %%%% update rules
 \newcommand{\FCC}{\widetilde{C}}
 \newcommand{\M}{\mathcal{M}}
 \section{Algorithm}
 
-In this section we explain our new algorithm that can be used to
-compute the solution to constrained optimization problems similar to
-(\ref{PeakSegPDPA}).
+In this section we propose a new dynamic programming algorithm that
+can be used to compute the solution to the regularized isotonic
+regression problem (\ref{eq:regularized_isotonic}). First, we show
+that it is equivalent to solve a simpler problem with fewer
+optimization variables. Then, we show how to recursively compute the
+solution using dynamic programming.
+
+\subsection{Equivalent problem with fewer optimization 
+variables}
+
+First, consider the following definition of a reduced optimization
+space with only $K$ segment means and $K-1$ change-point indices.
+
+\begin{definition}[Reduced optimization space for regularized isotonic regression]
+\label{def:Ibar}
+  Let $(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^K$ be the set of
+  all non-decreasing segment means $u_1\leq\cdots\leq u_K$ and
+  increasing change-point indices $0=t_0<t_1<\cdots<t_{K-1}<t_K=n$.
+\end{definition}
+
+Each segment mean $u_k$ in this optimization problem is assigned to
+data points $i\in(t_{k-1},t_k]$, resulting in the following cost
+for each segment $k\in\{1, \dots, K\}$,
+
+\begin{equation}
+  \label{eq:h}
+  h_{t_{k-1}, t_k}(u_k) = \sum_{i=t_{k-1}+1}^{t_k} \ell(y_i, u_k).
+\end{equation}
+This results in the following optimization problem,
+\begin{equation}
+  \label{eq:isotonic_reduced}
+  \minimize_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^K}
+  \sum_{k=1}^K
+  h_{t_{k-1}, t_k}(u_k)
+\end{equation}
+Rather than explicitly summing over data points $i$ as in problem
+(\ref{eq:isotonic}), this problem sums over segments $k$. The next lemma
+proves that it is equivalent to solve this simpler optimization problem.
+
+\begin{lemma}[Equivalence of the isotonic regression problem with reduced number of variables]
+  \label{lemma:reduced}
+  Let $(\mathbf u, \mathbf t)$ be the solution to the reduced problem
+  (\ref{eq:isotonic_reduced}), and consider the following mapping from
+  the reduced space $\bar{\mathcal I}_K^n$ to the original space
+  $\mathcal I_K^n$. For each segment $k\in\{1,\dots,K\}$, we assign
+  $m_i = u_k$ for all data points $i\in(t_{k-1},t_k]$ on that
+  segment. Furthermore, for all data points before change-points
+  $i\in\{t_1,\dots,t_{K-1}\}$ we assign $c_i=1$, and we assign $c_i=0$
+  for all other data points $i\not\in\{t_1,\dots,t_{K-1}\}$. Then
+  $(\mathbf m, \mathbf c)$ is the solution to problem
+  (\ref{eq:isotonic}).
+\end{lemma}
+
+\begin{proof}
+  It is clear that the mapping defined in Lemma~\ref{lemma:reduced} is
+  a bijection between $\bar{\mathcal I}_K^n$ and $\mathcal I_K^n$,
+  since the constraints in Definitions~\ref{def:I} and~\ref{def:Ibar}
+  are satisfied. Since the objective functions are equivalent, the
+  optimization problems are equivalent:
+  \begin{eqnarray}
+  \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^K}
+  \sum_{k=1}^K
+  h_{t_{k-1}, t_k}(u_k) 
+    &=& \label{eq:proof_lh}
+  \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^K}
+\sum_{k=1}^K 
+        \sum_{i=t_{k-1}+1}^{t_k} \ell(y_i, u_k)\\
+    &=& \label{eq:proof_bijection}
+  \min_{(\mathbf m, \mathbf c)\in\mathcal I_n^K}
+        \sum_{i=1}^{n} \ell(y_i, m_i)
+  \end{eqnarray}
+  Equation (\ref{eq:proof_lh}) holds by definition of
+  $h_{t_{k-1},t_k}$ in (\ref{eq:h}), and equation
+  (\ref{eq:proof_bijection}) holds because of the bijection.
+\end{proof}
+
+\subsection{Dynamic programming solution}
+
+Optimization problem (\ref{eq:isotonic_reduced}) has $K$ segment mean
+variables and $K-1$ change-point index variables. In this section we
+will further eliminate all variables except a single segment mean
+variable using dynamic programming. First, for any function
+$f:\RR\rightarrow\RR$, we define the min-less operator as
+\begin{equation}
+  \label{eq:min-less-def}
+  f^\leq(u)=\min_{x\leq u} f(x).
+\end{equation}
+The min-less operator is used in the following definition of the
+optimal cost.
+\begin{definition}[Dynamic programming recursion]
+\label{def:fcc}
+  We refer to $\FCC_{K,n}(u)$ as the optimal cost of the segmentation
+  with $K$ segments, up to data point $n$, with last segment mean
+  $u$. For the first segment $K=1$, we define
+  $\FCC_{1,1}(u)=\ell(y_1,u)$ for the first data point, and
+  $\FCC_{1,t}(u)=\FCC_{1,t-1}(u)+\ell(y_t,u)$ for the other data
+  points $t>1$. For $K>1$ segments, we define
+  $\FCC_{K,K}(u)=\ell(y_K, u)+\FCC_{K-1,K-1}^\leq(u)$ for the $K$-th
+  data point and for $t>K$ data points,
+  \begin{equation}
+\nonumber
+  \FCC_{K,t}(u)=\ell(y_t,u)+
+  \min\{
+  \FCC_{K-1,t-1}^\leq(u),\,
+  \FCC_{K,t-1}(u)
+  \}.
+  \end{equation}
+\end{definition}
+
+Now, consider the following lemma, which shows that the dynamic
+programming minimization over two cost functions is equivalent to the
+minimization over all possible change-points.
+\begin{lemma}[Dynamic programming minimizes with respect to all possible change-points]
+\label{lemma:t_change_points}
+  For the cost up to any data point $t> K$, the recursive dynamic
+  programming cost $\FCC_{K,t}(u)$ is equivalent to the minimum cost
+  over all possible change points
+  $\min_{\tau\in[K,t)}\FCC_{K-1,\tau}^\leq(u)+h_{\tau,t}(u)$.
+\end{lemma}
+
+\begin{proof}
+  We proceed by induction on data points $t$. First, we show that the
+  equivalence holds for $t=K+1$ data points. By definition, we have
+  \begin{eqnarray}
+    \FCC_{K,K+1}(u)
+    &=&\label{eq:proof_fcc1}\ell(y_{K+1},u)+\min\{\FCC_{K-1,K}^\leq(u),\,\FCC_{K,K}(u)\}\\
+    &=&\min\label{eq:proof_fcc2}
+        \begin{cases}
+          \FCC_{K-1,K}^\leq(u)+\ell(y_{K+1},u)\\
+          \FCC_{K-1,K-1}^\leq(u)+\ell(y_{K+1},u)+\ell(y_K,u)
+        \end{cases}\\
+    &=&\min\label{eq:proof_h}
+        \begin{cases}
+          \FCC_{K-1,K}^\leq(u)+h_{K,K+1}(u)\\
+          \FCC_{K-1,K-1}^\leq(u)+h_{K-1,K+1}(u)
+        \end{cases}\\
+    \label{eq:proof_tau}
+    &=&\min_{\tau\in[K-1,K+1)} \FCC_{K-1,\tau}^\leq(u)+h_{\tau,K+1}(u)
+  \end{eqnarray}
+  Equations (\ref{eq:proof_fcc1}-\ref{eq:proof_fcc2}) result by
+  expanding $\FCC_{K,K+1}$ and $\FCC_{K,K}$ using
+  Definition~\ref{def:fcc}. Equation (\ref{eq:proof_h}) follows from
+  the definition of $h_{K,K+1}$ and $h_{K-1,K+1}$ in
+  (\ref{eq:h}). Finally, equation (\ref{eq:proof_tau}) results from
+  introducing the change-point optimization variable $\tau$.
+
+  Now, we
+  assume that the equivalence holds for $t$, and prove it to be true
+  for $t+1$.
+  \begin{eqnarray}
+    \FCC_{K,t+1}(u)\label{eq:proof_fcct1}
+    &=&\ell(y_{t+1},u)+\min\{\FCC_{K-1,t}^\leq(u),\,\FCC_{K,t}(u)\}\\
+    &=&\min\label{eq:proof_induction_h}
+        \begin{cases}
+          \FCC_{K-1,t}^\leq(u)+h_{t,t+1}(u)\\
+          \min_{\tau\in[K-1,t)} \FCC^\leq_{K-1,\tau}(u)+h_{\tau,t+1}(u)
+        \end{cases}\\
+    &=&\min_{\tau\in[K-1,t+1)} \FCC^\leq_{K-1,\tau}(u)+h_{\tau,t+1}(u)
+        \label{eq:proof_tau2}
+  \end{eqnarray}
+  Equation (\ref{eq:proof_fcct1}) results by expanding $\FCC_{K,t+1}$
+  using Definition~\ref{def:fcc}. Equation
+  (\ref{eq:proof_induction_h}) follows from the definition of
+  $h_{t,t+1}$ and the induction assumption. Finally, equation
+  (\ref{eq:proof_tau2}) results from re-writing the top $h_{t,t+1}$ term using the
+  change-point optimization variable $\tau$.  This concludes the proof
+  by induction.
+\end{proof}
+
+Finally, we use Lemma~\ref{lemma:t_change_points} to prove the
+following theorem about the optimality of the dynamic programming
+solution. 
+\begin{theorem}[Dynamic programming recovers the regularized isotonic regression solution]
+  For a data set $y\in\RR^n$, and any number of segments $K\leq n$,
+  the optimal dynamic programming cost $\min_u \FCC_{K,n}(u)$ is
+  equivalent to the minimum value of the regularized isotonic
+  regression problem (\ref{eq:isotonic_reduced}).
+\end{theorem}
+We proceed by induction. First, consider the case of $K=2$ segments:
+\begin{eqnarray}
+  \label{eq:isotonic_reduced_2}
+  \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^2}
+  \sum_{k=1}^2
+  h_{t_{k-1}, t_k}(u_k)
+  &= &
+  \min_{t_1, u_2}
+  h_{t_1,n}(u_2)
+  +\min_{u_1\leq u_2}
+  h_{0,t_1}(u_1)\\
+  &=&
+      \label{eq:min-less-2}
+  \min_{t_1, u_2}
+  h_{t_1,n}(u_2)
+  +
+  h^\leq_{0,t_1}(u_2)\\
+  &=&
+      \label{eq:u2}
+  \min_{u_2} \FCC_{2, n}(u_2).
+\end{eqnarray}
+The first equality (\ref{eq:isotonic_reduced_2}) follows from
+expanding the optimization variables and the sum. The second equality
+(\ref{eq:min-less-2}) follows from the definition of the min-less
+operator (\ref{eq:min-less-def}). The final equality (\ref{eq:u2})
+follows from Lemma~\ref{lemma:t_change_points}. Thus, the dynamic
+programming recursion solves the regularized isotonic regression
+problem for $K=2$ segments.
+
+To complete the proof by induction, we suppose the equality holds for
+$K$ segments, and prove that it holds for $K+1$ segments.
+\begin{eqnarray}
+  \label{eq:proof_separate_tau}
+  \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^{K+1}}
+  \sum_{k=1}^{K+1}
+  h_{t_{k-1}, t_k}(u_k)
+  &= & \min_\tau
+       \left[
+  \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_\tau^K}
+       \sum_{i=1}^K
+       h_{t_{k-1},t_k}(u_k)
+       \right]
+       +\min_{u_{K+1}\geq u_K}
+       h_{\tau, n} (u_{K+1})\\
+&=& \min_\tau\min_{u_K} C_{K,\tau}(u_K)
+    +\min_{u_{K+1}\geq u_K} h_{\tau,n}(u_{K+1})\\
+&=& \min_\tau \min_{u_{K+1}} h_{\tau,n}(u_{K+1})
++\min_{u_K\leq u_{K+1}} C_{K,\tau}(u_K)\\
+&=& \min_\tau \min_{u_{K+1}} h_{\tau,n}(u_{K+1})
++C_{K,\tau}^\leq(u_{K+1})\\
+&=& \min_{u_{K+1}} C_{K+1,n}(u_{K+1}).
+\end{eqnarray}
+TODO discuss equalities.
+
+\subsection{Comparison with unconstrained functional pruning
+  algorithm}
+
+The algorithm we propose generalizes the functional pruning technique
+that has been previously described \citep{pruned-dp, johnson,
+  Segmentor, FPOP}. The main idea of the functional pruning dynamic
+programming algorithm is to compute the functional cost
+$\FCC_n^K(\mu)$ of the best segmentation in $K$ segments up to data
+point $n$, given that the last segment mean has value $\mu$. Then the
+optimal mean and cost values can be determined by minimizing the
+functional cost $C_n^K = \min_\mu \FCC_n^K(\mu)$. These cost functions can be
+efficiently computed using the recursive formula
+\begin{equation}
+  \FCC_n^K(\mu) = \ell(y_n, \mu) + \min\{
+  C_{K-1}^{n-1},\, 
+  \FCC_K^{n-1}(\mu)\}.
+\end{equation}
+
+
+\subsection{Proof of optimality}
+
+In this section we prove that the dynamic programming update rule
+(\ref{update}) can be used to recover the optimal solution to the
+constrained optimization problem (\ref{PeakSegPDPA}). 
+
+We need the following lemma, which states that the dynamic programming
+minimization over two candidates can be expanded to a minimization
+over $n-K+1$ candidate change-points.
+
+\begin{lemma}
+  Let $\mathbf y\in\ZZ_+^n$ be a vector of count data. The minimum
+  cost in $K=3$ segments computed using the update rule
+  $\min_\mu \FCC_n^3(\mu)$ is equal to the minimum value of
+  optimization problem (\ref{PeakSegPDPA}).
+\end{lemma}
+
+\begin{proof}
+  First, 
+\end{proof}
+
+\begin{proposition}
+  Let $\mathbf y\in\ZZ_+^n$ be a vector of count data. The minimum
+  cost in $K=3$ segments computed using the update rule
+  $\min_\mu \FCC_n^3(\mu)$ is equal to the minimum value of
+  optimization problem (\ref{PeakSegPDPA}).
+\end{proposition}
+
+
+\begin{proof}
+  First, for any indices $t_1<t_2$ define the helper function
+  $h_{t_1,t_2}(\mu)=\sum_{i=t_1+1}^{t_2}\gamma_i(\mu)$ as the total
+  cost of assigning mean $\mu$ from data point $t_1+1$ to data point
+  $t_2$. Now, the constraints $\mathcal C$ of (\ref{PeakSegPDPA}) imply that there
+  are at most $K=3$ distinct values $\mu_1\leq\mu_2\geq\mu_3$ of
+  segment means. This implies that the optimal cost
+  (\ref{PeakSegPDPA}) can be re-written as
+  \begin{eqnarray*}
+    \label{eq:long}
+    \min_{(\mathbf m, \mathbf c)\in\mathcal C}
+    \sum_{i=1}^n \gamma_i(m_i)
+    &=&
+    \min_{\mu_3}
+    \min_{0 < t_1 < t_2 < n}
+    h_{t_2,n}(\mu_3)
+    +\min_{\mu_2\geq \mu_3}
+    h_{t_1,t_2}(\mu_2)
+    +\min_{\mu_1\leq\mu_2}
+    h_{0,t_1}(\mu_1)\\
+    &=&
+    \min_{\mu_3}
+    \min_{t_2 < n}
+    h_{t_2,n}(\mu_3)
+    +\min_{\mu_2\geq \mu_3}
+    \min_{t_1 < t_2}
+    h_{t_1,t_2}(\mu_2)
+    +\FCC_{1, t_1}^\leq(\mu_2)\\
+    &=&
+    \min_{\mu_3}
+    \min_{t_2 < n}
+    h_{t_2,n}(\mu_3)
+    +\min_{\mu_2\geq \mu_3}
+    +\FCC_{2, t_2}(\mu_2)\\
+    &=&
+    \min_{\mu_3}
+    \min_{t_2 < n}
+    h_{t_2,n}(\mu_3)
+    +\FCC_{2, t_2}^\geq(\mu_3)\\
+    &=&
+    \min_{\mu_3}
+    \FCC_{3, n}(\mu_3)\\
+  \end{eqnarray*}
+  where the change-point variables $\mathbf c$ have been replaced by
+  the change-point index variables $t_1,t_2$.
+\end{proof}
+
+\section{Variants of the algorithm}
+
+TODO
 
 \subsection{Some definitions}
 
@@ -431,152 +666,13 @@ $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{
 The update rule is a priori valid for more complex constraints, typically quadratic constraints, yet recovering
 $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}$ from $\FCC^{k}_{t}(\mu')$ would possibly be much more difficult.
 
-\subsection{Proof of optimality}
+\subsection{Optimal partitioning regularized isotonic regression}
 
-In this section we prove that the dynamic programming update rule
-(\ref{update}) can be used to recover the optimal solution to the
-constrained optimization problem (\ref{PeakSegPDPA}). 
+TODO
 
-% We need the
-% following lemma, which states that the dynamic programming
-% minimization over two candidates can be expanded to a minimization
-% over $n-K+1$ candidate change-points.
+\subsection{The PeakSeg up-down constraint}
 
-% \begin{lemma}
-%   Let $\mathbf y\in\ZZ_+^n$ be a vector of count data. The minimum
-%   cost in $K=3$ segments computed using the update rule
-%   $\min_\mu \FCC_n^3(\mu)$ is equal to the minimum value of
-%   optimization problem (\ref{PeakSegPDPA}).
-% \end{lemma}
-
-% \begin{proof}
-%   First, 
-% \end{proof}
-
-\begin{proposition}
-  Let $\mathbf y\in\ZZ_+^n$ be a vector of count data. The minimum
-  cost in $K=3$ segments computed using the update rule
-  $\min_\mu \FCC_n^3(\mu)$ is equal to the minimum value of
-  optimization problem (\ref{PeakSegPDPA}).
-\end{proposition}
-
-
-\begin{proof}
-  First, for any indices $t_1<t_2$ define the helper function
-  $h_{t_1,t_2}(\mu)=\sum_{i=t_1+1}^{t_2}\gamma_i(\mu)$ as the total
-  cost of assigning mean $\mu$ from data point $t_1+1$ to data point
-  $t_2$. Now, the constraints $\mathcal C$ of (\ref{PeakSegPDPA}) imply that there
-  are at most $K=3$ distinct values $\mu_1\leq\mu_2\geq\mu_3$ of
-  segment means. This implies that the optimal cost
-  (\ref{PeakSegPDPA}) can be re-written as
-  \begin{eqnarray*}
-    \label{eq:long}
-    \min_{(\mathbf m, \mathbf c)\in\mathcal C}
-    \sum_{i=1}^n \gamma_i(m_i)
-    &=&
-    \min_{\mu_3}
-    \min_{0 < t_1 < t_2 < n}
-    h_{t_2,n}(\mu_3)
-    +\min_{\mu_2\geq \mu_3}
-    h_{t_1,t_2}(\mu_2)
-    +\min_{\mu_1\leq\mu_2}
-    h_{0,t_1}(\mu_1)\\
-    &=&
-    \min_{\mu_3}
-    \min_{t_2 < n}
-    h_{t_2,n}(\mu_3)
-    +\min_{\mu_2\geq \mu_3}
-    \min_{t_1 < t_2}
-    h_{t_1,t_2}(\mu_2)
-    +\FCC_{1, t_1}^\leq(\mu_2)\\
-    &=&
-    \min_{\mu_3}
-    \min_{t_2 < n}
-    h_{t_2,n}(\mu_3)
-    +\min_{\mu_2\geq \mu_3}
-    +\FCC_{2, t_2}(\mu_2)\\
-    &=&
-    \min_{\mu_3}
-    \min_{t_2 < n}
-    h_{t_2,n}(\mu_3)
-    +\FCC_{2, t_2}^\geq(\mu_3)\\
-    &=&
-    \min_{\mu_3}
-    \FCC_{3, n}(\mu_3)\\
-  \end{eqnarray*}
-  where the change-point variables $\mathbf c$ have been replaced by
-  the change-point index variables $t_1,t_2$.
-\end{proof}
-
-\section{Variants of the algorithm}
-
-\subsection{The FPOP version}
-
-In real ChIP-seq data sets we are only interested in the \ref{PeakSeg}
-solutions
-$\mathbf{\tilde m}^1(\mathbf y), \mathbf{\tilde m}^3(\mathbf y), \dots$
-which start with a change up, and end with a change down. To select
-one of those segmentations we typically use the following criterion
-\begin{equation}
-  \label{eq:selection}
-  K^*_\lambda = \argmin_{k\in 1,3, \dots}
-  \lambda k/2 +
-\sum_{t=1}^n
-  \ell[ \tilde m_t^k(\mathbf y),  y_t ],
-\end{equation}
-where $\lambda\in\RR_+$ is a non-negative penalty parameter 
-that controls the optimal number of segments $K^*_\lambda$
-(larger $\lambda$ yields fewer segments).
-When the number of segments is very large $K =O(N)$, 
-it computationally expensive to recover this model
-using the $O(K N\log N)$ PeakSegPDPA, 
-since it computes all models from 1 to $K$ segments.
-
-It would be computationally faster if we could recover the model
-$\mathbf{\tilde m}^{K}(\mathbf y)$ by itself, as in the $O(N\log N)$
-FPOP algorithm \citep{johnson, FPOP}. This motivates the following
-optimization problem,
-\begin{align}
-  \mathbf{\bar m}^\lambda(\mathbf y) =
-    \argmin_{\substack{
-  \mathbf m\in\RR^{n}
-\\
-  \mathbf c\in\{-1,0,1\}^{n-1}
-  }} &\ \ 
-\lambda\sum_{t=1}^{n-1} I(c_t =1)
-+
-\sum_{t=1}^n \ell( m_t,  y_t) 
-  \label{PeakSegFPOP}
-\\
-    \text{subject to} 
-& \ \ c_t = -1 \Rightarrow m_{t} \geq m_{t+1} \text{ (change down or no change)}
-\nonumber\\
-& \ \ c_t = 0 \Rightarrow m_{t} = m_{t+1}  \text{ (no change)}
-\nonumber\\
-& \ \ c_t = 1 \Rightarrow m_{t} \leq m_{t+1} \text{ (change up or no change)}
-\nonumber\\
-\forall t\in\{1, \dots, n-1\}, &\ \ P_t(\mathbf c) \in\{0, 1\}.
-\nonumber
-\end{align}
-
-We refer to problem (\ref{PeakSegFPOP}) as the penalized version of
-the constrained problem (\ref{PeakSegPDPA}). The constraint on the
-number of non-zero change variables $c_t\neq 0$ has been removed, and
-term penalizing the number of up changes $c_t=1$ has been added to the
-optimization objective.  
-%The solution to this problem is computed by the PeakSegFPOP function of the coseg R package.
-
-\begin{proposition}
-  For any data set $\mathbf y\in\ZZ_+^n$ and any penalty parameter
-  $\lambda\in\RR_+$, let $(\mathbf m,\mathbf c)$ be the solution to
-  the penalized problem (\ref{PeakSegFPOP}). It is the same as the
-  solution to the contrained problem (\ref{PeakSegPDPA}) with
-  $K=\sum_{t=1}^{n-1} c_t$ segments.
-\end{proposition}
-
-\begin{proof}
-  TODO
-\end{proof}
+TODO
 
 \section{Results}
 
@@ -620,14 +716,31 @@ Finally, we performed 4-fold cross-validation to estimate the test
 error of each algorithm. For each of the 7 data sets, we randomly
 assigned labeled data to one of four folds. For each fold, we treat it
 as a test set, and train a model using all other folds. For the
-optimal segmentation models (coseg, PeakSegDP, Segmentor), we define
-an oracle penalty \citep{cleynen2013segmentation}, equivalent to the
-oracle.1 model described by \citet{ We computed the area under the ROC curve (AUC) of each model
-for each test set.  The previous algorithm with state-of-the-art
-accuracy on this benchmark was PeakSegDP, and we observed that the new
-coseg algorithm achieves comparable test AUC
-(Figure~\ref{fig:test-error-dots}). In contrast, the unconstrained
-Segmentor algorithm has TODO 
+optimal segmentation models (coseg, PeakSegDP, Segmentor), we select
+the number of segments using an oracle penalty
+\citep{cleynen2013segmentation}. For a given data set
+$\mathbf y\in\ZZ_+^n$, let $\mathbf m^s$ for
+$s\in\mathcal S\subseteq \{1, 3,\dots, 19\}$ be the segment mean
+vectors that obey the PeakSeg up-down constraint. The oracle.1 model
+selection criterion described by \citet{HOCKING-PeakSeg} is
+
+\begin{equation}
+  \label{eq:oracle}
+  s^*(\lambda) = \argmin_{s\in\mathcal S}
+  \lambda s\left(1 + 4\sqrt{1.1 + \log(n/s)}\right)^2
+  +\sum_{i=1}^n \ell(y_i, m_i^s)
+\end{equation}
+
+We compute the ROC curve by varying the
+$\lambda\in\{10^{-2}, \dots,10^4\}$ penalty parameter. The baseline
+MACS algorithm was trained by varying the qvalue parameter between 0
+and 0.8. The baseline HMCanBroad algorithm was trained by varying the
+finalThreshold parameter between $10^{-10}$ and $10^5$. 
+
+The previous algorithm with state-of-the-art accuracy on this
+benchmark was PeakSegDP, and we observed that the new coseg algorithm
+achieves comparable test AUC (Figure~\ref{fig:test-error-dots}). In
+contrast, the unconstrained Segmentor algorithm has TODO
 
 
 
@@ -644,7 +757,7 @@ Segmentor algorithm has TODO
 
 \begin{table}[b!]
   \centering
-  \input{table-min-train-error}
+  %\input{table-min-train-error}
   \caption{Comparison of minimum train error for 12,826 labels in the 7 ChIP-seq data sets. 
     The new coseg algorithm is
     always at least as accurate as Segmentor, and TODO.}
@@ -657,11 +770,11 @@ Segmentor algorithm has TODO
   \centering
   \parbox{0.49\textwidth}{
     %\includegraphics[width=0.45\textwidth]{figure-PDPA-intervals-all}
-    \input{figure-PDPA-intervals-small}
+    %\input{figure-PDPA-intervals-small}
   }
   \parbox{0.49\textwidth}{
     %\includegraphics[width=0.45\textwidth]{figure-PDPA-timings}
-    \input{figure-PDPA-timings-small}
+    %\input{figure-PDPA-timings-small}
   }
   \caption{Timing results on 2752 segmentation problems from the
     McGill histone mark ChIP-seq benchmark data. For each problem we
@@ -676,10 +789,196 @@ Segmentor algorithm has TODO
 \bibliography{refs}
 
 
-\section{Appendix}
+\section{Appendix: PeakSeg model}
+\label{sec:model}
 
-TODO: Empirical time analysis FPOP vs PeakSegFPOP on really large
-chromosome subsets $N>10^6$.
+In this section we first discuss the existing unconstrained maximum
+likelihood model, and then we discuss a more general framework for
+constrained maximum likelihood segmentation.
+
+\subsection{Unconstrained maximum likelihood segmentation}
+
+Assume we have a sequence of $n$ count data $\mathbf y\in\ZZ_+^n$ to
+segment. For the Segment Neighborhood model we first fix a maximum
+number of segments $ K_{\max}\leq n$. The unconstrained maximum
+likelihood segmentation model is defined as the most likely mean
+vector $\mathbf m\in\RR^n$ with exactly 
+$K\in\{1, \dots, K_{\max}\}$ distinct piecewise constant segments:
+\begin{align}
+  \label{unconstrained}
+  \mathbf{\hat m}^K(\mathbf y) =
+    \argmin_{\substack{
+  \mathbf m\in\RR^{n}
+\\
+  \mathbf c\in\{-1,0,1\}^{n-1}
+  }} &\ \ 
+    \sum_{t=1}^n \ell( y_t, m_t) 
+\\
+    \text{subject to} &\ \  1+\sum_{t=1}^{n-1} I(c_t \neq 0) = K, 
+\nonumber\\
+& \ \ c_t = -1 \Rightarrow m_{t} > m_{t+1} \text{ (change down)}
+\nonumber\\
+& \ \ c_t = 0 \Rightarrow m_{t} = m_{t+1}  \text{ (no change)}
+\nonumber\\
+& \ \ c_t = 1 \Rightarrow m_{t} < m_{t+1} \text{ (change up)}
+\nonumber
+\end{align}
+where the Poisson loss function is
+\begin{equation}\label{eq:loss}
+  \ell( y, m)= m - y \log m.
+\end{equation} 
+The $c_t = \sign(m_{t+1} - m_{t})$ variable is the sign of the change
+after data point $t$. Every $t$ such that $c_t \neq 0$ is a
+change-point, and the model complexity is the number of segments
+$1+\sum_{t=1}^{n-1} I(c_t \neq 0)$, where $I$ is the indicator
+function. 
+
+We refer to (\ref{unconstrained}) as the ``unconstrained'' model
+since $\mathbf{\hat m}^K(\mathbf y)$ is the most likely segmentation
+of all possible models with $K$ piecewise constant segments ($K-1$
+change-points). 
+Although (\ref{unconstrained}) is a non-convex optimization problem,
+the sequence of segmentations
+$\mathbf{\hat m}^1(\mathbf y), \dots, \mathbf{\hat m}^{K}(\mathbf y)$
+can be computed in $O(K n^2)$ time using the standard dynamic
+programming algorithm \citep{bellman}, or in $O(K n \log n)$ time
+using dynamic programming with functional pruning \citep{pruned-dp,
+  johnson, Segmentor}.
+
+\subsection{The PeakSeg problem (strict inequality constraints)}
+\label{sec:constrained}
+
+To introduce the PeakSeg model constraint \citep{HOCKING-PeakSeg}, we first define
+the peak indicator for $t\in\{1, \dots, n-1\}$ as
+\begin{equation}
+  \label{eq:peaks}
+  P_t(\mathbf c) = \sum_{i=1}^t c_i,
+\end{equation}
+which is the cumulative sum of change-point variables $c_i$ up to data
+point $t$. In general for the unconstrained model
+$P_t(\mathbf c)\in\ZZ$, which is problematic in our biological
+application (ChIP-seq peak detection), since we want to classify each
+segment and data point into one of two states
+$P_t(\mathbf c)\in \{0, 1\}$ (0 for background noise after a change
+down, 1 for a peak after a change up).
+% For example, if
+% $\mathbf m = \left[\begin{array}{ccccccc}1.1 & 1.1 & 2 & 2 & 4 & 4 &
+%     3\end{array}\right]$, with two changes up followed by one change
+% down, then
+% $\mathbf P(\mathbf m) = \left[\begin{array}{ccccccc}0 & 0 & 1 & 1 & 2
+%     & 2 & 1 \end{array}\right]$ and so this model is not feasible for
+% the peaks constraint $P_t(\mathbf m)\in \{0, 1\}$.
+Thus we constrain the peak indicator $P_t(\mathbf
+c)\in\{0, 1\}$, which results
+in the constrained problem
+\begin{align}
+  \label{PeakSeg}
+  \mathbf{\tilde m}^K(\mathbf y) =
+    \argmin_{\substack{
+  \mathbf m\in\RR^{n}
+\\
+  \mathbf c\in\{-1,0,1\}^{n-1}
+  }} &\ \ 
+    \sum_{t=1}^n \ell(y_t, m_t) 
+\tag{\textbf{PeakSeg}}
+\\
+    \text{subject to} &\ \  1+\sum_{t=1}^{n-1} I(c_t \neq 0) = K, 
+\nonumber\\
+& \ \ c_t = -1 \Rightarrow m_{t} > m_{t+1} \text{ (change down)}
+\nonumber\\
+& \ \ c_t = 0 \Rightarrow m_{t} = m_{t+1}  \text{ (no change)}
+\nonumber\\
+& \ \ c_t = 1 \Rightarrow m_{t} < m_{t+1} \text{ (change up)}
+\nonumber\\
+\forall t\in\{1, \dots, n-1\}, &\ \ P_t(\mathbf c) \in\{0, 1\}.
+\nonumber
+\end{align}
+The only difference with the unconstrained problem
+(\ref{unconstrained}) is that we have added the constraint
+$P_t(\mathbf c) \in\{0, 1\}$. Another way to interpret the constrained
+\ref{PeakSeg} problem is that the sequence of changes in the segment
+means $\mathbf m$ must begin with a positive change and then
+alternate: up, down, up, down, ... (and not up, up, down). Thus the
+even-numbered segments may be interpreted as peaks $P_t(\mathbf c)=1$,
+and the odd-numbered segments may be interpreted as background
+$P_t(\mathbf c)=0$.
+
+Note that in the both the unconstrained problem (\ref{unconstrained})
+and the \ref{PeakSeg} problem, the change-point variable $\mathbf c$
+can be removed, resulting in a simpler problem with only one
+optimization variable (the segment mean $\mathbf m$). However, we
+state the problem in this form in order to make an explicit connection
+with the non-strict inequality constrained problem, which we introduce
+in the next section.
+
+\subsection{The non-strict inequality constrained problem}
+
+Consider the following optimization problem, which replaces the strict
+inequality constraints of the \ref{PeakSeg} problem with non-strict
+inequality constraints.
+\begin{align}
+  \mathbf{\bar m}^K(\mathbf y) =
+    \argmin_{\substack{
+  \mathbf m\in\RR^{n}
+\\
+  \mathbf c\in\{-1,0,1\}^{n-1}
+  }} &\ \ 
+    \sum_{t=1}^n \ell(y_t, m_t) 
+       \label{PeakSegPDPA}
+\\
+    \text{subject to} &\ \  1+ \sum_{t=1}^{n-1} I(c_t \neq 0) = K, 
+\nonumber\\
+& \ \ c_t = -1 \Rightarrow m_{t} \geq m_{t+1} \text{ (change down or no change)}
+\nonumber\\
+& \ \ c_t = 0 \Rightarrow m_{t} = m_{t+1}  \text{ (no change)}
+\nonumber\\
+& \ \ c_t = 1 \Rightarrow m_{t} \leq m_{t+1} \text{ (change up or no change)}
+\nonumber\\
+\forall t\in\{1, \dots, n-1\}, &\ \ P_t(\mathbf c) \in\{0, 1\}.
+\nonumber
+\end{align}
+Thus the \ref{PeakSeg} model has exactly $K$ distinct
+segment means, but this model (\ref{PeakSegPDPA}) has \emph{at most}
+$K$ distinct segment means (some may be equal due to the non-strict
+equality constraints). Note that for $K=4$, the solution
+$(\mathbf m = \left[\begin{array}{cccc}1 & 2 & 2 & 3 \end{array}\right],
+  \mathbf c = \left[\begin{array}{ccc}  1 & -1 & 1 \end{array}\right])$
+is feasible for this problem (\ref{PeakSegPDPA}), 
+but is not feasible for \ref{PeakSeg} (since $c_2=-1$ but $m_2 = m_3$).
+
+Note that unlike the unconstrained model, increasing the number of
+non-zero change variables ($c_t\neq 0$) does not always decrease the
+cost. For example, consider the data set
+$\mathbf y = \left[\begin{array}{ccc}1 & 3 & 9 \end{array}\right]$.
+For $K=2$ segments both models have the same optimal solution,
+$(\mathbf m = \left[\begin{array}{ccc}2 & 2 & 9 \end{array}\right],
+  \mathbf c = \left[\begin{array}{cc}  0 & 1 \end{array}\right])$,
+which has a Poisson loss of $\approx -9.6$. 
+For $K=3$ segments the solution of unconstrained model
+(\ref{unconstrained}) has a smaller loss of $\approx -10.1$
+$(\mathbf m = \left[\begin{array}{ccc}1 & 3 & 9 \end{array}\right],
+  \mathbf c = \left[\begin{array}{cc}  1 & 1 \end{array}\right])$,
+but the solution of the constrained model (\ref{PeakSegPDPA})
+has a larger loss of $\approx -8.5$
+$(\mathbf m = \left[\begin{array}{ccc}1 & 6 & 6 \end{array}\right],
+  \mathbf c = \left[\begin{array}{cc}  1 & -1  \end{array}\right])$. 
+Note that the \ref{PeakSeg} solution with $K=3$ is undefined for this data set.
+
+More generally, we have the following result which relates the
+solutions of the \ref{PeakSeg} and the non-strict inequality
+constrained problems.
+
+\begin{proposition}
+  Let $(\mathbf m, \mathbf c)$ be the solution to
+  (\ref{PeakSegPDPA}). If $c_t=0 \Leftrightarrow m_t = m_{t+1}$ for
+  all $t\in\{1, \dots, n-1\}$ then $(\mathbf m, \mathbf c)$ is also
+  the solution to \ref{PeakSeg}. Otherwise, the \ref{PeakSeg} solution
+  is undefined.
+\end{proposition}
+
+\begin{proof}
+  TODO
+\end{proof}
 
 \subsection{Segment Neighborhood version}
 
@@ -721,12 +1020,12 @@ the following exact representation
 \begin{figure}[!t]
   \parbox{3in}{
     \begin{center}
-    \input{figure-1-min-more-operator}
+      %\input{figure-1-min-more-operator}
     \end{center}
   }
   \parbox{3in}{
     \begin{center}
-      \input{figure-1-min-less-operator}
+      %\input{figure-1-min-less-operator}
     \end{center}
   }
   \caption{\label{fig:min-operators} \textbf{Left:} The min-more
@@ -754,7 +1053,7 @@ representation of the minimum of these two functions
 
 \begin{figure}[!t]
   \begin{center}
-    \input{figure-2-min-envelope}
+    %\input{figure-2-min-envelope}
   \end{center}
   \caption{\label{fig:min-envelope} The cost $C_{s,t}$ in $s$ segments
     up to $t$ data points is computed using the min envelope
@@ -811,8 +1110,74 @@ for odd-numbered segments.
 
 \subsection{Optimal Partitioning}
 
-TODO: describe OP version.
+In real ChIP-seq data sets we are only interested in the \ref{PeakSeg}
+solutions
+$\mathbf{\tilde m}^1(\mathbf y), \mathbf{\tilde m}^3(\mathbf y), \dots$
+which start with a change up, and end with a change down. To select
+one of those segmentations we typically use the following criterion
+\begin{equation}
+  \label{eq:selection}
+  K^*_\lambda = \argmin_{k\in 1,3, \dots}
+  \lambda k/2 +
+\sum_{t=1}^n
+  \ell[ y_t, \tilde m_t^k(\mathbf y) ],
+\end{equation}
+where $\lambda\in\RR_+$ is a non-negative penalty parameter 
+that controls the optimal number of segments $K^*_\lambda$
+(larger $\lambda$ yields fewer segments).
+When the number of segments is very large $K =O(N)$, 
+it computationally expensive to recover this model
+using the $O(K N\log N)$ PeakSegPDPA, 
+since it computes all models from 1 to $K$ segments.
 
+It would be computationally faster if we could recover the model
+$\mathbf{\tilde m}^{K}(\mathbf y)$ by itself, as in the $O(N\log N)$
+FPOP algorithm \citep{johnson, FPOP}. This motivates the following
+optimization problem,
+\begin{align}
+  \mathbf{\bar m}^\lambda(\mathbf y) =
+    \argmin_{\substack{
+  \mathbf m\in\RR^{n}
+\\
+  \mathbf c\in\{-1,0,1\}^{n-1}
+  }} &\ \ 
+\lambda\sum_{t=1}^{n-1} I(c_t =1)
++
+\sum_{t=1}^n \ell(y_t, m_t) 
+  \label{PeakSegFPOP}
+\\
+    \text{subject to} 
+& \ \ c_t = -1 \Rightarrow m_{t} \geq m_{t+1} \text{ (change down or no change)}
+\nonumber\\
+& \ \ c_t = 0 \Rightarrow m_{t} = m_{t+1}  \text{ (no change)}
+\nonumber\\
+& \ \ c_t = 1 \Rightarrow m_{t} \leq m_{t+1} \text{ (change up or no change)}
+\nonumber\\
+\forall t\in\{1, \dots, n-1\}, &\ \ P_t(\mathbf c) \in\{0, 1\}.
+\nonumber
+\end{align}
+
+We refer to problem (\ref{PeakSegFPOP}) as the penalized version of
+the constrained problem (\ref{PeakSegPDPA}). The constraint on the
+number of non-zero change variables $c_t\neq 0$ has been removed, and
+term penalizing the number of up changes $c_t=1$ has been added to the
+optimization objective.  
+%The solution to this problem is computed by the PeakSegFPOP function of the coseg R package.
+
+\begin{proposition}
+  For any data set $\mathbf y\in\ZZ_+^n$ and any penalty parameter
+  $\lambda\in\RR_+$, let $(\mathbf m,\mathbf c)$ be the solution to
+  the penalized problem (\ref{PeakSegFPOP}). It is the same as the
+  solution to the contrained problem (\ref{PeakSegPDPA}) with
+  $K=\sum_{t=1}^{n-1} c_t$ segments.
+\end{proposition}
+
+\begin{proof}
+  TODO
+\end{proof}
+
+TODO: Empirical time analysis FPOP vs PeakSegFPOP on really large
+chromosome subsets $N>10^6$.
 
 \end{document}
 
