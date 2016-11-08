@@ -146,11 +146,15 @@ searching all possible change-points to find the most likely model
 with $K$ segments, we propose to constrain the possible change-points
 so that the segment means may be more easily interpreted.
 
-\section{Isotonic regression models}
+\section{Isotonic regression and optimal segment neighborhood models}
 
-We will first explain the classical isotonic regression model, and
-then we will introduce a regularized version that is solvable by our
-new algorithm.
+We first explain the classical isotonic regression model which has
+inequality constraints on segment means, but no limit on the number of
+segments \citep{mair2009isotone}. Then we explain the optimal segment
+neighborhood model \citep{segment-neighborhood}, which limits the
+number of segment means, but has no inequality constraints. Finally,
+we propose a new model called segment neighborhood isotonic regression
+(SNIR) which combines these two types of constraints.
 
 \subsection{Classical isotonic regression}
 
@@ -169,7 +173,7 @@ of the set of possible mean vectors.
 Now, assume that the data are a realization of a probability
 distribution with mean parameter $\mathbf m$. For example, assuming
 $y_i \sim \mathcal N(m_i, \sigma^2)$ results in the following maximum
-likelihood segmentation problem
+likelihood isotonic regression problem
 
 \begin{equation}
   \label{eq:max_lik}
@@ -185,17 +189,18 @@ to the convex minimization problem below,
 \end{equation}
 where the convex loss function $\ell:\RR\times \RR\rightarrow\RR$ in
 this case is the square loss $\ell(y, m) = (y-m)^2$. This optimization
-problem (\ref{eq:isotonic}) is referred to as ``isotonic regression''
-\citep{mair2009isotone}.
+problem (\ref{eq:isotonic}) is referred to as isotonic regression, and
+can be efficiently solved in $O(n)$ time using the
+Pool-Adjacent-Violators Algorithm (PAVA) \citep{isotonic-unifying}.
 
 One potential problem with the isotonic regression model is that it
 has no limit on the number of change-points where $m_i < m_{i+1}$. In
 particular, for an ever-increasing data set with $y_i < y_{i+1}$ for
 all $i<n$, it is clear that the solution to the isotonic regression
-problem (\ref{eq:isotonic}) is $m_i=y_i$ for all $i$, which means
+problem (\ref{eq:isotonic}) is $m_i=y_i$ for all $i$, which implies
 $n-1$ change-points. 
 
-In contrast, it may be preferable to recover the $K<n$ most likely
+In contrast, it may be preferable to recover the $K\leq n$ most likely
 segments (the $K-1$ most likely changes). For example, consider the
 toy data set $\mathbf y= \left[
 \begin{array}{cccccc}
@@ -204,13 +209,44 @@ toy data set $\mathbf y= \left[
 \right] \in\RR^6$. These data are strictly increasing, so the isotonic
 regression (\ref{eq:isotonic}) solution is the trivial model
 $m_i=y_i$. However, these data contain only two abrupt changes. To
-recover these changes, we propose an additional constraint on the
-number of segments. This results in the regularized isotonic
-regression problem, which we introduce in the next section.
+recover these changes, we could instead use the segment
+neighborhood model, which we discuss in the next section.
 
-\subsection{Regularized isotonic regression}
+\subsection{Segment neighborhood}
 
-\begin{definition}[Regularized isotonic regression constraints]
+The segment neighboorhood model of \citet{segment-neighborhood} uses
+the same cost function as isotonic regression, but a different
+constraint set. Let $K\leq n$ be the number of segments, and define
+the set of segment means with $K-1$ change-points as
+\begin{equation}
+  \label{eq:Sk}
+  \mathcal S_K^n = \left\{
+  \mathbf m\in\RR^n
+  \mid
+  \sum_{i=1}^{n-1} I(m_i \neq m_{i+1}) = K-1
+  \right\}.
+\end{equation}
+Using this constraint set with the same objective function results in
+the following segment neighborhood problem:
+\begin{equation}
+  \label{eq:optimal_segment_neighborhood}
+  \minimize_{\mathbf m\in\mathcal S_K^n} \sum_{i=1}^n \ell(y_i, m_i).
+\end{equation}
+The segment neighborhood problem can be efficiently solved in
+$O(K n \log n)$ time using the pruned dynamic programming algorithm of
+\citet{pruned-dp}.
+
+Unlike isotonic regression, the segment neighborhood model
+does not constrain the segment means to be increasing. Thus, for some
+data sets $\mathbf y$, the segment neighborhood model may
+recover a change down ($m_i > m_{i+1}$). For applications where
+isotonic regression is used, it would be desirable to compute a model
+with $K$ non-decreasing segment means. This results in the regularized
+isotonic regression problem, which we introduce in the next section.
+
+\subsection{Segment neighborhood isotonic regression (SNIR)}
+
+\begin{definition}[Segment neighborhood isotonic regression constraints]
   \label{def:I}
   Let $(\mathbf m, \mathbf c)\in\mathcal I_K^n$ be the set of all segment means
   $\mathbf m\in\RR^n$ and change-point indicators
@@ -235,20 +271,23 @@ regression problem, which we introduce in the next section.
 \end{definition}
 
 For a given data set $\mathbf y\in\RR^n$, loss function $\ell$, and
-number of segments $K$, we define the regularized isotonic regression
+number of segments $K$, we define the segment neighborhood isotonic regression
 problem as
 \begin{equation}
   \label{eq:regularized_isotonic}
   \minimize_{(\mathbf m, \mathbf c)\in\mathcal I_K^n} \sum_{i=1}^n \ell(y_i, m_i).
 \end{equation}
 
+In the next section, we propose to compute the segment neighborhood isotonic regression solution
+using an efficient dynamic programming algorithm.
+
 %%%% update rules
 \newcommand{\FCC}{\widetilde{C}}
 \newcommand{\M}{\mathcal{M}}
-\section{Algorithm}
+\section{Dynamic programming algorithm for segment neighborhood isotonic regression}
 
 In this section we propose a new dynamic programming algorithm that
-can be used to compute the solution to the regularized isotonic
+can be used to compute the solution to the segment neighborhood isotonic
 regression problem (\ref{eq:regularized_isotonic}). First, we show
 that it is equivalent to solve a simpler problem with fewer
 optimization variables. Then, we show how to recursively compute the
@@ -260,7 +299,7 @@ variables}
 First, consider the following definition of a reduced optimization
 space with only $K$ segment means and $K-1$ change-point indices.
 
-\begin{definition}[Reduced optimization space for regularized isotonic regression]
+\begin{definition}[Reduced optimization space for segment neighborhood isotonic regression]
 \label{def:Ibar}
   Let $(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^K$ be the set of
   all non-decreasing segment means $u_1\leq\cdots\leq u_K$ and
@@ -391,11 +430,12 @@ minimization over all possible change-points.
   Definition~\ref{def:fcc}. Equation (\ref{eq:proof_h}) follows from
   the definition of $h_{K,K+1}$ and $h_{K-1,K+1}$ in
   (\ref{eq:h}). Finally, equation (\ref{eq:proof_tau}) results from
-  introducing the change-point optimization variable $\tau$.
+  introducing the change-point optimization variable $\tau$. Thus, we
+  have proved that the equivalence holds for $t=K+1$ data points.
 
   Now, we
-  assume that the equivalence holds for $t$, and prove it to be true
-  for $t+1$.
+  assume that the equivalence holds for $t$ data points, and prove it to be true
+  for $t+1$ data points.
   \begin{eqnarray}
     \FCC_{K,t+1}(u)\label{eq:proof_fcct1}
     &=&\ell(y_{t+1},u)+\min\{\FCC_{K-1,t}^\leq(u),\,\FCC_{K,t}(u)\}\\
@@ -416,16 +456,17 @@ minimization over all possible change-points.
   by induction.
 \end{proof}
 
-Finally, we use Lemma~\ref{lemma:t_change_points} to prove the
-following theorem about the optimality of the dynamic programming
-solution. 
-\begin{theorem}[Dynamic programming recovers the regularized isotonic regression solution]
+Having proved Lemma~\ref{lemma:t_change_points}, we now use it to
+prove the following theorem about the optimality of the dynamic
+programming solution.
+\begin{theorem}[Dynamic programming recovers the segment neighborhood isotonic regression solution]
   For a data set $y\in\RR^n$, and any number of segments $K\leq n$,
   the optimal dynamic programming cost $\min_u \FCC_{K,n}(u)$ is
-  equivalent to the minimum value of the regularized isotonic
+  equivalent to the minimum value of the segment neighborhood isotonic
   regression problem (\ref{eq:isotonic_reduced}).
 \end{theorem}
-We proceed by induction. First, consider the case of $K=2$ segments:
+\begin{proof}
+  We proceed by induction. First, consider the case of $K=2$ segments:
 \begin{eqnarray}
   \label{eq:isotonic_reduced_2}
   \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^2}
@@ -451,134 +492,180 @@ expanding the optimization variables and the sum. The second equality
 (\ref{eq:min-less-2}) follows from the definition of the min-less
 operator (\ref{eq:min-less-def}). The final equality (\ref{eq:u2})
 follows from Lemma~\ref{lemma:t_change_points}. Thus, the dynamic
-programming recursion solves the regularized isotonic regression
+programming recursion solves the segment neighborhood isotonic regression
 problem for $K=2$ segments.
 
-To complete the proof by induction, we suppose the equality holds for
+To complete the proof by induction, we assume that the equality holds for
 $K$ segments, and prove that it holds for $K+1$ segments.
 \begin{eqnarray}
   \label{eq:proof_separate_tau}
   \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^{K+1}}
   \sum_{k=1}^{K+1}
   h_{t_{k-1}, t_k}(u_k)
-  &= & \min_\tau
-       \left[
+  &= & \label{eq:proof_hkexpand}\min_\tau
   \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_\tau^K}
-       \sum_{i=1}^K
+       \left[
+       \sum_{k=1}^K
        h_{t_{k-1},t_k}(u_k)
        \right]
        +\min_{u_{K+1}\geq u_K}
        h_{\tau, n} (u_{K+1})\\
-&=& \min_\tau\min_{u_K} C_{K,\tau}(u_K)
+&=& \min_\tau\min_{u_K} \FCC_{K,\tau}(u_K)\label{eq:proof_Ckt_induction}
     +\min_{u_{K+1}\geq u_K} h_{\tau,n}(u_{K+1})\\
-&=& \min_\tau \min_{u_{K+1}} h_{\tau,n}(u_{K+1})
-+\min_{u_K\leq u_{K+1}} C_{K,\tau}(u_K)\\
-&=& \min_\tau \min_{u_{K+1}} h_{\tau,n}(u_{K+1})
-+C_{K,\tau}^\leq(u_{K+1})\\
-&=& \min_{u_{K+1}} C_{K+1,n}(u_{K+1}).
+% &=& \min_\tau \min_{u_{K+1}} h_{\tau,n}(u_{K+1})
+% +\min_{u_K\leq u_{K+1}} \FCC_{K,\tau}(u_K)\\
+&=& \min_\tau \min_{u_{K+1}} h_{\tau,n}(u_{K+1})\label{eq:proof_min_less_def_2}
++\FCC_{K,\tau}^\leq(u_{K+1})\\
+&=& \min_{u_{K+1}} \FCC_{K+1,n}(u_{K+1}).\label{eq:proof_remove_tau}
 \end{eqnarray}
-TODO discuss equalities.
+Equation (\ref{eq:proof_hkexpand}) follows by removing the $k=K+1$
+term from the sum, and (\ref{eq:proof_Ckt_induction}) follows from the
+induction assumption. Equation (\ref{eq:proof_min_less_def_2}) follows
+from the definition of the min-less operator (\ref{eq:min-less-def}),
+and the final equality (\ref{eq:proof_remove_tau}) follows from
+Lemma~\ref{lemma:t_change_points}. This concludes the proof by induction.
+\end{proof}
 
 \subsection{Comparison with unconstrained functional pruning
   algorithm}
 
-The algorithm we propose generalizes the functional pruning technique
-that has been previously described \citep{pruned-dp, johnson,
-  Segmentor, FPOP}. The main idea of the functional pruning dynamic
-programming algorithm is to compute the functional cost
-$\FCC_n^K(\mu)$ of the best segmentation in $K$ segments up to data
-point $n$, given that the last segment mean has value $\mu$. Then the
-optimal mean and cost values can be determined by minimizing the
-functional cost $C_n^K = \min_\mu \FCC_n^K(\mu)$. These cost functions can be
-efficiently computed using the recursive formula
+TODO
+
+% The algorithm we propose generalizes the functional pruning technique
+% that has been previously described \citep{pruned-dp, johnson,
+%   Segmentor, FPOP}. The main idea of the functional pruning dynamic
+% programming algorithm is to compute the functional cost
+% $\FCC_n^K(\mu)$ of the best segmentation in $K$ segments up to data
+% point $n$, given that the last segment mean has value $\mu$. Then the
+% optimal mean and cost values can be determined by minimizing the
+% functional cost $C_n^K = \min_\mu \FCC_n^K(\mu)$. These cost functions can be
+% efficiently computed using the recursive formula
+% \begin{equation}
+%   \FCC_n^K(\mu) = \ell(y_n, \mu) + \min\{
+%   \FCC_{K-1}^{n-1},\, 
+%   \FCC_K^{n-1}(\mu)\}.
+% \end{equation}
+
+\subsection{Implementation details}
+
+TODO discuss intervals, pseudocode, mean, weights.
+
+\section{Variants of the dynamic programming algorithm for other models}
+
+In this section we discuss some other optimization problems that are
+solvable using small modifications to our proposed dynamic programming
+algorithm.
+
+\subsection{Optimal partitioning isotonic regression (OPIR)}
+
+As in the FPOP algorithm \citep{johnson, FPOP}, we can define the OPIR
+constraints as follows.
+\begin{definition}[Optimal partitioning isotonic regression constraints]
+  \label{def:P}
+  Let $(\mathbf m, \mathbf c)\in\mathcal I_K^n$ be the set of all segment means
+  $\mathbf m\in\RR^n$ and change-point indicators
+  $\mathbf c\in\{0,1\}^{n-1}$ such that the following constraints are
+  verified. 
+  Every zero-valued change-point indicator has an equal segment mean
+  after:
+  \begin{equation}
+    \label{eq:P_0}
+    c_i = 0 \Rightarrow m_i = m_{i+1}.
+  \end{equation}
+  Every one-valued change-point indicator may have a greater segment
+  mean after:
+  \begin{equation}
+    \label{eq:P_1}
+    c_i = 1 \Rightarrow m_i \leq m_{i+1}.
+  \end{equation}
+\end{definition}
+Note that unlike the SNIR constraints (Definition~\ref{def:I}), the
+OPIR constraints do not include any limit on the number of
+segments. Instead, the objective function includes a positive penalty
+$\lambda>0$ for each non-zero change-point variable:
 \begin{equation}
-  \FCC_n^K(\mu) = \ell(y_n, \mu) + \min\{
-  C_{K-1}^{n-1},\, 
-  \FCC_K^{n-1}(\mu)\}.
+    \minimize_{
+        (\mathbf m, \mathbf c)\in\mathcal P^n
+      } \ 
+\lambda\sum_{t=1}^{n-1} I(c_t =1)
++
+\sum_{t=1}^n \ell(y_t, m_t).
+\end{equation}
+
+For this model, the initialization for the first data point is
+$C_1(u) = \ell(y_1, u)$. The dynamic programming update rule for all data points $t>1$ is
+\begin{equation}
+  C_t(u) = \ell(y_t, u) + \min\{
+  C_{t-1}^\leq(u) + \lambda,\, C_{t-1}(u)
+  \}.
+\end{equation}
+
+\subsection{The PeakSeg up-down constraint}
+
+To introduce the PeakSeg model \citep{HOCKING-PeakSeg}, we first
+define the constraint set as follows.
+\begin{definition}[PeakSeg constraints]
+  \label{def:U}
+  Let $(\mathbf m, \mathbf c)\in\mathcal U_K^n$ be the set of all segment means
+  $\mathbf m\in\RR^n$ and change-point indicators
+  $\mathbf c\in\{-1, 0,1\}^{n-1}$ such that the following constraints are
+  verified. The total number of non-zero change-point indicators is $K-1$:
+  \begin{equation}
+    \label{eq:U_segments}
+    \sum_{i=1}^{n-1} I(c_i \neq 0) = K-1.
+  \end{equation}
+  Every zero-valued change-point indicator has an equal segment mean
+  after:
+  \begin{equation}
+    \label{eq:U_0}
+    c_i = 0 \Rightarrow m_i = m_{i+1}.
+  \end{equation}
+  Every positive change-point indicator may have a greater segment
+  mean after:
+  \begin{equation}
+    \label{eq:U_1}
+    c_i = 1 \Rightarrow m_i \leq m_{i+1}.
+  \end{equation}
+  Every negative change-point indicator may have a smaller segment
+  mean after:
+  \begin{equation}
+    \label{eq:U-1}
+    c_i = -1 \Rightarrow m_i \geq m_{i+1}.
+  \end{equation}
+  The first change is an up change, and every up change is followed by a
+  down change, and vice versa. Mathematically, the cumulative sum of
+  change-point variables is either zero or one, for all $t<n$:
+  \begin{equation}
+    \label{eq:U-cum}
+    \sum_{i=1}^t c_i \in \{0, 1\}.
+  \end{equation}
+\end{definition}
+The PeakSeg optimization problem is
+\begin{equation}
+    \minimize_{
+        (\mathbf m, \mathbf c)\in\mathcal U^n_K
+      } \ 
+\sum_{t=1}^n \ell(y_t, m_t).
+\end{equation}
+
+For this model, the initialization $k=1$ is the same as for SNIR
+(Definition~\ref{def:fcc}). The dynamic programming updates for even
+$k\in\{2, 4, \dots\}$ are also the same. However, the updates for odd
+$k\in\{3, 5, \dots\}$ are
+\begin{equation}
+  C_{k,t}(u) = \ell(y_t, u) + \min\{
+  C_{k-1,t-1}^\geq(u),\, C_{k,t-1}(u)
+  \},
+\end{equation}
+where the min-more operator is defined for any function $f:\RR\rightarrow\RR$ as
+\begin{equation}
+  \label{eq:min-more-def}
+  f^\geq(u) = \min_{x\geq u} f(x).
 \end{equation}
 
 
-\subsection{Proof of optimality}
-
-In this section we prove that the dynamic programming update rule
-(\ref{update}) can be used to recover the optimal solution to the
-constrained optimization problem (\ref{PeakSegPDPA}). 
-
-We need the following lemma, which states that the dynamic programming
-minimization over two candidates can be expanded to a minimization
-over $n-K+1$ candidate change-points.
-
-\begin{lemma}
-  Let $\mathbf y\in\ZZ_+^n$ be a vector of count data. The minimum
-  cost in $K=3$ segments computed using the update rule
-  $\min_\mu \FCC_n^3(\mu)$ is equal to the minimum value of
-  optimization problem (\ref{PeakSegPDPA}).
-\end{lemma}
-
-\begin{proof}
-  First, 
-\end{proof}
-
-\begin{proposition}
-  Let $\mathbf y\in\ZZ_+^n$ be a vector of count data. The minimum
-  cost in $K=3$ segments computed using the update rule
-  $\min_\mu \FCC_n^3(\mu)$ is equal to the minimum value of
-  optimization problem (\ref{PeakSegPDPA}).
-\end{proposition}
-
-
-\begin{proof}
-  First, for any indices $t_1<t_2$ define the helper function
-  $h_{t_1,t_2}(\mu)=\sum_{i=t_1+1}^{t_2}\gamma_i(\mu)$ as the total
-  cost of assigning mean $\mu$ from data point $t_1+1$ to data point
-  $t_2$. Now, the constraints $\mathcal C$ of (\ref{PeakSegPDPA}) imply that there
-  are at most $K=3$ distinct values $\mu_1\leq\mu_2\geq\mu_3$ of
-  segment means. This implies that the optimal cost
-  (\ref{PeakSegPDPA}) can be re-written as
-  \begin{eqnarray*}
-    \label{eq:long}
-    \min_{(\mathbf m, \mathbf c)\in\mathcal C}
-    \sum_{i=1}^n \gamma_i(m_i)
-    &=&
-    \min_{\mu_3}
-    \min_{0 < t_1 < t_2 < n}
-    h_{t_2,n}(\mu_3)
-    +\min_{\mu_2\geq \mu_3}
-    h_{t_1,t_2}(\mu_2)
-    +\min_{\mu_1\leq\mu_2}
-    h_{0,t_1}(\mu_1)\\
-    &=&
-    \min_{\mu_3}
-    \min_{t_2 < n}
-    h_{t_2,n}(\mu_3)
-    +\min_{\mu_2\geq \mu_3}
-    \min_{t_1 < t_2}
-    h_{t_1,t_2}(\mu_2)
-    +\FCC_{1, t_1}^\leq(\mu_2)\\
-    &=&
-    \min_{\mu_3}
-    \min_{t_2 < n}
-    h_{t_2,n}(\mu_3)
-    +\min_{\mu_2\geq \mu_3}
-    +\FCC_{2, t_2}(\mu_2)\\
-    &=&
-    \min_{\mu_3}
-    \min_{t_2 < n}
-    h_{t_2,n}(\mu_3)
-    +\FCC_{2, t_2}^\geq(\mu_3)\\
-    &=&
-    \min_{\mu_3}
-    \FCC_{3, n}(\mu_3)\\
-  \end{eqnarray*}
-  where the change-point variables $\mathbf c$ have been replaced by
-  the change-point index variables $t_1,t_2$.
-\end{proof}
-
-\section{Variants of the algorithm}
-
-TODO
-
-\subsection{Some definitions}
+\subsection{General linear equality constraints
+  between adjacent segment means}
 
 A segmentation $m$ is described as a set of contiguous segments $\{s_1, ... s_{|m|} \}$, where $|m|$ is the number of segments of $m$
 We consider the set of all segmentation up to $n$: $\M_n$ 
@@ -613,7 +700,7 @@ Some examples:
   $a_{k,k+1} =-1$, $a_{k,k}=1$.
 \end{enumerate}
 
-\subsection{Functional cost representation}
+%\subsection{Functional cost representation}
 To optimize this quantity we will consider the following functional quantity:
 
 \begin{equation}
@@ -638,7 +725,7 @@ a_{k-1,k-1}. \mu_{k-1} \ + &a_{k-1,k}. \mu_{k}  & \geq  b_{k-1} \\
 $\FCC^k_t(\mu)$ is the best possible cost achievable in $k$ segment up to point $t$ with a $k$-th
 segment mean of $\mu$.
 
-\subsection{Update rule}
+%\subsection{Update rule}
 We can then consider the following update rule
 
 \begin{equation}
@@ -658,7 +745,7 @@ such that the last mean $\mu_k=\mu'$ validates the $k-th$ constraint with $\mu_{
 \end{itemize}
 
 
-\subsection{Constraint}
+%\subsection{Constraint}
 Assuming we have a piecewise description of $\FCC^{k}_{t}(\mu')$ on $I$ ordered intervals of $\mathbb{R}$
 then it is straightforward to recover the function:
 $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}.$
@@ -666,13 +753,6 @@ $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{
 The update rule is a priori valid for more complex constraints, typically quadratic constraints, yet recovering
 $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}$ from $\FCC^{k}_{t}(\mu')$ would possibly be much more difficult.
 
-\subsection{Optimal partitioning regularized isotonic regression}
-
-TODO
-
-\subsection{The PeakSeg up-down constraint}
-
-TODO
 
 \section{Results}
 
@@ -784,6 +864,13 @@ contrast, the unconstrained Segmentor algorithm has TODO
     band).}
   \label{fig:timings}
 \end{figure}
+
+\section{Discussion}
+
+
+\section{Conclusions}
+
+
 
 \bibliographystyle{abbrvnat}
 \bibliography{refs}
