@@ -146,11 +146,11 @@ searching all possible change-points to find the most likely model
 with $K$ segments, we propose to constrain the possible change-points
 so that the segment means may be more easily interpreted.
 
-\section{Isotonic regression and optimal segment neighborhood models}
+\section{Isotonic regression and segment neighborhood models}
 
 We first explain the classical isotonic regression model which has
 inequality constraints on segment means, but no limit on the number of
-segments \citep{mair2009isotone}. Then we explain the optimal segment
+segments \citep{mair2009isotone}. Then we explain the segment
 neighborhood model \citep{segment-neighborhood}, which limits the
 number of segment means, but has no inequality constraints. Finally,
 we propose a new model called segment neighborhood isotonic regression
@@ -562,7 +562,7 @@ As in the FPOP algorithm \citep{johnson, FPOP}, we can define the OPIR
 constraints as follows.
 \begin{definition}[Optimal partitioning isotonic regression constraints]
   \label{def:P}
-  Let $(\mathbf m, \mathbf c)\in\mathcal I_K^n$ be the set of all segment means
+  Let $(\mathbf m, \mathbf c)\in\mathcal P_K^n$ be the set of all segment means
   $\mathbf m\in\RR^n$ and change-point indicators
   $\mathbf c\in\{0,1\}^{n-1}$ such that the following constraints are
   verified. 
