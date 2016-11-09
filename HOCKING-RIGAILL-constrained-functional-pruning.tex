@@ -916,13 +916,6 @@ $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{
 The update rule is a priori valid for more complex constraints, typically quadratic constraints, yet recovering
 $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}$ from $\FCC^{k}_{t}(\mu')$ would possibly be much more difficult.
 
-\section{Implementation details}
-
-TODO discuss intervals, pseudocode, mean, weights.
-
-We implemented the PeakSeg model
-
-
 
 \section{Results}
 
@@ -1433,8 +1426,15 @@ optimization objective.
   TODO
 \end{proof}
 
-TODO: Empirical time analysis FPOP vs PeakSegFPOP on really large
-chromosome subsets $N>10^6$.
+\subsection{Implementation details}
+
+TODO discuss intervals, pseudocode, mean, weights, root finding that
+were used for implementing the PeakSeg model.
+
+\subsection{Results on very large data sets}
+
+TODO: Empirical time and memory analysis FPOP vs PeakSegFPOP on really
+large chromosome subsets $N>10^6$.
 
 \end{document}
 
