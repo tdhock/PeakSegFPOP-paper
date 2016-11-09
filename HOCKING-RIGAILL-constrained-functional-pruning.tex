@@ -1,10 +1,11 @@
 \documentclass{article}
 \usepackage{fullpage}
 
+\usepackage{algorithm}
+\usepackage{algorithmic}
 \usepackage[utf8]{inputenc} % allow utf-8 input
 \usepackage[T1]{fontenc}    % use 8-bit T1 fonts
 \usepackage{hyperref}       % hyperlinks
-%\usepackage{url}            % simple URL typesetting
 %\usepackage{booktabs}       % professional-quality tables
 \usepackage{amsfonts}       % blackboard math symbols
 %\usepackage{nicefrac}       % compact symbols for 1/2, etc.
@@ -394,6 +395,12 @@ optimal cost.
   \}.
   \end{equation}
 \end{definition}
+Note that in the original pruned dynamic programming algorithm for
+solving the segment neighborhood problem \citep{pruned-dp}, the
+min-less cost functions $\FCC_{k,t}^\leq(u)$ are replaced by cost
+constants $C_{k,t}$. The main novelty of our proposed algorithm is the
+computation of the min-less functions $\FCC_{k,t}^\leq(u)$ in closed
+form.
 
 Now, consider the following lemma, which shows that the dynamic
 programming minimization over two cost functions is equivalent to the
@@ -526,29 +533,167 @@ and the final equality (\ref{eq:proof_remove_tau}) follows from
 Lemma~\ref{lemma:t_change_points}. This concludes the proof by induction.
 \end{proof}
 
-\subsection{Comparison with unconstrained functional pruning
-  algorithm}
+\subsection{Storage and recovery of optimal parameters}
 
-TODO
+In the previous sections we have only discussed computation of the
+optimal cost, but in this section we discuss how to store and compute
+the optimal segment mean and change-point parameters. The dynamic
+programming algorithm requires storage of real-valued cost functions
+$\FCC_{k,t}(u)$ for all possible values of the last segment mean
+parameter $u$. We propose to store each cost function as a piecewise
+function on intervals, as in the original pruned dynamic programming
+algorithm \citep{pruned-dp}.
 
-% The algorithm we propose generalizes the functional pruning technique
-% that has been previously described \citep{pruned-dp, johnson,
-%   Segmentor, FPOP}. The main idea of the functional pruning dynamic
-% programming algorithm is to compute the functional cost
-% $\FCC_n^K(\mu)$ of the best segmentation in $K$ segments up to data
-% point $n$, given that the last segment mean has value $\mu$. Then the
-% optimal mean and cost values can be determined by minimizing the
-% functional cost $C_n^K = \min_\mu \FCC_n^K(\mu)$. These cost functions can be
-% efficiently computed using the recursive formula
-% \begin{equation}
-%   \FCC_n^K(\mu) = \ell(y_n, \mu) + \min\{
-%   \FCC_{K-1}^{n-1},\, 
-%   \FCC_K^{n-1}(\mu)\}.
-% \end{equation}
+To clarify the discussion, consider the 
+toy data set $\mathbf y= \left[
+\begin{array}{cccccc}
+  2 & 1 & 0 & 4
+\end{array}
+\right] \in\RR^4$ and the square loss $\ell(y,m)=(y-m)^2$. The first
+step of the algorithm is to compute the minimum and the maximum of the
+data (0,4). The first step of the algorithm is computation of the
+optimal cost in $k=1$ segment up to the data point $t=1$:
+\begin{equation}
+  \FCC_{1,1}(u) = (2-u)^2=4 - 4u + u^2.
+\end{equation}
+It is clear that this function can be stored exactly via the three
+real-valued coefficients ($\text{constant}=4$, $\text{linear}=-4$,
+$\text{quadratic}=1$). To compute the optimal cost in $K=2$ segments, we
+first need to compute the min-less operator of this function:
+\begin{equation}
+  \FCC_{1,1}^\leq(u) =\min_{u'\leq u}\FCC_{1,1}(u')=
+  \begin{cases}
+    \FCC_{1,1}(u) = 4 - 4u + u^2 &\text{ if }u\in[0,2],\, t=1,\, u'=u\\
+    \FCC_{1,1}(2) = 0 + 0u + 0u^2 & \text{ if }u\in[2,4],\, t=1,\, u'=2
+  \end{cases}
+\end{equation}
+It is clear that this min-less function can be stored as a list of
+coefficients and associated intervals of $u$ values. In addition, to
+facilitate recovery of the optimal parameters, we store the previous
+segment endpoint $t'$ and mean $u'$. The optimal cost in $K=2$
+segments up to data point $t=2$ is then
+\begin{equation}
+  \FCC_{2,2}(u) = \FCC_{1,1}^\leq(u)+(1-u)^2 = 
+  \begin{cases}
+    5 - 6u + 2u^2 &\text{ if }u\in[0,2],\, t'=1,\, u'=u\\
+    1 - 2u + 1u^2 &\text{ if }u\in[2,4],\, t'=1,\, u'=2
+  \end{cases}
+\end{equation}
+After computing the optimal cost in $k=1$ segment up to data point $t=2$
+\begin{equation}
+  \FCC_{1,2}(u) = \FCC_{1,1}(u)+(1-u)^2=5 - 6u + 2u^2,
+\end{equation}
+and its min-less operator
+\begin{equation}
+  \FCC^\leq_{1,2}(u) =
+  \begin{cases}
+    \FCC_{1,2}(u)=5-6u + 2u^2 & \text{ if }u\in[0, 1.5],\, t'=2,\, u'=u\\
+    \FCC_{1,2}(1.5)=0.5 + 0u +0u^2 & \text{ if }u\in[1.5, 4],\, t'=2,\, u'=1.5
+  \end{cases}
+\end{equation}
+we can compute the optimal cost in $K=2$ segments up to data point
+$t=3$, which is defined as the minimum of two functions
+$\FCC_{2,2}(u)$ and $\FCC_{1,2}^\leq(u)$ that have already been
+computed. We therefore propose the following data structures and
+algorithms for the computation:
+\begin{itemize}
+\item FunctionPiece: a data structure which represents one piece of a
+  cost function. It has coefficients which depend on the convex loss
+  function (for the square loss it has three coefficients), and it
+  always has elements for min/max mean values, and previous segment
+  endpoint $t'$ and mean $u'$.
+\item $\text{OptimalMean}(p)$: an algorithm that takes one
+  FunctionPiece object, and computes the optimal mean value. For the
+  square loss FunctionPiece $p(u)=au^2+bu+c$ we have
+  $\text{OptimalMean}(p)=-b/(2a)$.
+\item $\text{ComputeRoots}(p, d)$: an algorithm that takes one
+  FunctionPiece object, and computes the solutions to $p(u)=d$. For
+  the square loss we propose to use the quadratic formula. For other
+  convex losses that do not have closed form expressions for their
+  roots, we propose to use Newton's root finding method. Note that for
+  some constants $d$ there are no roots, and the algorithm needs to
+  report that.
+\item FunctionPieceList: an ordered list of FunctionPiece objects,
+  which exactly stores a cost function $\FCC_{k,t}$ and possible
+  previous segment endpoints and means.
+\item $\text{MinLess}(f)$: an algorithm that inputs a
+  FunctionPieceList and outputs the corresponding min-less operator
+  (another FunctionPieceList). 
+\item
+  $\text{MinOfTwo} (f_1, f_2)$: an algorithm that inputs two
+  FunctionPieceList objects, and outputs another FunctionPieceList
+  object which is their minimum.
+\end{itemize}
 
-\subsection{Implementation details}
+\newcommand{\SWITCH}[1]{\STATE \textbf{switch} (#1)\begin{ALC@g}}
+\newcommand{\ENDSWITCH}{\end{ALC@g}}
+\newcommand{\CASE}[2]{\STATE \textbf{case} #1\textbf{: } #2}%\begin{ALC@g}}
+\newcommand{\ENDCASE}{}%\end{ALC@g}}
+\newcommand{\DEFAULT}[1]{\STATE \textbf{default: } \begin{ALC@g}}
+\newcommand{\ENDDEFAULT}{\end{ALC@g}\STATE \textbf{end default} }
+\newcommand{\FORFOR}[2]{\STATE \textbf{For} #1 \textbf{do} and \textbf{For} #2 \textbf{do} \begin{ALC@g}}
+\newcommand{\ENDFORFOR}{\end{ALC@g}\STATE \textbf{End for} and \textbf{End for}  }
 
-TODO discuss intervals, pseudocode, mean, weights.
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE Input: FunPieceList $f_{\text{in}}$
+\STATE Output: FunPieceList $f_{\text{out}}$
+\STATE $\text{prev\_min\_cost} \gets\infty$
+\STATE $\text{prev\_lower\_limit}\gets \text{LowerLimit}(f_{\text{in}}[0])$.
+\STATE $i\gets 0$; 
+\STATE While $i < $ length($f_{\text{in}}$):
+\begin{ALC@g}
+  \STATE FunPiece $p\gets f_{\text{in}}[i]$
+  \STATE if prev\_min\_cost == $\infty$: // look for min in this interval.
+  \begin{ALC@g}
+    \STATE $u\gets \text{OptimalMean}(p)$ 
+    \STATE if $\text{LowerLimit}(p)< u < \text{UpperLimit}(p)$:
+    \begin{ALC@g}
+      \STATE $\text{new\_interval}\gets [\text{prev\_lower\_limit}, u]$
+      // Minimum found in this interval.
+    \end{ALC@g}
+    \STATE else:
+    \begin{ALC@g}
+      \STATE 
+      $\text{new\_interval}\gets
+ [\text{prev\_lower\_limit}, \text{UpperLimit}(p)]$
+ // No minimum in this interval.
+    \end{ALC@g}
+  \end{ALC@g}
+  \STATE else:
+  \begin{ALC@g}
+    \STATE if constant cost intersects this piece:
+    \begin{ALC@g}
+      \STATE 
+      // add constant piece ending at intersection
+    \end{ALC@g}
+    \STATE else:
+    \begin{ALC@g}
+      \STATE 
+      // add constant piece over entire interval
+    \end{ALC@g}
+  \end{ALC@g}
+\end{ALC@g}
+\caption{MinLess algorithm for computing min-less operator.}
+\end{algorithmic}\label{algo:v2}
+\end{algorithm}
+
+The last step of the dynamic programming recursion is computation of
+$\FCC_{K,n}(u)$. After that, we can begin computing optimal parameters
+by starting with the last segment mean $u_K = \argmin_u \FCC_{K,n}(u)$.
+By Lemma~\ref{lemma:t_change_points}, we can then compute the previous
+optimal change-point for $k=K-1$
+\begin{equation}
+\label{eq:decode_t}
+  t_{k} = \argmin_{\tau\in[k,n)} \FCC_{k,\tau}(u_{k+1}) + h_{\tau,n}(u_{k+1}).
+\end{equation}
+The next optimal segment mean is a constrained optimization for $k=K-1$
+\begin{equation}
+\label{eq:decode_u}
+  u_{k} = \argmin_{u\leq u_{k+1}} \FCC_{k,t_{k}}(u).
+\end{equation}
+Equations (\ref{eq:decode_t}-\ref{eq:decode_u}) are then used for all
+segment values $k$ from $K-2$ to 1.
 
 \section{Variants of the dynamic programming algorithm for other models}
 
@@ -556,10 +701,28 @@ In this section we discuss some other optimization problems that are
 solvable using small modifications to our proposed dynamic programming
 algorithm.
 
+% \subsection{Comparison with unconstrained functional pruning
+%   algorithm}
+
+% The algorithm we propose generalizes the functional pruning technique
+% that has been previously described \citep{pruned-dp, johnson,
+%   Segmentor, FPOP}. In fact, the original pruned dynamic programming
+% algorithm is to compute the functional cost $\FCC_n^K(\mu)$ of the
+% best segmentation in $K$ segments up to data point $n$, given that the
+% last segment mean has value $\mu$. Then the optimal mean and cost
+% values can be determined by minimizing the functional cost
+% $C_n^K = \min_\mu \FCC_n^K(\mu)$. These cost functions can be
+% efficiently computed using the recursive formula
+% \begin{equation}
+%   \FCC_n^K(\mu) = \ell(y_n, \mu) + \min\{
+%   \FCC_{K-1}^{n-1},\, 
+%   \FCC_K^{n-1}(\mu)\}.
+% \end{equation}
+
 \subsection{Optimal partitioning isotonic regression (OPIR)}
 
-As in the FPOP algorithm \citep{johnson, FPOP}, we can define the OPIR
-constraints as follows.
+As in the Functional Pruning Optimal Partitioning (FPOP) algorithm of
+\citet{FPOP}, we can define the OPIR constraints as follows.
 \begin{definition}[Optimal partitioning isotonic regression constraints]
   \label{def:P}
   Let $(\mathbf m, \mathbf c)\in\mathcal P_K^n$ be the set of all segment means
@@ -664,7 +827,7 @@ where the min-more operator is defined for any function $f:\RR\rightarrow\RR$ as
 \end{equation}
 
 
-\subsection{General linear equality constraints
+\subsection{General linear inequality constraints
   between adjacent segment means}
 
 A segmentation $m$ is described as a set of contiguous segments $\{s_1, ... s_{|m|} \}$, where $|m|$ is the number of segments of $m$
@@ -752,6 +915,13 @@ $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{
 
 The update rule is a priori valid for more complex constraints, typically quadratic constraints, yet recovering
 $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}$ from $\FCC^{k}_{t}(\mu')$ would possibly be much more difficult.
+
+\section{Implementation details}
+
+TODO discuss intervals, pseudocode, mean, weights.
+
+We implemented the PeakSeg model
+
 
 
 \section{Results}
