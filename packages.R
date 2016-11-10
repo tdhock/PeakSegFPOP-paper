@@ -55,6 +55,8 @@ suppressPackageStartupMessages({
                LambertW="0.6.2",
                microbenchmark="1.4.2",
                Segmentor3IsBack="2.0",
+               lpSolveAPI="5.5.2.0.17",
+               quadmod="2013.8.23",
                geometry="0.3.6",
                "tdhock/memtime@8b80d7d2b151cf5e877b27138c2791eca365e7b1",
                ##"tdhock/coseg@073dcf152355e6de32236f9556d97dda29574bf5",
