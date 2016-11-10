@@ -496,7 +496,7 @@ viz <- list(
       data=chunk.region,
       color="black",
       fill=NA,
-      size=1)+
+      size=1.5)+
     geom_line(aes(base/1e3, count),
               data=disp.counts, color="grey50")+
     geom_segment(aes(
@@ -508,6 +508,14 @@ viz <- list(
       data=chunk.peak,
       color="deepskyblue",
       size=4)+
+    geom_point(aes(
+      chromStart/1e3, 0,
+      key=paste(sample.id, chromStart),
+      showSelected.variable=paste0(sample.id, "peaks"),
+      showSelected.value=peaks),
+      data=chunk.peak,
+      color="black",
+      fill="deepskyblue")+
     scale_fill_manual("label", values=ann.colors,
                       breaks=names(ann.colors)),
   penalty=ggplot()+

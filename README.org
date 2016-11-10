@@ -1,6 +1,9 @@
 The goal of this paper is to implement a fast algorithm for solving
 the PeakSeg problem described in
 http://jmlr.org/proceedings/papers/v37/hocking15.html
+** 9 Nov 2016
+
+[[http://bl.ocks.org/tdhock/raw/9a6ac163b8610314ed8e9751937ecea9/][Interactive data viz to explain supervised penalty learning for peaks]].
 
 ** 15 Aug 2016
 
