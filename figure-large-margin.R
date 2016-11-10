@@ -13,6 +13,10 @@ model.file <- file.path("data", set.name, chunk.id, "dp.model.RData")
 load(model.file)
 region.list <- split(regions, regions$sample.id)
 sample.ids <- c("McGill0322", "McGill0091", "McGill0002", "McGill0004")
+chunk.counts <- data.table(counts)[sample.id %in% sample.ids,]
+chunk.counts[, count := as.integer(coverage)]
+signal.list <- split(chunk.counts,
+                     chunk.counts$sample.id, drop=TRUE)
 
 chunk.peak.list <- list()
 chunk.region.list <- list()
@@ -21,6 +25,8 @@ for(sample.id in sample.ids){
   model.info <- dp.model[[sample.id]]
   chunk.loss.list[[sample.id]] <- data.table(
     sample.id, model.info$error)
+  signal <- signal.list[[sample.id]]
+  ##dp.info <- PeakSegPDPAchrom(signal, 9L)
   sample.regions <- region.list[[sample.id]]
   for(n.peaks in names(model.info$peaks)){
     peak.df <- model.info$peaks[[n.peaks]]
@@ -35,7 +41,6 @@ for(sample.id in sample.ids){
 }
 chunk.region <- do.call(rbind, chunk.region.list)
 chunk.peak <- do.call(rbind, chunk.peak.list)
-chunk.counts <- data.table(counts)[sample.id %in% sample.ids,]
 chunk.loss <- do.call(rbind, chunk.loss.list)
 
 error.counts <- chunk.region[, list(
@@ -46,8 +51,6 @@ loss.list <- split(chunk.loss,
                    chunk.loss$sample.id,
                    drop=TRUE)
 err.list <- split(error.counts, error.counts$sample.id, drop=TRUE)
-signal.list <- split(chunk.counts,
-                     chunk.counts$sample.id, drop=TRUE)
 exact.dfs.list <- list()
 intervals.list <- list()
 for(sample.id in names(loss.list)){
@@ -275,8 +278,8 @@ reg.dt <- rbind(
   data.frame(slope=0, intercept=8.5))
 count.grid <- c(3, 7)
 penalty.grid.list <- list()
-for(reg.i in 1:nrow(reg.df)){
-  r <- reg.df[reg.i, ]
+for(reg.i in 1:nrow(reg.dt)){
+  r <- reg.dt[reg.i, ]
   penalty.grid.list[[reg.i]] <- data.table(
     count.grid, log.lambda=r$slope * count.grid + r$intercept, reg.i)
 }
@@ -467,6 +470,7 @@ ggplot()+
 min.log.pen <- min(exact.peaks$max.log.lambda)
 max.log.pen <- max(exact.peaks$min.log.lambda)
 notInf <- function(x)ifelse(x==Inf, max.log.pen+1, ifelse(x==-Inf, min.log.pen-1, x))
+library(animint)
 viz <- list(
   coverage=ggplot()+
     ggtitle("ChIP-seq data and peaks")+
@@ -492,6 +496,7 @@ viz <- list(
       xmin=chromStart/1e3, xmax=chromEnd/1e3,
       showSelected.variable=paste0(sample.id, "peaks"),
       showSelected.value=n.peaks,
+      key=paste(sample.id, chromStart),
       linetype=status),
       data=chunk.region,
       color="black",
@@ -537,6 +542,13 @@ viz <- list(
         vjust=c(0,1,0.5)),
       color="blue",
       size=3)+
+    ## geom_segment(aes(
+    ##   log.max.count, notInf(-Inf),
+    ##   clickSelects=sample.id,
+    ##   yend=notInf(Inf), xend=log.max.count),
+    ##   data=data.table(intervals, what="regression"),
+    ##   size=6,
+    ##   alpha=0.55)+
     geom_segment(aes(
       log.max.count, min.log.lambda,
       clickSelects=sample.id,
@@ -549,27 +561,27 @@ viz <- list(
       log.max.count, min.log.lambda,
       clickSelects=sample.id),
       data=data.table(zero.error, what="regression")[is.finite(min.log.lambda),],
-      size=tsize, pch=1)+
-    geom_point(aes(
-      log.max.count, max.log.lambda,
-      clickSelects=sample.id),
-      data=data.table(zero.error, what="regression"),
       size=tsize,
-      pch=1)+
+      color="grey")+
     geom_point(aes(
       log.max.count, min.log.lambda,
       clickSelects=sample.id),
-      data=data.table(intervals, what="regression")[is.finite(min.log.lambda),],
+      data=data.table(intervals, what="regression"),
       size=tsize,
-      shape=21,
       fill="white")+
     geom_point(aes(
       log.max.count, max.log.lambda,
       clickSelects=sample.id),
       data=data.table(intervals, what="regression"),
       size=tsize,
-      shape=21,
       fill="black")+
+    geom_segment(aes(
+      log.max.count, notInf(min.log.lambda),
+      showSelected.variable=paste0(sample.id, "peaks"),
+      showSelected.value=peaks,
+      yend=notInf(max.log.lambda), xend=log.max.count),
+      data=data.table(exact.dfs, what="regression"),
+      size=1)+
     ## geom_text(aes(
     ##   log.max.count +
     ##     ifelse(log.max.count==max(log.max.count), -1, 1)*0.03,
@@ -602,14 +614,18 @@ viz <- list(
         x=5, y=6,
         label="log.max.count"))+
     ##
-    geom_segment(aes(model.complexity, min.log.lambda,
-                     showSelected=sample.id,
-                     yend=max.log.lambda, xend=model.complexity),
-                 data=zero.peaks, size=4, color="green")+
-    geom_segment(aes(errors, min.log.lambda, 
-                     showSelected=sample.id,
-                     yend=max.log.lambda, xend=errors),
-                 data=z.error, size=4, color="green")+
+    geom_segment(aes(
+      model.complexity, min.log.lambda,
+      showSelected=sample.id,
+      key=paste(sample.id, peaks),
+      yend=max.log.lambda, xend=model.complexity),
+      data=zero.peaks, size=4, color="green")+
+    geom_segment(aes(
+      errors, min.log.lambda, 
+      showSelected=sample.id,
+      key=paste(sample.id, peaks),
+      yend=max.log.lambda, xend=errors),
+      data=z.error, size=4, color="green")+
     geom_segment(aes(
       model.complexity,
       notInf(min.log.lambda), 
@@ -642,7 +658,7 @@ viz <- list(
       ymax=notInf(max.log.lambda)),
       alpha=0.2,
       data=exact.error, size=2)+
-    xlab("")+
-    scale_y_continuous(breaks=0:9)
+    scale_y_continuous("")+
+    scale_x_continuous(breaks=0:9)
 )
 animint2dir(viz, "figure-large-margin")
