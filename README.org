@@ -3,6 +3,8 @@ the PeakSeg problem described in
 http://jmlr.org/proceedings/papers/v37/hocking15.html
 ** 10 Nov 2016
 
+[[http://bl.ocks.org/tdhock/raw/9311ca39d643d127e04a088814c81ee1/][Data viz with smooth transitions, clarified titles]].
+
 [[http://bl.ocks.org/tdhock/raw/7b595e74d059eb2e066d46a90c5b7724/][Revised interactive data viz]].
 
 ** 9 Nov 2016

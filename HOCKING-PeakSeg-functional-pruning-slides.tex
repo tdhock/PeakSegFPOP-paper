@@ -35,7 +35,7 @@
 \begin{document}
 
 \title{A linear time algorithm for constrained 
-optimal segmentation of ChIP-seq data}
+optimal segmentation}
 
 \author{
   Toby Dylan Hocking\\
@@ -43,7 +43,7 @@ optimal segmentation of ChIP-seq data}
   joint work with Guillem Rigaill, Paul Fearnhead, 
   Guillaume Bourque}
 
-\date{29 Sep 2016}
+\date{11 Nov 2016}
 
 \maketitle
 
@@ -177,6 +177,28 @@ maxIter 20
 \section{New linear time algorithm using functional pruning}
 
 \begin{frame}
+  \frametitle{Statistical model is Poisson with change constraints}
+  \begin{itemize}
+  \item We have $N$ count data $z_1, \dots, z_N\in\ZZ_+$.
+  \item Fix the number of segments $S\in\{1, 2, \dots, N\}$.
+  \item PeakSeg Model: $z_t \sim \text{Poisson}(m_t)$ such that $m_t$
+    has $S-1$ up-down changes.
+  \item Want to find means $m_t$ which maximize the Poisson likelihood:
+    $P(Z = z_t|m_t) = m_t^{z_t} e^{-m_t} / (z_t!)$.
+  \item Equivalent to finding means $m_t$ which minimize the Poisson
+    loss: $\ell(m_t, z_t) = m_t - z_t\log m_t$.
+  \item Naive computation is $O(N^S)$, since there are $O(N^{S-1})$ possible
+    positions for $S-1$ change-points, and it takes $O(N)$ operations to
+    compute the mean and loss for each.
+  \item Comparison to Hidden Markov Model:
+    \begin{description}
+    \item[Likelihood] Same emission terms, no transition terms.
+    \item[Constraint] Number of changes rather than values.
+    \end{description}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
   \frametitle{Relation to previous work}
   \begin{tabular}{r|c|c}
     & no pruning & functional pruning \\
@@ -197,28 +219,6 @@ maxIter 20
   \item \alert<4>{\textbf{Contribution}: new algorithm that
       \textbf{exactly} computes the \textbf{constrained} optimal
       segmentation for $N$ data points in linear $O(N\log N)$ time}.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Statistical model is Poisson with change constraints}
-  \begin{itemize}
-  \item We have $N$ count data $z_1, \dots, z_N\in\ZZ_+$.
-  \item Fix the number of segments $S\in\{1, 2, \dots, N\}$.
-  \item PeakSeg Model: $z_t \sim \text{Poisson}(m_t)$ such that $m_t$
-    has $S-1$ up-down changes.
-  \item Want to find means $m_t$ which maximize the Poisson likelihood:
-    $P(Z = z_t|m_t) = m_t^{z_t} e^{-m_t} / (z_t!)$.
-  \item Equivalent to finding means $m_t$ which minimize the Poisson
-    loss: $\ell(m_t, z_t) = m_t - z_t\log m_t$.
-  \item Naive computation is $O(N^S)$, since there are $O(N^{S-1})$ possible
-    positions for $S-1$ change-points, and it takes $O(N)$ operations to
-    compute the mean and loss for each.
-  \item Comparison to Hidden Markov Model:
-    \begin{description}
-    \item[Likelihood] Same emission terms, no transition terms.
-    \item[Constraint] Number of changes rather than values.
-    \end{description}
   \end{itemize}
 \end{frame}
 
@@ -410,8 +410,9 @@ functional pruning technique to the up-down constrained model.
 
  \url{http://cbio.ensmp.fr/~thocking/chip-seq-chunk-db/}
   \begin{itemize}
-  \item 4 postdocs and PhD students (AM, TDH, PGP, XJ).
-  \item 8 cell types.
+  \item Hocking \emph{et al} Bioinformatics (2016). Optimizing
+    ChIP-seq peak detectors using visual labels and supervised machine
+    learning.
   \item 37 labeled H3K4me3 samples (sharp peak pattern).
   \item 29 labeled H3K36me3 samples (broad peak pattern).
   \item 12,826 labeled regions with and without peaks.
@@ -423,7 +424,7 @@ functional pruning technique to the up-down constrained model.
   \begin{tabular}{ccccc}
     package & constraint & exact? & complexity \\
     \hline
-    coseg & $\mu_1 \leq \mu_2 \geq \mu_3 \dots$ & yes & $O(N\log N)$ \\
+    \textbf{coseg (this work)} & $\mu_1 \leq \mu_2 \geq \mu_3 \dots$ & yes & $O(N\log N)$ \\
     PeakSegDP & $\mu_1 < \mu_2 > \mu_3 \dots$ & no & $O(N^2)$\\
     Segmentor & none & yes & $O(N\log N)$
   \end{tabular}
@@ -532,6 +533,38 @@ functional pruning technique to the up-down constrained model.
 %   \includegraphics[width=\textwidth]{figure-min-train-error-problem1-4peaks.png}
 % \end{frame}
 
+\begin{frame}
+  \frametitle{Minimum train error in all data sets}
+  \begin{center}
+      \input{table-min-train-error}
+  \end{center}
+  \begin{itemize}
+  \item Segmentor, PeakSegDP, coseg were used to compute up to 10
+    models for each problem (1,...,19 segments = 0,...,9 peaks).
+  \item errors = fp + fn = total number of incorrect labels, after
+    picking best parameter for each of the 2752 separate problems.
+  \item models = number that obey the up-down constraint.
+  \item New coseg algorithm has minimum train error almost as good as
+    slower PeakSegDP algorithm.
+  \item Other algorithms much less accurate.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Max-margin penalty learning algortihm}
+  \includegraphics[width=\textwidth]{figure-large-margin}
+
+\scriptsize \url{http://bl.ocks.org/tdhock/raw/9311ca39d643d127e04a088814c81ee1/}
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{ROC curves for one test fold}
+  \includegraphics[width=\textwidth]{screenshot-roc-test-interactive}
+  
+  \scriptsize \url{http://cbio.ensmp.fr/~thocking/chip-seq-chunk-db/figure-roc-test/}
+\end{frame}
+
 
 \begin{frame}
   \frametitle{Test AUC on 7 benchmark data sets}
@@ -540,6 +573,8 @@ functional pruning technique to the up-down constrained model.
   \item 4-fold cross-validation: train on 3/4 of labels, test on 1/4.
   \item HMCanBroad is accurate for broad H3K36me3 data but not sharp H3K4me3 data.
   \item MACS is accurate for sharp H3K4me3 but not broad H3K36me3 data.
+  \item Unconstrained Segmentor algorithm not as accurate as up-down
+    constrained algorithms (coseg, PeakSegDP).
   \item Proposed algorithm in coseg R package yields state-of-the-art
     accuracy in all benchmark data sets.
   \end{itemize}
@@ -581,16 +616,23 @@ maxIter 20
 \end{frame}
 
 \begin{frame}
-  \frametitle{Which macs parameter is best for these data?}
-  \includegraphics[width=1\textwidth]{figure-macs-problem.png}
-\end{frame}
-
-\begin{frame}
   \frametitle{PeakSeg: search for the peaks with lowest loss}
   \includegraphics[width=1\textwidth]{figure-macs-problem-PeakSeg.png}
   
   Simple model with only one parameter to train (maxPeaks).
 \end{frame}
+
+\begin{frame}
+  \frametitle{Linear time algorithms faster for larger data sets}
+  \includegraphics[width=1\textwidth]{figure-PDPA-timings.pdf}
+
+  Total time to compute 10 models (0, ..., 9 peaks) for all data sets:
+  \begin{itemize}
+  \item PeakSegDP: 156 hours, inexact.
+  \item coseg: 6 hours, exact.
+  \end{itemize}
+\end{frame}
+
 
 \begin{frame}
   \frametitle{Conclusions}

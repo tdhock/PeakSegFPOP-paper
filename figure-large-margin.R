@@ -12,9 +12,10 @@ load(counts.file)
 model.file <- file.path("data", set.name, chunk.id, "dp.model.RData")
 load(model.file)
 region.list <- split(regions, regions$sample.id)
-sample.ids <- c("McGill0322", "McGill0091", "McGill0002", "McGill0004")
+sample.ids <- c("McGill0002", "McGill0091", "McGill0322", "McGill0004")
 chunk.counts <- data.table(counts)[sample.id %in% sample.ids,]
 chunk.counts[, count := as.integer(coverage)]
+chunk.counts[, sample.id := factor(sample.id, sample.ids)]
 signal.list <- split(chunk.counts,
                      chunk.counts$sample.id, drop=TRUE)
 
@@ -24,7 +25,7 @@ chunk.loss.list <- list()
 for(sample.id in sample.ids){
   model.info <- dp.model[[sample.id]]
   chunk.loss.list[[sample.id]] <- data.table(
-    sample.id, model.info$error)
+    sample.id=factor(sample.id, sample.ids), model.info$error)
   signal <- signal.list[[sample.id]]
   ##dp.info <- PeakSegPDPAchrom(signal, 9L)
   sample.regions <- region.list[[sample.id]]
@@ -33,10 +34,10 @@ for(sample.id in sample.ids){
     region.df <- PeakErrorChrom(peak.df, sample.regions)
     if(nrow(peak.df)){
       chunk.peak.list[[paste(sample.id, n.peaks)]] <- data.table(
-        sample.id, n.peaks, peak.df)
+        sample.id=factor(sample.id, sample.ids), n.peaks, peak.df)
     }
     chunk.region.list[[paste(sample.id, n.peaks)]] <- data.table(
-      sample.id, n.peaks, region.df)
+      sample.id=factor(sample.id, sample.ids), n.peaks, region.df)
   }
 }
 chunk.region <- do.call(rbind, chunk.region.list)
@@ -423,15 +424,15 @@ modelsPlot <-
                 label=label,
                 vjust=ifelse(is.finite(min.log.lambda), 0.5, -0.5),
                 hjust=ifelse(log.max.count==max(log.max.count), 1, 0)),
-            data=text.df, size=3)+
+            data=subset(text.df, !peaks %in% c(5,6)), size=3)+
   geom_text(aes(log.max.count, max.log.lambda, label=sample.id,
                 hjust=ifelse(log.max.count==min(log.max.count), 0,
                   ifelse(log.max.count==max(log.max.count), 1, 0.5))),
             data=intervals, vjust=-0.5, size=3)+
   coord_cartesian(ylim=c(7.5, 13), xlim=c(3.6, 6.3))+
-  scale_x_continuous("penalty $\\log\\lambda_i$", 
+  scale_x_continuous("input feature  = log(max(coverage))", 
                      minor_breaks=NULL)+
-  scale_y_continuous("feature $x_i = \\log\\max\\mathbf y_i$",
+  scale_y_continuous("log(penalty)",
                      minor_breaks=NULL)+
   geom_segment(aes(log.max.count, min.log.lambda, 
                    yend=predicted, xend=log.max.count),
@@ -444,7 +445,9 @@ modelsPlot <-
             hjust=0, vjust=1, color="blue", size=3)+
   geom_text(aes(5.8, 9, label="1 error\nconstant"),
             hjust=0, color="blue", size=3)
+pdf("figure-large-margin.pdf", 5, 3)
 print(modelsPlot)
+dev.off()
 
 ggplot()+
   geom_segment(aes(model.complexity, min.log.lambda, 
@@ -470,8 +473,10 @@ ggplot()+
 min.log.pen <- min(exact.peaks$max.log.lambda)
 max.log.pen <- max(exact.peaks$min.log.lambda)
 notInf <- function(x)ifelse(x==Inf, max.log.pen+1, ifelse(x==-Inf, min.log.pen-1, x))
-library(animint)
+duration.list <- list()
+duration.list[paste0(sample.ids, "peaks")] <- 1000
 viz <- list(
+  title="Max-margin supervised penalty learning for peak detection in ChIP-seq data",
   coverage=ggplot()+
     ggtitle("ChIP-seq data and peaks")+
     theme_bw()+
@@ -554,7 +559,7 @@ viz <- list(
       clickSelects=sample.id,
       yend=max.log.lambda, xend=log.max.count),
       data=data.table(intervals, what="regression"),
-      size=4,
+      size=7,
       alpha=0.7,
       color="green")+
     geom_point(aes(
@@ -575,13 +580,6 @@ viz <- list(
       data=data.table(intervals, what="regression"),
       size=tsize,
       fill="black")+
-    geom_segment(aes(
-      log.max.count, notInf(min.log.lambda),
-      showSelected.variable=paste0(sample.id, "peaks"),
-      showSelected.value=peaks,
-      yend=notInf(max.log.lambda), xend=log.max.count),
-      data=data.table(exact.dfs, what="regression"),
-      size=1)+
     ## geom_text(aes(
     ##   log.max.count +
     ##     ifelse(log.max.count==max(log.max.count), -1, 1)*0.03,
@@ -601,7 +599,16 @@ viz <- list(
       log.max.count, min.log.lambda, 
       yend=predicted, xend=log.max.count),
       data=data.table(intervals["McGill0002",], what="regression"),
-      color="red")+
+                 color="red",
+                 size=3)+
+    geom_segment(aes(
+      log.max.count, notInf(min.log.lambda),
+      showSelected.variable=paste0(sample.id, "peaks"),
+      showSelected.value=peaks,
+      key=sample.id,
+      yend=notInf(max.log.lambda), xend=log.max.count),
+      data=data.table(exact.dfs, what="regression"),
+      size=1)+
     geom_line(aes(
       count.grid, log.lambda, group=reg.i),
       data=data.table(penalty.grid, what="regression"),
@@ -612,7 +619,7 @@ viz <- list(
       data=data.table(
         what="regression",
         x=5, y=6,
-        label="log.max.count"))+
+        label="log(max(coverage))"))+
     ##
     geom_segment(aes(
       model.complexity, min.log.lambda,
@@ -658,7 +665,8 @@ viz <- list(
       ymax=notInf(max.log.lambda)),
       alpha=0.2,
       data=exact.error, size=2)+
-    scale_y_continuous("")+
-    scale_x_continuous(breaks=0:9)
+    scale_y_continuous("log(penalty)")+
+    scale_x_continuous("", breaks=0:9),
+  duration=duration.list
 )
 animint2dir(viz, "figure-large-margin")

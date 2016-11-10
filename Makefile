@@ -4,6 +4,8 @@ HOCKING-RIGAILL-constrained-functional-pruning.pdf: HOCKING-RIGAILL-constrained-
 	bibtex HOCKING-RIGAILL-constrained-functional-pruning
 	pdflatex HOCKING-RIGAILL-constrained-functional-pruning
 	pdflatex HOCKING-RIGAILL-constrained-functional-pruning
+figure-large-margin/index.html: figure-large-margin.R
+	R --no-save < $<
 figure-2-min-envelope.tex: figure-2-min-envelope.R
 	R --no-save < $<
 figure-1-min-operators.pdf: figure-1-min-operators.R
