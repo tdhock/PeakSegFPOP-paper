@@ -406,6 +406,24 @@ functional pruning technique to the up-down constrained model.
 \section{Results on benchmark data sets}
 
 \begin{frame}
+  \frametitle{Previous work in computer vision: look and add labels
+    to...}
+  \begin{tabular}{ccc}
+    Photos & Cell images & Copy number profiles \\
+    \includegraphics[width=1.3in]{../chip-seq-paper/faces} &
+    \includegraphics[width=1.3in]{../chip-seq-paper/cellprofiler} &
+    \includegraphics[width=1.5in]{../chip-seq-paper/regions-axes}\\
+    Labels: names & phenotypes & alterations \\ \\
+    CVPR 2013 & CellProfiler & SegAnnDB \\
+    246 papers & 873 citations & Hocking et al, 2014. \\
+     &
+  \end{tabular}
+  Sources: \url{http://en.wikipedia.org/wiki/Face_detection}\\
+  Jones et al PNAS 2009. Scoring diverse cellular morphologies in
+  image-based screens with iterative feedback and machine learning.
+\end{frame}
+
+\begin{frame}
   \frametitle{Benchmark data sets, algorithms}
 
  \url{http://cbio.ensmp.fr/~thocking/chip-seq-chunk-db/}
@@ -714,24 +732,6 @@ maxIter 20
   \item R package in memory: no disk usage.
   \item Command line program: $O(N \log N)$ disk space (temporary).
   \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Previous work in computer vision: look and add labels
-    to...}
-  \begin{tabular}{ccc}
-    Photos & Cell images & Copy number profiles \\
-    \includegraphics[width=1.3in]{../chip-seq-paper/faces} &
-    \includegraphics[width=1.3in]{../chip-seq-paper/cellprofiler} &
-    \includegraphics[width=1.5in]{../chip-seq-paper/regions-axes}\\
-    Labels: names & phenotypes & alterations \\ \\
-    CVPR 2013 & CellProfiler & SegAnnDB \\
-    246 papers & 873 citations & Hocking et al, 2014. \\
-     &
-  \end{tabular}
-  Sources: \url{http://en.wikipedia.org/wiki/Face_detection}\\
-  Jones et al PNAS 2009. Scoring diverse cellular morphologies in
-  image-based screens with iterative feedback and machine learning.
 \end{frame}
 
 \begin{frame}

@@ -326,7 +326,7 @@ Rather than explicitly summing over data points $i$ as in problem
 (\ref{eq:isotonic}), this problem sums over segments $k$. The next lemma
 proves that it is equivalent to solve this simpler optimization problem.
 
-\begin{lemma}[Equivalence of the isotonic regression problem with reduced number of variables]
+\begin{lemma}[Equivalence of problem with reduced number of variables]
   \label{lemma:reduced}
   Let $(\mathbf u, \mathbf t)$ be the solution to the reduced problem
   (\ref{eq:isotonic_reduced}), and consider the following mapping from
@@ -410,7 +410,7 @@ minimization over all possible change-points.
   For the cost up to any data point $t> K$, the recursive dynamic
   programming cost $\FCC_{K,t}(u)$ is equivalent to the minimum cost
   over all possible change points
-  $\min_{\tau\in[K,t)}\FCC_{K-1,\tau}^\leq(u)+h_{\tau,t}(u)$.
+  $\min_{\tau\in[K-1,t)}\FCC_{K-1,\tau}^\leq(u)+h_{\tau,t}(u)$.
 \end{lemma}
 
 \begin{proof}
@@ -467,13 +467,13 @@ Having proved Lemma~\ref{lemma:t_change_points}, we now use it to
 prove the following theorem about the optimality of the dynamic
 programming solution.
 \begin{theorem}[Dynamic programming recovers the segment neighborhood isotonic regression solution]
-  For a data set $y\in\RR^n$, and any number of segments $K\leq n$,
+  For a data set $\mathbf y\in\RR^n$, and any number of segments $K\leq n$,
   the optimal dynamic programming cost $\min_u \FCC_{K,n}(u)$ is
   equivalent to the minimum value of the segment neighborhood isotonic
   regression problem (\ref{eq:isotonic_reduced}).
 \end{theorem}
 \begin{proof}
-  We proceed by induction. First, consider the case of $K=2$ segments:
+  We proceed by induction on segments $K$. First, consider the case of $K=2$ segments:
 \begin{eqnarray}
   \label{eq:isotonic_reduced_2}
   \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^2}
@@ -551,27 +551,31 @@ toy data set $\mathbf y= \left[
 \end{array}
 \right] \in\RR^4$ and the square loss $\ell(y,m)=(y-m)^2$. The first
 step of the algorithm is to compute the minimum and the maximum of the
-data (0,4). The first step of the algorithm is computation of the
-optimal cost in $k=1$ segment up to the data point $t=1$:
+data (0,4). Then the algorithm computes the optimal cost in $k=1$
+segment up to data point $t=1$:
 \begin{equation}
   \FCC_{1,1}(u) = (2-u)^2=4 - 4u + u^2.
 \end{equation}
-It is clear that this function can be stored exactly via the three
-real-valued coefficients ($\text{constant}=4$, $\text{linear}=-4$,
-$\text{quadratic}=1$). To compute the optimal cost in $K=2$ segments, we
-first need to compute the min-less operator of this function:
+It is clear that this function can be stored for all values of $u$ via
+the three real-valued coefficients ($\text{constant}=4$,
+$\text{linear}=-4$, $\text{quadratic}=1$). To compute the optimal cost
+in $K=2$ segments, we first need to compute the min-less operator of
+this function:
 \begin{equation}
   \FCC_{1,1}^\leq(u) =\min_{u'\leq u}\FCC_{1,1}(u')=
   \begin{cases}
-    \FCC_{1,1}(u) = 4 - 4u + u^2 &\text{ if }u\in[0,2],\, t=1,\, u'=u\\
-    \FCC_{1,1}(2) = 0 + 0u + 0u^2 & \text{ if }u\in[2,4],\, t=1,\, u'=2
+    \FCC_{1,1}(u) = 4 - 4u + u^2 &\text{ if }u\in[0,2],\, t'=1,\, u'=u\\
+    \FCC_{1,1}(2) = 0 + 0u + 0u^2 & \text{ if }u\in[2,4],\, t'=1,\, u'=2
   \end{cases}
 \end{equation}
 It is clear that this min-less function can be stored as a list of
 coefficients and associated intervals of $u$ values. In addition, to
 facilitate recovery of the optimal parameters, we store the previous
-segment endpoint $t'$ and mean $u'$. The optimal cost in $K=2$
-segments up to data point $t=2$ is then
+segment endpoint $t'$ and mean $u'$. Note that $u'=u$ means that the
+equality constraint is active ($u_1=u_2$), so if the optimum occurs in that
+interval, then the precise value of the mean will be computed
+later. The optimal cost in $K=2$ segments up to data point $t=2$ is
+then
 \begin{equation}
   \FCC_{2,2}(u) = \FCC_{1,1}^\leq(u)+(1-u)^2 = 
   \begin{cases}
@@ -579,7 +583,12 @@ segments up to data point $t=2$ is then
     1 - 2u + 1u^2 &\text{ if }u\in[2,4],\, t'=1,\, u'=2
   \end{cases}
 \end{equation}
-After computing the optimal cost in $k=1$ segment up to data point $t=2$
+Note that the minimum of this function is achieved at $u=1.5$ which
+occurs in the first of the two function pieces, with an equality
+constraint active ($u'=u$). This implies the optimal model up to data
+point $t=2$ with $k=2$ up-down segments actually has no changes
+($u_1=u_2=1.5$). After computing the optimal cost in $k=1$ segment up
+to data point $t=2$
 \begin{equation}
   \FCC_{1,2}(u) = \FCC_{1,1}(u)+(1-u)^2=5 - 6u + 2u^2,
 \end{equation}
@@ -591,20 +600,60 @@ and its min-less operator
     \FCC_{1,2}(1.5)=0.5 + 0u +0u^2 & \text{ if }u\in[1.5, 4],\, t'=2,\, u'=1.5
   \end{cases}
 \end{equation}
-we can compute the optimal cost in $K=2$ segments up to data point
-$t=3$, which is defined as the minimum of two functions
-$\FCC_{2,2}(u)$ and $\FCC_{1,2}^\leq(u)$ that have already been
-computed. We therefore propose the following data structures and
-algorithms for the computation:
+we can use dynamic programming to compute $\FCC_{2,3}$, which is
+defined as the minimum of two functions $\FCC_{2,2}$ and
+$\FCC_{1,2}^\leq$ that have already been computed. Note that when
+taking the minimum it is important to store the previous
+change-points $t'$ and segment means $u'$ that were computed for the
+min-less operators. The algorithm continues computing optimal cost
+functions $\FCC_{k,t}$ for all segments $k\leq K$ and data points
+$t\leq n$.
+
+The last step of the dynamic programming recursion is computation of
+$\FCC_{K,n}$. After that, we can begin computing optimal parameters
+by starting with the last segment mean
+$u_K = \argmin_u \FCC_{K,n}(u)$. This can be computed in $O(I)$
+operations, where $I$ is the number of intervals or function pieces in
+$\FCC_{K,n}$. Finding the optimal $u_K$ also yields the optimal
+$(t_{K-1},u_{K-1})$ since they were stored as $(t',u')$ during the
+computation of the function pieces in $\FCC_{K,n}$. The next step is
+to find the function piece stored at $\FCC_{K-1,t_{K-1}}(u_{K-1})$,
+which contains the optimal values for $(t_{K-2},u_{K-2})$, again
+stored as $(t',u')$. Note that since we already know the optimal value
+of the previous segment ($u_{K-1}$), no minimization is necessary,
+and we can instead just look for the function piece with an interval
+that contains that value. This decoding process continues for $k=K-1$
+to $k=2$: the function piece stored at $\FCC_{k,t_{k}}(u_{k})$ 
+contains the optimal values for $(t_{k-1},u_{k-1})$.
+% By Lemma~\ref{lemma:t_change_points}, we can then compute the previous
+% optimal change-point for $k=K-1$
+% \begin{equation}
+% \label{eq:decode_t}
+%   t_{k} = \argmin_{\tau\in[k,n)} \FCC_{k,\tau}(u_{k+1}) + h_{\tau,n}(u_{k+1}).
+% \end{equation}
+% The next optimal segment mean is a constrained optimization for $k=K-1$
+% \begin{equation}
+% \label{eq:decode_u}
+%   u_{k} = \argmin_{u\leq u_{k+1}} \FCC_{k,t_{k}}(u).
+% \end{equation}
+% Equations (\ref{eq:decode_t}-\ref{eq:decode_u}) are then used for all
+% segment values $k$ from $K-2$ to 1.
+
+We therefore propose the following data structures and algorithms for
+the computation:
 \begin{itemize}
 \item FunctionPiece: a data structure which represents one piece of a
   cost function. It has coefficients which depend on the convex loss
   function (for the square loss it has three coefficients), and it
   always has elements for min/max mean values, and previous segment
   endpoint $t'$ and mean $u'$.
+\item $\text{GetCost}(p, u)$: an algorithm that takes a FunctionPiece
+  object $p$, and a mean value $u$, and computes the cost at $u$. For
+  a square loss FunctionPiece $p$ with coefficients $a,b,c\in\RR$, we
+  have $\text{GetCost}(p,u)=au^2+bu+c$.
 \item $\text{OptimalMean}(p)$: an algorithm that takes one
-  FunctionPiece object, and computes the optimal mean value. For the
-  square loss FunctionPiece $p(u)=au^2+bu+c$ we have
+  FunctionPiece object, and computes the optimal mean value. For a
+  square loss FunctionPiece $p$ we have
   $\text{OptimalMean}(p)=-b/(2a)$.
 \item $\text{ComputeRoots}(p, d)$: an algorithm that takes one
   FunctionPiece object, and computes the solutions to $p(u)=d$. For
@@ -614,86 +663,28 @@ algorithms for the computation:
   some constants $d$ there are no roots, and the algorithm needs to
   report that.
 \item FunctionPieceList: an ordered list of FunctionPiece objects,
-  which exactly stores a cost function $\FCC_{k,t}$ and possible
-  previous segment endpoints and means.
+  which exactly stores a cost function $\FCC_{k,t}(u)$ for all values
+  of last segment mean $u$.
 \item $\text{MinLess}(f)$: an algorithm that inputs a
   FunctionPieceList and outputs the corresponding min-less operator
-  (another FunctionPieceList). 
-\item
-  $\text{MinOfTwo} (f_1, f_2)$: an algorithm that inputs two
+  (another FunctionPieceList). This algorithm should keep track See
+  Section~\ref{sec:implementation-details} for more details and
+  pseudocode for this algorithm.
+\item $\text{MinOfTwo} (f_1, f_2)$: an algorithm that inputs two
   FunctionPieceList objects, and outputs another FunctionPieceList
-  object which is their minimum.
+  object which is their minimum. See
+  Section~\ref{sec:implementation-details} for more details and
+  pseudocode for this algorithm.
 \end{itemize}
-
-\newcommand{\SWITCH}[1]{\STATE \textbf{switch} (#1)\begin{ALC@g}}
-\newcommand{\ENDSWITCH}{\end{ALC@g}}
-\newcommand{\CASE}[2]{\STATE \textbf{case} #1\textbf{: } #2}%\begin{ALC@g}}
-\newcommand{\ENDCASE}{}%\end{ALC@g}}
-\newcommand{\DEFAULT}[1]{\STATE \textbf{default: } \begin{ALC@g}}
-\newcommand{\ENDDEFAULT}{\end{ALC@g}\STATE \textbf{end default} }
-\newcommand{\FORFOR}[2]{\STATE \textbf{For} #1 \textbf{do} and \textbf{For} #2 \textbf{do} \begin{ALC@g}}
-\newcommand{\ENDFORFOR}{\end{ALC@g}\STATE \textbf{End for} and \textbf{End for}  }
 
 \begin{algorithm}[H]
 \begin{algorithmic}[1]
-\STATE Input: FunPieceList $f_{\text{in}}$
-\STATE Output: FunPieceList $f_{\text{out}}$
-\STATE $\text{prev\_min\_cost} \gets\infty$
-\STATE $\text{prev\_lower\_limit}\gets \text{LowerLimit}(f_{\text{in}}[0])$.
-\STATE $i\gets 0$; 
-\STATE While $i < $ length($f_{\text{in}}$):
-\begin{ALC@g}
-  \STATE FunPiece $p\gets f_{\text{in}}[i]$
-  \STATE if prev\_min\_cost == $\infty$: // look for min in this interval.
-  \begin{ALC@g}
-    \STATE $u\gets \text{OptimalMean}(p)$ 
-    \STATE if $\text{LowerLimit}(p)< u < \text{UpperLimit}(p)$:
-    \begin{ALC@g}
-      \STATE $\text{new\_interval}\gets [\text{prev\_lower\_limit}, u]$
-      // Minimum found in this interval.
-    \end{ALC@g}
-    \STATE else:
-    \begin{ALC@g}
-      \STATE 
-      $\text{new\_interval}\gets
- [\text{prev\_lower\_limit}, \text{UpperLimit}(p)]$
- // No minimum in this interval.
-    \end{ALC@g}
-  \end{ALC@g}
-  \STATE else:
-  \begin{ALC@g}
-    \STATE if constant cost intersects this piece:
-    \begin{ALC@g}
-      \STATE 
-      // add constant piece ending at intersection
-    \end{ALC@g}
-    \STATE else:
-    \begin{ALC@g}
-      \STATE 
-      // add constant piece over entire interval
-    \end{ALC@g}
-  \end{ALC@g}
-\end{ALC@g}
-\caption{MinLess algorithm for computing min-less operator.}
-\end{algorithmic}\label{algo:v2}
+\STATE Input: data set $\mathbf y\in\RR^n$, maximum number of segments $K$.
+\STATE Output: matrices of optimal segment means $U\in\RR^{K\times K}$ and ends $T\in\{1,\dots,n\}^{K\times K}$
+\STATE TODO
+\caption{\label{algo:minless}Segment Neighborhood Isotonic Regression (SNIR) solver.}
+\end{algorithmic}
 \end{algorithm}
-
-The last step of the dynamic programming recursion is computation of
-$\FCC_{K,n}(u)$. After that, we can begin computing optimal parameters
-by starting with the last segment mean $u_K = \argmin_u \FCC_{K,n}(u)$.
-By Lemma~\ref{lemma:t_change_points}, we can then compute the previous
-optimal change-point for $k=K-1$
-\begin{equation}
-\label{eq:decode_t}
-  t_{k} = \argmin_{\tau\in[k,n)} \FCC_{k,\tau}(u_{k+1}) + h_{\tau,n}(u_{k+1}).
-\end{equation}
-The next optimal segment mean is a constrained optimization for $k=K-1$
-\begin{equation}
-\label{eq:decode_u}
-  u_{k} = \argmin_{u\leq u_{k+1}} \FCC_{k,t_{k}}(u).
-\end{equation}
-Equations (\ref{eq:decode_t}-\ref{eq:decode_u}) are then used for all
-segment values $k$ from $K-2$ to 1.
 
 \section{Variants of the dynamic programming algorithm for other models}
 
@@ -763,6 +754,15 @@ $C_1(u) = \ell(y_1, u)$. The dynamic programming update rule for all data points
   \}.
 \end{equation}
 
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE Input: data set $\mathbf y\in\RR^n$, penalty constant $\lambda\geq 0$.
+\STATE Output: vectors of optimal segment means $\mathbf u\in\RR^{n}$ and ends $\mathbf t\in\{1,\dots,n\}^{n}$
+\STATE TODO
+\caption{\label{algo:minless}Optimal Partitioning Isotonic Regression (SNIR) solver.}
+\end{algorithmic}
+\end{algorithm}
+
 \subsection{The PeakSeg up-down constraint}
 
 To introduce the PeakSeg model \citep{HOCKING-PeakSeg}, we first
@@ -826,6 +826,14 @@ where the min-more operator is defined for any function $f:\RR\rightarrow\RR$ as
   f^\geq(u) = \min_{x\geq u} f(x).
 \end{equation}
 
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE Input: data set $\mathbf y\in\RR^n$, maximum number of segments $K$.
+\STATE Output: matrices of optimal segment means $U\in\RR^{K\times K}$ and ends $T\in\{1,\dots,n\}^{K\times K}$
+\STATE TODO
+\caption{\label{algo:minless}Solver for Segment Neighborhood problem with PeakSeg up-down constraints.}
+\end{algorithmic}
+\end{algorithm}
 
 \subsection{General linear inequality constraints
   between adjacent segment means}
@@ -1427,9 +1435,74 @@ optimization objective.
 \end{proof}
 
 \subsection{Implementation details}
-
+\label{sec:implementation-details}
 TODO discuss intervals, pseudocode, mean, weights, root finding that
 were used for implementing the PeakSeg model.
+
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE Input: FunctionPieceList $f_{\text{in}}$, a list of FunctionPiece objects.
+\STATE Output: FunctionPieceList $f_{\text{out}}$, initialized as an empty list.
+\STATE $\text{prev\_cost} \gets\infty$
+\STATE $\text{new\_lower\_limit}\gets \text{LowerLimit}(f_{\text{in}}[0])$.
+\STATE $i\gets 0$; // start at FunctionPiece on the left
+\STATE while $i < $ Length($f_{\text{in}}$): // continue until FunctionPiece on the right
+\begin{ALC@g}
+  \STATE FunctionPiece $p\gets f_{\text{in}}[i]$
+  \STATE if prev\_cost = $\infty$: // look for min in this interval.
+  \begin{ALC@g}
+    \STATE $\text{candidate\_mean}\gets \text{OptimalMean}(p)$ 
+    \STATE if $\text{LowerLimit}(p)< \text{candidate\_mean} < \text{UpperLimit}(p)$:
+    \begin{ALC@g}
+      \STATE $\text{new\_upper\_limit}\gets \text{candidate\_mean}$ // Minimum found in this interval.
+      \STATE $\text{prev\_cost}\gets \text{GetCost}(p, \text{candidate\_mean})$
+      \STATE $\text{prev\_mean}\gets \text{candidate\_mean}$
+    \end{ALC@g}
+    \STATE else: // No minimum in this interval.
+    \begin{ALC@g}
+      \STATE 
+      $\text{new\_upper\_limit}\gets
+ \text{UpperLimit}(p)$
+    \end{ALC@g}
+    \STATE $f_{\text{out}}\text{.push\_piece}(\text{new\_lower\_limit},\text{new\_upper\_limit},p,\infty)$
+    \STATE $\text{new\_lower\_limit}\gets\text{new\_upper\_limit}$
+    \STATE $i\gets i+1$
+  \end{ALC@g}
+  \STATE else: // look for equality of $p$ and prev\_cost
+  \begin{ALC@g}
+    \STATE $(\text{small\_root},\text{large\_root})\gets\text{ComputeRoots}(p, \text{prev\_cost})$
+    \STATE if $\text{LowerLimit}(p) < \text{small\_root} < \text{UpperLimit}(p)$:
+    \begin{ALC@g}
+      \STATE $f_{\text{out}}\text{.push\_piece}(
+      \text{new\_lower\_limit}, 
+      \text{small\_root}, 
+      \text{ConstPiece}(\text{prev\_cost}), 
+      \text{prev\_mean})$
+      \STATE $\text{new\_lower\_limit}\gets \text{small\_root}$
+      \STATE $\text{prev\_cost}\gets \infty$ 
+    \end{ALC@g}
+    \STATE else: // no equality in this interval
+    \begin{ALC@g}
+      \STATE $i\gets i+1$ // continue to next FunctionPiece
+    \end{ALC@g}
+  \end{ALC@g}
+\end{ALC@g}
+  \STATE if $\text{prev\_cost} < \infty$: // ending on constant piece
+  \begin{ALC@g}
+    \STATE $f_{\text{out}}\text{.push\_piece}(
+    \text{new\_lower\_limit}, 
+    \text{UpperLimit}(p), 
+    \text{ConstPiece}(\text{prev\_cost}), 
+    \text{prev\_mean})$
+  \end{ALC@g}
+\caption{\label{algo:minless}MinLess algorithm.}
+\end{algorithmic}
+\end{algorithm}
+
+Consider Algorithm~\ref{algo:minless} which contains pseudocode for
+the computation of the min-less operator. The algorithm follows the
+convex function pieces from left to right until finding a
+minimum. Then TODO discuss lines.
 
 \subsection{Results on very large data sets}
 
