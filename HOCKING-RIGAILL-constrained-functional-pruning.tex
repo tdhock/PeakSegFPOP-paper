@@ -112,8 +112,8 @@ nearly-isotonic regression \citep{tibshirani2011nearly}.
 
 TODO discuss isotonic DP \citep{isotonic-dp}, functional pruning
 \citep{phd-johnson}, reduced isotonic regression
-\citep{hardwick2014optimal}, unimodal segmentation
-\citep{haiminen2008algorithms}, histogram construction
+\citep{hardwick2014optimal, reduced-monotonic-regression}, unimodal
+segmentation \citep{haiminen2008algorithms}, histogram construction
 \citep{halim2009fast}.
 
 \subsection{Contributions}
@@ -154,8 +154,8 @@ inequality constraints on segment means, but no limit on the number of
 segments \citep{mair2009isotone}. Then we explain the segment
 neighborhood model \citep{segment-neighborhood}, which limits the
 number of segment means, but has no inequality constraints. Finally,
-we propose a new model called segment neighborhood isotonic regression
-(SNIR) which combines these two types of constraints.
+we discuss a combination of the two models which we call segment
+neighborhood isotonic regression (SNIR).
 
 \subsection{Classical isotonic regression}
 
@@ -238,14 +238,25 @@ $O(K n \log n)$ time using the pruned dynamic programming algorithm of
 \citet{pruned-dp}.
 
 Unlike isotonic regression, the segment neighborhood model
-does not constrain the segment means to be increasing. Thus, for some
+does not constrain the direction of the changes. Thus, for some
 data sets $\mathbf y$, the segment neighborhood model may
 recover a change down ($m_i > m_{i+1}$). For applications where
 isotonic regression is used, it would be desirable to compute a model
-with $K$ non-decreasing segment means. This results in the regularized
+with $K$ non-decreasing segment means. This results in the segment neighborhood
 isotonic regression problem, which we introduce in the next section.
 
 \subsection{Segment neighborhood isotonic regression (SNIR)}
+
+The idea of fitting a non-decreasing function with a limited number of
+change-points has been previously described as ``reduced isotonic
+regression'' \citep{reduced-monotonic-regression,
+  hardwick2014optimal}. In this paper we refer to the optimization
+problem as Segment Neighborhood Isotonic Regression (SNIR) in order to
+emphasize the similarity to the segment neighborhood problem
+(\ref{eq:optimal_segment_neighborhood}). Both problems impose a
+constraint of at most $K$ segment means ($K-1$
+change-points). However, the SNIR problem imposes an additional
+constraint that the segment mean must never decrease.
 
 \begin{definition}[Segment neighborhood isotonic regression constraints]
   \label{def:I}
@@ -665,9 +676,11 @@ the computation:
 \item FunctionPieceList: an ordered list of FunctionPiece objects,
   which exactly stores a cost function $\FCC_{k,t}(u)$ for all values
   of last segment mean $u$.
-\item $\text{MinLess}(f)$: an algorithm that inputs a
-  FunctionPieceList and outputs the corresponding min-less operator
-  (another FunctionPieceList). This algorithm should keep track See
+\item $\text{MinLess}(t, f)$: an algorithm that inputs a change-point
+  and a FunctionPieceList, and outputs the corresponding min-less
+  operator (another FunctionPieceList), with the previous change-point
+  $t'=t$ for each of its pieces. This algorithm also needs to store
+  the previous mean value $u'$ for each of the function pieces. See
   Section~\ref{sec:implementation-details} for more details and
   pseudocode for this algorithm.
 \item $\text{MinOfTwo} (f_1, f_2)$: an algorithm that inputs two
@@ -679,9 +692,42 @@ the computation:
 
 \begin{algorithm}[H]
 \begin{algorithmic}[1]
-\STATE Input: data set $\mathbf y\in\RR^n$, maximum number of segments $K$.
-\STATE Output: matrices of optimal segment means $U\in\RR^{K\times K}$ and ends $T\in\{1,\dots,n\}^{K\times K}$
-\STATE TODO
+\STATE Input: data set $\mathbf y\in\RR^n$, maximum number of segments $K\in\{2,\dots, n\}$.
+\STATE Output: matrices of optimal segment means $U\in\RR^{K\times K}$ 
+and ends $T\in\{1,\dots,n\}^{K\times K}$
+\STATE Compute min $\underline y$ and max $\overline y$ of $\mathbf y$.
+\STATE $\FCC_{1,1}\gets \text{FunctionPiece}(y_1, \underline y, \overline y)$
+\STATE for data points $t$ from 2 to $n$:
+\begin{ALC@g}
+  \STATE $\FCC_{1,t}\gets \text{FunctionPiece}(y_t, \underline y, \overline y) + \FCC_{1,t-1}$
+\end{ALC@g}
+\STATE for segments $k$ from 2 to $K$: for data points $t$ from $k$ to $K$: // dynamic programming
+\begin{ALC@g}
+  \STATE $\text{min\_prev}\gets \text{MinLess}(t-1, \FCC_{k-1,t-1})$
+  % \STATE if $t=k$:
+  % \begin{ALC@g}
+  %   \STATE $\text{min\_new}\gets\text{min\_prev}$ // there is only one
+  %   possible change-point, before $t$
+  % \end{ALC@g}
+  % \STATE else:
+  % \begin{ALC@g}
+  %   \STATE $\text{min\_new}\gets\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
+  % \end{ALC@g}
+    \STATE $\text{min\_new}\gets\text{min\_prev}$ if $t=k$, 
+else $\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
+  \STATE $\FCC_{k,t}\gets \text{min\_new} + \text{FunctionPiece}(y_t, \underline y, \overline y)$
+\end{ALC@g}
+\STATE for segments $k$ from 2 to $K$: // decoding
+\begin{ALC@g}
+  \STATE $u^*,t',u'\gets \text{Minimize}(\FCC_{k,n})$
+  \STATE $U_{k,k}\gets u^*;\, T_{k,k}\gets t'$
+  \STATE for segment $s$ from $k-1$ to $1$:
+  \begin{ALC@g}
+    \STATE if $u' < \infty$: $u^*\gets u'$
+    \STATE $t',u'\gets\text{FindMean}(u^*, \FCC_{s,t'})$
+    \STATE $U_{k,s}\gets u^*;\, T_{k,s}\gets t'$
+  \end{ALC@g}
+\end{ALC@g}
 \caption{\label{algo:minless}Segment Neighborhood Isotonic Regression (SNIR) solver.}
 \end{algorithmic}
 \end{algorithm}
@@ -759,7 +805,7 @@ $C_1(u) = \ell(y_1, u)$. The dynamic programming update rule for all data points
 \STATE Input: data set $\mathbf y\in\RR^n$, penalty constant $\lambda\geq 0$.
 \STATE Output: vectors of optimal segment means $\mathbf u\in\RR^{n}$ and ends $\mathbf t\in\{1,\dots,n\}^{n}$
 \STATE TODO
-\caption{\label{algo:minless}Optimal Partitioning Isotonic Regression (SNIR) solver.}
+\caption{\label{algo:minless}Optimal Partitioning Isotonic Regression (OPIR) solver.}
 \end{algorithmic}
 \end{algorithm}
 
@@ -1441,7 +1487,8 @@ were used for implementing the PeakSeg model.
 
 \begin{algorithm}[H]
 \begin{algorithmic}[1]
-\STATE Input: FunctionPieceList $f_{\text{in}}$, a list of FunctionPiece objects.
+\STATE Input: The previous segment end $t_{\text{prev}}$ (an integer), 
+ and $f_{\text{in}}$ (a FunctionPieceList).
 \STATE Output: FunctionPieceList $f_{\text{out}}$, initialized as an empty list.
 \STATE $\text{prev\_cost} \gets\infty$
 \STATE $\text{new\_lower\_limit}\gets \text{LowerLimit}(f_{\text{in}}[0])$.
@@ -1495,6 +1542,7 @@ were used for implementing the PeakSeg model.
     \text{ConstPiece}(\text{prev\_cost}), 
     \text{prev\_mean})$
   \end{ALC@g}
+\STATE Set all previous segment end $t'=t_{\text{prev}}$  for all FunctionPieces in $f_{\text{out}}$
 \caption{\label{algo:minless}MinLess algorithm.}
 \end{algorithmic}
 \end{algorithm}
