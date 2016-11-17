@@ -77,8 +77,15 @@ only.algos <- cbind(
 no.names <- as.matrix(rbind(only.algos, total.row))
 rownames(no.names) <- c(train.ord$algorithm, "possible")
 library(xtable)
-xt <- xtable(no.names, digits=0)
-print(xt, file="table-min-train-error.tex", row.names=FALSE, floating=FALSE)
+colnames(no.names)[4:5] <- c(
+  "feasible models",
+  "problems with 10 feasible models"
+  )
+some.out <- no.names[, -5]
+xt <- xtable(some.out, digits=0)
+txt <- print(xt, row.names=FALSE, floating=FALSE)
+txt.hline <- sub("possible", "\\\\hline possible", txt)
+cat(txt.hline, file="table-min-train-error.tex")
 
 train.error.wide <-
   dcast(min.train.error, chunk.name + sample.id ~ algorithm, value.var="errors")

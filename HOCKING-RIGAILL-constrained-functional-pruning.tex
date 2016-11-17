@@ -305,13 +305,14 @@ that it is equivalent to solve a simpler problem with fewer
 optimization variables. Then, we show how to recursively compute the
 solution using dynamic programming.
 
+
 \subsection{Equivalent problem with fewer optimization 
 variables}
 
-First, consider the following definition of a reduced optimization
+First, consider the following definition of a smaller optimization
 space with only $K$ segment means and $K-1$ change-point indices.
 
-\begin{definition}[Reduced optimization space for segment neighborhood isotonic regression]
+\begin{definition}[Smaller optimization space for segment neighborhood isotonic regression]
 \label{def:Ibar}
   Let $(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^K$ be the set of
   all non-decreasing segment means $u_1\leq\cdots\leq u_K$ and
@@ -328,7 +329,7 @@ for each segment $k\in\{1, \dots, K\}$,
 \end{equation}
 This results in the following optimization problem,
 \begin{equation}
-  \label{eq:isotonic_reduced}
+  \label{eq:isotonic_ut}
   \minimize_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^K}
   \sum_{k=1}^K
   h_{t_{k-1}, t_k}(u_k)
@@ -337,22 +338,22 @@ Rather than explicitly summing over data points $i$ as in problem
 (\ref{eq:isotonic}), this problem sums over segments $k$. The next lemma
 proves that it is equivalent to solve this simpler optimization problem.
 
-\begin{lemma}[Equivalence of problem with reduced number of variables]
-  \label{lemma:reduced}
-  Let $(\mathbf u, \mathbf t)$ be the solution to the reduced problem
-  (\ref{eq:isotonic_reduced}), and consider the following mapping from
-  the reduced space $\bar{\mathcal I}_K^n$ to the original space
-  $\mathcal I_K^n$. For each segment $k\in\{1,\dots,K\}$, we assign
-  $m_i = u_k$ for all data points $i\in(t_{k-1},t_k]$ on that
-  segment. Furthermore, for all data points before change-points
-  $i\in\{t_1,\dots,t_{K-1}\}$ we assign $c_i=1$, and we assign $c_i=0$
-  for all other data points $i\not\in\{t_1,\dots,t_{K-1}\}$. Then
-  $(\mathbf m, \mathbf c)$ is the solution to problem
-  (\ref{eq:isotonic}).
+\begin{lemma}[Equivalence of problem with fewer optimization variables]
+  \label{lemma:fewer-variables}
+  Let $(\mathbf u, \mathbf t)$ be the solution to problem with fewer
+  optimization variables (\ref{eq:isotonic_ut}), and consider the
+  following mapping from the smaller space $\bar{\mathcal I}_K^n$ to
+  the original larger space $\mathcal I_K^n$. For each segment
+  $k\in\{1,\dots,K\}$, we assign $m_i = u_k$ for all data points
+  $i\in(t_{k-1},t_k]$ on that segment. Furthermore, for all data
+  points before change-points $i\in\{t_1,\dots,t_{K-1}\}$ we assign
+  $c_i=1$, and we assign $c_i=0$ for all other data points
+  $i\not\in\{t_1,\dots,t_{K-1}\}$. Then $(\mathbf m, \mathbf c)$ is
+  the solution to problem (\ref{eq:isotonic}).
 \end{lemma}
 
 \begin{proof}
-  It is clear that the mapping defined in Lemma~\ref{lemma:reduced} is
+  It is clear that the mapping defined in Lemma~\ref{lemma:fewer-variables} is
   a bijection between $\bar{\mathcal I}_K^n$ and $\mathcal I_K^n$,
   since the constraints in Definitions~\ref{def:I} and~\ref{def:Ibar}
   are satisfied. Since the objective functions are equivalent, the
@@ -376,7 +377,7 @@ proves that it is equivalent to solve this simpler optimization problem.
 
 \subsection{Dynamic programming solution}
 
-Optimization problem (\ref{eq:isotonic_reduced}) has $K$ segment mean
+Optimization problem (\ref{eq:isotonic_ut}) has $K$ segment mean
 variables and $K-1$ change-point index variables. In this section we
 will further eliminate all variables except a single segment mean
 variable using dynamic programming. First, for any function
@@ -481,12 +482,12 @@ programming solution.
   For a data set $\mathbf y\in\RR^n$, and any number of segments $K\leq n$,
   the optimal dynamic programming cost $\min_u \FCC_{K,n}(u)$ is
   equivalent to the minimum value of the segment neighborhood isotonic
-  regression problem (\ref{eq:isotonic_reduced}).
+  regression problem (\ref{eq:isotonic_ut}).
 \end{theorem}
 \begin{proof}
   We proceed by induction on segments $K$. First, consider the case of $K=2$ segments:
 \begin{eqnarray}
-  \label{eq:isotonic_reduced_2}
+  \label{eq:isotonic_ut_2}
   \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^2}
   \sum_{k=1}^2
   h_{t_{k-1}, t_k}(u_k)
@@ -505,7 +506,7 @@ programming solution.
       \label{eq:u2}
   \min_{u_2} \FCC_{2, n}(u_2).
 \end{eqnarray}
-The first equality (\ref{eq:isotonic_reduced_2}) follows from
+The first equality (\ref{eq:isotonic_ut_2}) follows from
 expanding the optimization variables and the sum. The second equality
 (\ref{eq:min-less-2}) follows from the definition of the min-less
 operator (\ref{eq:min-less-def}). The final equality (\ref{eq:u2})
@@ -658,27 +659,12 @@ the computation:
   function (for the square loss it has three coefficients), and it
   always has elements for min/max mean values, and previous segment
   endpoint $t'$ and mean $u'$.
-\item $\text{GetCost}(p, u)$: an algorithm that takes a FunctionPiece
-  object $p$, and a mean value $u$, and computes the cost at $u$. For
-  a square loss FunctionPiece $p$ with coefficients $a,b,c\in\RR$, we
-  have $\text{GetCost}(p,u)=au^2+bu+c$.
-\item $\text{OptimalMean}(p)$: an algorithm that takes one
-  FunctionPiece object, and computes the optimal mean value. For a
-  square loss FunctionPiece $p$ we have
-  $\text{OptimalMean}(p)=-b/(2a)$.
-\item $\text{ComputeRoots}(p, d)$: an algorithm that takes one
-  FunctionPiece object, and computes the solutions to $p(u)=d$. For
-  the square loss we propose to use the quadratic formula. For other
-  convex losses that do not have closed form expressions for their
-  roots, we propose to use Newton's root finding method. Note that for
-  some constants $d$ there are no roots, and the algorithm needs to
-  report that.
 \item FunctionPieceList: an ordered list of FunctionPiece objects,
   which exactly stores a cost function $\FCC_{k,t}(u)$ for all values
   of last segment mean $u$.
 \item $\text{MinLess}(t, f)$: an algorithm that inputs a change-point
   and a FunctionPieceList, and outputs the corresponding min-less
-  operator (another FunctionPieceList), with the previous change-point
+  operator $f^\leq$ (another FunctionPieceList), with the previous change-point set to
   $t'=t$ for each of its pieces. This algorithm also needs to store
   the previous mean value $u'$ for each of the function pieces. See
   Section~\ref{sec:implementation-details} for more details and
@@ -688,6 +674,8 @@ the computation:
   object which is their minimum. See
   Section~\ref{sec:implementation-details} for more details and
   pseudocode for this algorithm.
+\item Minimize TODO
+\item FindMean TODO
 \end{itemize}
 
 \begin{algorithm}[H]
@@ -717,7 +705,7 @@ and ends $T\in\{1,\dots,n\}^{K\times K}$
 else $\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
   \STATE $\FCC_{k,t}\gets \text{min\_new} + \text{FunctionPiece}(y_t, \underline y, \overline y)$
 \end{ALC@g}
-\STATE for segments $k$ from 2 to $K$: // decoding
+\STATE for segments $k$ from 1 to $K$: // decoding
 \begin{ALC@g}
   \STATE $u^*,t',u'\gets \text{Minimize}(\FCC_{k,n})$
   \STATE $U_{k,k}\gets u^*;\, T_{k,k}\gets t'$
@@ -981,16 +969,30 @@ considered 2752 segmentation problems consisting of chromosome subsets
 in samples with labels that indicate presence or absence of peaks. For
 each segmentation problem we attempt to compute models with 0, ..., 9
 peaks, so there are a total of 27520 possible models for each
-algorithm. The cDPA (PeakSegDP R pkg) computes a sub-optimal model for
-7246/27520 = 26\% of models. For 1032/7246 of these, the PeakSeg
-solution exists and is recovered by our new algo (coseg R pkg) but not
-the unconstrained algo (Segmentor R pkg). These results suggest that
-in ChIP-seq data sets, the new coseg algorithm is more accurate than
-PeakSegDP, in terms of the Poisson likelihood. Furthermore, these
-results suggest that coseg is more useful than Segmentor, since there
-are many problems for which Segmentor does not recover a model that
-verifies the \ref{PeakSeg} up-down constraint on the segment means.
+algorithm. The PeakSegDP algorithm either recovers an up-down model or
+no model at all. When the coseg and Segmentor algorithms recovered
+models that did not obey the PeakSeg up-down constraints, we discarded
+those infeasible models.
+
+We show the number of models which are feasible for the PeakSeg
+up-down constraint in Table~\ref{tab:min-train-error}. The PeakSegDP
+package computed the most feasible models (27469/27520=99.8\%),
+followed by the coseg package (21278/27520=77.3\%), and the Segmentor
+package computed the fewest (8106/27520=29.4\%).
+
+In terms of optimality, the cDPA (PeakSegDP R pkg) computes a
+sub-optimal model for 7246/27520 = 26.3\% of models. For 1032/7246 of
+these, the PeakSeg solution exists and is recovered by our new algo
+(coseg R pkg) but not the unconstrained algo (Segmentor R pkg). These
+results suggest that in ChIP-seq data sets, the new coseg algorithm is
+more accurate than PeakSegDP, in terms of the Poisson
+likelihood. Furthermore, these results suggest that coseg is more
+useful than Segmentor, since there are many cases for which Segmentor
+does not recover a model that verifies the \ref{PeakSeg} up-down
+constraint on the segment means.
 % Numbers come from figure-PDPA-cDPA-compare.R
+
+
 
 To compute the accuracy of the algorithms in the benchmark data sets,
 we quantified false positive and false negative peak detection error
@@ -1000,14 +1002,6 @@ specific samples and genomic regions
 peak is predicted in a region with a positive label, and a false
 positive occurs when a peak is predicted in a region with a negative
 label.
-
-TODO The PeakSegDP package computed at least one model for
-2738/2752=99.5\% of segmentation problems, and 27469 models
-overall. first discarded models which were not feasible for the
-\ref{PeakSeg} problem using the some more in-depth discussion on the
-difference between train and test error results. In terms of minimum
-train error, the new coseg algorithm is always at least as accurate as
-the unconstrained Segmentor algorithm(figure?). 
 
 Finally, we performed 4-fold cross-validation to estimate the test
 error of each algorithm. For each of the 7 data sets, we randomly
@@ -1039,14 +1033,19 @@ benchmark was PeakSegDP, and we observed that the new coseg algorithm
 achieves comparable test AUC (Figure~\ref{fig:test-error-dots}). In
 contrast, the unconstrained Segmentor algorithm has TODO
 
-
-
 \begin{figure}[b!]
   \centering
   \includegraphics[width=\textwidth]{figure-test-error-dots}
-  \caption{Test AUC on 7 benchmark data sets. Each black circle shows
-    the test AUC in one of four cross-validation folds, and the shaded
-    grey circle is the mean. Interactive version at
+  \vskip -0.5cm
+  \caption{Four-fold cross-validation was used to estimate prediction
+    accuracy of each algorithm in each of the 7 ChIP-seq data
+    sets. Each black circle shows the test AUC in one of four
+    cross-validation folds, the shaded grey circle is the mean, and
+    the vertical line shows the maximum mean in each data set. It is
+    clear that the new algorithm implemented in the coseg R package is
+    just as accurate as the slower PeakSegDP heuristic, and both are
+    more accurate than the other baseline methods. Interactive version
+    available at
     \url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}}
   \label{fig:test-error-dots}
 \end{figure}
@@ -1054,10 +1053,19 @@ contrast, the unconstrained Segmentor algorithm has TODO
 
 \begin{table}[b!]
   \centering
-  %\input{table-min-train-error}
-  \caption{Comparison of minimum train error for 12,826 labels in the 7 ChIP-seq data sets. 
-    The new coseg algorithm is
-    always at least as accurate as Segmentor, and TODO.}
+  \input{table-min-train-error}
+  \caption{Comparison of algorithms in the ChIP-seq data sets,
+    in terms of minimum train error and number of feasible models. 
+    For each of the 2752 separate segmentation problems, 
+    each algorithm was run with several parameter values (see text for details), 
+    and we selected the parameter with the minimum number of incorrect labels
+    (errors = fp + fn). 
+    The new algorithm implemented in the coseg R package 
+    commits fewer false positives than the slower PeakSegDP heuristic, 
+    and fewer errors than the other baseline methods.
+    The new algorithm computed models that are feasible for the PeakSeg up-down constraint
+    more frequently than the unconstrained Segmentor algo,
+    but less frequently than the PeakSegDP algo.}
   \label{tab:min-train-error}
 \end{table}
 
@@ -1484,6 +1492,24 @@ optimization objective.
 \label{sec:implementation-details}
 TODO discuss intervals, pseudocode, mean, weights, root finding that
 were used for implementing the PeakSeg model.
+
+\begin{itemize}
+\item $\text{GetCost}(p, u)$: an algorithm that takes a FunctionPiece
+  object $p$, and a mean value $u$, and computes the cost at $u$. For
+  a square loss FunctionPiece $p$ with coefficients $a,b,c\in\RR$, we
+  have $\text{GetCost}(p,u)=au^2+bu+c$.
+\item $\text{OptimalMean}(p)$: an algorithm that takes one
+  FunctionPiece object, and computes the optimal mean value. For a
+  square loss FunctionPiece $p$ we have
+  $\text{OptimalMean}(p)=-b/(2a)$.
+\item $\text{ComputeRoots}(p, d)$: an algorithm that takes one
+  FunctionPiece object, and computes the solutions to $p(u)=d$. For
+  the square loss we propose to use the quadratic formula. For other
+  convex losses that do not have closed form expressions for their
+  roots, we propose to use Newton's root finding method. Note that for
+  some constants $d$ there are no roots, and the algorithm needs to
+  report that.
+\end{itemize}
 
 \begin{algorithm}[H]
 \begin{algorithmic}[1]
