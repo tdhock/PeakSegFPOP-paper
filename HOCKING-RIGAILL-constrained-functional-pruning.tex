@@ -961,7 +961,7 @@ $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{
 
 \section{Results}
 
-\subsection{Accuracy on ChIP-seq data}
+\subsection{Feasibility and optimality in ChIP-seq data}
 
 We ran the Segmentor, PeakSegDP, and coseg algorithms on the McGill
 ChIP-seq benchmark data sets \citep{HOCKING2016-chipseq}. We
@@ -978,21 +978,19 @@ We show the number of models which are feasible for the PeakSeg
 up-down constraint in Table~\ref{tab:min-train-error}. The PeakSegDP
 package computed the most feasible models (27469/27520=99.8\%),
 followed by the coseg package (21278/27520=77.3\%), and the Segmentor
-package computed the fewest (8106/27520=29.4\%).
-
-In terms of optimality, the cDPA (PeakSegDP R pkg) computes a
-sub-optimal model for 7246/27520 = 26.3\% of models. For 1032/7246 of
-these, the PeakSeg solution exists and is recovered by our new algo
-(coseg R pkg) but not the unconstrained algo (Segmentor R pkg). These
-results suggest that in ChIP-seq data sets, the new coseg algorithm is
-more accurate than PeakSegDP, in terms of the Poisson
-likelihood. Furthermore, these results suggest that coseg is more
-useful than Segmentor, since there are many cases for which Segmentor
-does not recover a model that verifies the \ref{PeakSeg} up-down
-constraint on the segment means.
+package computed the fewest (8106/27520=29.4\%). In terms of
+optimality, the cDPA (PeakSegDP R pkg) computes a sub-optimal model
+for 7246/27520 = 26.3\% of models. For 1032/7246 of these, the PeakSeg
+solution exists and is recovered by our new algo (coseg R pkg) but not
+the unconstrained algo (Segmentor R pkg). These results suggest that
+in ChIP-seq data sets, the new coseg algorithm is more accurate than
+PeakSegDP, in terms of the Poisson likelihood. Furthermore, these
+results suggest that coseg is more useful than Segmentor, since there
+are many cases for which Segmentor does not recover a model that
+verifies the \ref{PeakSeg} up-down constraint on the segment means.
 % Numbers come from figure-PDPA-cDPA-compare.R
 
-
+\subsection{Minimum train error in ChIP-seq data}
 
 To compute the accuracy of the algorithms in the benchmark data sets,
 we quantified false positive and false negative peak detection error
@@ -1002,6 +1000,25 @@ specific samples and genomic regions
 peak is predicted in a region with a positive label, and a false
 positive occurs when a peak is predicted in a region with a negative
 label.
+
+We quantified the minimum train error for each optimal segmentation
+algorithm for each of the 2752 problems, by selecting the number of
+peaks $p\in\{0, ..., 9\}$ which had the minimum number of incorrect
+labels (total error = false positives + false negatives). The baseline
+MACS algorithm was trained by varying the qvalue parameter between 0
+and 0.8. The baseline HMCanBroad algorithm was trained by varying the
+finalThreshold parameter between $10^{-10}$ and
+$10^5$.
+
+The minimum train error for each algorithm is shown in
+Table~\ref{tab:min-train-error}. The algorithm with the smallest
+minimum train error was PeakSegDP (677/27520=2.5\%), followed by coseg
+(789/27520=2.9\%). The other algorithms had much larger minimum train
+error rates (4.7\%--10.1\%). These results suggest that the new coseg
+algorithm can find segmentation models which are nearly as accurate as
+the previous state-of-the-art PeakSegDP method.
+
+\subsection{Test error in ChIP-seq data}
 
 Finally, we performed 4-fold cross-validation to estimate the test
 error of each algorithm. For each of the 7 data sets, we randomly
@@ -1069,7 +1086,7 @@ contrast, the unconstrained Segmentor algorithm has TODO
   \label{tab:min-train-error}
 \end{table}
 
-\subsection{Timings}
+\subsection{Timings in ChIP-seq data}
 
 \begin{figure}[b!]
   \centering
