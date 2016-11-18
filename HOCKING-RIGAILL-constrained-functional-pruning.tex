@@ -286,7 +286,7 @@ For a given data set $\mathbf y\in\RR^n$, loss function $\ell$, and
 number of segments $K$, we define the segment neighborhood isotonic regression
 problem as
 \begin{equation}
-  \label{eq:regularized_isotonic}
+  \label{eq:SNIR}
   \minimize_{(\mathbf m, \mathbf c)\in\mathcal I_K^n} \sum_{i=1}^n \ell(y_i, m_i).
 \end{equation}
 
@@ -300,11 +300,10 @@ using an efficient dynamic programming algorithm.
 
 In this section we propose a new dynamic programming algorithm that
 can be used to compute the solution to the segment neighborhood isotonic
-regression problem (\ref{eq:regularized_isotonic}). First, we show
+regression problem (\ref{eq:SNIR}). First, we show
 that it is equivalent to solve a simpler problem with fewer
 optimization variables. Then, we show how to recursively compute the
 solution using dynamic programming.
-
 
 \subsection{Equivalent problem with fewer optimization 
 variables}
@@ -657,25 +656,36 @@ the computation:
 \item FunctionPiece: a data structure which represents one piece of a
   cost function. It has coefficients which depend on the convex loss
   function (for the square loss it has three coefficients), and it
-  always has elements for min/max mean values, and previous segment
-  endpoint $t'$ and mean $u'$.
+  always has elements for min/max mean values
+  $[\underline u, \overline u]$, and previous segment endpoint $t'$
+  and mean $u'$.
 \item FunctionPieceList: an ordered list of FunctionPiece objects,
   which exactly stores a cost function $\FCC_{k,t}(u)$ for all values
   of last segment mean $u$.
+\item $\text{OnePiece}(y, \underline u, \overline u)$: initialize a
+  FunctionPieceList with just one FunctionPiece $\ell(y, u)$ defined
+  on $[\underline u, \overline u]$.
 \item $\text{MinLess}(t, f)$: an algorithm that inputs a change-point
   and a FunctionPieceList, and outputs the corresponding min-less
-  operator $f^\leq$ (another FunctionPieceList), with the previous change-point set to
-  $t'=t$ for each of its pieces. This algorithm also needs to store
-  the previous mean value $u'$ for each of the function pieces. See
-  Section~\ref{sec:implementation-details} for more details and
+  operator $f^\leq$ (another FunctionPieceList), with the previous
+  change-point set to $t'=t$ for each of its pieces. This algorithm
+  also needs to store the previous mean value $u'$ for each of the
+  function pieces. The supplementary materials
+  (Section~\ref{sec:implementation-details}) contains
   pseudocode for this algorithm.
 \item $\text{MinOfTwo} (f_1, f_2)$: an algorithm that inputs two
   FunctionPieceList objects, and outputs another FunctionPieceList
-  object which is their minimum. See
-  Section~\ref{sec:implementation-details} for more details and
+  object which is their minimum. The supplementary materials
+  (Section~\ref{sec:implementation-details}) contains
   pseudocode for this algorithm.
-\item Minimize TODO
-\item FindMean TODO
+\item $\text{ArgMin}(f)$: an algorithm that inputs a FunctionPieceList
+  and outputs three values: the optimal mean $u^*=\argmin_u f(u)$, the
+  previous segment end $t'$ and mean $u'$.
+\item $\text{FindMean}(u, f)$ an algorithm that inputs a mean value
+  and a FunctionPieceList. It finds the FunctionPiece in $f$ with mean
+  $u\in[\underline u, \overline u]$ contained in its interval, then
+  outputs the previous segment end $t'$ and mean $u'$ stored in that
+  FunctionPiece.
 \end{itemize}
 
 \begin{algorithm}[H]
@@ -684,14 +694,15 @@ the computation:
 \STATE Output: matrices of optimal segment means $U\in\RR^{K\times K}$ 
 and ends $T\in\{1,\dots,n\}^{K\times K}$
 \STATE Compute min $\underline y$ and max $\overline y$ of $\mathbf y$.
-\STATE $\FCC_{1,1}\gets \text{FunctionPiece}(y_1, \underline y, \overline y)$
+\STATE $\FCC_{1,1}\gets \text{OnePiece}(y_1, \underline y, \overline y)$
 \STATE for data points $t$ from 2 to $n$:
 \begin{ALC@g}
-  \STATE $\FCC_{1,t}\gets \text{FunctionPiece}(y_t, \underline y, \overline y) + \FCC_{1,t-1}$
+  \STATE $\FCC_{1,t}\gets \text{OnePiece}(y_t, \underline y, \overline y) + \FCC_{1,t-1}$
 \end{ALC@g}
 \STATE for segments $k$ from 2 to $K$: for data points $t$ from $k$ to $K$: // dynamic programming
 \begin{ALC@g}
   \STATE $\text{min\_prev}\gets \text{MinLess}(t-1, \FCC_{k-1,t-1})$
+  \label{line:MinLess}
   % \STATE if $t=k$:
   % \begin{ALC@g}
   %   \STATE $\text{min\_new}\gets\text{min\_prev}$ // there is only one
@@ -707,7 +718,7 @@ else $\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
 \end{ALC@g}
 \STATE for segments $k$ from 1 to $K$: // decoding
 \begin{ALC@g}
-  \STATE $u^*,t',u'\gets \text{Minimize}(\FCC_{k,n})$
+  \STATE $u^*,t',u'\gets \text{ArgMin}(\FCC_{k,n})$
   \STATE $U_{k,k}\gets u^*;\, T_{k,k}\gets t'$
   \STATE for segment $s$ from $k-1$ to $1$:
   \begin{ALC@g}
@@ -746,8 +757,13 @@ algorithm.
 
 \subsection{Optimal partitioning isotonic regression (OPIR)}
 
-As in the Functional Pruning Optimal Partitioning (FPOP) algorithm of
-\citet{FPOP}, we can define the OPIR constraints as follows.
+
+\citet{FPOP} proposed the Functional Pruning Optimal Partitioning
+(FPOP) algorithm to solve the ``penalized'' version of the segment
+neighborhood problem. For the penalized version of the segment
+neighborhood isotonic regression problem (\ref{eq:SNIR}), we use the
+name ``Optimal Partitioning Isotonic Regression.'' The OPIR problem has
+the following constraints.
 \begin{definition}[Optimal partitioning isotonic regression constraints]
   \label{def:P}
   Let $(\mathbf m, \mathbf c)\in\mathcal P_K^n$ be the set of all segment means
@@ -861,15 +877,10 @@ where the min-more operator is defined for any function $f:\RR\rightarrow\RR$ as
   \label{eq:min-more-def}
   f^\geq(u) = \min_{x\geq u} f(x).
 \end{equation}
-
-\begin{algorithm}[H]
-\begin{algorithmic}[1]
-\STATE Input: data set $\mathbf y\in\RR^n$, maximum number of segments $K$.
-\STATE Output: matrices of optimal segment means $U\in\RR^{K\times K}$ and ends $T\in\{1,\dots,n\}^{K\times K}$
-\STATE TODO
-\caption{\label{algo:PeakSegPDPA}Solver for Segment Neighborhood problem with PeakSeg up-down constraints.}
-\end{algorithmic}
-\end{algorithm}
+To implement this update rule, the only modification to
+Algorithm~\ref{algo:SNIR} is at line~\ref{line:MinLess}. Instead of
+always using the MinLess algorithm, the constrained version uses the
+MinMore algorithm for odd segments $k$.
 
 \subsection{General linear inequality constraints
   between adjacent segment means}
