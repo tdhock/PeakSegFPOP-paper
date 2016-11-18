@@ -82,7 +82,8 @@ gg.log <- ggplot()+
             data=window.seconds)+
   geom_text(aes(2.5, log10(seconds), label=label),
             data=lab.df,
-            vjust=-0.5)
+            vjust=-0.5)+
+  ylab("log10(seconds)")
 my.method <- list("last.points", dl.trans(x=x+0.1))
 dl.log <- direct.label(gg.log, "last.polygons")+
   scale_x_continuous(
