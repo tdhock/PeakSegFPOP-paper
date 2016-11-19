@@ -1,6 +1,5 @@
 \documentclass{article}
 \usepackage{fullpage}
-
 \usepackage{algorithm}
 \usepackage{algorithmic}
 \usepackage[utf8]{inputenc} % allow utf-8 input
@@ -995,9 +994,9 @@ state-of-the-art accuracy in several ChIP-seq data sets
 complexity for $n$ data points makes it too slow to run on large
 ChIP-seq data sets.
 
-In this section, we show that our proposed
-Algorithm~\ref{algo:PeakSegPDPA} can be used to overcome this speed
-drawback, while maintaining state-of-the-art accuracy. We have
+In this section, we show that the dynamic programming algorithm that
+we proposed in Section~\ref{sec:PeakSeg} can be used to overcome this
+speed drawback, while maintaining state-of-the-art accuracy. We have
 implemented the algorithm in C++ code with an interface via the
 PeakSegPDPA function in the coseg R package
 (\url{https://github.com/tdhock/coseg}). For comparison, we study the
@@ -1007,7 +1006,7 @@ empirical properties of the following algorithms:
 \item[Segmentor3IsBack::Segmentor] is an implementation of a
   functional pruning algorithm for computing the solution to the
   Segment Neighborhood (\ref{eq:optimal_segment_neighborhood}) problem
-  \citep{Segmentor}. Its empirical time complexity is $O(n \log n)$,
+  \citep{Segmentor}. Its average time complexity is $O(n \log n)$,
   and the solution may or may not obey the up-down constraints on
   segment means. If it does not, then the model is not directly
   interpretable in terms of peaks (segments after up changes) and
@@ -1018,17 +1017,16 @@ empirical properties of the following algorithms:
   algorithm are guaranteed to satisfy the up-down constraint, but may
   not be the optimal solution to the up-down constrained problem
   (\ref{eq:min_PeakSeg}).
-\item[coseg::PeakSegPDPA] is our implementation of
-  Algorithm~\ref{algo:PeakSegPDPA} using the functional pruning
-  techniques described in this paper. It recovers the optimal solution
-  to the up-down constrained problem (\ref{eq:min_PeakSeg}).  Since
-  Definition~\ref{def:U} contains non-strict inequality constraints,
-  the optimal solution may include adjacent segments with equal mean
-  values. In that case, the model is not directly interpretable in
-  terms of peaks and background, so we discard the model. We expected
-  the speed of the algorithm to be consistent with the $O(n\log n)$
-  time complexity of other functional pruning algorithms such as
-  Segmentor.
+\item[coseg::PeakSegPDPA] is our proposed solver for the PeakSeg
+  problem, described in Section~\ref{sec:PeakSeg}. It recovers the
+  optimal solution to the up-down constrained problem
+  (\ref{eq:min_PeakSeg}).  Since Definition~\ref{def:U} contains
+  non-strict inequality constraints, the optimal solution may include
+  adjacent segments with equal mean values. In that case, the model is
+  not directly interpretable in terms of peaks and background, so we
+  discard the model. We expected the speed of the algorithm to be
+  consistent with the $O(n\log n)$ time complexity of other functional
+  pruning algorithms such as Segmentor.
 \item[MACS] is a heuristic algorithm with unknown time complexity from
   the bioinformatics literature \citep{MACS}. We consider it as a
   baseline, since it has been shown to achieve state-of-the-art peak
@@ -1054,40 +1052,40 @@ with 0, ..., 9 peaks ($k\in\{1,3,\dots,19\}$ segments).
 
 As in the original pruned dynamic programming algorithm, the time
 complexity of our proposed algorithm depends on the number of
-intervals stored in the $\FCC_{k,t}$ cost functions, which represent
-candidate change-points. \citet{pruned-dp} showed that the number of
-intervals is at most $O(n)$ in the worst case, but on average
-$O(\log n)$. In the left of Figure~\ref{fig:timings}, we show that the
-empirical number of intervals for our algorithm in the ChIP-seq data
-sets is $O(\log n)$. For the largest data set ($n=263169$), the
-algorithm only stored median=16 and maximum=43 intervals. The most
-intervals stored was 253 for one data set with $n=7776$. These results
-suggest that our new algorithm only stores on average $O(\log n)$
-intervals (possible change-points), as in the original pruned dynamic
-programming algorithm.
+intervals (candidate change-points) stored in the $\FCC_{k,t}$ cost
+functions. \citet{pruned-dp} showed that the number of intervals is at
+most $O(n)$ in the worst case, but on average $O(\log n)$. In the left
+of Figure~\ref{fig:timings}, we show that the empirical number of
+intervals for our algorithm in the ChIP-seq data sets is $O(\log
+n)$. For the largest data set ($n=263169$), the algorithm only stored
+median=16 and maximum=43 intervals. The most intervals stored was 253
+for one data set with $n=7776$. These results suggest that our new
+algorithm only stores on average $O(\log n)$ intervals (possible
+change-points), as in the original pruned dynamic programming
+algorithm.
 
 We used the \verb|system.time| function in R to record the timings of
 each optimization-based algorithm (Segmentor, PeakSegDP, coseg). The
-right of Figure~\ref{fig:timings} shows that the amount of computation
-time increases with the number of data points. As expected, our
-proposed coseg::PeakSegPDPA algorithm shows $O(n\log n)$ asymptotic
-timings similar to Segmentor. It is clear that the $O(n^2)$ PeakSegDP
-algorithm is slower than the other two algorithms, especially for
-larger data sets. For the largest data set ($n=263169$), PeakSegDP
-took over two hours, but coseg took only about two minutes. Overall,
-these results suggest that our algorithm enjoys $O(n\log n)$ time
-complexity in ChIP-seq data, which makes it possible to use for very
-large data sets.
+plot on the right in Figure~\ref{fig:timings} shows that the amount of
+computation time increases with the number of data points. As
+expected, our proposed coseg::PeakSegPDPA algorithm shows $O(n\log n)$
+asymptotic timings similar to Segmentor. It is clear that the $O(n^2)$
+PeakSegDP algorithm is slower than the other two algorithms,
+especially for larger data sets. For the largest data set
+($n=263169$), PeakSegDP took over two hours, but coseg took only about
+two minutes. Overall, these results suggest that our algorithm enjoys
+$O(n\log n)$ time complexity in ChIP-seq data, which makes it possible
+to use for very large data sets.
 
 \begin{figure}[b!]
   \centering
   \parbox{0.49\textwidth}{
-    \includegraphics[width=0.45\textwidth]{figure-PDPA-intervals-all}
+    %\includegraphics[width=0.45\textwidth]{figure-PDPA-intervals-all}
     %\input{figure-PDPA-intervals-small}
   }
   \parbox{0.49\textwidth}{
     %\includegraphics[width=0.45\textwidth]{figure-PDPA-timings}
-    \input{figure-PDPA-timings-small}
+    %\input{figure-PDPA-timings-small}
   }
   \vskip -0.5cm
   \caption{Timing results on 2752 segmentation problems from the
@@ -1143,11 +1141,11 @@ label.
 We quantified the minimum train error for each optimal segmentation
 algorithm for each of the 2752 problems, by selecting the number of
 peaks $p\in\{0, ..., 9\}$ which had the minimum number of incorrect
-labels (total error = false positives + false negatives). The baseline
-MACS algorithm was trained by varying the qvalue parameter between 0
-and 0.8. The baseline HMCanBroad algorithm was trained by varying the
-finalThreshold parameter between $10^{-10}$ and
-$10^5$.
+labels (total error = false positives + false negatives). As suggested
+by \citet{HOCKING2016-chipseq}, the baseline MACS algorithm was
+trained by varying the qvalue parameter between 0 and 0.8, and the
+baseline HMCanBroad algorithm was trained by varying the
+finalThreshold parameter between $10^{-10}$ and $10^5$.
 
 The minimum train error for each algorithm is shown in
 Table~\ref{tab:min-train-error}. The algorithm with the smallest
@@ -1179,11 +1177,12 @@ selection criterion described by \citet{HOCKING-PeakSeg} is
   +\sum_{i=1}^n \ell(y_i, m_i^s)
 \end{equation}
 
-We compute the ROC curve by varying the
-$\lambda\in\{10^{-2}, \dots,10^4\}$ penalty parameter. The baseline
-MACS algorithm was trained by varying the qvalue parameter between 0
-and 0.8. The baseline HMCanBroad algorithm was trained by varying the
-finalThreshold parameter between $10^{-10}$ and $10^5$. 
+We compute ROC curves for the optimization-based algorithms (coseg,
+PeakSegDP, Segmentor) by varying the
+$\lambda\in\{10^{-2}, \dots,10^4\}$ penalty parameter. We compute ROC
+curves for the baseline MACS and HMCanBroad algorithms by varying a
+single significance threshold parameter (same values as in the
+previous section).
 
 The previous algorithm with state-of-the-art accuracy on this
 benchmark was PeakSegDP, and we observed that the new coseg algorithm
