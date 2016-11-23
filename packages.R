@@ -50,19 +50,20 @@ works_with_R <- function(Rvers,...){
   }
 }
 suppressPackageStartupMessages({
-  works_with_R("3.2.2",
-               tikzDevice="0.9",
-               LambertW="0.6.2",
-               microbenchmark="1.4.2",
+  works_with_R("3.3.1",
+               tikzDevice="0.10.1",
+               LambertW="0.6.4",
+               microbenchmark="1.4.2.1",
                Segmentor3IsBack="2.0",
-               lpSolveAPI="5.5.2.0.17",
+               lpSolveAPI="5.5.2.0.9",
                quadmod="2013.8.23",
                geometry="0.3.6",
                "tdhock/memtime@8b80d7d2b151cf5e877b27138c2791eca365e7b1",
                ##"tdhock/coseg@073dcf152355e6de32236f9556d97dda29574bf5",
                "tdhock/PeakError@b0f0b4edc413176ebb183fc68f1504c9d86e3ef7",
                "tdhock/PeakSegDP@4e476f1ddf8b6252179b73dfec8c4cd616e9b5ad",
-               "tdhock/animint@7ae982edef45ba0de31e88fed89132b005e4a760",
+               "faizan-khan-iit/ggplot2@5fb99d0cece13239bbbc09c6b8a7da7f86ac58e2",
+               "tdhock/animint@c0db9f34c525bec35c797ccdf8be9564b67c578c",
                "tdhock/directlabels@8a1f6f3501d5badf061d15abd23e4e42d5d32bbe",
                "Rdatatable/data.table@7515fbe6c6f60114da72067db44fbe78ecdbd8fb")
 })
@@ -72,3 +73,4 @@ options(
     "\\documentclass{article}",
     "\\usepackage{amsmath,amssymb,amsthm}"),
   tikzMetricsDictionary="tikzMetrics")
+

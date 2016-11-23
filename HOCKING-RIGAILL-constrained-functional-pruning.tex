@@ -293,7 +293,8 @@ In the next section, we propose to compute the segment neighborhood isotonic reg
 using an efficient dynamic programming algorithm.
 
 %%%% update rules
-\newcommand{\FCC}{\widetilde{C}}
+%\newcommand{\FCC}{\widetilde{C}}
+\newcommand{\FCC}{C}
 \newcommand{\M}{\mathcal{M}}
 \section{Dynamic programming algorithm for segment neighborhood isotonic regression}
 
@@ -388,29 +389,49 @@ The min-less operator is used in the following definition of the
 optimal cost.
 \begin{definition}[Dynamic programming recursion]
 \label{def:fcc}
-  We refer to $\FCC_{K,n}(u)$ as the optimal cost of the segmentation
-  with $K$ segments, up to data point $n$, with last segment mean
-  $u$. For the first segment $K=1$, we define
+  We refer to $\FCC_{k,n}(u)$ as the optimal cost of the segmentation
+  with $k$ segments, up to data point $n$, with last segment mean
+  $u$. For the first segment $k=1$, we define
   $\FCC_{1,1}(u)=\ell(y_1,u)$ for the first data point, and
   $\FCC_{1,t}(u)=\FCC_{1,t-1}(u)+\ell(y_t,u)$ for the other data
-  points $t>1$. For $K>1$ segments, we define
-  $\FCC_{K,K}(u)=\ell(y_K, u)+\FCC_{K-1,K-1}^\leq(u)$ for the $K$-th
-  data point and for $t>K$ data points,
+  points $t>1$. For $k>1$ segments, we define
+  $\FCC_{k,k}(u)=\ell(y_k, u)+\FCC_{k-1,k-1}^\leq(u)$ for the $k$-th
+  data point and for $t>k$ data points,
   \begin{equation}
 \nonumber
-  \FCC_{K,t}(u)=\ell(y_t,u)+
+  \FCC_{k,t}(u)=\ell(y_t,u)+
   \min\{
-  \FCC_{K-1,t-1}^\leq(u),\,
-  \FCC_{K,t-1}(u)
+  \FCC_{k-1,t-1}^\leq(u),\,
+  \FCC_{k,t-1}(u)
   \}.
   \end{equation}
 \end{definition}
 Note that in the original pruned dynamic programming algorithm for
 solving the segment neighborhood problem \citep{pruned-dp}, the
-min-less cost functions $\FCC_{k,t}^\leq(u)$ are replaced by cost
-constants $C_{k,t}$. The main novelty of our proposed algorithm is the
-computation of the min-less functions $\FCC_{k,t}^\leq(u)$ in closed
+min-less cost functions $\FCC_{k-1,t-1}^\leq:\RR\rightarrow\RR$ are replaced by cost
+constants $C_{k-1,t-1}\in\RR$. The main novelty of our proposed algorithm is the
+computation of the min-less functions in closed
 form.
+
+\begin{figure}
+  \centering
+  \input{figure-compare-unconstrained}
+  \input{figure-compare-cost}
+  \vskip -0.5cm
+  \caption{Comparison of previous unconstrained algorithm (grey) with
+    new algorithm that constrains changes to be non-decreasing (red),
+    for the toy data set $\mathbf y= [
+  2,  1, 0, 4
+]
+ \in\RR^4$ and the square loss. \textbf{Left:} rather than
+computing the unconstrained minimum (constant grey function), the new
+algorithm computes the min-less operator (red), resulting in a larger
+cost when the segment mean is less than the first data point
+($u\leq 2$). \textbf{Right:} adding the cost of the second data point
+$(u-1)^2$ and minimizing yields $u_1=u_2=1.5$ for the constrained
+model and $u_1=2,\, u_2=1$ for the unconstrained model.}
+  \label{fig:compare-unconstrained}
+\end{figure}
 
 Now, consider the following lemma, which shows that the dynamic
 programming minimization over two cost functions is equivalent to the
@@ -940,6 +961,7 @@ number of intervals in real data is typically $I=O(\log n)$ (see
 Section~\ref{sec:results_time}), the overall time complexity of
 Algorithm~\ref{algo:OPIR} is on average $O(n \log n)$.
 
+
 \subsection{The PeakSeg up-down constraint}
 \label{sec:PeakSeg}
 
@@ -1009,8 +1031,8 @@ where the min-more operator is defined for any function $f:\RR\rightarrow\RR$ as
 \end{equation}
 To implement this update rule, the only modification to
 Algorithm~\ref{algo:SNIR} is at line~\ref{line:MinLess}. Instead of
-always using the MinLess algorithm, the constrained version uses the
-MinMore algorithm for odd segments $k$. We implemented this algorithm
+always using the MinLess sub-routine, the constrained version uses the
+MinMore sub-routine for odd segments $k$. We implemented this algorithm
 using the Poisson loss $\ell(y, u) = m - y\log m$, since our
 application in Section~\ref{sec:results-chip-seq} is on count data
 $y\in\ZZ_+ = \{0, 1, 2, \dots\}$. Our free/open-source implementation
@@ -1019,95 +1041,158 @@ is available as the PeakSegPDPA function in the R package coseg
 implemented this algorithm can be found in the supplementary materials
 (Section~\ref{sec:peakseg_details}).
 
-\subsection{General linear inequality constraints
+\subsection{General affine inequality constraints
   between adjacent segment means}
 
-A segmentation $m$ is described as a set of contiguous segments $\{s_1, ... s_{|m|} \}$, where $|m|$ is the number of segments of $m$
-We consider the set of all segmentation up to $n$: $\M_n$ 
-or the set of all possible segmentation in $K$ segments: $\M^K_n$.
-We define $r_m$ as the last segment of $m$.
+% A segmentation $m$ is described as a set of contiguous segments $\{s_1, ... s_{|m|} \}$, where $|m|$ is the number of segments of $m$
+% We consider the set of all segmentation up to $n$: $\M_n$ 
+% or the set of all possible segmentation in $K$ segments: $\M^K_n$.
+% We define $r_m$ as the last segment of $m$.
 
-We aim at optimizing over all possible segmentations $m$ in $\M^K_n$ or $\M_n$
- the quantity
-$\sum_{r \in m} \sum_{i \in s_{r}} \ell(y_i, \mu_{r})$ subject to
-the following $K-1$ linear constraints. 
+% We aim at optimizing over all possible segmentations $m$ in $\M^K_n$ or $\M_n$
+%  the quantity
+% $\sum_{r \in m} \sum_{i \in s_{r}} \ell(y_i, \mu_{r})$ subject to
+% the following $K-1$ linear constraints. 
 
-\begin{eqnarray*}
-a_{1,1}.\mu_1 \ + & a_{1,2}.\mu_2  & \geq  b_1 \\
-\cdots \ +&  \cdots & \geq \cdots \\
-a_{k,k}.\mu_{k} + & a_{k,k+1}.\mu_{k+1}  & \geq  b_{k} \\
-\cdots \ +&  \cdots & \geq \cdots  \\
-a_{K-1,K-1}.\mu_{K-1} \ +& a_{K-1,K}.\mu_K & \geq  b_{K-1},
-\end{eqnarray*}
-with all $a_{k,k+1} \neq 0$, $a_{k,k} \in \mathbb{R}$ and
-$b_{k} \in \bar{\mathbb{R}}.$ In other words we aim at recovering the
-best segmentation with successive mean parameters that obey the
-constraints.
+% \begin{eqnarray*}
+% a_{1,1}.\mu_1 \ + & a_{1,2}.\mu_2  & \geq  b_1 \\
+% \cdots \ +&  \cdots & \geq \cdots \\
+% a_{k,k}.\mu_{k} + & a_{k,k+1}.\mu_{k+1}  & \geq  b_{k} \\
+% \cdots \ +&  \cdots & \geq \cdots  \\
+% a_{K-1,K-1}.\mu_{K-1} \ +& a_{K-1,K}.\mu_K & \geq  b_{K-1},
+% \end{eqnarray*}
+% with all $a_{k,k+1} \neq 0$, $a_{k,k} \in \mathbb{R}$ and
+% $b_{k} \in \bar{\mathbb{R}}.$ In other words we aim at recovering the
+% best segmentation with successive mean parameters that obey the
+% constraints.
+
+% Some examples:
+% \begin{enumerate}
+% \item If we take all $a_{k,k+1} =1$, $a_{k,k}=0$ and $b_{k} = - \infty$ we recover the standard segmentation in the mean problem.
+% \item If we take all $a_{k,k+1} =1$, $a_{k,k}=-1$ and $b_{k} = 0$ we
+%   recover the isotonic regression problem (segment means always
+%   increasing).
+% \item For the PeakSeg model we take all $b_{k} = 0$. For odd $k$ we
+%   take $a_{k,k+1} =1$, $a_{k,k}=-1$ and for even $k$ we take
+%   $a_{k,k+1} =-1$, $a_{k,k}=1$.
+% \end{enumerate}
+
+%\subsection{Functional cost representation}
+% To optimize this quantity we will consider the following functional quantity:
+
+% \begin{equation}
+% \FCC^k_t(\mu) =  \underset{m \in \M^K_n, \mu_r |  r \neq r_m}{\min} 
+% 		\{ 
+% 		   \underset{r \in m, r \neq r_m}{\sum} 
+% 		   \underset{i \in r, i \leq t  }{\sum} \ell(y_i, \mu_{r}) 
+% 		+ 
+% 		   \underset{i \in r_m, i \leq t}{\sum} \ell(y_i, \mu)
+% 		\}  
+% \end{equation}
+
+
+
+% \begin{eqnarray*}
+% \text{subject to} \\
+% a_{1,1}. \mu_1 \ + & a_{1,2}. \mu_2  & \geq  b_1 \\
+% \cdots \ + & \cdots & \geq \cdots \\
+% a_{k-1,k-1}. \mu_{k-1} \ + &a_{k-1,k}. \mu_{k}  & \geq  b_{k-1} \\
+% \end{eqnarray*}
+
+% $\FCC^k_t(\mu)$ is the best possible cost achievable in $k$ segment up to point $t$ with a $k$-th
+% segment mean of $\mu$.
+
+% %\subsection{Update rule}
+% We can then consider the following update rule
+
+% \begin{equation}
+% \FCC^{k+1}_{t+1}(\mu) = \min \{ \FCC^{k+1}_{t}(\mu)  , \underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}  \} + \ell(y_{t+1}, \mu)
+% \label{update}
+% \end{equation}
+
+% This update rule states that the best segmentation up to $t+1$ in $k+1$ segment with a last mean element of $\mu$ either has its $k$-th changepoint:
+% \begin{itemize}
+% \item before $t$ and in that case we should take the best possible segmentation up to $t$ in $k+1$
+% segments with a last mean of $\mu$ and then add  $\ell(y_{t+1}, \mu)$, that is:
+% $$\FCC^{k+1}_{t}(\mu) + \ell(y_{t+1}, \mu),$$
+
+% \item at $t$ and in that case we should take the best possible segmentation up to $t$ in $k$ segments
+% such that the last mean $\mu_k=\mu'$ validates the $k-th$ constraint with $\mu_{k+1}=\mu$ and then add  $\ell(y_{t+1}, \mu)$, that is:
+%  $$\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \} + \ell(y_{t+1}, \mu).$$
+% \end{itemize}
+
+
+% %\subsection{Constraint}
+% Assuming we have a piecewise description of $\FCC^{k}_{t}(\mu')$ on $I$ ordered intervals of $\mathbb{R}$
+% then it is straightforward to recover the function:
+% $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}.$
+
+% The update rule is a priori valid for more complex constraints, typically quadratic constraints, yet recovering
+% $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}$ from $\FCC^{k}_{t}(\mu')$ would possibly be much more difficult.
+
+In this section we briefly discuss how to apply our proposed dynamic
+programming algorithm to optimization problems with general affine
+inequality constraints between adjacent segment means.
+
+\begin{definition}[General affine inequality constraints]
+\label{def:affine-inequality-constraints}
+  Let $a_k,b_k,c_k\in\RR$ for $k\in\{1,\dots,K-1\}$ be arbitrary
+  coefficients that define affine functions
+  $g_k(u_k, u_{k+1})=a_k u_k + b_k u_{k+1} + c_k$. Then we define
+  $(\mathbf u, \mathbf t)\in\mathcal M^n_K$ as the set of all
+  increasing change-point indices $0=t_0<t_1<\cdots<t_{K-1}<t_K=n$ and
+  segment means $\mathbf u\in\RR^K$ that satisfy
+  $g_k(u_k, u_{k+1}) \leq 0$ for all $k\in\{1,\dots, K-1\}$.
+\end{definition}
+The general optimization problem uses this constraint set with the
+standard objective function:
+\begin{equation}
+  \label{eq:min_general_affine_inequality}
+    \minimize_{
+        (\mathbf u, \mathbf t)\in\mathcal M^n_K
+      } \ 
+\sum_{k=1}^K h_{t_{k-1}, t_k}(u_k).
+\end{equation}
 
 Some examples:
 \begin{enumerate}
-\item If we take all $a_{k,k+1} =1$, $a_{k,k}=0$ and $b_{k} = - \infty$ we recover the standard segmentation in the mean problem.
-\item If we take all $a_{k,k+1} =1$, $a_{k,k}=-1$ and $b_{k} = 0$ we
-  recover the isotonic regression problem (segment means always
-  increasing).
-\item For the PeakSeg model we take all $b_{k} = 0$. For odd $k$ we
-  take $a_{k,k+1} =1$, $a_{k,k}=-1$ and for even $k$ we take
-  $a_{k,k+1} =-1$, $a_{k,k}=1$.
+\item If we take all $a_k,b_k,c_k=0$ then the constraints are
+  trivially satisfied, segment means are not constrained, and we
+  recover the segment neighborhood problem
+  (\ref{eq:optimal_segment_neighborhood}).
+\item If we take all $a_{k} =1$, $b_{k}=-1$ and $c_{k} = 0$ we
+  recover the segment neighborhood isotonic regression problem (\ref{eq:SNIR}).
+\item To recover the PeakSeg problem (\ref{eq:min_PeakSeg}),
+  we take all $c_{k} = 0$. For odd $k\in\{1,3,\dots\}$ we take
+  $a_{k} =1$, $b_{k}=-1$ and for even $k\in\{2,4,\dots\}$ we take
+  $a_{k} =-1$, $b_{k}=1$.
 \end{enumerate}
 
-%\subsection{Functional cost representation}
-To optimize this quantity we will consider the following functional quantity:
-
+In the general case, we need to compute the analog of the
+min-less/more operator, which we call the constrained minimization
+operator. For any cost function $f:\RR\rightarrow\RR$ and constraint
+function $g:\RR\times\RR\rightarrow\RR$, we define the constrained
+minimization operator $f^g:\RR\rightarrow\RR$ as
 \begin{equation}
-\FCC^k_t(\mu) =  \underset{m \in \M^K_n, \mu_r |  r \neq r_m}{\min} 
-		\{ 
-		   \underset{r \in m, r \neq r_m}{\sum} 
-		   \underset{i \in r, i \leq t  }{\sum} \ell(y_i, \mu_{r}) 
-		+ 
-		   \underset{i \in r_m, i \leq t}{\sum} \ell(y_i, \mu)
-		\}  
+  \label{eq:constrained-min-operator}
+  f^g(u_{k+1}) = \min_{u_k : g(u_k, u_{k+1})\leq 0} f(u_k).
 \end{equation}
 
-
-
-\begin{eqnarray*}
-\text{subject to} \\
-a_{1,1}. \mu_1 \ + & a_{1,2}. \mu_2  & \geq  b_1 \\
-\cdots \ + & \cdots & \geq \cdots \\
-a_{k-1,k-1}. \mu_{k-1} \ + &a_{k-1,k}. \mu_{k}  & \geq  b_{k-1} \\
-\end{eqnarray*}
-
-$\FCC^k_t(\mu)$ is the best possible cost achievable in $k$ segment up to point $t$ with a $k$-th
-segment mean of $\mu$.
-
-%\subsection{Update rule}
-We can then consider the following update rule
-
+The constrained minimization operator is used in the following general
+dynamic programming update rule which can be used to compute the solution to (\ref{eq:min_general_affine_inequality})
 \begin{equation}
-\FCC^{k+1}_{t+1}(\mu) = \min \{ \FCC^{k+1}_{t}(\mu)  , \underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}  \} + \ell(y_{t+1}, \mu)
-\label{update}
+  \label{eq:general_dp}
+  \FCC_{k,t}(u) = \ell(y_t,u) + \min\{
+  \FCC_{k,t-1}(u),\,
+  \FCC_{k-1,t-1}^{g_{k-1}}(u)
+  \}.
 \end{equation}
-
-This update rule states that the best segmentation up to $t+1$ in $k+1$ segment with a last mean element of $\mu$ either has its $k$-th changepoint:
-\begin{itemize}
-\item before $t$ and in that case we should take the best possible segmentation up to $t$ in $k+1$
-segments with a last mean of $\mu$ and then add  $\ell(y_{t+1}, \mu)$, that is:
-$$\FCC^{k+1}_{t}(\mu) + \ell(y_{t+1}, \mu),$$
-
-\item at $t$ and in that case we should take the best possible segmentation up to $t$ in $k$ segments
-such that the last mean $\mu_k=\mu'$ validates the $k-th$ constraint with $\mu_{k+1}=\mu$ and then add  $\ell(y_{t+1}, \mu)$, that is:
- $$\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \} + \ell(y_{t+1}, \mu).$$
-\end{itemize}
-
-
-%\subsection{Constraint}
-Assuming we have a piecewise description of $\FCC^{k}_{t}(\mu')$ on $I$ ordered intervals of $\mathbb{R}$
-then it is straightforward to recover the function:
-$\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}.$
-
-The update rule is a priori valid for more complex constraints, typically quadratic constraints, yet recovering
-$\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}$ from $\FCC^{k}_{t}(\mu')$ would possibly be much more difficult.
-
+We note that this update rule is valid for constraint functions $g$
+more general than the affine functions described in
+Definition~\ref{def:affine-inequality-constraints} (e.g. quadratic
+constraint functions). However, the closed-form computation of the
+constrained minimization operator (\ref{eq:constrained-min-operator})
+would possibly be much more difficult for these more general constraint functions. 
 
 \section{Results on peak detection in ChIP-seq data}
 \label{sec:results-chip-seq}
@@ -1396,7 +1481,7 @@ Each black circle shows the test AUC in one of four
 \bibliography{refs}
 
 
-\section{Supplementary materials: implementation details}
+\section{Supplementary materials}
 \label{sec:peakseg_details}
 
 % In this section we first discuss the existing unconstrained maximum
@@ -1717,16 +1802,16 @@ Each black circle shows the test AUC in one of four
 
 \subsection{PeakSeg Functional Pruning Optimal Partitioning (PeakSegFPOP)}
 
-The optimization problem with exactly $K$ segments
-(\ref{eq:min_PeakSeg}) is the ``constrained'' or ``segment
+We refer to the optimization problem with exactly $K$ segments
+(\ref{eq:min_PeakSeg}) as the ``constrained'' or ``segment
 neighborhood'' version of the PeakSeg problem. Our proposed algorithm
-recovers solutions for $n$ data points and $k\{1,\dots,K\}$ segments
-in $O(K n \log n)$ time. 
+recovers solutions for $n$ data points and $k\in\{1,\dots,K\}$
+segments in $O(K n \log n)$ time.
 
-The following ``penalized'' or ``optimal
-partitioning'' PeakSeg problem removes the $K$ segments constraint,
-and adds a penalty $\lambda$ to the objective function for every
-non-zero change-point variable:
+The following ``penalized'' or ``optimal partitioning'' version of the
+PeakSeg problem removes the $K$ segments constraint, and adds a
+penalty $\lambda$ to the objective function for every non-zero
+change-point variable:
 
 \begin{align}
 \minimize_{\substack{
