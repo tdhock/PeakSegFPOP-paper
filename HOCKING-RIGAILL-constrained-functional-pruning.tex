@@ -398,6 +398,105 @@ $f:\RR\rightarrow\RR$, we define the min-less operator as
 \end{equation}
 The min-less operator is used in the following definition of the
 optimal cost.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%% begin new %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% first we define the quantity $\FCC_{K,n}(u)$
+%% this quantity is the quantity we will update in the algorithm
+%% but its definition is not independant of our algorithm
+
+\begin{definition}[Optimal cost in $K$ up to $n$ in $u$]
+\label{def:fcc}
+  We define $\FCC_{K,n}(u)$ the optimal cost of the segmentation
+  with $K$ segments, up to data point $n$, with last segment mean
+  $u$. In other words:
+
+%% we take the minimum with the constraint that the last mean (u_k) is u
+\begin{equation}
+\FCC_{K,n}(u) = \minimize_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^K \ | \ u_K = u} \
+  \left\{ \sum_{k=1}^K
+  h_{t_{k-1}, t_k}(u_k) \right\}
+\end{equation}
+\end{definition}
+
+
+%% we can then propose the following update rule as a lemma or maybe a theroem
+
+\begin{theorem}
+We have the following update rules.
+\begin{enumerate}
+\item For $K=1$ we have
+$\FCC_{1,1}(u)=\ell(y_1,u)$, and for the other data
+  points $t>1$ :
+\begin{equation}
+\FCC_{1,t}(u)=\FCC_{1,t-1}(u)+\ell(y_t,u)
+\end{equation}
+
+\item For $K>1$ and $t=K$
+\begin{equation}
+  \FCC_{K,t}(u)=\ell(y_K, u)+\FCC_{K-1,K-1}^\leq(u)
+\end{equation}
+\item In all other cases we have
+  \begin{equation}
+  \FCC_{K,t}(u)=\ell(y_t,u)+
+  \min\{
+  \FCC_{K-1,t-1}^\leq(u),\,
+  \FCC_{K,t-1}(u)
+  \}.
+  \end{equation}
+\end{enumerate}
+\end{theorem}
+
+%% we now prove the lemma
+%% Case 1 and 2 are true almost by definition 
+%% (there is only one possible segmentation in 1) and 
+%% (there is only possible segmentation in K of K points)
+\begin{proof}
+Case 1 and 2 follow from the definition of $\FCC_{K,t}(u)$.
+
+We now focus on case 3.
+First notice that by definition of $\FCC_{K,t+1}(u)$ (i.e. the optimal segmentation) we must have
+$\FCC_{K,t+1}(u) \leq \FCC_{K,t}(u) + \ell(y_t,u)$ and also
+$\FCC_{K,t+1}(u) \leq \FCC_{K-1,t}(u) + \ell(y_t,u)$. Thus we have
+$\FCC_{K,t+1}(u) \leq \min \{ \FCC_{K,t}(u) + \FCC_{K-1,t}(u) \} + \ell(y_{t+1},u)$.
+
+Now let us assume,
+$$\FCC_{K,t+1}(u) < \min \{ \FCC_{K,t}(u) + \FCC_{K-1,t}(u) \} + \ell(y_{t+1},u).$$
+We will show that this lead to a contradiction.
+
+We consider the optimal segmentation $(\mathbf u, \mathbf t)\in\bar{\mathcal I}_{t+1}^K$ achieving the optimal $\FCC_{K,t+1}(u)$.
+We consider two possible cases:
+\begin{description}
+\item[Scenario 1: $t_K < t$.]
+Define $\mathbf t'$ such that for all $i < K$ $t'_i = t_i$ and $t'_K = t$.
+We have $(\mathbf u, \mathbf t')\in\bar{\mathcal I}_{t}^K$.
+We can thus decompose $\FCC_{K,t+1}(u)$ as
+
+$$\FCC_{K,t+1}(u) = \sum_{k=1}^K
+  h_{t'_{k-1}, t'_k}(u_k) + \ell(y_{t+1},u).$$ 
+
+By assumption we would recover $\sum_{k=1}^K h_{t'_{k-1}, t'_k}(u_k) < \FCC_{K,t}(u)$ which is a contradiction
+by definition of $\FCC_{K,t}(u)$. 
+
+\item[Scenario 2: $t_K=t$.]
+Define $\mathbf t'$ such that for all $i < K-1$ $t'_i = t_i$ and $t'_{K-1} = t$ as well as
+$\mathbf u'$ such that for all $i \leq K-1$ $u'_i = u_i$.
+We have $(\mathbf u', \mathbf t')\in\bar{\mathcal I}_{t}^{K-1}$.
+We can then decompose $\FCC_{K,t+1}(u)$ as
+
+$$\FCC_{K,t+1}(u) = \sum_{k=1}^K
+  h_{t'_{k-1}, t'_k}(u'_k) + \ell(y_{t+1},u).$$ 
+
+By assumption we would recover $\sum_{k=1}^{K-1} h_{t'_{k-1}, t'_k}(u'_k) < \FCC_{K-1,t}(u)$ which is a contradiction
+by definition of $\FCC_{K-1,t}(u)$. 
+\end{description}
+\end{proof}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%% end new %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{definition}[Dynamic programming recursion]
 \label{def:fcc}
   We refer to $\FCC_{k,n}(u)$ as the optimal cost of the segmentation
