@@ -42,11 +42,11 @@ gg <- ggplot()+
   xlab("segment mean $u$")+
   geom_line(aes(mean, cost), data=getLines(C22), color="red", size=3)+
   geom_line(aes(mean, cost), data=getLines(C22un), color="grey50", size=1.5)+
-  geom_text(aes(x=1.5,y=8,label="constrained"),color="red")+
+  geom_text(aes(x=1.5,y=8.5,label="constrained"),color="red")+
   geom_text(aes(x=1.5,y=7,label="$C_{2,2}(u)=$"),color="red")+
   geom_text(aes(x=2.4,y=1,label="unconstrained"),color="grey50", hjust=0, vjust=0)+
   geom_text(aes(x=2.5,y=0,label="$(u-1)^2$"),color="grey50", hjust=0, vjust=0)+
-  geom_text(aes(x=1.5,y=6,label="$C^\\leq_{1,1}(u)+(u-1)^2$"),color="red")
+  geom_text(aes(x=1.5,y=5.5,label="$C^\\leq_{1,1}(u)+(u-1)^2$"),color="red")
 tikz("figure-compare-cost.tex", 3, 2.5)
 print(gg)
 dev.off()
@@ -64,4 +64,5 @@ gg <- ggplot()+
 tikz("figure-compare-unconstrained.tex", 3, 2.5)
 print(gg)
 dev.off()
+
 

@@ -40,13 +40,14 @@
 
 \begin{document}
 
-\title{A functional pruning algorithm for constrained optimal segmentation}
+\title{Dynamic programming algorithms for
+  constrained optimal segmentation}
 
 \author{
   Toby Dylan Hocking\\
-  Department of Human Genetics\\
+  %Department of Human Genetics\\
   McGill University\\
-  Montreal, QC H2R-2G9 Canada \\
+  Montreal, QC, Canada \\
   \texttt{toby.hocking@mail.mcgill.ca} \\
   %% examples of more authors
    \\
@@ -54,16 +55,16 @@
   University of Evry \\
   Evry, France \\
   \texttt{guillem.rigaill@evry.fr} \\
-  %% \AND
-  %% Coauthor \\
-  %% Affiliation \\
-  %% Address \\
-  %% \texttt{email} \\
-  %% \And
-  %% Coauthor \\
-  %% Affiliation \\
-  %% Address \\
-  %% \texttt{email} \\
+  \\
+  Paul Fearnhead \\
+  Lancaster University \\
+  Lancaster, UK \\
+  \texttt{p.fearnhead@lancs.ac.uk} \\
+  \\
+  Guillaume Bourque \\
+  McGill University \\
+  Montreal, QC, Canada \\
+  \texttt{guil.bourque@mcgill.ca} \\
   %% \And
   %% Coauthor \\
   %% Affiliation \\
@@ -75,12 +76,17 @@
 
 \begin{abstract}
   Change-point detection is a central problem in time series and
-  genomic data sets. In several kinds of data it is desirable to
-  constrain the possible change-points to obtain a more interpretable
-  model. We propose a new constrained Pruned Dynamic Programming
-  Algorithm (cPDPA) which recovers the optimal change-points subject
-  to affine constraints on adjacent segment means. We use this
-  algorithm for isotonic regression and peak detection.
+  genomic data, in which constraints on the change-point directions
+  are often desired to obtain an interpretable model. We describe a
+  new dynamic programming algorithm which computes the optimal
+  solution to an isotonic regression problem with a limit on the
+  number of change-points. We show how variants of this dynamic
+  programming algorithm can be used to compute the optimal
+  change-points subject to general affine constraints on adjacent
+  segment means. We show that our algorithm achieves state-of-the-art
+  speed and accuracy for peak detection in ChIP-seq data. A
+  free/open-source C++ implementation of our algorithms is available in
+  an R package, \url{https://github.com/tdhock/coseg}
 \end{abstract}
 
 \section{Introduction}
@@ -115,14 +121,19 @@ TODO discuss isotonic DP \citep{isotonic-dp}, functional pruning
 segmentation \citep{haiminen2008algorithms}, histogram construction
 \citep{halim2009fast}.
 
-\subsection{Contributions}
+\subsection{Contributions and organization}
 
-The main contribution of this paper is a family of algorithms for
-solving constrained segmentation problems. These algorithms are
-guaranteed to recover the exact solution to the constrained
-segmentation problem. Furthermore, we show that these algorithms have
-empirical time complexity which is linear in the number of data
-points.
+The main contribution of this paper is a family of dynamic programming
+algorithms for solving constrained segmentation problems. In
+Section~2, we discuss related work into algorithms for change-point
+detection and isotonic regression. Section~3 introduces one
+optimization problem that our algorithm can solve: segment
+neighborhood isotonic regression. We propose a new dynamic programming
+algorithm in Section~4, and show how it can be extended to related
+models in Section~5. We apply our algorithm to the up-down constrained
+problem of detecting peaks in ChIP-seq data, and show state-of-the-art
+speed and accuracy results in Section~6. We provide a brief discussion in
+Section~7, and give implementation details in Section~8.
 
 \section{Related work}
 \label{sec:related}
@@ -408,10 +419,11 @@ optimal cost.
 \end{definition}
 Note that in the original pruned dynamic programming algorithm for
 solving the segment neighborhood problem \citep{pruned-dp}, the
-min-less cost functions $\FCC_{k-1,t-1}^\leq:\RR\rightarrow\RR$ are replaced by cost
-constants $C_{k-1,t-1}\in\RR$. The main novelty of our proposed algorithm is the
-computation of the min-less functions in closed
-form.
+min-less cost functions $\FCC_{k-1,t-1}^\leq:\RR\rightarrow\RR$ are
+replaced by cost constants $C_{k-1,t-1}\in\RR$
+(Figure~\ref{fig:compare-unconstrained}). The main novelty of our
+proposed algorithm is the computation of the min-less functions in
+closed form.
 
 \begin{figure}
   \centering
@@ -420,16 +432,15 @@ form.
   \vskip -0.5cm
   \caption{Comparison of previous unconstrained algorithm (grey) with
     new algorithm that constrains changes to be non-decreasing (red),
-    for the toy data set $\mathbf y= [
-  2,  1, 0, 4
-]
- \in\RR^4$ and the square loss. \textbf{Left:} rather than
-computing the unconstrained minimum (constant grey function), the new
-algorithm computes the min-less operator (red), resulting in a larger
-cost when the segment mean is less than the first data point
-($u\leq 2$). \textbf{Right:} adding the cost of the second data point
-$(u-1)^2$ and minimizing yields $u_1=u_2=1.5$ for the constrained
-model and $u_1=2,\, u_2=1$ for the unconstrained model.}
+    for the toy data set $\mathbf y= [ 2, 1, 0, 4 ] \in\RR^4$ and the
+    square loss. \textbf{Left:} rather than computing the
+    unconstrained minimum (constant grey function), the new algorithm
+    computes the min-less operator (red), resulting in a larger cost
+    when the segment mean is less than the first data point
+    ($u\leq 2$). \textbf{Right:} adding the cost of the second data
+    point $(u-1)^2$ and minimizing yields equal means
+    $u_1=u_2=1.5$ for the constrained model and decreasing 
+    means $u_1=2,\, u_2=1$ for the unconstrained model.}
   \label{fig:compare-unconstrained}
 \end{figure}
 
@@ -614,12 +625,12 @@ then
     1 - 2u + 1u^2 &\text{ if }u\in[2,4],\, t'=1,\, u'=2
   \end{cases}
 \end{equation}
-Note that the minimum of this function is achieved at $u=1.5$ which
-occurs in the first of the two function pieces, with an equality
-constraint active ($u'=u$). This implies the optimal model up to data
-point $t=2$ with $k=2$ up-down segments actually has no changes
-($u_1=u_2=1.5$). After computing the optimal cost in $k=1$ segment up
-to data point $t=2$
+Note in Figure~\ref{fig:compare-unconstrained} that the minimum of
+this function is achieved at $u=1.5$ which occurs in the first of the
+two function pieces, with an equality constraint active ($u'=u$). This
+implies the optimal model up to data point $t=2$ with $k=2$ up-down
+segments actually has no changes ($u_1=u_2=1.5$). After computing the
+optimal cost in $k=1$ segment up to data point $t=2$
 \begin{equation}
   \FCC_{1,2}(u) = \FCC_{1,1}(u)+(1-u)^2=5 - 6u + 2u^2,
 \end{equation}
