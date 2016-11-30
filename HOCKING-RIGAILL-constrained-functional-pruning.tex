@@ -390,14 +390,8 @@ proves that it is equivalent to solve this simpler optimization problem.
 Optimization problem (\ref{eq:isotonic_ut}) has $K$ segment mean
 variables and $K-1$ change-point index variables. In this section we
 will further eliminate all variables except a single segment mean
-variable using dynamic programming. First, for any function
-$f:\RR\rightarrow\RR$, we define the min-less operator as
-\begin{equation}
-  \label{eq:min-less-def}
-  f^\leq(u)=\min_{x\leq u} f(x).
-\end{equation}
-The min-less operator is used in the following definition of the
-optimal cost.
+variable using dynamic programming. First, we define the optimal cost
+functions as follows.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%% begin new %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -407,25 +401,35 @@ optimal cost.
 %% this quantity is the quantity we will update in the algorithm
 %% but its definition is not independant of our algorithm
 
-\begin{definition}[Optimal cost in $K$ up to $n$ in $u$]
+\begin{definition}[Optimal cost in $K$ segments up to $n$ data points with last mean $\mu$]
 \label{def:fcc}
-  We define $\FCC_{K,n}(u)$ the optimal cost of the segmentation
+  We define $\FCC_{K,n}(\mu)$ the optimal cost of the segmentation
   with $K$ segments, up to data point $n$, with last segment mean
-  $u$. In other words:
+  $\mu$. In other words:
 
-%% we take the minimum with the constraint that the last mean (u_k) is u
+%% we take the minimum with the constraint that the last mean (u_k) is mu
 \begin{equation}
-\FCC_{K,n}(u) = \minimize_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^K \ | \ u_K = u} \
+\FCC_{K,n}(\mu) = \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^K \ | \ u_K = \mu} \
   \left\{ \sum_{k=1}^K
   h_{t_{k-1}, t_k}(u_k) \right\}
 \end{equation}
 \end{definition}
 
-
+As we will show, the $C_{K,n}:\RR\rightarrow\RR$ cost functions can be
+efficiently computed using dynamic programming.
 %% we can then propose the following update rule as a lemma or maybe a theroem
+First, for any function
+$f:\RR\rightarrow\RR$, we define the min-less operator as
+\begin{equation}
+  \label{eq:min-less-def}
+  f^\leq(\mu)=\min_{x\leq \mu} f(x).
+\end{equation}
+The min-less operator is used in the following Theorem, which states
+the update rules used in our proposed dynamic programming algorithm.
 
-\begin{theorem}
-We have the following update rules.
+\begin{theorem}[Dynamic programming updates]
+  The optimal cost functions can be recursively computed using the
+  following dynamic programming update rules.
 \begin{enumerate}
 \item For $K=1$ we have
 $\FCC_{1,1}(u)=\ell(y_1,u)$, and for the other data
@@ -494,36 +498,6 @@ by definition of $\FCC_{K-1,t}(u)$.
 \end{description}
 \end{proof}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%% end new %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{definition}[Dynamic programming recursion]
-\label{def:fcc}
-  We refer to $\FCC_{k,n}(u)$ as the optimal cost of the segmentation
-  with $k$ segments, up to data point $n$, with last segment mean
-  $u$. For the first segment $k=1$, we define
-  $\FCC_{1,1}(u)=\ell(y_1,u)$ for the first data point, and
-  $\FCC_{1,t}(u)=\FCC_{1,t-1}(u)+\ell(y_t,u)$ for the other data
-  points $t>1$. For $k>1$ segments, we define
-  $\FCC_{k,k}(u)=\ell(y_k, u)+\FCC_{k-1,k-1}^\leq(u)$ for the $k$-th
-  data point and for $t>k$ data points,
-  \begin{equation}
-\nonumber
-  \FCC_{k,t}(u)=\ell(y_t,u)+
-  \min\{
-  \FCC_{k-1,t-1}^\leq(u),\,
-  \FCC_{k,t-1}(u)
-  \}.
-  \end{equation}
-\end{definition}
-Note that in the original pruned dynamic programming algorithm for
-solving the segment neighborhood problem \citep{pruned-dp}, the
-min-less cost functions $\FCC_{k-1,t-1}^\leq:\RR\rightarrow\RR$ are
-replaced by cost constants $C_{k-1,t-1}\in\RR$
-(Figure~\ref{fig:compare-unconstrained}). The main novelty of our
-proposed algorithm is the computation of the min-less functions in
-closed form.
-
 \begin{figure}
   \centering
   \input{figure-compare-unconstrained}
@@ -542,137 +516,172 @@ closed form.
     means $u_1=2,\, u_2=1$ for the unconstrained model.}
   \label{fig:compare-unconstrained}
 \end{figure}
+Note that in the original pruned dynamic programming algorithm for
+solving the segment neighborhood problem \citep{pruned-dp}, the
+min-less cost functions $\FCC_{k-1,t-1}^\leq:\RR\rightarrow\RR$ are
+replaced by cost constants $C_{k-1,t-1}\in\RR$
+(Figure~\ref{fig:compare-unconstrained}). 
 
-Now, consider the following lemma, which shows that the dynamic
-programming minimization over two cost functions is equivalent to the
-minimization over all possible change-points.
-\begin{lemma}[Dynamic programming minimizes with respect to all possible change-points]
-\label{lemma:t_change_points}
-  For the cost up to any data point $t> K$, the recursive dynamic
-  programming cost $\FCC_{K,t}(u)$ is equivalent to the minimum cost
-  over all possible change points
-  $\min_{\tau\in[K-1,t)}\FCC_{K-1,\tau}^\leq(u)+h_{\tau,t}(u)$.
-\end{lemma}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%% end new %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \begin{definition}[Dynamic programming recursion]
+% \label{def:fcc}
+%   We refer to $\FCC_{k,n}(u)$ as the optimal cost of the segmentation
+%   with $k$ segments, up to data point $n$, with last segment mean
+%   $u$. For the first segment $k=1$, we define
+%   $\FCC_{1,1}(u)=\ell(y_1,u)$ for the first data point, and
+%   $\FCC_{1,t}(u)=\FCC_{1,t-1}(u)+\ell(y_t,u)$ for the other data
+%   points $t>1$. For $k>1$ segments, we define
+%   $\FCC_{k,k}(u)=\ell(y_k, u)+\FCC_{k-1,k-1}^\leq(u)$ for the $k$-th
+%   data point and for $t>k$ data points,
+%   \begin{equation}
+% \nonumber
+%   \FCC_{k,t}(u)=\ell(y_t,u)+
+%   \min\{
+%   \FCC_{k-1,t-1}^\leq(u),\,
+%   \FCC_{k,t-1}(u)
+%   \}.
+%   \end{equation}
+% \end{definition}
+% Note that in the original pruned dynamic programming algorithm for
+% solving the segment neighborhood problem \citep{pruned-dp}, the
+% min-less cost functions $\FCC_{k-1,t-1}^\leq:\RR\rightarrow\RR$ are
+% replaced by cost constants $C_{k-1,t-1}\in\RR$
+% (Figure~\ref{fig:compare-unconstrained}). The main novelty of our
+% proposed algorithm is the computation of the min-less functions in
+% closed form.
 
-\begin{proof}
-  We proceed by induction on data points $t$. First, we show that the
-  equivalence holds for $t=K+1$ data points. By definition, we have
-  \begin{eqnarray}
-    \FCC_{K,K+1}(u)
-    &=&\label{eq:proof_fcc1}\ell(y_{K+1},u)+\min\{\FCC_{K-1,K}^\leq(u),\,\FCC_{K,K}(u)\}\\
-    &=&\min\label{eq:proof_fcc2}
-        \begin{cases}
-          \FCC_{K-1,K}^\leq(u)+\ell(y_{K+1},u)\\
-          \FCC_{K-1,K-1}^\leq(u)+\ell(y_{K+1},u)+\ell(y_K,u)
-        \end{cases}\\
-    &=&\min\label{eq:proof_h}
-        \begin{cases}
-          \FCC_{K-1,K}^\leq(u)+h_{K,K+1}(u)\\
-          \FCC_{K-1,K-1}^\leq(u)+h_{K-1,K+1}(u)
-        \end{cases}\\
-    \label{eq:proof_tau}
-    &=&\min_{\tau\in[K-1,K+1)} \FCC_{K-1,\tau}^\leq(u)+h_{\tau,K+1}(u)
-  \end{eqnarray}
-  Equations (\ref{eq:proof_fcc1}-\ref{eq:proof_fcc2}) result by
-  expanding $\FCC_{K,K+1}$ and $\FCC_{K,K}$ using
-  Definition~\ref{def:fcc}. Equation (\ref{eq:proof_h}) follows from
-  the definition of $h_{K,K+1}$ and $h_{K-1,K+1}$ in
-  (\ref{eq:h}). Finally, equation (\ref{eq:proof_tau}) results from
-  introducing the change-point optimization variable $\tau$. Thus, we
-  have proved that the equivalence holds for $t=K+1$ data points.
+% Now, consider the following lemma, which shows that the dynamic
+% programming minimization over two cost functions is equivalent to the
+% minimization over all possible change-points.
+% \begin{lemma}[Dynamic programming minimizes with respect to all possible change-points]
+% \label{lemma:t_change_points}
+%   For the cost up to any data point $t> K$, the recursive dynamic
+%   programming cost $\FCC_{K,t}(u)$ is equivalent to the minimum cost
+%   over all possible change points
+%   $\min_{\tau\in[K-1,t)}\FCC_{K-1,\tau}^\leq(u)+h_{\tau,t}(u)$.
+% \end{lemma}
 
-  Now, we
-  assume that the equivalence holds for $t$ data points, and prove it to be true
-  for $t+1$ data points.
-  \begin{eqnarray}
-    \FCC_{K,t+1}(u)\label{eq:proof_fcct1}
-    &=&\ell(y_{t+1},u)+\min\{\FCC_{K-1,t}^\leq(u),\,\FCC_{K,t}(u)\}\\
-    &=&\min\label{eq:proof_induction_h}
-        \begin{cases}
-          \FCC_{K-1,t}^\leq(u)+h_{t,t+1}(u)\\
-          \min_{\tau\in[K-1,t)} \FCC^\leq_{K-1,\tau}(u)+h_{\tau,t+1}(u)
-        \end{cases}\\
-    &=&\min_{\tau\in[K-1,t+1)} \FCC^\leq_{K-1,\tau}(u)+h_{\tau,t+1}(u)
-        \label{eq:proof_tau2}
-  \end{eqnarray}
-  Equation (\ref{eq:proof_fcct1}) results by expanding $\FCC_{K,t+1}$
-  using Definition~\ref{def:fcc}. Equation
-  (\ref{eq:proof_induction_h}) follows from the definition of
-  $h_{t,t+1}$ and the induction assumption. Finally, equation
-  (\ref{eq:proof_tau2}) results from re-writing the top $h_{t,t+1}$ term using the
-  change-point optimization variable $\tau$.  This concludes the proof
-  by induction.
-\end{proof}
+% \begin{proof}
+%   We proceed by induction on data points $t$. First, we show that the
+%   equivalence holds for $t=K+1$ data points. By definition, we have
+%   \begin{eqnarray}
+%     \FCC_{K,K+1}(u)
+%     &=&\label{eq:proof_fcc1}\ell(y_{K+1},u)+\min\{\FCC_{K-1,K}^\leq(u),\,\FCC_{K,K}(u)\}\\
+%     &=&\min\label{eq:proof_fcc2}
+%         \begin{cases}
+%           \FCC_{K-1,K}^\leq(u)+\ell(y_{K+1},u)\\
+%           \FCC_{K-1,K-1}^\leq(u)+\ell(y_{K+1},u)+\ell(y_K,u)
+%         \end{cases}\\
+%     &=&\min\label{eq:proof_h}
+%         \begin{cases}
+%           \FCC_{K-1,K}^\leq(u)+h_{K,K+1}(u)\\
+%           \FCC_{K-1,K-1}^\leq(u)+h_{K-1,K+1}(u)
+%         \end{cases}\\
+%     \label{eq:proof_tau}
+%     &=&\min_{\tau\in[K-1,K+1)} \FCC_{K-1,\tau}^\leq(u)+h_{\tau,K+1}(u)
+%   \end{eqnarray}
+%   Equations (\ref{eq:proof_fcc1}-\ref{eq:proof_fcc2}) result by
+%   expanding $\FCC_{K,K+1}$ and $\FCC_{K,K}$ using
+%   Definition~\ref{def:fcc}. Equation (\ref{eq:proof_h}) follows from
+%   the definition of $h_{K,K+1}$ and $h_{K-1,K+1}$ in
+%   (\ref{eq:h}). Finally, equation (\ref{eq:proof_tau}) results from
+%   introducing the change-point optimization variable $\tau$. Thus, we
+%   have proved that the equivalence holds for $t=K+1$ data points.
 
-Having proved Lemma~\ref{lemma:t_change_points}, we now use it to
-prove the following theorem about the optimality of the dynamic
-programming solution.
-\begin{theorem}[Dynamic programming recovers the segment neighborhood isotonic regression solution]
-  For a data set $\mathbf y\in\RR^n$, and any number of segments $K\leq n$,
-  the optimal dynamic programming cost $\min_u \FCC_{K,n}(u)$ is
-  equivalent to the minimum value of the segment neighborhood isotonic
-  regression problem (\ref{eq:isotonic_ut}).
-\end{theorem}
-\begin{proof}
-  We proceed by induction on segments $K$. First, consider the case of $K=2$ segments:
-\begin{eqnarray}
-  \label{eq:isotonic_ut_2}
-  \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^2}
-  \sum_{k=1}^2
-  h_{t_{k-1}, t_k}(u_k)
-  &= &
-  \min_{t_1, u_2}
-  h_{t_1,n}(u_2)
-  +\min_{u_1\leq u_2}
-  h_{0,t_1}(u_1)\\
-  &=&
-      \label{eq:min-less-2}
-  \min_{t_1, u_2}
-  h_{t_1,n}(u_2)
-  +
-  h^\leq_{0,t_1}(u_2)\\
-  &=&
-      \label{eq:u2}
-  \min_{u_2} \FCC_{2, n}(u_2).
-\end{eqnarray}
-The first equality (\ref{eq:isotonic_ut_2}) follows from
-expanding the optimization variables and the sum. The second equality
-(\ref{eq:min-less-2}) follows from the definition of the min-less
-operator (\ref{eq:min-less-def}). The final equality (\ref{eq:u2})
-follows from Lemma~\ref{lemma:t_change_points}. Thus, the dynamic
-programming recursion solves the segment neighborhood isotonic regression
-problem for $K=2$ segments.
+%   Now, we
+%   assume that the equivalence holds for $t$ data points, and prove it to be true
+%   for $t+1$ data points.
+%   \begin{eqnarray}
+%     \FCC_{K,t+1}(u)\label{eq:proof_fcct1}
+%     &=&\ell(y_{t+1},u)+\min\{\FCC_{K-1,t}^\leq(u),\,\FCC_{K,t}(u)\}\\
+%     &=&\min\label{eq:proof_induction_h}
+%         \begin{cases}
+%           \FCC_{K-1,t}^\leq(u)+h_{t,t+1}(u)\\
+%           \min_{\tau\in[K-1,t)} \FCC^\leq_{K-1,\tau}(u)+h_{\tau,t+1}(u)
+%         \end{cases}\\
+%     &=&\min_{\tau\in[K-1,t+1)} \FCC^\leq_{K-1,\tau}(u)+h_{\tau,t+1}(u)
+%         \label{eq:proof_tau2}
+%   \end{eqnarray}
+%   Equation (\ref{eq:proof_fcct1}) results by expanding $\FCC_{K,t+1}$
+%   using Definition~\ref{def:fcc}. Equation
+%   (\ref{eq:proof_induction_h}) follows from the definition of
+%   $h_{t,t+1}$ and the induction assumption. Finally, equation
+%   (\ref{eq:proof_tau2}) results from re-writing the top $h_{t,t+1}$ term using the
+%   change-point optimization variable $\tau$.  This concludes the proof
+%   by induction.
+% \end{proof}
 
-To complete the proof by induction, we assume that the equality holds for
-$K$ segments, and prove that it holds for $K+1$ segments.
-\begin{eqnarray}
-  \label{eq:proof_separate_tau}
-  \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^{K+1}}
-  \sum_{k=1}^{K+1}
-  h_{t_{k-1}, t_k}(u_k)
-  &= & \label{eq:proof_hkexpand}\min_\tau
-  \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_\tau^K}
-       \left[
-       \sum_{k=1}^K
-       h_{t_{k-1},t_k}(u_k)
-       \right]
-       +\min_{u_{K+1}\geq u_K}
-       h_{\tau, n} (u_{K+1})\\
-&=& \min_\tau\min_{u_K} \FCC_{K,\tau}(u_K)\label{eq:proof_Ckt_induction}
-    +\min_{u_{K+1}\geq u_K} h_{\tau,n}(u_{K+1})\\
-% &=& \min_\tau \min_{u_{K+1}} h_{\tau,n}(u_{K+1})
-% +\min_{u_K\leq u_{K+1}} \FCC_{K,\tau}(u_K)\\
-&=& \min_\tau \min_{u_{K+1}} h_{\tau,n}(u_{K+1})\label{eq:proof_min_less_def_2}
-+\FCC_{K,\tau}^\leq(u_{K+1})\\
-&=& \min_{u_{K+1}} \FCC_{K+1,n}(u_{K+1}).\label{eq:proof_remove_tau}
-\end{eqnarray}
-Equation (\ref{eq:proof_hkexpand}) follows by removing the $k=K+1$
-term from the sum, and (\ref{eq:proof_Ckt_induction}) follows from the
-induction assumption. Equation (\ref{eq:proof_min_less_def_2}) follows
-from the definition of the min-less operator (\ref{eq:min-less-def}),
-and the final equality (\ref{eq:proof_remove_tau}) follows from
-Lemma~\ref{lemma:t_change_points}. This concludes the proof by induction.
-\end{proof}
+% Having proved Lemma~\ref{lemma:t_change_points}, we now use it to
+% prove the following theorem about the optimality of the dynamic
+% programming solution.
+% \begin{theorem}[Dynamic programming recovers the segment neighborhood isotonic regression solution]
+%   For a data set $\mathbf y\in\RR^n$, and any number of segments $K\leq n$,
+%   the optimal dynamic programming cost $\min_u \FCC_{K,n}(u)$ is
+%   equivalent to the minimum value of the segment neighborhood isotonic
+%   regression problem (\ref{eq:isotonic_ut}).
+% \end{theorem}
+% \begin{proof}
+%   We proceed by induction on segments $K$. First, consider the case of $K=2$ segments:
+% \begin{eqnarray}
+%   \label{eq:isotonic_ut_2}
+%   \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^2}
+%   \sum_{k=1}^2
+%   h_{t_{k-1}, t_k}(u_k)
+%   &= &
+%   \min_{t_1, u_2}
+%   h_{t_1,n}(u_2)
+%   +\min_{u_1\leq u_2}
+%   h_{0,t_1}(u_1)\\
+%   &=&
+%       \label{eq:min-less-2}
+%   \min_{t_1, u_2}
+%   h_{t_1,n}(u_2)
+%   +
+%   h^\leq_{0,t_1}(u_2)\\
+%   &=&
+%       \label{eq:u2}
+%   \min_{u_2} \FCC_{2, n}(u_2).
+% \end{eqnarray}
+% The first equality (\ref{eq:isotonic_ut_2}) follows from
+% expanding the optimization variables and the sum. The second equality
+% (\ref{eq:min-less-2}) follows from the definition of the min-less
+% operator (\ref{eq:min-less-def}). The final equality (\ref{eq:u2})
+% follows from Lemma~\ref{lemma:t_change_points}. Thus, the dynamic
+% programming recursion solves the segment neighborhood isotonic regression
+% problem for $K=2$ segments.
+
+% To complete the proof by induction, we assume that the equality holds for
+% $K$ segments, and prove that it holds for $K+1$ segments.
+% \begin{eqnarray}
+%   \label{eq:proof_separate_tau}
+%   \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^{K+1}}
+%   \sum_{k=1}^{K+1}
+%   h_{t_{k-1}, t_k}(u_k)
+%   &= & \label{eq:proof_hkexpand}\min_\tau
+%   \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_\tau^K}
+%        \left[
+%        \sum_{k=1}^K
+%        h_{t_{k-1},t_k}(u_k)
+%        \right]
+%        +\min_{u_{K+1}\geq u_K}
+%        h_{\tau, n} (u_{K+1})\\
+% &=& \min_\tau\min_{u_K} \FCC_{K,\tau}(u_K)\label{eq:proof_Ckt_induction}
+%     +\min_{u_{K+1}\geq u_K} h_{\tau,n}(u_{K+1})\\
+% % &=& \min_\tau \min_{u_{K+1}} h_{\tau,n}(u_{K+1})
+% % +\min_{u_K\leq u_{K+1}} \FCC_{K,\tau}(u_K)\\
+% &=& \min_\tau \min_{u_{K+1}} h_{\tau,n}(u_{K+1})\label{eq:proof_min_less_def_2}
+% +\FCC_{K,\tau}^\leq(u_{K+1})\\
+% &=& \min_{u_{K+1}} \FCC_{K+1,n}(u_{K+1}).\label{eq:proof_remove_tau}
+% \end{eqnarray}
+% Equation (\ref{eq:proof_hkexpand}) follows by removing the $k=K+1$
+% term from the sum, and (\ref{eq:proof_Ckt_induction}) follows from the
+% induction assumption. Equation (\ref{eq:proof_min_less_def_2}) follows
+% from the definition of the min-less operator (\ref{eq:min-less-def}),
+% and the final equality (\ref{eq:proof_remove_tau}) follows from
+% Lemma~\ref{lemma:t_change_points}. This concludes the proof by induction.
+% \end{proof}
 
 \subsection{Storage and recovery of optimal parameters}
 \label{sec:decoding}
