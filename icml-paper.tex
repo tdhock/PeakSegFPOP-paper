@@ -110,7 +110,7 @@
   show that our algorithm achieves state-of-the-art speed and accuracy
   in a benchmark of several genomic data sets. A free/open-source C++
   implementation of our algorithms will be made available online after
-  publication.
+  acceptance.
 \end{abstract}
 
 \section{Introduction}
@@ -252,16 +252,16 @@ of the set of possible mean vectors.
 \end{equation}
 Now, assume that the data are a realization of a probability
 distribution with mean parameter $\mathbf m$. For example, assuming
-$y_i \sim \mathcal N(m_i, \sigma^2)$ results in the following maximum
-likelihood isotonic regression problem
-
-\begin{equation}
-  \label{eq:max_lik}
-  \maximize_{\mathbf m\in\mathcal I^n, \sigma} \sum_{i=1}^n \Lik(y_i| m_i, \sigma^2).
-\end{equation}
-
-It is easy to show that the above concave maximization problem is equivalent
-to the convex minimization problem below,
+$y_i \sim \mathcal N(m_i, \sigma^2)$ 
+and performing maximum likelihood inference results in a convex minimization problem,
+% results in the following maximum
+% likelihood isotonic regression problem
+% \begin{equation}
+%   \label{eq:max_lik}
+%   \maximize_{\mathbf m\in\mathcal I^n, \sigma} \sum_{i=1}^n \Lik(y_i| m_i, \sigma^2).
+% \end{equation}
+% It is easy to show that the above concave maximization problem is equivalent
+% to the convex minimization problem below,
 \begin{equation}
   \label{eq:isotonic}
   %\tag{\textbf{IsotonicRegression}}
@@ -342,23 +342,16 @@ constraint that the segment mean must never decrease.
   Let $(\mathbf m, \mathbf c)\in\mathcal I_K^n$ be the set of all segment means
   $\mathbf m\in\RR^n$ and change-point indicators
   $\mathbf c\in\{0,1\}^{n-1}$ such that the following constraints are
-  verified. The total number of non-zero change-point indicators is $K-1$:
-  \begin{equation}
-    \label{eq:isotonic_segments}
-    \sum_{i=1}^{n-1} I(c_i = 1) = K-1.
-  \end{equation}
-  Every zero-valued change-point indicator has an equal segment mean
-  after:
-  \begin{equation}
-    \label{eq:isotonic_0}
-    c_i = 0 \Rightarrow m_i = m_{i+1}.
-  \end{equation}
-  Every one-valued change-point indicator may have a greater segment
-  mean after:
-  \begin{equation}
-    \label{eq:isotonic_1}
-    c_i = 1 \Rightarrow m_i \leq m_{i+1}.
-  \end{equation}
+  verified:
+  \begin{enumerate}
+  \item There are $K-1$ non-zero change-point indicators:
+    $\sum_{i=1}^{n-1} I(c_i \neq 0) = K-1$,
+  \item Every zero-valued change-point indicator has an equal segment mean
+  after: $c_i = 0 \Rightarrow m_i = m_{i+1}$, 
+  \item Every one-valued
+    change-point indicator may have a greater segment mean after:
+    $c_i = 1 \Rightarrow m_i \leq m_{i+1}$.
+  \end{enumerate}
 \end{definition}
 
 For a given data set $\mathbf y\in\RR^n$, loss function $\ell$, and
@@ -559,7 +552,7 @@ $\FCC_{1,1}(u)=\ell(y_1,u)$, and for the other data
   \input{figure-compare-cost}
   \vskip -0.5cm
   \caption{Comparison of previous unconstrained algorithm (grey) with
-    new algorithm that constrains changes to be non-decreasing (red),
+    new algorithm that constrains segment means to be non-decreasing (red),
     for the toy data set $\mathbf y= [ 2, 1, 0, 4 ] \in\RR^4$ and the
     square loss. \textbf{Left:} rather than computing the
     unconstrained minimum (constant grey function), the new algorithm
@@ -836,7 +829,7 @@ else $\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
     \label{line:decode-ks}
   \end{ALC@g}
 \end{ALC@g}
-\caption{\label{algo:SNIR} SNIR solver.}
+\caption{\label{algo:SNIR} SNIR solver TODO separate decoding into separate algo?}
 \end{algorithmic}
 \end{algorithm}
 
@@ -946,39 +939,20 @@ followed by down changes, and all down changes are followed by up
 changes. More precisely, we define the constraint set as follows.
 \begin{definition}[PeakSeg constraints]
   \label{def:U}
-  Let $(\mathbf m, \mathbf c)\in\mathcal U_K^n$ be the set of all segment means
-  $\mathbf m\in\RR^n$ and change-point indicators
-  $\mathbf c\in\{-1, 0,1\}^{n-1}$ such that the following constraints are
-  verified. The total number of non-zero change-point indicators is $K-1$:
-  \begin{equation}
-    \label{eq:U_segments}
-    \sum_{i=1}^{n-1} I(c_i \neq 0) = K-1.
-  \end{equation}
-  Every zero-valued change-point indicator has an equal segment mean
-  after:
-  \begin{equation}
-    \label{eq:U_0}
-    c_i = 0 \Rightarrow m_i = m_{i+1}.
-  \end{equation}
-  Every positive change-point indicator may have a greater segment
-  mean after:
-  \begin{equation}
-    \label{eq:U_1}
-    c_i = 1 \Rightarrow m_i \leq m_{i+1}.
-  \end{equation}
-  Every negative change-point indicator may have a smaller segment
-  mean after:
-  \begin{equation}
-    \label{eq:U-1}
-    c_i = -1 \Rightarrow m_i \geq m_{i+1}.
-  \end{equation}
-  The first change is an up change, and every up change is followed by a
-  down change, and vice versa. Mathematically, the cumulative sum of
-  change-point variables up to $t$ is either zero or one, for all $t<n$:
-  \begin{equation}
-    \label{eq:U-cum}
-    \sum_{i=1}^t c_i \in \{0, 1\}.
-  \end{equation}
+  Let $(\mathbf m, \mathbf c)\in\mathcal U_K^n$ be the set of all
+  segment means $\mathbf m\in\RR^n$ and change-point indicators
+  $\mathbf c\in\{-1, 0,1\}^{n-1}$ such that the following constraints
+  are verified:
+  \begin{enumerate}
+  \item The three SNIR constraints in Definition~\ref{def:I} are verified,
+  \item Every negative change-point indicator may have a smaller
+    segment mean after:
+    $c_i = -1 \Rightarrow m_i \geq m_{i+1}$,
+  \item The first change is an up change, and every up change is followed by a
+    down change, and vice versa. Mathematically, the cumulative sum of
+    change-point variables up to $t$ is either zero or one, for all $t<n$:
+    $\sum_{i=1}^t c_i \in \{0, 1\}$.
+  \end{enumerate}
 \end{definition}
 The PeakSeg optimization problem uses this constraint set with the usual loss function. 
 \begin{equation}
@@ -1010,9 +984,12 @@ always using the MinLess sub-routine, the constrained version uses the
 MinMore sub-routine for odd segments $k$. We implemented this algorithm
 using the Poisson loss $\ell(y, u) = m - y\log m$, since our
 application in Section~\ref{sec:results-chip-seq} is on count data
-$y\in\ZZ_+ = \{0, 1, 2, \dots\}$. Our free/open-source implementation
-is available as the PeakSegPDPA function in the R package coseg
-(\url{https://github.com/tdhock/coseg}). More details about how we
+$y\in\ZZ_+ = \{0, 1, 2, \dots\}$. 
+% Our free/open-source implementation
+% is available as the PeakSegPDPA function in the R package coseg
+% (\url{https://github.com/tdhock/coseg}). 
+A free/open-source C++ implementation of this algorithm will be made
+available online after acceptance.  More details about how we
 implemented this algorithm can be found in the supplementary materials
 (Section~\ref{sec:peakseg_details}).
 
@@ -1230,21 +1207,22 @@ peaks. For each segmentation problem we attempted to compute models
 with 0, ..., 9 peaks ($k\in\{1,3,\dots,19\}$ segments).
 
 As in the original pruned dynamic programming algorithm, the time
-complexity of our proposed algorithm depends on the number of
-intervals (candidate change-points) stored in the $\FCC_{k,t}$ cost
-functions. \citet{pruned-dp} showed that the number of intervals is at
-most $O(n)$ in the worst case, but on average $O(\log n)$. In the left
-of Figure~\ref{fig:timings}, we show that the empirical number of
-intervals for our algorithm in the ChIP-seq data sets is $O(\log
-n)$. For the largest data set ($n=263169$), the algorithm only stored
-median=16 and maximum=43 intervals. The most intervals stored was 253
-for one data set with $n=7776$. These results suggest that our new
-algorithm only stores on average $O(\log n)$ intervals (possible
-change-points), as in the original pruned dynamic programming
-algorithm.
+complexity of our proposed algorithm is $O(n K I)$, which depends on
+the number of intervals $I$ (candidate change-points) stored in the
+$\FCC_{k,t}$ cost functions. \citet{pruned-dp-new} showed that the
+number of intervals is $O(n)$ in the worst case, but on average
+$O(\log n)$. In the left of Figure~\ref{fig:timings}, we show that the
+empirical number of intervals for our algorithm in the ChIP-seq data
+sets is $O(\log n)$. For the largest data set ($n=263169$), the
+algorithm only stored median=16 and maximum=43 intervals. The most
+intervals stored was 253 for one data set with $n=7776$. These results
+suggest that our new algorithm only stores on average $O(\log n)$
+intervals (possible change-points), as in the original pruned dynamic
+programming algorithm. The overall empirical time complexity is thus
+$O(K n \log n)$ for $K$ segments and $n$ data points.
 
 We used the \verb|system.time| function in R to record the timings of
-each optimization-based algorithm (Segmentor, PeakSegDP, coseg). The
+each optimization-based algorithm (Segmentor, PeakSegDP, coseg) when $K=19$ is fixed. The
 plot on the right in Figure~\ref{fig:timings} shows that the amount of
 computation time increases with the number of data points. As
 expected, our proposed coseg::PeakSegPDPA algorithm shows $O(n\log n)$
@@ -1277,33 +1255,34 @@ to use for very large data sets.
   \label{fig:timings}
 \end{figure*}
 
-\subsection{Feasibility and optimality in ChIP-seq data}
+% \subsection{Feasibility and optimality in ChIP-seq data}
 
-For each of 2752 segmentation problems, we attempt to compute models
-with 0, ..., 9 peaks, so there are a total of 27520 possible models
-for each optimization-based algorithm (Segmentor, PeakSegDP,
-coseg). However, none of the algorithms is theoretically guaranteed to
-return a model which is feasible for the up-down constraint (PeakSegDP
-either recovers an up-down model or no model at all; when coseg and
-Segmentor recovered models that did not obey the PeakSeg up-down
-constraints, we discarded those infeasible models). In this section,
-we compare the algorithms in terms of how frequently they recover
-models which are feasible and optimal.
+% For each of 2752 segmentation problems, we attempt to compute models
+% with 0, ..., 9 peaks, so there are a total of 27520 possible models
+% for each optimization-based algorithm (Segmentor, PeakSegDP,
+% coseg). However, none of the algorithms is theoretically guaranteed to
+% return a model which is feasible for the up-down constraint (PeakSegDP
+% either recovers an up-down model or no model at all; when coseg and
+% Segmentor recovered models that did not obey the PeakSeg up-down
+% constraints, we discarded those infeasible models). In this section,
+% we compare the algorithms in terms of how frequently they recover
+% models which are feasible and optimal.
 
-We show the number of models which are feasible for the PeakSeg
-up-down constraint in Table~\ref{tab:min-train-error}. The PeakSegDP
-package computed the most feasible models (27469/27520=99.8\%),
-followed by the coseg package (21278/27520=77.3\%), and the Segmentor
-package computed the fewest (8106/27520=29.4\%). In terms of
-optimality, the cDPA (PeakSegDP R pkg) computes a sub-optimal model
-for 7246/27520 = 26.3\% of models. For 1032/7246 of these, the PeakSeg
-solution exists and is recovered by our new algo (coseg R pkg) but not
-the unconstrained algo (Segmentor R pkg). These results suggest that
-in ChIP-seq data sets, the new coseg algorithm is more accurate than
-PeakSegDP, in terms of the Poisson likelihood. Furthermore, these
-results suggest that coseg is more useful than Segmentor, since there
-are many cases for which Segmentor does not recover a model that
-verifies the up-down constraint on the segment means.
+% % We show the number of models which are feasible for the PeakSeg
+% % up-down constraint in Table~\ref{tab:min-train-error}. 
+% The PeakSegDP package computed the most feasible models
+% (27469/27520=99.8\%), followed by the coseg package
+% (21278/27520=77.3\%), and the Segmentor package computed the fewest
+% (8106/27520=29.4\%). In terms of optimality, the cDPA (PeakSegDP R
+% pkg) computes a sub-optimal model for 7246/27520 = 26.3\% of
+% models. For 1032/7246 of these, the PeakSeg solution exists and is
+% recovered by our new algo (coseg R pkg) but not the unconstrained algo
+% (Segmentor R pkg). These results suggest that in ChIP-seq data sets,
+% the new coseg algorithm is more accurate than PeakSegDP, in terms of
+% the Poisson likelihood. Furthermore, these results suggest that coseg
+% is more useful than Segmentor, since there are many cases for which
+% Segmentor does not recover a model that verifies the up-down
+% constraint on the segment means.
 % Numbers come from figure-PDPA-cDPA-compare.R
 
 % \subsection{Minimum train error in ChIP-seq data}
