@@ -102,15 +102,16 @@
   Change-point detection is a central problem in time series and
   genomic data, in which constraints on the change-point directions
   are often desired to obtain an interpretable model. We describe a
-  new family of dynamic programming algorithms for solving constrained
+  family of dynamic programming algorithms for solving constrained
   optimal change-point detection problems. We begin by showing how a
   recently proposed functional pruning technique can be used to solve
   the isotonic regression problem, then show how this technique can be
   extended to general affine constraints on adjacent segment means. We
-  show that our algorithm achieves state-of-the-art speed and accuracy
-  in a benchmark of several genomic data sets. A free/open-source C++
-  implementation of our algorithms will be made available online after
-  acceptance.
+  show empirically that our algorithm achieves state-of-the-art speed
+  and accuracy in a benchmark of several genomic data sets. In
+  contrast to previous heuristic quadratic time solvers for this
+  problem, our algorithm recovers the optimal solution in linear
+  time. 
 \end{abstract}
 
 \section{Introduction}
@@ -312,9 +313,14 @@ the following segment neighborhood problem:
   \label{eq:optimal_segment_neighborhood}
   \minimize_{\mathbf m\in\mathcal S_K^n} \sum_{i=1}^n \ell(y_i, m_i).
 \end{equation}
-The segment neighborhood problem can be efficiently solved in
-$O(K n \log n)$ time using the pruned dynamic programming algorithm of
-\citet{pruned-dp}.
+Note that this optimization problem is non-convex since the model
+complexity is the number of change-points, measured via the non-convex
+the indicator function $I$ (\ref{eq:Sk}). Nonetheless, the optimal
+solution can be computed in $O(K n^2)$ time using the standard dynamic
+programming algorithm \citep{segment-neighborhood}. By exploiting the
+structure of the convex loss function $\ell$, the pruned dynamic
+programming algorithm of \citet{pruned-dp} computes the same optimal
+solution in faster $O(K n \log n)$ time.
 
 Unlike isotonic regression, the segment neighborhood model
 does not constrain the direction of the changes. Thus, for some
@@ -378,7 +384,7 @@ that it is equivalent to solve a simpler problem with fewer
 optimization variables. Then, we show how to recursively compute the
 solution using dynamic programming.
 
-\subsection{Equivalent problem with fewer optimization 
+\subsection{Equivalent problem with fewer 
 variables}
 
 First, consider the following definition of a smaller optimization
@@ -465,7 +471,7 @@ functions as follows.
 As in the PDPA of \citet{pruned-dp}, our proposed dynamic programming
 algorithm uses an exact representation of the
 $C_{K,n}:\RR\rightarrow\RR$ cost functions, which can be efficiently
-computed in terms of the min-less operator. 
+computed in terms of the min-less operator (Figure~\ref{fig:compare-unconstrained}, left). 
 
 \begin{definition}[Min-less operator]
 For any real-valued
