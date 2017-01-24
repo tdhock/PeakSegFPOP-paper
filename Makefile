@@ -102,3 +102,5 @@ PDPA.cDPA.compare.RData: PDPA.cDPA.compare.R
 	R --no-save < $<
 figure-PDPA-cDPA-compare.pdf: figure-PDPA-cDPA-compare.R PDPA.cDPA.compare.RData
 	R --no-save < $<
+HOCKING-PeakSegFPOP-pipeline-slides.pdf: HOCKING-PeakSegFPOP-pipeline-slides.tex
+	R --no-save < $<
