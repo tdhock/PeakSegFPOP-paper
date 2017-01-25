@@ -533,7 +533,7 @@ Multiply <- function(dt, x){
 }
 
 input.dt <- data.table(count=c(10, 1, 14, 13), weight=1)
-input.dt <- data.table(count=c(1, 3, 8, 5, 10, 3), weight=1)
+input.dt <- data.table(count=c(2, 1, 0, 4), weight=1)
 library(animint)
 
 cost.lines.list <- list()
@@ -782,7 +782,7 @@ for(total.segments in 1:max.segments){
         ifelse(total.segments==1, "", "s"),
         ", ", timestep, " data point",
         ifelse(timestep==1, "", "s")))+
-      scale_x_continuous(breaks=c(range(input.dt$count), 5, 10))+
+      scale_x_continuous(breaks=0:4)+
       scale_color_manual("prev seg end", values=data.colors)+
       geom_line(aes(mean, cost,
                     color=factor(data.i),

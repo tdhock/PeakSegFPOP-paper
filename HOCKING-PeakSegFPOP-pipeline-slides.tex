@@ -42,7 +42,8 @@
   joint work with Guillem Rigaill, Paul Fearnhead, 
   Guillaume Bourque}
 
-\date{11 Nov 2016}
+
+\date{26 Jan 2017}
 
 \maketitle
 
@@ -215,7 +216,8 @@ maxIter 20
   \begin{itemize}
   \item \alert<1>{Auger and Lawrence, Algorithms for the optimal
       identification of segment neighborhoods (Bull Math Biol 1989).}
-  \item \alert<2>{Independent discovery: Rigaill 2010, Johnson 2013. R pkg: Cleynen et al 2014.}
+  \item \alert<2>{Independent discovery: Rigaill 2010, Johnson
+      2013. R package Segmentor: Cleynen et al 2014.}
   \item \alert<3>{Hocking, Rigaill, Bourque 2015.}
   \item \alert<4>{\textbf{Contribution}: new algorithm that
       \textbf{exactly} computes the \textbf{constrained} optimal
@@ -226,8 +228,9 @@ maxIter 20
 
 \begin{frame}
   \frametitle{Dynamic programming and functional pruning}
-  \textbf{Classical dynamic programming} ( 1989) computes the matrix of optimal loss
-  values in $S$ segments up to $N$ data points, $O(S N^2)$
+  \textbf{Classical dynamic programming} (Auger and Lawrence 1989)
+  computes the matrix of optimal loss values in $S$ segments up to $N$
+  data points, $O(S N^2)$
 $$
 \begin{array}{ccc}
   \mathcal L_{1,1} & \cdots &   \mathcal L_{1,N}\\
@@ -235,8 +238,8 @@ $$
   \mathcal L_{S,1} & \cdots & \mathcal L_{S,N}\\
 \end{array}
 $$
-\textbf{Dynamic programming with functional pruning} (Rigaill
-2010) computes a matrix of loss \textbf{functions}, the
+\textbf{Dynamic programming with functional pruning} (Rigaill 2010,
+Johnson 2013) computes a matrix of loss \textbf{functions}, the
 optimal loss up to $N$ data points if segment $S$ has mean $\mu_S$,
 $O(S N\log N)$
 $$
@@ -258,7 +261,7 @@ functional pruning technique to the up-down constrained model.
     \gamma_t(\mu) = \ell(\mu, z_t) = \mu - z_t \log \mu
   \end{equation*}
   be the Poisson loss for each $t\in\{1, \dots, N\}$.
-\item For example $z = 2, 1, 9, 5, 10, 3$.
+\item For example $z = 2, 1, 0, 4$.
 \item Then $\gamma_1(\mu)=L_{1,1}(\mu)= \alert{1}\mu - \alert{2}\log \mu + \alert{0}$.
 \item Need to store 3 coefficients (\alert{linear}, \alert{log}, \alert{constant}).
   \end{itemize}
@@ -276,7 +279,7 @@ functional pruning technique to the up-down constrained model.
     \label{eq:C1b}
     L_{1,t}(\mu) = \sum_{i=1}^t \gamma_i(\mu).
   \end{equation*}
-\item For example $z = 2, 1, 9, 5, 10, 3$.
+\item For example $z = 2, 1, 0, 4$.
 % \item $L_{1,2}(\mu) = (2\mu - 3\log\mu + 0)/2 = 1\mu - 1.5\log\mu + 0$.
 % \item $L_{1,3}(\mu) = (3\mu - 13\log\mu + 0)/3 = 1\mu - 4.333\log\mu + 0$.
 \item $L_{1,2}(\mu) = 2\mu - 3\log\mu + 0$.
@@ -319,7 +322,7 @@ functional pruning technique to the up-down constrained model.
       \widehat{L}_{2,2}(\mu_2) = \gamma_2(\mu_2)+
       \alert<1>{\underbrace{\min_{\mu_1} L_{1,1}(\mu_1)}_{\mathcal L_{1,1}}}.
     \end{equation*}
-  \item For example $z = 2, 1, 9, 5, 10, 3$.
+  \item For example $z = 2, 1, 0, 4$.
     \begin{center}
       \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-mincompare-2segments-2data}
     \end{center}
@@ -329,7 +332,7 @@ functional pruning technique to the up-down constrained model.
 \begin{frame}
   \frametitle{Storage as a piecewise function on intervals}
   \begin{itemize}
-  \item For example $z = 2, 1, 9, 5, 10, 3$.
+  \item For example $z = 2, 1, 0, 4$.
     \begin{center}
       \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minlessmore-2segments-2data}
     \end{center}
@@ -337,8 +340,8 @@ functional pruning technique to the up-down constrained model.
     \begin{equation*}
       L_{2,2}(\mu) = \gamma_2(\mu) + 
       \begin{cases}
-        L_{1,1}(\mu) = 1\mu - 2\log \mu + 0 & \text{ if } \mu\in[1,2],\\
-        \mathcal L_{1,1} = 0\mu -0\log\mu + 0.6137 & \text{ if } \mu\in[2,10].
+        L_{1,1}(\mu) = 1\mu - 2\log \mu + 0 & \text{ if } \mu\in[0, 2],\\
+        \mathcal L_{1,1} = 0\mu -0\log\mu + 0.6137 & \text{ if } \mu\in[2, 4].
       \end{cases}
     \end{equation*}
   \end{itemize}
@@ -356,7 +359,7 @@ functional pruning technique to the up-down constrained model.
         L_{2,2}(\mu), & \text{ change up after data point 1}. 
       \end{cases}
     \end{equation*}
-  \item For $z = 2, 1, 9, 5, 10, 3$ the min operation prunes a
+  \item For $z = 2, 1, 0, 4$ the min operation prunes a
     change after data point 1.
     \begin{center}
       \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minenv-2segments-3data}
@@ -375,7 +378,7 @@ functional pruning technique to the up-down constrained model.
         L_{2,t-1}(\mu), & \text{change up before $t-1$.}
       \end{cases}
     \end{equation*}
-  \item For example for $z = 2, 1, 9, 5, 10, 3$, at data point $t=4$
+  \item For example for $z = 2, 1, 0, 4$, at data point $t=4$
     we only need to consider changes after 2 and 3 (1 has been
     pruned).
     \begin{center}
@@ -385,7 +388,7 @@ functional pruning technique to the up-down constrained model.
 \end{frame}
 
 \begin{frame}
-  \frametitle{Time complexity depends on number of intervals}
+  \frametitle{Dynamic programming for segment neighborhood model}
   \begin{itemize}
   \item Dynamic programming update rule: the constrained cost of a
     mean $\mu$ for the segment $s$, up to data point $t$:
@@ -600,13 +603,35 @@ functional pruning technique to the up-down constrained model.
 \url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}
 \end{frame}
 
+\begin{frame}
+  \frametitle{Segmenting whole chromosomes?}
+  \includegraphics[width=\textwidth]{screenshot-gap-peaks}
+  \begin{itemize}
+  \item 365 regions with no gaps in hg19.
+  \item 272 regions with no gaps on chr1-22, X, Y.
+  \item Smallest: 31,833 bases (chr6:157,609,467-157,641,300).
+  \item Largest: 115,591,997 bases (chr4:75,452,279-191,044,276).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{But the segment neighborhood algorithm is too slow for
+    large genomic regions}
+  \begin{itemize}
+  \item Time complexity $O(P N \log N)$ to compute models with
+    $0,\dots,P$ peaks in $N$ data.
+  \item Since $P=O(N)$, time complexity is $O(N^2 \log N)$ -- too slow
+    for large genome regions.
+  \end{itemize}
+  \includegraphics[width=\textwidth]{figure-hg19-problems}
+\end{frame}
+
 \section{Optimal partitioning model (penalize number of peaks)}
 
 \begin{frame}
   \frametitle{Optimal partitioning model penalizes the number of changes}
   \begin{itemize}
   \item We have $N$ count data $z_1, \dots, z_N\in\ZZ_+$.
-  \item Fix the number of segments $S\in\{1, 2, \dots, N\}$.
   \item PeakSeg Segment Neighborhood Model: find means $m_t$ which
     minimize the Poisson loss $\sum_{t=1}^N \ell(m_t, z_t)$,
     such that there are exactly $S-1$ up-down changes.
@@ -627,25 +652,29 @@ functional pruning technique to the up-down constrained model.
     \hline
     unconstrained & \alert<1>{Dynamic Programming} & \alert<2>{FPOP} \\
      & \alert<1>{exact $O(N^2)$} & \alert<2>{exact $O(N\log N)$}\\
-    R pkgs: &  & \alert<2>{fpop}\\
+    R packages: &  & \alert<2>{fpop}\\
     \hline
     up-down constrained &  & \alert<3>{\textbf{this work}} \\
      &  & \alert<3>{exact $O(N\log N)$}\\
-    R pkgs: &  & \alert<3>{coseg}\\
+    R packages: &  & \alert<3>{coseg}\\
     \hline
   \end{tabular}
   \begin{itemize}
   \item \alert<1>{Jackson et al 2005, An algorithm for optimal partitioning of data on an interval.}
   \item \alert<2>{Independent discovery: Johnson 2013, Maidstone et
       al 2016 (FPOP = Functional Pruning Optimal Partitioning).}
-  \item \alert<3>{\textbf{Contribution}: new dynamic programming algorithm that
-      \textbf{exactly} computes the \textbf{constrained} optimal
-      segmentation for $N$ data points and a single penalty $\lambda$ in $O(N\log N)$ time.}
+  \item \alert<3>{\textbf{Contribution}: new dynamic programming
+      algorithm that \textbf{exactly} computes the
+      \textbf{constrained} optimal segmentation for $N$ data points
+      and a single penalty $\lambda$ in $O(N\log N)$ time.}
   \end{itemize}
+  All algorithms compute a model with $S$ segments without having to
+  compute models with $1, \dots, S-1$ segments.
 \end{frame}
 
 \begin{frame}
-  \frametitle{Dynamic programming and functional pruning}
+  \frametitle{Dynamic programming and functional pruning for the
+    optimal partitioning model}
   \textbf{Classical dynamic programming} (Jackson et al 2005) 
   computes the optimal loss values up to $N$ data points, $O(N^2)$
 $$
@@ -653,10 +682,9 @@ $$
   \mathcal L_{1} & \cdots &   \mathcal L_{N}\\
 \end{array}
 $$
-\textbf{Dynamic programming with functional pruning} (Rigaill
-2010) computes loss \textbf{functions}, the
-optimal loss up to $N$ data points with last segment mean $\mu$,
-$O(N\log N)$
+\textbf{Dynamic programming with functional pruning} (Johnson 2013,
+Maidstone et al 2016) computes loss \textbf{functions}, the optimal
+loss up to $N$ data points with last segment mean $\mu$, $O(N\log N)$
 $$
 \begin{array}{ccc}
    L_{1}(\mu) & \cdots & L_{N}(\mu)\\
@@ -667,8 +695,188 @@ functional pruning technique to the up-down constrained model.
 \end{frame}
 
 \begin{frame}
-  \frametitle{Target interval computation time}
-  \includegraphics[width=\textwidth]{figure-target-interval-time}
+  \frametitle{Dynamic programming algorithm (PeakSegFPOP)}
+  \begin{itemize}
+    \item Input: data $z_1, \dots, z_N\in\ZZ_+$, penalty $\lambda \geq 0$.
+    \item Initialization $t=1$, optimal loss if first data point has
+      mean $\mu$ on a background/down segment:
+      $\underline L_1(\mu) = \ell(\mu, z_1)$.
+    \item Initialization $t=2$: 
+      \begin{eqnarray*}
+  \overline L_2(\mu) &=& \ell(\mu, z_2) + \underline L_1^\leq(\mu) + \lambda,\\
+  \underline L_2(\mu) &=& \ell(\mu, z_2) + \underline L_1(\mu).
+      \end{eqnarray*}
+    \item Updates: for all $t>2$, 
+      \begin{eqnarray*}
+  \overline L_t(\mu) &=& \ell(\mu, z_t) + \min\{ \overline L_{t-1}(\mu),\, \underline L_{t-1}^\leq(\mu) + \lambda \},\\
+  \underline L_t(\mu) &=& \ell(\mu, z_t) + \min\{ \underline L_{t-1}(\mu),\, \overline L_{t-1}^\geq(\mu) + \lambda \}.
+      \end{eqnarray*}
+\item Output: $2 \times N$ matrix of optimal loss functions
+$$
+\begin{array}{ccccc}
+   & \overline L_{2}(\mu) & \cdots & \overline L_{N-1}(\mu) & \\
+  \underline L_{1}(\mu) &\underline L_{2}(\mu) & \cdots & \underline L_{N-1}(\mu)& \underline L_{N}(\mu)\\
+\end{array}
+$$
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Implementation details}
+  \begin{itemize}
+  \item Weighted loss function for compressed bedGraph data: 2,1,1,1,0,0,0,4,4 $\Rightarrow$
+    \begin{tabular}{ccccc}
+      count $z_t$ & 2 & 1 & 0 & 4 \\
+      weight $w_t$ & 1 & 3 & 2 & 2
+    \end{tabular}
+    \begin{equation*}
+      \ell(m_t, z_t, w_t) = w_t(m_t - z_t\log m_t).
+    \end{equation*}
+  \item $\overline L_t$ stores mean rather than total loss: $W_{1:t}=\sum_{i=1}^t w_i$,
+$$  \overline L_t(\mu) = \frac{1}{W_{1:t}} \left[\ell(\mu, z_t) + 
+W_{1:(t-1)}
+\min\{ \overline L_{t-1}(\mu),\, \underline L_{t-1}^\leq(\mu) + \lambda \}\right]$$
+\item Solve $a\log\mu + b\mu + c = 0$ (linear as
+  $\mu\rightarrow\infty$) or $x=\log \mu$, $a x + be^x + c = 0$ (linear as
+  $\mu\rightarrow -\infty$), Newton root finding.
+\item Since update rule $t$ depends only on $t-1$, we can store the
+  others $1,\dots,t-2$ on disk.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{BerkeleyDB C++ Standard Template Library}
+In memory C++ STL:
+\begin{verbatim}
+#include <vector>
+std::vector<PiecewisePoissonLoss> cost_model_mat;
+\end{verbatim}
+On disk BerkeleyDB STL:
+\small
+\begin{verbatim}
+#include <dbstl_vector.h>
+// Functions to serialize/unserialize PiecewisePoissonLoss.
+dbstl::DbstlElemTraits<PiecewisePoissonLoss> *funTraits =
+  dbstl::DbstlElemTraits<PiecewisePoissonLoss>::instance();
+funTraits->set_size_function(PiecewiseFunSize);
+funTraits->set_copy_function(PiecewiseFunCopy);
+funTraits->set_restore_function(PiecewiseFunRestore);
+// Tell BerkeleyDB a file to store the data in the vector.
+DbEnv *env = NULL;
+Db *db = dbstl::open_db(
+  env, "/path/to/database.db", DB_RECNO, DB_CREATE, 0);
+dbstl::db_vector<PiecewisePoissonLoss> cost_model_mat(db, env);
+\end{verbatim}
+
+\end{frame}
+\begin{frame}
+  \frametitle{Two C++ implementations of PeakSegFPOP algorithm}
+  \begin{itemize}
+  \item PeakSegFPOP function in coseg R package (constrained optimal
+    segmentation), limited by memory. \url{https://github.com/tdhock/coseg}
+  \item PeakSegFPOP command line program for big $N > 10^6$ data.
+\url{https://github.com/tdhock/PeakSegFPOP}
+  \end{itemize}
+  \vskip 0.5cm
+  \begin{tabular}{rrrr}
+    implementation & time & memory & disk \\
+    \hline
+    R package coseg & $O(N \log N)$ & $O(N \log N)$ & 0 \\
+    command line & $O(N \log N)$ & $O(\log N)$ & $O(N\log N)$
+  \end{tabular}
+  \vskip 0.5cm
+  \begin{tabular}{rrrrr}
+N&	min(MB)&	max(MB)&	min(time)&	max(time)\\
+\hline
+10,000&	12&	43&	1 sec&	2 sec\\
+100,000&	189&	627&	12 sec&	25 sec\\
+1,000,000&	3462&	7148&	3 min&	5 min\\
+7,135,956&	5042&	41695&	18 min&	56 min\\
+7,806,082&	5270&	33425&	35 min&	167 min
+  \end{tabular}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Reasonable time to segment biggest region on chr1}
+  \includegraphics[width=\textwidth]{figure-cosegData-timings.pdf}
+  \begin{itemize}
+  \item R package in memory: $O(N \log N)$ time.
+  \item Command line program on disk: $O(N \log N)$ time.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Memory requirements reasonable for on-disk version}
+  \includegraphics[width=\textwidth]{figure-cosegData-timings-memory-disk.pdf}
+  \begin{itemize}
+  \item R package in memory: $O(N \log N)$ memory.
+  \item Command line program on disk: $O(\log N)$ memory.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Disk usage reasonable}
+  \includegraphics[width=\textwidth]{figure-cosegData-timings-disk.pdf}
+  \begin{itemize}
+  \item R package in memory: no disk usage.
+  \item Command line program: $O(N \log N)$ disk space (temporary).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Finding the optimal interval of penalty values}
+\vskip 0.2cm Broad peak pattern (H3K36me3), chr11:96,437,584-134,946,516.
+\scriptsize
+\begin{verbatim}
+         penalty  peaks     status fp fn
+ 1:          Inf      0   feasible  0  2
+ 2: 5265297.3831      3   feasible  0  2
+ 3: 3368752.0956      7   feasible  0  2
+ 4: 3005673.8348      8   feasible  0  0
+ 5: 2686562.9821     10   feasible  0  0
+ 6:  794862.0964     29   feasible  0  0
+ 7:  411324.5305     43   feasible  0  0
+ 8:  375144.4400     44   feasible  0  0
+ 9:  361535.5526     45   feasible  1  0
+10:  333932.0146     47   feasible  1  0
+11:  283667.3315     51   feasible  1  0
+12:  211252.2486     61   feasible  1  0
+13:   55303.9465    123   feasible  2  0
+14:    2715.5727   1986 infeasible  5  0
+15:     233.2671  54409 infeasible  5  0
+16:       0.0000 671283 infeasible  5  0
+\end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Finding the optimal interval of penalty values}
+\vskip 0.2cm Sharp peak pattern (H3K4me3), chr11:96,437,584-134,946,516.
+\scriptsize
+\begin{verbatim}
+        penalty  peaks     status fp fn
+ 1:         Inf      0   feasible  0 12
+ 2: 1232627.283     45   feasible  0  9
+ 3:  599902.993     84   feasible  0  6
+ 4:  467450.211     96 infeasible  0  4
+ 5:  436473.003     99 infeasible  0  4
+ 6:  427664.944    100 infeasible  0  3
+ 7:  423816.446    101 infeasible  0  3
+ 8:  415415.071    102 infeasible  0  3
+ 9:  375629.581    108 infeasible  0  3
+10:  227473.010    138 infeasible  0  3
+11:  144688.178    173 infeasible  0  3
+12:  117251.695    205 infeasible  0  3
+13:  103355.006    219 infeasible  0  3
+14:   99984.891    227 infeasible  0  3
+15:   97920.192    229 infeasible  0  3
+16:   97532.045    230 infeasible  4  3
+17:   97119.082    231 infeasible  4  3
+18:   95124.208    233 infeasible  4  3
+19:   46623.871    385 infeasible  7  0
+20:   12159.960    905 infeasible 13  0
+21:    1039.473  21060 infeasible 19  0
+22:       0.000 260804 infeasible 20  0
+\end{verbatim}
 \end{frame}
 
 \begin{frame}
@@ -677,15 +885,31 @@ functional pruning technique to the up-down constrained model.
 \end{frame}
 
 \begin{frame}
-  \frametitle{BerkeleyDB C++ Standard Template Library}
-  TODO
+  \frametitle{Smaller peaks in sharp H3K4me3 than in broad H3K36me3}
+  \includegraphics[width=\textwidth]{figure-peak-size-model}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Only need 10--25 runs to find optimal penalty interval}
+  \includegraphics[width=0.8\textwidth]{figure-timing-data-penalties}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Target interval computation time}
+  \includegraphics[width=\textwidth]{figure-target-interval-time}
 \end{frame}
 
 \begin{frame}
   \frametitle{Pipeline}
-Input: $S$ bigWig files, problems.bed file with $P$ problems, labels.txt file(s).
-For example $S=37$ samples, $P=374$ problems in hg19 (regions between gaps).
-  \begin{tabular}{ccc}
+Input:
+\begin{itemize}
+\item $S$ bigWig coverage data files, 
+\item problems.bed file with $P$ genomic regions to segment, 
+\item labels.txt file(s) -- gold standard locations with and without peaks.
+\end{itemize}
+For example $S=37$ samples, $P=374$ problems in hg19.
+\vskip 0.2cm
+  \begin{tabular}{lrr}
     Step& Jobs& Time/job \\
     \hline
     Create separate problems & 1 & 5 min\\
@@ -696,6 +920,7 @@ For example $S=37$ samples, $P=374$ problems in hg19 (regions between gaps).
     Joint peak prediction & $P$ & 1--10 hours\\
     Combine and plot predictions & 1 & 10--60 minutes
   \end{tabular}
+\vskip 0.2cm
 Output: matrix of joint peak predictions, samples x peaks.
 \end{frame}
 
@@ -740,29 +965,17 @@ maxIter 20
 \end{frame}
 
 \begin{frame}
-  \frametitle{Linear time algorithms faster for larger data sets}
-  \includegraphics[width=1\textwidth]{figure-PDPA-timings.pdf}
-
-  Total time to compute 10 models (0, ..., 9 peaks) for all data sets:
-  \begin{itemize}
-  \item PeakSegDP: 156 hours, inexact.
-  \item coseg: 6 hours, exact.
-  \end{itemize}
-\end{frame}
-
-
-\begin{frame}
   \frametitle{Conclusions}
   \begin{tabular}{r|c|c}
     & no pruning & functional pruning \\
     \hline
-    unconstrained & Dynamic Programming & Pruned DP \\
+    unconstrained & Dynamic Programming & PDPA, FPOP \\
      & exact $O(N^2)$ & exact $O(N\log N)$\\
-    R pkgs: & changepoint & cghseg, Segmentor\\
+    R packages: & changepoint & cghseg, Segmentor\\
     \hline
     up-down constrained & constrained DP & \textbf{this work} \\
      & inexact $O(N^2)$ & exact $O(N\log N)$\\
-    R pkgs: & PeakSegDP & \textbf{coseg}\\
+    R packages: & PeakSegDP & \textbf{coseg}\\
     \hline
   \end{tabular}
   \begin{itemize}
@@ -772,9 +985,9 @@ maxIter 20
     \url{https://github.com/tdhock/coseg}
   \item PeakSegFPOP program for big $N > 10^6$ data,
     $O(\log N)$ memory and $O(N\log N)$ disk space.
-  \item TODO: regularized isotonic regression solver.
-  \item TODO: supervised peak calling for ENCODE, Roadmap, ...
-  \item TODO: interactive web app for creating labels.
+  \item TODO: ICML paper.
+  \item TODO: C3G-GSOC pipeline project.
+  \item TODO: web app for interactive labeling and model learning.
   \end{itemize}
 \end{frame}
 
@@ -791,45 +1004,6 @@ maxIter 20
   \url{https://github.com/tdhock/PeakSegFPOP}
   \item source code for these slides:
   \url{https://github.com/tdhock/PeakSegFPOP-paper}
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Segmenting whole chromosomes?}
-  \includegraphics[width=\textwidth]{screenshot-gap-peaks}
-  \begin{itemize}
-  \item 365 regions with no gaps in hg19.
-  \item 272 regions with no gaps on chr1-22, X, Y.
-  \item Smallest: 31,833 bases (chr6:157,609,467-157,641,300).
-  \item Largest: 115,591,997 bases (chr4:75,452,279-191,044,276).
-  \end{itemize}
-\end{frame}
-
-
-\begin{frame}
-  \frametitle{Reasonable time to segment biggest region on chr1}
-  \includegraphics[width=\textwidth]{figure-cosegData-timings.pdf}
-  \begin{itemize}
-  \item R package in memory: $O(N \log N)$ time.
-  \item Command line program on disk: $O(N \log N)$ time.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Memory requirements reasonable for on-disk version}
-  \includegraphics[width=\textwidth]{figure-cosegData-timings-memory-disk.pdf}
-  \begin{itemize}
-  \item R package in memory: $O(N \log N)$ memory.
-  \item Command line program on disk: $O(\log N)$ memory.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Disk usage reasonable}
-  \includegraphics[width=\textwidth]{figure-cosegData-timings-disk.pdf}
-  \begin{itemize}
-  \item R package in memory: no disk usage.
-  \item Command line program: $O(N \log N)$ disk space (temporary).
   \end{itemize}
 \end{frame}
 
