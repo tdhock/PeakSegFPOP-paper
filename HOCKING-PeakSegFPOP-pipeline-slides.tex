@@ -154,7 +154,7 @@ maxIter 20
 
   \begin{itemize}
   \item Previous work: unconstrained maximum likelihood mean\\
-    for $s$ segments ($s-1$ changes).
+    for $s$ segments ($s-1$ changes), Cleynen et al 2014.
   \item Hocking et al, ICML 2015: PeakSeg constraint enforces up, down, up,
     down changes (and not up, up, down). 
   \item Odd-numbered segments are background noise,\\
@@ -174,7 +174,7 @@ maxIter 20
   \end{itemize}
 \end{frame}
 
-\section{New linear time algorithm using functional pruning}
+\section{Segment neighborhood model (constraint on number of peaks)}
 
 \begin{frame}
   \frametitle{Statistical model is Poisson with change constraints}
@@ -199,33 +199,34 @@ maxIter 20
 \end{frame}
 
 \begin{frame}
-  \frametitle{Relation to previous work}
+  \frametitle{Relation to previous dynamic programming algorithms}
   \begin{tabular}{r|c|c}
     & no pruning & functional pruning \\
     \hline
     unconstrained & \alert<1>{Dynamic Programming} & \alert<2>{Pruned DP} \\
-     & \alert<1>{exact $O(N^2)$} & \alert<2>{exact $O(N\log N)$}\\
+     & \alert<1>{exact $O(SN^2)$} & \alert<2>{exact $O(SN\log N)$}\\
     R pkgs: & \alert<1>{changepoint} & \alert<2>{cghseg, Segmentor}\\
     \hline
     up-down constrained & \alert<3>{constrained DP} & \alert<4>{\textbf{this work}} \\
-     & \alert<3>{inexact $O(N^2)$} & \alert<4>{exact $O(N\log N)$}\\
+     & \alert<3>{inexact $O(SN^2)$} & \alert<4>{exact $O(SN\log N)$}\\
     R pkgs: & \alert<3>{PeakSegDP} & \alert<4>{coseg}\\
     \hline
   \end{tabular}
   \begin{itemize}
-  \item \alert<1>{Auger and Lawrence 1989, Jackson et al 2005}.
-  \item \alert<2>{Rigaill 2010, Johnson 2013, Cleynen et al 2014}.
-  \item \alert<3>{Hocking, Rigaill, Bourque 2015}.
+  \item \alert<1>{Auger and Lawrence, Algorithms for the optimal
+      identification of segment neighborhoods (Bull Math Biol 1989).}
+  \item \alert<2>{Independent discovery: Rigaill 2010, Johnson 2013. R pkg: Cleynen et al 2014.}
+  \item \alert<3>{Hocking, Rigaill, Bourque 2015.}
   \item \alert<4>{\textbf{Contribution}: new algorithm that
       \textbf{exactly} computes the \textbf{constrained} optimal
-      segmentation for $N$ data points in linear $O(N\log N)$ time}.
+      segmentation for $N$ data points and $1,\dots,S$ segments in $O(S N\log N)$ time.}
   \end{itemize}
 \end{frame}
 
 
 \begin{frame}
   \frametitle{Dynamic programming and functional pruning}
-  \textbf{Classical dynamic programming} (Auger and Lawrence 1989) computes the matrix of optimal loss
+  \textbf{Classical dynamic programming} ( 1989) computes the matrix of optimal loss
   values in $S$ segments up to $N$ data points, $O(S N^2)$
 $$
 \begin{array}{ccc}
@@ -384,10 +385,10 @@ functional pruning technique to the up-down constrained model.
 \end{frame}
 
 \begin{frame}
-  \frametitle{General functional pruning equation}
+  \frametitle{Time complexity depends on number of intervals}
   \begin{itemize}
-  \item The constrained cost of a mean $\mu$ for the segment $s$,
-    up to data point $t$:
+  \item Dynamic programming update rule: the constrained cost of a
+    mean $\mu$ for the segment $s$, up to data point $t$:
     \begin{equation*}
       L_{s,t}(\mu) = \gamma_t(\mu) + \min
       \begin{cases}
@@ -599,7 +600,71 @@ functional pruning technique to the up-down constrained model.
 \url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}
 \end{frame}
 
-\section{Results on comparing several samples}
+\section{Optimal partitioning model (penalize number of peaks)}
+
+\begin{frame}
+  \frametitle{Optimal partitioning model penalizes the number of changes}
+  \begin{itemize}
+  \item We have $N$ count data $z_1, \dots, z_N\in\ZZ_+$.
+  \item Fix the number of segments $S\in\{1, 2, \dots, N\}$.
+  \item PeakSeg Segment Neighborhood Model: find means $m_t$ which
+    minimize the Poisson loss $\sum_{t=1}^N \ell(m_t, z_t)$,
+    such that there are exactly $S-1$ up-down changes.
+  \item PeakSeg Optimal Partitioning Model: find means $m_t$ with
+    up-down changes which minimize the \alert<1>{penalized} Poisson
+    loss
+    $$\alert<1>{\lambda\sum_{t=1}^{N-1}I(m_t\neq m_{t+1})} + \sum_{t=1}^N \ell(m_t, z_t).$$
+  \item No constraint on the number of changes, but $\lambda > 0$
+    penalizes models with more changes.
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Relation to previous dynamic programming algorithms}
+  \begin{tabular}{r|c|c}
+    & no pruning & functional pruning \\
+    \hline
+    unconstrained & \alert<1>{Dynamic Programming} & \alert<2>{FPOP} \\
+     & \alert<1>{exact $O(N^2)$} & \alert<2>{exact $O(N\log N)$}\\
+    R pkgs: &  & \alert<2>{fpop}\\
+    \hline
+    up-down constrained &  & \alert<3>{\textbf{this work}} \\
+     &  & \alert<3>{exact $O(N\log N)$}\\
+    R pkgs: &  & \alert<3>{coseg}\\
+    \hline
+  \end{tabular}
+  \begin{itemize}
+  \item \alert<1>{Jackson et al 2005, An algorithm for optimal partitioning of data on an interval.}
+  \item \alert<2>{Independent discovery: Johnson 2013, Maidstone et
+      al 2016 (FPOP = Functional Pruning Optimal Partitioning).}
+  \item \alert<3>{\textbf{Contribution}: new dynamic programming algorithm that
+      \textbf{exactly} computes the \textbf{constrained} optimal
+      segmentation for $N$ data points and a single penalty $\lambda$ in $O(N\log N)$ time.}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Dynamic programming and functional pruning}
+  \textbf{Classical dynamic programming} (Jackson et al 2005) 
+  computes the optimal loss values up to $N$ data points, $O(N^2)$
+$$
+\begin{array}{ccc}
+  \mathcal L_{1} & \cdots &   \mathcal L_{N}\\
+\end{array}
+$$
+\textbf{Dynamic programming with functional pruning} (Rigaill
+2010) computes loss \textbf{functions}, the
+optimal loss up to $N$ data points with last segment mean $\mu$,
+$O(N\log N)$
+$$
+\begin{array}{ccc}
+   L_{1}(\mu) & \cdots & L_{N}(\mu)\\
+\end{array}
+$$
+\textbf{Contribution of this work}: a new algorithm that applies the
+functional pruning technique to the up-down constrained model.
+\end{frame}
 
 \begin{frame}
   \frametitle{Target interval computation time}
@@ -609,6 +674,29 @@ functional pruning technique to the up-down constrained model.
 \begin{frame}
   \frametitle{More peaks in sharp H3K4me3 than in broad H3K36me3}
   \includegraphics[width=0.7\textwidth]{figure-min-err-peaks-compare}
+\end{frame}
+
+\begin{frame}
+  \frametitle{BerkeleyDB C++ Standard Template Library}
+  TODO
+\end{frame}
+
+\begin{frame}
+  \frametitle{Pipeline}
+Input: $S$ bigWig files, problems.bed file with $P$ problems, labels.txt file(s).
+For example $S=37$ samples, $P=374$ problems in hg19 (regions between gaps).
+  \begin{tabular}{ccc}
+    Step& Jobs& Time/job \\
+    \hline
+    Create separate problems & 1 & 5 min\\
+    Compute separate targets & $S P$ & 1--10 hours\\
+    Train separate model & 1 & 5 min \\
+    Separate peak prediction & $P$ & 1--10 hours\\
+    Train joint model & 1 & 5 min \\
+    Joint peak prediction & $P$ & 1--10 hours\\
+    Combine and plot predictions & 1 & 10--60 minutes
+  \end{tabular}
+Output: matrix of joint peak predictions, samples x peaks.
 \end{frame}
 
 \section{Conclusions and future work}
