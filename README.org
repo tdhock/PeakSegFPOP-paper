@@ -1,6 +1,9 @@
 The goal of this paper is to implement a fast algorithm for solving
 the PeakSeg problem described in
 http://jmlr.org/proceedings/papers/v37/hocking15.html
+** 26 Jan 2017
+Guillaume's group meeting presentation slides
+http://members.cbio.mines-paristech.fr/~thocking/HOCKING-PeakSegFPOP-pipeline-slides.pdf
 ** 10 Nov 2016
 
 [[http://bl.ocks.org/tdhock/raw/9311ca39d643d127e04a088814c81ee1/][Data viz with smooth transitions, clarified titles]].
