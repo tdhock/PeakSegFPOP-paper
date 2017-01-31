@@ -3,12 +3,12 @@ library(animint)
 
 load("test.error.RData")
 levs <- c(
-  MACS="MACS",
-  HMCanBroad="HMCanBroad",
-  Segmentor="PDPA",
-  PeakSegDP="CDPA",
+  MACS="MACS(popular baseline)",
+  HMCanBroad="HMCanBroad(popular baseline)",
+  Segmentor="PDPA(no up-down)",
+  PeakSegDP="CDPA(previous best)",
   ##coseg.inf="GPDPAinf",
-  coseg="GPDPA")
+  coseg="GPDPA(proposed)")
 test.error[, algorithm := levs[algorithm] ]
 roc[, algorithm := levs[algorithm] ]
 
@@ -98,7 +98,8 @@ roc.cvx <- roc.not.cvx[, {
   data.table(FPR, TPR)[fit,]
 }, by=.(set.name, set.i, algorithm)]
 mean.auc <- auc[, list(
-  mean.auc=mean(auc)
+  mean.auc=mean(auc),
+  sd.auc=sd(auc)
   ), by=.(set.name, algorithm)]
 ## coseg is the best over all data sets, in terms of AUC.
 mean.auc[, list(mean=mean(mean.auc)), by=algorithm][order(mean),]
@@ -265,10 +266,38 @@ viz <- list(
 animint2dir(viz, "figure-test-error-dots")
 
 dots <- ggplot()+
-  geom_vline(aes(xintercept=min.auc), data=best.auc)+
+  geom_vline(aes(xintercept=min.auc),
+             color="grey",
+             data=best.auc)+
+  geom_point(aes(mean.auc, algo.fac),
+             shape=1,
+             data=mean.auc)+
+  geom_segment(aes(
+    mean.auc+sd.auc, algo.fac, xend=mean.auc-sd.auc, yend=algo.fac),
+               data=mean.auc)+
+  facet_grid(. ~ set.name, labeller=function(df){
+    df$set.name <- gsub("_", "\n", df$set.name)
+    df
+  }, scales="free_y", space="free_y")+
+  scale_y_discrete("algorithm")+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "cm"),
+        legend.position="top")+
+  scale_x_continuous(
+    "Test AUC (area under the Receiver Operating Characteristic curve)",
+    breaks=c(0.6, 0.8, 1),
+    labels=c("0.6", "0.8", "1"))
+pdf("figure-test-error-mean.pdf", h=2, w=8)
+print(dots)
+dev.off()
+
+dots <- ggplot()+
+  geom_vline(aes(xintercept=min.auc),
+             color="grey",
+             data=best.auc)+
   geom_point(aes(mean.auc, algo.fac),
              alpha=0.3,
-             size=4,
+             size=3,
              data=mean.auc)+
   geom_point(aes(auc, algo.fac),
              data=auc, pch=1)+
@@ -287,3 +316,4 @@ dots <- ggplot()+
 pdf("figure-test-error-dots.pdf", h=2, w=8)
 print(dots)
 dev.off()
+

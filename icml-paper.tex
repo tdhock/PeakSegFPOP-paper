@@ -72,12 +72,12 @@
 
 % The \icmltitle you define below is probably too long as a header.
 % Therefore, a short form for the running title is supplied here:
-\icmltitlerunning{Linear time dynamic programming algorithms for constrained optimal change-point detection}
+\icmltitlerunning{A generalized pruned dynamic programming algorithm for log-linear time constrained optimal change-point detection}
 
 \begin{document} 
 
 \twocolumn[
-\icmltitle{Linear time dynamic programming algorithms for constrained optimal change-point detection}
+\icmltitle{A generalized pruned dynamic programming algorithm for log-linear time constrained optimal change-point detection}
 
 % It is OKAY to include author information, even for blind
 % submissions: the style file will automatically remove it for you
@@ -110,7 +110,7 @@
   show empirically that our algorithm achieves state-of-the-art speed
   and accuracy in a benchmark of several genomic data sets. In
   contrast to previous heuristic quadratic time solvers for this
-  problem, our algorithm recovers the optimal solution in linear
+  problem, our algorithm recovers the optimal solution in log-linear
   time. 
 \end{abstract}
 
@@ -1155,90 +1155,109 @@ would possibly be much more difficult for these more general constraint function
 \section{Results on peak detection in ChIP-seq data}
 \label{sec:results-chip-seq}
 
-In this section, we show that the dynamic programming algorithm that
-we proposed in Section~\ref{sec:PeakSeg} can be used to overcome this
-speed drawback, while maintaining state-of-the-art accuracy. We have
-implemented the algorithm in C++ code with an interface via the
-PeakSegPDPA function in the coseg R package
-(\url{https://github.com/tdhock/coseg}). For comparison, we study the
-empirical properties of the following algorithms:
+The real data analysis problem that motivates this work is the
+detection of peaks in ChIP-seq data, which typically come from
+genome-wide assays for histone modifications or transcription factor
+binding sites \citep{practical}. These data are typically represented
+as a vector of non-negative counts $\mathbf y\in\ZZ_+^n$ of aligned
+sequence reads for $n$ continguous bases in a genome. A peak detection
+algorithm can be represented as a function $f(\mathbf y)\in\{0,1\}^n$
+for binary classification at every base position. The positive class
+is peaks (genomic regions with large counts, representing protein
+binding or modification) and the negative class is background noise
+with small counts.
 
-\begin{description}
-\item[Segmentor3IsBack::Segmentor] is an implementation of a
-  functional pruning algorithm for computing the solution to the
-  Segment Neighborhood (\ref{eq:optimal_segment_neighborhood}) problem
-  \citep{Segmentor}. Its average time complexity is $O(n \log n)$,
-  and the solution may or may not obey the up-down constraints on
-  segment means. If it does not, then the model is not directly
-  interpretable in terms of peaks (segments after up changes) and
-  background (segments after down changes), so we discard the model.
-\item[PeakSegDP::cDPA] implements a heuristic algorithm with $O(n^2)$
-  time complexity which attempts to solve the up-down
-  constrained problem \citep{HOCKING-PeakSeg}. Models computed by this
-  algorithm are guaranteed to satisfy the up-down constraint, but may
-  not be the optimal solution to the up-down constrained problem
-  (\ref{eq:min_PeakSeg}).
-\item[coseg::PeakSegPDPA] is our proposed solver for the PeakSeg
-  problem, described in Section~\ref{sec:PeakSeg}. It recovers the
-  optimal solution to the up-down constrained problem
-  (\ref{eq:min_PeakSeg}).  Since Definition~\ref{def:U} contains
-  non-strict inequality constraints, the optimal solution may include
-  adjacent segments with equal mean values. In that case, the model is
-  not directly interpretable in terms of peaks and background, so we
-  discard the model. We expected the speed of the algorithm to be
-  consistent with the $O(n\log n)$ time complexity of other functional
-  pruning algorithms such as Segmentor.
-\item[MACS] is a heuristic algorithm with unknown time complexity from
-  the bioinformatics literature \citep{MACS}. We consider it as a
-  baseline, since it has been shown to achieve state-of-the-art peak
-  detection accuracy for sharp H3K4me3 histone mark data
-  \citep{HOCKING-PeakSeg}.
-\item[HMCanBroad] is a another heuristic algorithm with unknown time
-  complexity \citep{HMCan}. We consider it as a baseline, since it has
-  been shown to achieve state-of-the-art peak detection accuracy for
-  broad H3K36me3 histone mark data \citep{HOCKING-PeakSeg}.
-\end{description}
+\citet{HOCKING-PeakSeg} proposed a constrained dynamic programming
+algorithm (CDPA) to approximately compute the optimal change-points,
+subject to the PeakSeg up-down constraint. The CDPA has been shown to
+achieve state-of-the-art peak detection accuracy in several ChIP-seq
+data sets \citep{HOCKING2016-chipseq}. However, its quadratic $O(n^2)$
+time complexity for $n$ data points makes it too slow to run on large
+ChIP-seq data sets. In this section, we show that our proposed GPDPA
+can be used to overcome this speed drawback, while maintaining
+state-of-the-art accuracy. To show the importance of enforcing the
+up-down constraint, we also consider the unconstrained Pruned Dynamic
+Programming Algorithm (PDPA) of \citet{pruned-dp} as a baseline
+(Table~1).
 
-We ran each algorithm on the McGill ChIP-seq benchmark data sets
-\citep{HOCKING2016-chipseq}. We begin by comparing the speed,
-feasibility, and optimality of the three optimization-based
-implementations (Segmentor, PeakSegDP, coseg).
+% \begin{description}
+% \item[Segmentor3IsBack::Segmentor] is an implementation of a
+%   functional pruning algorithm for computing the solution to the
+%   Segment Neighborhood (\ref{eq:optimal_segment_neighborhood}) problem
+%   \citep{Segmentor}. Its average time complexity is $O(n \log n)$,
+%   and the solution may or may not obey the up-down constraints on
+%   segment means. If it does not, then the model is not directly
+%   interpretable in terms of peaks (segments after up changes) and
+%   background (segments after down changes), so we discard the model.
+% \item[PeakSegDP::cDPA] implements a heuristic algorithm with $O(n^2)$
+%   time complexity which attempts to solve the up-down
+%   constrained problem \citep{HOCKING-PeakSeg}. Models computed by this
+%   algorithm are guaranteed to satisfy the up-down constraint, but may
+%   not be the optimal solution to the up-down constrained problem
+%   (\ref{eq:min_PeakSeg}).
+% \item[coseg::PeakSegPDPA] is our proposed solver for the PeakSeg
+%   problem, described in Section~\ref{sec:PeakSeg}. It recovers the
+%   optimal solution to the up-down constrained problem
+%   (\ref{eq:min_PeakSeg}).  Since Definition~\ref{def:U} contains
+%   non-strict inequality constraints, the optimal solution may include
+%   adjacent segments with equal mean values. In that case, the model is
+%   not directly interpretable in terms of peaks and background, so we
+%   discard the model. We expected the speed of the algorithm to be
+%   consistent with the $O(n\log n)$ time complexity of other functional
+%   pruning algorithms such as Segmentor.
+% \item[MACS] is a heuristic algorithm with unknown time complexity from
+%   the bioinformatics literature \citep{MACS}. We consider it as a
+%   baseline, since it has been shown to achieve state-of-the-art peak
+%   detection accuracy for sharp H3K4me3 histone mark data
+%   \citep{HOCKING-PeakSeg}.
+% \item[HMCanBroad] is a another heuristic algorithm with unknown time
+%   complexity \citep{HMCan}. We consider it as a baseline, since it has
+%   been shown to achieve state-of-the-art peak detection accuracy for
+%   broad H3K36me3 histone mark data \citep{HOCKING-PeakSeg}.
+% \end{description}
+
+% We ran each algorithm on the McGill ChIP-seq benchmark data sets
+% \citep{HOCKING2016-chipseq}. We begin by comparing the speed,
+% feasibility, and optimality of the three optimization-based
+% implementations (Segmentor, PeakSegDP, coseg).
 
 \subsection{Empirical time complexity in ChIP-seq data}
 \label{sec:results_time}
 
-We considered 2752 segmentation problems, consisting of chromosome
-subsets in samples with labels that indicate presence or absence of
-peaks. For each segmentation problem we attempted to compute models
-with 0, ..., 9 peaks ($k\in\{1,3,\dots,19\}$ segments).
+The McGill ChIP-seq benchmark consists of 7 separate data sets,
+consisting of 2752 segmentation problems, varying in size from $n=87$
+to $n=263169$ data. For each segmentation problem, we ran each
+algorithm (CDPA, PDPA, GDPDA) with a maximum of $K=19$ segments. To
+analyze the empirical time complexity, we recorded the number of
+intervals stored in the $\FCC_{k,t}$ cost functions, as well as the
+computation time in seconds.
 
-As in the original pruned dynamic programming algorithm, the time
-complexity of our proposed algorithm is $O(n K I)$, which depends on
-the number of intervals $I$ (candidate change-points) stored in the
-$\FCC_{k,t}$ cost functions. \citet{pruned-dp-new} showed that the
-number of intervals is $O(n)$ in the worst case, but on average
-$O(\log n)$. In the left of Figure~\ref{fig:timings}, we show that the
-empirical number of intervals for our algorithm in the ChIP-seq data
-sets is $O(\log n)$. For the largest data set ($n=263169$), the
-algorithm only stored median=16 and maximum=43 intervals. The most
-intervals stored was 253 for one data set with $n=7776$. These results
-suggest that our new algorithm only stores on average $O(\log n)$
-intervals (possible change-points), as in the original pruned dynamic
-programming algorithm. The overall empirical time complexity is thus
+As in the PDPA \citep{pruned-dp-new}, the time complexity of our
+proposed GPDPA is $O(n K I)$, which depends on the number of intervals
+$I$ (candidate change-points) stored in the $\FCC_{k,t}$ cost
+functions. We observed that the number of intervals stored by the
+GPDPA increases as a sub-linear function of the number of data points
+$n$ (left of Figure~\ref{fig:timings}). For the largest data set
+($n=263169$), the algorithm only stored median=16 and maximum=43
+intervals. The most intervals stored was 253 for one data set with
+$n=7776$. These results suggest that our proposed GPDPA only stores on
+average $O(\log n)$ intervals (possible change-points), as in the
+original PDPA. The overall empirical time complexity is thus
 $O(K n \log n)$ for $K$ segments and $n$ data points.
 
-We used the \verb|system.time| function in R to record the timings of
-each optimization-based algorithm (Segmentor, PeakSegDP, coseg) when $K=19$ is fixed. The
-plot on the right in Figure~\ref{fig:timings} shows that the amount of
-computation time increases with the number of data points. As
-expected, our proposed coseg::PeakSegPDPA algorithm shows $O(n\log n)$
-asymptotic timings similar to Segmentor. It is clear that the $O(n^2)$
-PeakSegDP algorithm is slower than the other two algorithms,
+We recorded the timings of each algorithm when $K=19$ is fixed, so the
+expected time complexity was $O(n^2)$ for the CDPA and $O(n \log n)$
+for the PDPA and GPDPA. In agreement with these expectations, our
+proposed GPDPA shows $O(n\log n)$ asymptotic timings similar to the
+PDPA (Figure~\ref{fig:timings}). It is clear that the $O(n^2)$
+CDPA algorithm is slower than the other two algorithms,
 especially for larger data sets. For the largest data set
-($n=263169$), PeakSegDP took over two hours, but coseg took only about
-two minutes. Overall, these results suggest that our algorithm enjoys
-$O(n\log n)$ time complexity in ChIP-seq data, which makes it possible
-to use for very large data sets.
+($n=263169$), the CDPA took over two hours, but the GPDPA took only
+about two minutes. The total computation time was 156 hours for the
+CDPA, and only 6 hours for the GPDPA. Overall, these results suggest
+that our proposed GPDPA enjoys $O(n\log n)$ time complexity in
+ChIP-seq data, which makes it possible to use for very large data
+sets.
 
 \begin{figure*}[b!]
   \centering
@@ -1314,55 +1333,52 @@ to use for very large data sets.
 
 \subsection{Test error in ChIP-seq data}
 
-To compute the accuracy of the algorithms in the benchmark data sets,
-we quantified false positive and false negative peak detection error
-rates using the labels that indicate presence or absence of peaks in
-specific samples and genomic regions
-\citep{HOCKING2016-chipseq}. Briefly, a false negative occurs when no
-peak is predicted in a region with a positive label, and a false
-positive occurs when a peak is predicted in a region with a negative
-label.
+To compare the accuracy of the algorithms in the benchmark data sets,
+we computed false negative and false positive rates using labels
+that indicate presence or absence of peaks in specific samples and
+genomic regions \citep{HOCKING2016-chipseq}. Briefly, a false negative
+occurs when no peak is predicted in a region with a positive label,
+and a false positive occurs when a peak is predicted in a region with
+a negative label.  We performed 4-fold cross-validation to
+estimate the test error of each algorithm. For each of the 7 data
+sets, we randomly assigned labeled data to one of four folds. For each
+fold, we treat it as a test set, and train a model using all other
+folds.
 
-Finally, we performed 4-fold cross-validation to estimate the test
-error of each algorithm. For each of the 7 data sets, we randomly
-assigned labeled data to one of four folds. For each fold, we treat it
-as a test set, and train a model using all other folds. For the
-optimal segmentation models (coseg, PeakSegDP, Segmentor), we select
-the number of segments using an oracle penalty
-\citep{cleynen2013segmentation}. For a given data set
-$\mathbf y\in\ZZ_+^n$, let $\mathbf m^s$ for
-$s\in\mathcal S\subseteq \{1, 3,\dots, 19\}$ be the segment mean
-vectors that obey the PeakSeg up-down constraint. The oracle.1 model
-selection criterion described by \citet{HOCKING-PeakSeg} is
+For the optimal segmentation algorithms (CDPA, PDPA, GPDPA), the goal
+of learning is to select the optimal number of segments
+$s\in \{1, 3,\dots, 19\}$ for each segmentation problem in the test
+set. We select the number of segments using an oracle penalty
+$s^*(\lambda)=\argmin_s L_s + \lambda C_s$
+\citep{cleynen2013segmentation}, where $L_s$ is the Poisson loss and
+$C_s$ is the oracle model complexity for the model with $s$
+segments. We compute ROC curves by varying the
+$\lambda\in\{10^{-2}, \dots,10^4\}$ penalty parameter.
 
-\begin{equation}
-  \label{eq:oracle}
-  s^*(\lambda) = \argmin_{s\in\mathcal S}
-  \lambda s\left(1 + 4\sqrt{1.1 + \log(n/s)}\right)^2
-  +\sum_{i=1}^n \ell(y_i, m_i^s)
-\end{equation}
-
-We compute ROC curves for the optimization-based algorithms (coseg,
-PeakSegDP, Segmentor) by varying the
-$\lambda\in\{10^{-2}, \dots,10^4\}$ penalty parameter. We compute ROC
-curves for the baseline MACS and HMCanBroad algorithms by varying a
-single significance threshold parameter (same as for computing minimum
-train error in the previous section).
+To provide two more baselines, we also computed the accuracy of two
+unsupervised heuristic algorithms from the bioinformatics literature:
+MACS and HMCanBroad \citep{MACS, HMCan}. MACS is a popular algorithm
+for sharp histone mark data such as H3K4me3, and HMCanBroad is a
+popular algorithm for broad histone mark data such as H3K36me3. We
+computed ROC curves for these algorithms varying a single significance
+threshold parameter (qvalue for MACS and finalThreshold for
+HMCanBroad).
 
 The previous algorithm with state-of-the-art accuracy on this
-benchmark was PeakSegDP, and we observed that the new coseg algorithm
+benchmark was the CDPA, and we observed that the new GPDPA algorithm
 achieves comparable test AUC (Figure~\ref{fig:test-error-dots}). In
-contrast, the unconstrained Segmentor algorithm often had much lower
-test AUC, because of lower true positive rates. Although the baseline
-HMCanBroad algorithm showed state-of-the-art test AUC in 2/3 broad
-H3K36me3 data sets, it was very inaccurate for sharp H3K4me3 data
-sets. The baseline MACS algorithm had test AUC values much lower than
-the optimization-based algorithms in all 7 data sets. Overall, these
-data indicate that the proposed coseg algorithm achieves
-state-of-the-art accuracy in these ChIP-seq data sets.
+contrast, the unconstrained PDPA often had much lower test AUC,
+because of lower true positive rates. Although the baseline HMCanBroad
+algorithm showed state-of-the-art test AUC in 2/3 broad H3K36me3 data
+sets, it was very inaccurate for sharp H3K4me3 data sets. The baseline
+MACS algorithm had test AUC values much lower than the
+optimization-based algorithms in all 7 data sets. Overall, these data
+indicate that the proposed GPDPA achieves state-of-the-art accuracy in
+these ChIP-seq data sets.
 
 \begin{figure*}[b!]
   \centering
+  %\includegraphics[width=\textwidth]{figure-test-error-mean}
   \includegraphics[width=\textwidth]{figure-test-error-dots}
   \vskip -0.5cm
   \caption{Four-fold cross-validation was used to estimate prediction
@@ -1370,8 +1386,8 @@ state-of-the-art accuracy in these ChIP-seq data sets.
 Each black circle shows the test AUC in one of four
     cross-validation folds, the shaded grey circle is the mean, and
     the vertical line shows the maximum mean in each data set. It is
-    clear that the new algorithm implemented in the coseg R package is
-    just as accurate as the slower PeakSegDP heuristic, and both are
+    clear that the proposed GPDPA is
+    just as accurate as the previous state-of-the-art CDPA, and both are
     more accurate than the other baseline methods. 
 % Interactive version
 %     available at
@@ -1399,6 +1415,35 @@ Each black circle shows the test AUC in one of four
 % \end{table}
 
 \section{Discussion and conclusions}
+
+Algorithms for change-point detection can be classified in terms of
+time complexity, optimality, constraints, and pruning techniques
+(Table~1). In this paper, we investigated generalizing the functional
+pruning technique originally discovered by \citet{pruned-dp} and
+\citet{johnson}. We showed that the functional pruning technique can
+be used to compute optimal change-points subject to affine constraints
+on adjacent segment mean parameters.
+
+We showed that our proposed Generalized Pruned Dynamic Programming
+Algorithm (GPDPA) enjoys the same log-linear $O(n\log n)$ time
+complexity as the original unconstrained PDPA, when applied to peak
+detection in ChIP-seq data sets (Figure~\ref{fig:timings}). However,
+we observed that the up-down constrained GPDPA is much more accurate
+than the unconstrained PDPA (Figure~\ref{fig:test-error-dots}). These
+results suggest that the up-down constraint is necessary for computing
+a change-point model with optimal peak detection accuracy. Indeed, we
+observed that the GPDPA enjoys the same state-of-the-art accuracy as
+the previous best, the relatively slow quadratic $O(n^2)$ time
+CDPA.
+
+In contrast, we observed that the heuristic algorithms which are
+popular in the bioinformatics literature are much less accurate than
+all of the optimal change-point algorithms. In the past these
+sub-optimal heuristics have been preferred because of their speed, but
+our proposed log-linear time GPDPA can now be used as an optimal
+alternative for large data sets.
+
+TODO more general future work.
 
 \bibliographystyle{icml2016}
 \bibliography{refs-abbrev}
