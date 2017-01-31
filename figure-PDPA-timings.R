@@ -12,17 +12,20 @@ stopifnot(nrow(dp.timings.reverse)==2752)
 algo <- function(algorithm, ...){
   data.table(algorithm, ...)
 }
+CDPA.name <- "PeakSegDP\nO(N^2)"
+PDPA.name <- "Segmentor\nO(N log N)"
+GPDPA.name <- "coseg\nO(N log N)"
+CDPA.name <- "CDPA\nO(N^2)"
+PDPA.name <- "PDPA\nO(N log N)"
+GPDPA.name <- "GPDPA\nO(N log N)"
 all.timings <- rbind(
-  algo("PeakSegDP\nO(N^2)", dp.timings),
-  algo("Segmentor\nO(N log N)", Segmentor.timings),
+  algo(CDPA.name, dp.timings),
+  algo(PDPA.name, Segmentor.timings),
   ## algo("DP.fwd", dp.timings),
   ## algo("DP.rev", dp.timings.reverse),
-  algo("coseg\nO(N log N)", PDPA.timings))
-algo.code <- c(
-  PeakSegDP="PeakSegDP\n$O(N^2)$",
-  Segmentor="Segmentor\n$O(N \\log N)$",
-  coseg="coseg\n$O(N \\log N)$")
-all.timings[, algo.tex := algo.code[sub("\n.*", "", algorithm)]]
+  algo(GPDPA.name, PDPA.timings))
+all.timings[, algo.tex := sub(
+  "\nO[(]", "\n$O(", sub("[)]$", ")$", sub("log", "\\\\log", algorithm)))]
 
 gg.quad <- ggplot()+
   ylab("hours of computation time")+
@@ -69,10 +72,6 @@ gg.log <- ggplot()+
   geom_hline(aes(yintercept=log10(seconds)),
              data=lab.df,
              color="grey")+
-  xlab("log10(seconds)")+
-  ## geom_point(aes(log10(data), log10(seconds), color=algo.tex),
-  ##            shape=1,
-  ##            data=all.timings)+
   geom_ribbon(aes(log10(max.data), ymin=log10(min), ymax=log10(max),
                   fill=algo.tex),
               data=window.seconds,
@@ -82,13 +81,15 @@ gg.log <- ggplot()+
             data=window.seconds)+
   geom_text(aes(2.5, log10(seconds), label=label),
             data=lab.df,
+            size=3,
+            color="grey",
             vjust=-0.5)+
   ylab("log10(seconds)")
 my.method <- list("last.points", dl.trans(x=x+0.1))
 dl.log <- direct.label(gg.log, "last.polygons")+
   scale_x_continuous(
-    "log10(data points to segment)",
-    limits=c(min(log10(all.timings$data)), 6.2))
+    "log10(data points to segment)")+
+  coord_cartesian(xlim=c(2, 6.7), expand=FALSE)
 tikz("figure-PDPA-timings-small.tex", 3.3, 2.5)
 print(dl.log)
 dev.off()

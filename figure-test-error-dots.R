@@ -2,8 +2,17 @@ source("packages.R")
 library(animint)
 
 load("test.error.RData")
+levs <- c(
+  MACS="MACS",
+  HMCanBroad="HMCanBroad",
+  Segmentor="PDPA",
+  PeakSegDP="CDPA",
+  ##coseg.inf="GPDPAinf",
+  coseg="GPDPA")
+test.error[, algorithm := levs[algorithm] ]
+roc[, algorithm := levs[algorithm] ]
 
-test.counts <- test.error[, list(
+test.counts <- test.error[algorithm %in% levs, list(
   errors=sum(errors),
   labels=sum(regions),
   tp=sum(tp),
@@ -26,7 +35,7 @@ test.mean <- test.counts[, list(
   mean.percent=mean(percent.accuracy)
 ), by=.(set.name, algorithm, train.type)]
 
-roc.total <- roc[, list(
+roc.total <- roc[algorithm %in% levs, list(
   tp=sum(tp),
   possible.tp=sum(possible.tp),
   fp=sum(fp),
@@ -41,8 +50,11 @@ algo.colors <-
     HMCanBroad="#1F78B4",
     triform="#B2DF8A",
     PeakSegDP="#33A02C",
+    CDPA="#33A02C",
     "#FB9A99",
     coseg="black",
+    GPDPA="black",
+    GPDPAinf="grey",
     PeakSegJoint="grey40",
     "#E31A1C",
     MACS="#FDBF6F",
@@ -50,6 +62,7 @@ algo.colors <-
     ccat.tf="#CAB2D6", #lite purple
     "#6A3D9A",#dark purple
     "#FFFF99", #yellow
+    PDPA="#B15928", #brown
     Segmentor="#B15928") #brown
 
 ## TODO: compute AUC?
@@ -115,9 +128,6 @@ ggplot()+
              stroke=1,
              data=some.algos(test.counts))
 
-## TODO: interactive data viz.
-
-levs <- c("MACS", "HMCanBroad", "Segmentor", "PeakSegDP", "coseg")
 test.mean[, algo.fac := factor(algorithm, levs)]
 auc[, algo.fac := factor(algorithm, levs)]
 mean.auc[, algo.fac := factor(algorithm, levs)]

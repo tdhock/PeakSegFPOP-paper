@@ -38,7 +38,7 @@ figure-NA-timings.pdf: figure-NA-timings.R dp.peaks.NA.RData
 ## Copied from PeakSeg paper.
 dp.peaks.NA.RData: dp.peaks.NA.R dp.peaks.matrices.RData
 	R --no-save < $<
-dp.peaks.matrices.RData: dp.peaks.matrices.R dp.peaks.error.RData PDPA.peaks.error.RData Segmentor.peaks.error.RData
+dp.peaks.matrices.RData: dp.peaks.matrices.R dp.peaks.error.RData PDPA.peaks.error.RData Segmentor.peaks.error.RData PDPA.infeasible.error.RData
 	R --no-save < $<
 dp.peaks.error.RData: dp.peaks.error.R dp.peaks.RData
 	R --no-save < $<
@@ -75,6 +75,10 @@ Segmentor.timings.RData: Segmentor.timings.R
 Segmentor.peaks.error.RData: Segmentor.peaks.error.R
 	R --no-save < $<
 PDPA.peaks.error.RData: PDPA.peaks.error.R
+	R --no-save < $<
+PDPA.infeasible.error.RData: PDPA.infeasible.error.R PDPA.infeasible.RData
+	R --no-save < $<
+PDPA.infeasible.RData: PDPA.infeasible.R
 	R --no-save < $<
 figure-min-train-error.pdf: figure-min-train-error.R PDPA.peaks.error.RData Segmentor.peaks.error.RData
 	R --no-save < $<

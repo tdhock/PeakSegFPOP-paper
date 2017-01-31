@@ -3,6 +3,7 @@ source("pick.best.index.R")
 
 load("unsupervised.RData")
 load("unsupervised.pdpa.RData")
+load("unsupervised.inf.RData")
 load("unsupervised.Segmentor.RData")
 load("dp.peaks.matrices.RData")
 load("dp.peaks.sets.RData")
@@ -13,6 +14,7 @@ default.params <-
 
 seg.mat.list <- list(
   coseg=oracle.pdpa,
+  coseg.inf=oracle.inf,
   Segmentor=oracle.Segmentor,
   PeakSegDP=oracle.segments)
 
@@ -74,7 +76,8 @@ for(set.name in names(dp.peaks.sets)){
         unsupervised=list(
           PeakSegDP=unsupervised[[test.chunk]][, "oracle"],
           Segmentor=unsupervised.Segmentor[[test.chunk]][, "oracle"],
-          coseg=unsupervised.pdpa[[test.chunk]][, "oracle"]))
+          coseg=unsupervised.pdpa[[test.chunk]][, "oracle"],
+          coseg.inf=unsupervised.inf[[test.chunk]][, "oracle"]))
       for(algorithm in names(best.list)){
         best.beta <- best.list[[algorithm]]
         pred.seg.list[["supervised"]][[algorithm]] <-

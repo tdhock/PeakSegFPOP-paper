@@ -202,8 +202,8 @@ neighborhood isotonic regression. We propose a new dynamic programming
 algorithm in Section~4, and show how it can be extended to related
 models in Section~5. We apply our algorithm to the up-down constrained
 problem of detecting peaks in ChIP-seq data, and show state-of-the-art
-speed and accuracy results in Section~6. We provide a brief discussion in
-Section~7, and give implementation details in Section~8.
+speed and accuracy results in Section~6. We conclude with a brief
+discussion of possible future work (Section~7).
 
 \section{Related work}
 \label{sec:related}
@@ -1252,12 +1252,13 @@ to use for very large data sets.
   }
   \vskip -0.5cm
   \caption{Timing results on 2752 segmentation problems from the
-    McGill histone mark ChIP-seq benchmark data. For each problem we
-    ran the PeakSegPDPA with a maximum of $K=19$ segments.
-    \textbf{Left}: number of intervals stored in $\FCC_{k,t}$ cost
-    functions (median, inter-quartile range, and maximum over all data
-    points $t$ and segments $k$), \textbf{Right}: timings in seconds
-    (median line and min/max band).}
+    histone mark ChIP-seq benchmark data. For each problem we ran the
+    GPDPA with the up-down constraint and a max of $K=19$
+    segments.  \textbf{Left}: number of intervals stored in
+    $\FCC_{k,t}$ cost functions (median, inter-quartile range, and
+    maximum over all data points $t$ and segments $k$),
+    \textbf{Right}: timings in seconds (median line and min/max
+    band).}
   \label{fig:timings}
 \end{figure*}
 
