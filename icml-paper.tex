@@ -360,6 +360,8 @@ constraint that the segment mean must never decrease.
   \end{enumerate}
 \end{definition}
 
+TODO explain why $\mathbf c$ variables are necessary.
+
 For a given data set $\mathbf y\in\RR^n$, loss function $\ell$, and
 number of segments $K$, we define the segment neighborhood isotonic regression
 problem as
@@ -368,8 +370,9 @@ problem as
   \minimize_{(\mathbf m, \mathbf c)\in\mathcal I_K^n} \sum_{i=1}^n \ell(y_i, m_i).
 \end{equation}
 
-In the next section, we propose to compute the segment neighborhood isotonic regression solution
-using an efficient dynamic programming algorithm.
+In the next section, we propose to compute the segment neighborhood
+isotonic regression solution using an efficient dynamic programming
+algorithm.
 
 %%%% update rules
 %\newcommand{\FCC}{\widetilde{C}}
@@ -378,21 +381,20 @@ using an efficient dynamic programming algorithm.
 \section{Dynamic programming algorithm for segment neighborhood isotonic regression}
 
 In this section we propose a new dynamic programming algorithm that
-can be used to compute the solution to the segment neighborhood isotonic
-regression problem (\ref{eq:SNIR}). First, we show
-that it is equivalent to solve a simpler problem with fewer
-optimization variables. Then, we show how to recursively compute the
-solution using dynamic programming.
+can be used to compute the solution to the segment neighborhood
+isotonic regression problem (\ref{eq:SNIR}). 
 
-\subsection{Equivalent problem with fewer 
-variables}
+\subsection{Equivalent smaller optimization space}
 
-First, consider the following definition of a smaller optimization
-space with only $K$ segment means and $K-1$ change-point indices.
+Note that there are $n$
+segment mean variables $\mathbf m$ and $n-1$ change-point indicators
+$\mathbf c$ in $\mathcal I_K^n$, which we can equivalently represent
+using the following optimization space with only $K$ segment means and
+$K-1$ change-point indices.
 
 \begin{definition}[Smaller optimization space for SNIR]
 \label{def:Ibar}
-  Let $(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^K$ be the set of
+  Let $(\mathbf u, \mathbf t)\in\bar{\mathcal I}^n_K$ be the set of
   all non-decreasing segment means $u_1\leq\cdots\leq u_K$ and
   increasing change-point indices $0=t_0<t_1<\cdots<t_{K-1}<t_K=n$.
 \end{definition}
@@ -408,44 +410,64 @@ for each segment $k\in\{1, \dots, K\}$,
 This results in the following optimization problem,
 \begin{equation}
   \label{eq:isotonic_ut}
-  \minimize_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^K}
+  \minimize_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}^n_K}
   \sum_{k=1}^K
   h_{t_{k-1}, t_k}(u_k)
 \end{equation}
 Rather than explicitly summing over data points $i$ as in problem
-(\ref{eq:isotonic}), this problem sums over segments $k$. The next lemma
-proves that it is equivalent to solve this simpler optimization problem.
+(\ref{eq:SNIR}), this problem sums over segments $k$. 
 
-\begin{lemma}[Equivalence of problem with fewer  variables]
-  \label{lemma:fewer-variables}
-  Let $(\mathbf u, \mathbf t)$ be the solution to problem with fewer
-  optimization variables (\ref{eq:isotonic_ut}), and consider the
-  following mapping from the smaller space $\bar{\mathcal I}_K^n$ to
-  the original larger space $\mathcal I_K^n$. For each segment
-  $k\in\{1,\dots,K\}$, we assign $m_i = u_k$ for all data points
-  $i\in(t_{k-1},t_k]$ on that segment. For all
-  $i\in\{t_1,\dots,t_{K-1}\}$ (data points before change-points) we
-  assign $c_i=1$, and $c_i=0$ for all other data points $i$. Then
-  $(\mathbf m, \mathbf c)$ is the solution to problem
-  (\ref{eq:isotonic}).
-\end{lemma}
+% The next lemma
+% proves that it is equivalent to solve this simpler optimization problem.
 
-\begin{proof}
-  It is clear that the mapping defined in
-  Lemma~\ref{lemma:fewer-variables} is a bijection between
-  $\bar{\mathcal I}_K^n$ and $\mathcal I_K^n$, since the constraints
-  in Definitions~\ref{def:I} and~\ref{def:Ibar} are satisfied. Since
-  the objective functions (\ref{eq:SNIR}) and (\ref{eq:isotonic_ut})
-  are equivalent, the optimization problems are equivalent.
-\end{proof}
+% \begin{lemma}[Equivalence of problem with fewer  variables]
+%   \label{lemma:fewer-variables}
+%   Let $(\mathbf u, \mathbf t)$ be the solution to problem with fewer
+%   optimization variables (\ref{eq:isotonic_ut}), and consider the
+%   following mapping from the smaller space $\bar{\mathcal I}_K^n$ to
+%   the original larger space $\mathcal I_K^n$. For each segment
+%   $k\in\{1,\dots,K\}$, we assign $m_i = u_k$ for all data points
+%   $i\in(t_{k-1},t_k]$ on that segment. For all
+%   $i\in\{t_1,\dots,t_{K-1}\}$ (data points before change-points) we
+%   assign $c_i=1$, and $c_i=0$ for all other data points $i$. Then
+%   $(\mathbf m, \mathbf c)$ is the solution to problem
+%   (\ref{eq:isotonic}).
+% \end{lemma}
+
+% \begin{proof}
+%   It is clear that the mapping defined in
+%   Lemma~\ref{lemma:fewer-variables} is a bijection between
+%   $\bar{\mathcal I}_K^n$ and $\mathcal I_K^n$, since the constraints
+%   in Definitions~\ref{def:I} and~\ref{def:Ibar} are satisfied. Since
+%   the objective functions (\ref{eq:SNIR}) and (\ref{eq:isotonic_ut})
+%   are equivalent, the optimization problems are equivalent.
+% \end{proof}
 
 \subsection{Dynamic programming update rules}
 
+\begin{figure*}[b!]
+  \centering
+  \input{figure-compare-unconstrained}
+  \input{figure-compare-cost}
+  \vskip -0.5cm
+  \caption{Comparison of previous unconstrained algorithm (grey) with
+    new algorithm that constrains segment means to be non-decreasing (red),
+    for the toy data set $\mathbf y= [ 2, 1, 0, 4 ] \in\RR^4$ and the
+    square loss. \textbf{Left:} rather than computing the
+    unconstrained minimum (constant grey function), the new algorithm
+    computes the min-less operator (red), resulting in a larger cost
+    when the segment mean is less than the first data point
+    ($u\leq 2$). \textbf{Right:} adding the cost of the second data
+    point $(u-1)^2$ and minimizing yields equal means
+    $u_1=u_2=1.5$ for the constrained model and decreasing 
+    means $u_1=2,\, u_2=1$ for the unconstrained model.}
+  \label{fig:compare-unconstrained}
+\end{figure*}
+
 Optimization problem (\ref{eq:isotonic_ut}) has $K$ segment mean
-variables and $K-1$ change-point index variables. In this section we
-will further eliminate all variables except a single segment mean
-variable using dynamic programming. First, we define the optimal cost
-functions as follows.
+variables and $K-1$ change-point index variables. Minimizing over all
+variables except the last segment mean $u_K$ results in the following
+definition of the optimal cost.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%% begin new %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -462,7 +484,7 @@ functions as follows.
   $\mu$:
 %% we take the minimum with the constraint that the last mean (u_k) is mu
 \begin{equation}
-\FCC_{K,n}(\mu) = \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}_n^K \ | \ u_K = \mu} \
+\FCC_{K,n}(\mu) = \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}^n_K \ | \ u_K = \mu} \
   \left\{ \sum_{k=1}^K
   h_{t_{k-1}, t_k}(u_k) \right\}.
 \end{equation}
@@ -513,7 +535,7 @@ $\FCC_{1,1}(u)=\ell(y_1,u)$, and for the other data
 %% (there is only possible segmentation in K of K points)
 \begin{proof}
   Case 1 and 2 follow from the definition of $\FCC_{K,t}(u)$, and the
-  supplementary materials contain a proof for case 3.
+  supplementary materials prove case 3.
 
 % We now
 %   focus on case 3.  First notice that by definition of
@@ -551,25 +573,6 @@ $\FCC_{1,1}(u)=\ell(y_1,u)$, and for the other data
 % by definition of $\FCC_{K-1,t}(u)$. 
 % \end{description}
 \end{proof}
-
-\begin{figure*}
-  \centering
-  \input{figure-compare-unconstrained}
-  \input{figure-compare-cost}
-  \vskip -0.5cm
-  \caption{Comparison of previous unconstrained algorithm (grey) with
-    new algorithm that constrains segment means to be non-decreasing (red),
-    for the toy data set $\mathbf y= [ 2, 1, 0, 4 ] \in\RR^4$ and the
-    square loss. \textbf{Left:} rather than computing the
-    unconstrained minimum (constant grey function), the new algorithm
-    computes the min-less operator (red), resulting in a larger cost
-    when the segment mean is less than the first data point
-    ($u\leq 2$). \textbf{Right:} adding the cost of the second data
-    point $(u-1)^2$ and minimizing yields equal means
-    $u_1=u_2=1.5$ for the constrained model and decreasing 
-    means $u_1=2,\, u_2=1$ for the unconstrained model.}
-  \label{fig:compare-unconstrained}
-\end{figure*}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%% end new %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -732,160 +735,159 @@ $\FCC_{1,1}(u)=\ell(y_1,u)$, and for the other data
 % Lemma~\ref{lemma:t_change_points}. This concludes the proof by induction.
 % \end{proof}
 
-\subsection{Algorithm for solving SNIR}
-\label{sec:decoding}
-In the previous sections we have only discussed computation of the
-optimal cost, but in this section we discuss how to store and compute
-the optimal segment mean and change-point parameters. The dynamic
-programming algorithm requires storage of real-valued cost functions
-$\FCC_{k,t}(u)$ for all possible values of the last segment mean
-parameter $u$. We propose to store each cost function as a piecewise
-function on intervals, as in the original pruned dynamic programming
-algorithm \citep{pruned-dp}.
+%\subsection{Algorithm for solving SNIR}
+% \label{sec:decoding}
+% In the previous sections we have only discussed computation of the
+% optimal cost, but in this section we discuss how to store and compute
+% the optimal segment mean and change-point parameters. 
 
-We therefore propose the following data structures and sub-routines for
-the computation:
-\begin{itemize}
-\item FunctionPiece: a data structure which represents one piece of a
-  cost function. It has coefficients which depend on the convex loss
-  function (for the square loss it has three coefficients), and it
-  always has elements for min/max mean values
-  $[\underline u, \overline u]$, and previous segment endpoint $t'$
-  and mean $u'$.
-\item FunctionPieceList: an ordered list of FunctionPiece objects,
-  which exactly stores a cost function $\FCC_{k,t}(u)$ for all values
-  of last segment mean $u$.
-\item $\text{OnePiece}(y, \underline u, \overline u)$: initialize a
-  FunctionPieceList with just one FunctionPiece $\ell(y, u)$ defined
-  on $[\underline u, \overline u]$.
-\item $\text{MinLess}(t, f)$: an algorithm that inputs a change-point
-  and a FunctionPieceList, and outputs the corresponding min-less
-  operator $f^\leq$ (another FunctionPieceList), with the previous
-  change-point set to $t'=t$ for each of its pieces. This algorithm
-  also needs to store the previous mean value $u'$ for each of the
-  function pieces. The supplementary materials
-  (Section~\ref{sec:implementation-details}) contains
-  pseudocode for this algorithm.
-\item $\text{MinOfTwo} (f_1, f_2)$: an algorithm that inputs two
-  FunctionPieceList objects, and outputs another FunctionPieceList
-  object which is their minimum. The supplementary materials
-  (Section~\ref{sec:implementation-details}) contains
-  pseudocode for this algorithm.
-\item $\text{ArgMin}(f)$: an algorithm that inputs a FunctionPieceList
-  and outputs three values: the optimal mean $u^*=\argmin_u f(u)$, the
-  previous segment end $t'$ and mean $u'$.
-\item $\text{FindMean}(u, f)$ an algorithm that inputs a mean value
-  and a FunctionPieceList. It finds the FunctionPiece in $f$ with mean
-  $u\in[\underline u, \overline u]$ contained in its interval, then
-  outputs the previous segment end $t'$ and mean $u'$ stored in that
-  FunctionPiece.
-\end{itemize}
-The above data structures and sub-routines are used in the following
-pseudo-code, which describes an algorithm for solving the SNIR
-problem.
-\begin{algorithm}[H]
-\begin{algorithmic}[1]
-\STATE Input: data set $\mathbf y\in\RR^n$, segments $K\in\{2,\dots, n\}$.
-\STATE Output: matrices of optimal segment means\\ $U\in\RR^{K\times K}$ 
-and ends $T\in\{1,\dots,n\}^{K\times K}$
-\STATE Compute min $\underline y$ and max $\overline y$ of $\mathbf y$.
-\label{line:min-max}
-\STATE $\FCC_{1,1}\gets \text{OnePiece}(y_1, \underline y, \overline y)$
-\label{line:init-1}
-\STATE for data points $t$ from 2 to $n$:
-\begin{ALC@g}
-  \STATE $\FCC_{1,t}\gets \text{OnePiece}(y_t, \underline y, \overline y) + \FCC_{1,t-1}$
-\label{line:init-t}
-\end{ALC@g}
-\STATE for $k$ from 2 to $K$: for $t$ from $k$ to $n$: // DP
-\label{line:for-k-t}
-\begin{ALC@g}
-  \STATE $\text{min\_prev}\gets \text{MinLess}(t-1, \FCC_{k-1,t-1})$ 
-  \label{line:MinLess}
-  % \STATE if $t=k$:
-  % \begin{ALC@g}
-  %   \STATE $\text{min\_new}\gets\text{min\_prev}$ // there is only one
-  %   possible change-point, before $t$
-  % \end{ALC@g}
-  % \STATE else:
-  % \begin{ALC@g}
-  %   \STATE $\text{min\_new}\gets\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
-  % \end{ALC@g}
-    \STATE $\text{min\_new}\gets\text{min\_prev}$ if $t=k$, 
-else $\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
-  \label{line:MinOfTwo}
-  \STATE $\FCC_{k,t}\gets \text{min\_new} + \text{OnePiece}(y_t, \underline y, \overline y)$
-  \label{line:AddNew}
-\end{ALC@g}
-\STATE for segments $k$ from 1 to $K$: // decoding
-\label{line:for-k-decoding}
-\begin{ALC@g}
-  \STATE $u^*,t',u'\gets \text{ArgMin}(\FCC_{k,n})$
-  \label{line:ArgMin}
-  \STATE $U_{k,k}\gets u^*;\, T_{k,k}\gets t'$ 
-  \label{line:decode-kk}
-  \STATE for segment $s$ from $k-1$ to $1$: 
-  \label{line:for-s-decoding}
-  \begin{ALC@g}
-    \STATE if $u' < \infty$: $u^*\gets u'$ // equality constraint active
-    \label{line:equality-constraint-active}
-    \STATE $t',u'\gets\text{FindMean}(u^*, \FCC_{s,t'})$
-    \label{line:FindMean}
-    \STATE $U_{k,s}\gets u^*;\, T_{k,s}\gets t'$ 
-    \label{line:decode-ks}
-  \end{ALC@g}
-\end{ALC@g}
-\caption{\label{algo:SNIR} SNIR solver TODO separate decoding into separate algo?}
-\end{algorithmic}
-\end{algorithm}
-
-Algorithm~\ref{algo:SNIR} begins by computing the min/max on
-line~\ref{line:min-max}.  The main storage of the algorithm is
-$\FCC_{k,t}$, which should be initialized as a $K\times n$ array of
-empty FunctionPieceList objects. The computation of $\FCC_{1,t}$ for
-all $t$ occurs on lines~\ref{line:init-1}--\ref{line:init-t}. 
-The dynamic programming updates occur in the for loops on
-lines~\ref{line:for-k-t}--\ref{line:AddNew}. Line~\ref{line:MinLess}
-uses the MinLess sub-routine to compute the temporary
-FunctionPieceList min\_prev (which represents the function
-$\FCC_{k-1,t-1}^\leq$). Line~\ref{line:MinOfTwo} sets the temporary
-FunctionPieceList min\_new to the cost of the only possible
-change-point if $t=k$; otherwise, it uses the MinOfTwo sub-routine to
-compute the cost of the best change-point for every possible mean
-value. Line~\ref{line:AddNew} adds the cost of data point $t$, and
-stores the resulting FunctionPieceList in $\FCC_{k,t}$.
-
-The decoding of the optimal segment mean $U$ (a $K\times K$ array of
-real numbers) and end $T$ (a $K\times K$ array of integers) variables
-occurs in the for loops on
-lines~\ref{line:for-k-decoding}--\ref{line:decode-ks}. For a given
-model size $k$, the decoding begins on line~\ref{line:ArgMin} by using
-the ArgMin sub-routine to solve $u^* = \argmin_u \FCC_{k,n}(u)$ (the
-optimal values for the previous segment end $t'$ and mean $u'$ are
-also returned). Now we know that $u^*$ is the optimal mean of the last
-($k$-th) segment, which occurs from data point $t'+1$ to $n$. These
-values are stored in $U_{k,k}$ and $T_{k,k}$
-(line~\ref{line:decode-kk}). And we already know that the optimal mean
-of segment $k-1$ is $u'$.  Note that the $u'=\infty$ flag means that
-the equality constraint is active
-(line~\ref{line:equality-constraint-active}). The decoding of the
-other segments $s<k$ proceeds using the FindMean sub-routine
-(line~\ref{line:FindMean}). It takes the cost $\FCC_{s,t'}$ of the
-best model in $s$ segments up to data point $t'$, finds the
-FunctionPiece that stores the cost of $u^*$, and returns the new
-optimal values of the previous segment end $t'$ and mean $u'$. The
-mean of segment $s$ is stored in $U_{k,s}$ and the end of segment
-$s-1$ is stored in $T_{k,s}$ (line~\ref{line:decode-ks}).
-
-The time complexity of Algorithm~\ref{algo:SNIR} is $O(K n I)$ where
-$I$ is the complexity of the MinLess and MinOfTwo sub-routines, which
-is linear in the number of intervals (FunctionPiece objects) that are
-used to represent the cost functions. There are data sets for which
-the number of intervals $I=O(n)$, implying a worst-case time complexity of $O(K n^2)$
-\citep{pruned-dp-new}. However, the average number of intervals in real
-data sets is empirically $I=O(\log n)$, as we will show in
+The dynamic programming algorithm requires computation of $O(nK)$
+real-valued cost functions $\FCC_{k,t}(u)$. We propose to store each
+cost function as a piecewise function on intervals, as in the original
+pruned dynamic programming algorithm \citep{pruned-dp}. The time
+complexity of the algorithm is thus $O(K n I)$ where $I$ is the number
+of intervals that are used to represent the cost functions. There are
+pathological data sets for which the number of intervals $I=O(n)$,
+implying a worst-case time complexity of $O(K n^2)$
+\citep{pruned-dp-new}. However, the average number of intervals in
+real data sets is empirically $I=O(\log n)$, as we will show in
 Section~\ref{sec:results_time}. Thus the average time complexity of
-Algorithm~\ref{algo:SNIR} is $O(K n \log n)$.
+the algorithm is $O(K n \log n)$.
+
+% We therefore propose the following data structures and sub-routines for
+% the computation:
+% \begin{itemize}
+% \item FunctionPiece: a data structure which represents one piece of a
+%   cost function. It has coefficients which depend on the convex loss
+%   function (for the square loss it has three coefficients), and it
+%   always has elements for min/max mean values
+%   $[\underline u, \overline u]$, and previous segment endpoint $t'$
+%   and mean $u'$.
+% \item FunctionPieceList: an ordered list of FunctionPiece objects,
+%   which exactly stores a cost function $\FCC_{k,t}(u)$ for all values
+%   of last segment mean $u$.
+% \item $\text{OnePiece}(y, \underline u, \overline u)$: initialize a
+%   FunctionPieceList with just one FunctionPiece $\ell(y, u)$ defined
+%   on $[\underline u, \overline u]$.
+% \item $\text{MinLess}(t, f)$: an algorithm that inputs a change-point
+%   and a FunctionPieceList, and outputs the corresponding min-less
+%   operator $f^\leq$ (another FunctionPieceList), with the previous
+%   change-point set to $t'=t$ for each of its pieces. This algorithm
+%   also needs to store the previous mean value $u'$ for each of the
+%   function pieces. The supplementary materials
+%   (Section~\ref{sec:implementation-details}) contains
+%   pseudocode for this algorithm.
+% \item $\text{MinOfTwo} (f_1, f_2)$: an algorithm that inputs two
+%   FunctionPieceList objects, and outputs another FunctionPieceList
+%   object which is their minimum. The supplementary materials
+%   (Section~\ref{sec:implementation-details}) contains
+%   pseudocode for this algorithm.
+% \item $\text{ArgMin}(f)$: an algorithm that inputs a FunctionPieceList
+%   and outputs three values: the optimal mean $u^*=\argmin_u f(u)$, the
+%   previous segment end $t'$ and mean $u'$.
+% \item $\text{FindMean}(u, f)$ an algorithm that inputs a mean value
+%   and a FunctionPieceList. It finds the FunctionPiece in $f$ with mean
+%   $u\in[\underline u, \overline u]$ contained in its interval, then
+%   outputs the previous segment end $t'$ and mean $u'$ stored in that
+%   FunctionPiece.
+% \end{itemize}
+% The above data structures and sub-routines are used in the following
+% pseudo-code, which describes an algorithm for solving the SNIR
+% problem.
+% \begin{algorithm}[H]
+% \begin{algorithmic}[1]
+% \STATE Input: data set $\mathbf y\in\RR^n$, segments $K\in\{2,\dots, n\}$.
+% \STATE Output: matrices of optimal segment means\\ $U\in\RR^{K\times K}$ 
+% and ends $T\in\{1,\dots,n\}^{K\times K}$
+% \STATE Compute min $\underline y$ and max $\overline y$ of $\mathbf y$.
+% \label{line:min-max}
+% \STATE $\FCC_{1,1}\gets \text{OnePiece}(y_1, \underline y, \overline y)$
+% \label{line:init-1}
+% \STATE for data points $t$ from 2 to $n$:
+% \begin{ALC@g}
+%   \STATE $\FCC_{1,t}\gets \text{OnePiece}(y_t, \underline y, \overline y) + \FCC_{1,t-1}$
+% \label{line:init-t}
+% \end{ALC@g}
+% \STATE for $k$ from 2 to $K$: for $t$ from $k$ to $n$: // DP
+% \label{line:for-k-t}
+% \begin{ALC@g}
+%   \STATE $\text{min\_prev}\gets \text{MinLess}(t-1, \FCC_{k-1,t-1})$ 
+%   \label{line:MinLess}
+%   % \STATE if $t=k$:
+%   % \begin{ALC@g}
+%   %   \STATE $\text{min\_new}\gets\text{min\_prev}$ // there is only one
+%   %   possible change-point, before $t$
+%   % \end{ALC@g}
+%   % \STATE else:
+%   % \begin{ALC@g}
+%   %   \STATE $\text{min\_new}\gets\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
+%   % \end{ALC@g}
+%     \STATE $\text{min\_new}\gets\text{min\_prev}$ if $t=k$, 
+% else $\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
+%   \label{line:MinOfTwo}
+%   \STATE $\FCC_{k,t}\gets \text{min\_new} + \text{OnePiece}(y_t, \underline y, \overline y)$
+%   \label{line:AddNew}
+% \end{ALC@g}
+% \STATE for segments $k$ from 1 to $K$: // decoding
+% \label{line:for-k-decoding}
+% \begin{ALC@g}
+%   \STATE $u^*,t',u'\gets \text{ArgMin}(\FCC_{k,n})$
+%   \label{line:ArgMin}
+%   \STATE $U_{k,k}\gets u^*;\, T_{k,k}\gets t'$ 
+%   \label{line:decode-kk}
+%   \STATE for segment $s$ from $k-1$ to $1$: 
+%   \label{line:for-s-decoding}
+%   \begin{ALC@g}
+%     \STATE if $u' < \infty$: $u^*\gets u'$ // equality constraint active
+%     \label{line:equality-constraint-active}
+%     \STATE $t',u'\gets\text{FindMean}(u^*, \FCC_{s,t'})$
+%     \label{line:FindMean}
+%     \STATE $U_{k,s}\gets u^*;\, T_{k,s}\gets t'$ 
+%     \label{line:decode-ks}
+%   \end{ALC@g}
+% \end{ALC@g}
+% \caption{\label{algo:SNIR} SNIR solver TODO separate decoding into separate algo?}
+% \end{algorithmic}
+% \end{algorithm}
+
+% Algorithm~\ref{algo:SNIR} begins by computing the min/max on
+% line~\ref{line:min-max}.  The main storage of the algorithm is
+% $\FCC_{k,t}$, which should be initialized as a $K\times n$ array of
+% empty FunctionPieceList objects. The computation of $\FCC_{1,t}$ for
+% all $t$ occurs on lines~\ref{line:init-1}--\ref{line:init-t}. 
+% The dynamic programming updates occur in the for loops on
+% lines~\ref{line:for-k-t}--\ref{line:AddNew}. Line~\ref{line:MinLess}
+% uses the MinLess sub-routine to compute the temporary
+% FunctionPieceList min\_prev (which represents the function
+% $\FCC_{k-1,t-1}^\leq$). Line~\ref{line:MinOfTwo} sets the temporary
+% FunctionPieceList min\_new to the cost of the only possible
+% change-point if $t=k$; otherwise, it uses the MinOfTwo sub-routine to
+% compute the cost of the best change-point for every possible mean
+% value. Line~\ref{line:AddNew} adds the cost of data point $t$, and
+% stores the resulting FunctionPieceList in $\FCC_{k,t}$.
+
+% The decoding of the optimal segment mean $U$ (a $K\times K$ array of
+% real numbers) and end $T$ (a $K\times K$ array of integers) variables
+% occurs in the for loops on
+% lines~\ref{line:for-k-decoding}--\ref{line:decode-ks}. For a given
+% model size $k$, the decoding begins on line~\ref{line:ArgMin} by using
+% the ArgMin sub-routine to solve $u^* = \argmin_u \FCC_{k,n}(u)$ (the
+% optimal values for the previous segment end $t'$ and mean $u'$ are
+% also returned). Now we know that $u^*$ is the optimal mean of the last
+% ($k$-th) segment, which occurs from data point $t'+1$ to $n$. These
+% values are stored in $U_{k,k}$ and $T_{k,k}$
+% (line~\ref{line:decode-kk}). And we already know that the optimal mean
+% of segment $k-1$ is $u'$.  Note that the $u'=\infty$ flag means that
+% the equality constraint is active
+% (line~\ref{line:equality-constraint-active}). The decoding of the
+% other segments $s<k$ proceeds using the FindMean sub-routine
+% (line~\ref{line:FindMean}). It takes the cost $\FCC_{s,t'}$ of the
+% best model in $s$ segments up to data point $t'$, finds the
+% FunctionPiece that stores the cost of $u^*$, and returns the new
+% optimal values of the previous segment end $t'$ and mean $u'$. The
+% mean of segment $s$ is stored in $U_{k,s}$ and the end of segment
+% $s-1$ is stored in $T_{k,s}$ (line~\ref{line:decode-ks}).
+
 
 \subsection{Example and comparison with unconstrained algorithm}
 
@@ -945,7 +947,7 @@ followed by down changes, and all down changes are followed by up
 changes. More precisely, we define the constraint set as follows.
 \begin{definition}[PeakSeg constraints]
   \label{def:U}
-  Let $(\mathbf m, \mathbf c)\in\mathcal U_K^n$ be the set of all
+  Let $(\mathbf m, \mathbf c)\in\mathcal P_K^n$ be the set of all
   segment means $\mathbf m\in\RR^n$ and change-point indicators
   $\mathbf c\in\{-1, 0,1\}^{n-1}$ such that the following constraints
   are verified:
@@ -964,16 +966,16 @@ The PeakSeg optimization problem uses this constraint set with the usual loss fu
 \begin{equation}
 \label{eq:min_PeakSeg}
     \minimize_{
-        (\mathbf m, \mathbf c)\in\mathcal U^n_K
+        (\mathbf m, \mathbf c)\in\mathcal P^n_K
       } \ 
 \sum_{t=1}^n \ell(y_t, m_t).
 \end{equation}
 
 A variant of our proposed algorithm can be used to solve the PeakSeg
-problem. The initialization $k=1$ is the same as in the SNIR solver
-(Definition~\ref{def:fcc}). The dynamic programming updates for even
-$k\in\{2, 4, \dots\}$ are also the same. However, the updates for odd
-$k\in\{3, 5, \dots\}$ are
+problem. The initialization $k=1$ is the same as in the SNIR
+solver. The dynamic programming updates for even $k\in\{2, 4, \dots\}$
+are also the same. However, the updates for odd $k\in\{3, 5, \dots\}$
+are
 \begin{equation}
   \FCC_{k,t}(u) = \ell(y_t, u) + \min\{
   \FCC_{k-1,t-1}^\geq(u),\, \FCC_{k,t-1}(u)
@@ -984,20 +986,16 @@ where the min-more operator is defined for any function $f:\RR\rightarrow\RR$ as
   \label{eq:min-more-def}
   f^\geq(u) = \min_{x\geq u} f(x).
 \end{equation}
-To implement this update rule, the only modification to
-Algorithm~\ref{algo:SNIR} is at line~\ref{line:MinLess}. Instead of
-always using the MinLess sub-routine, the constrained version uses the
-MinMore sub-routine for odd segments $k$. We implemented this algorithm
-using the Poisson loss $\ell(y, u) = m - y\log m$, since our
-application in Section~\ref{sec:results-chip-seq} is on count data
-$y\in\ZZ_+ = \{0, 1, 2, \dots\}$. 
+We implemented this algorithm using the Poisson loss
+$\ell(y, u) = m - y\log m$, since our application in
+Section~\ref{sec:results-chip-seq} is on count data
+$y\in\ZZ_+ = \{0, 1, 2, \dots\}$.
 % Our free/open-source implementation
 % is available as the PeakSegPDPA function in the R package coseg
 % (\url{https://github.com/tdhock/coseg}). 
 A free/open-source C++ implementation of this algorithm will be made
-available online after acceptance.  More details about how we
-implemented this algorithm can be found in the supplementary materials
-(Section~\ref{sec:peakseg_details}).
+available online after acceptance. More implementation details can be
+found in the supplementary materials.
 
 \subsection{General affine inequality constraints
   between adjacent segment means}
@@ -1112,11 +1110,33 @@ standard objective function:
 \sum_{k=1}^K h_{t_{k-1}, t_k}(u_k).
 \end{equation}
 
+\begin{figure*}[b!]
+  \centering
+  \parbox{0.49\textwidth}{
+    %\includegraphics[width=0.45\textwidth]{figure-PDPA-intervals-all}
+    \input{figure-PDPA-intervals-small}
+  }
+  \parbox{0.49\textwidth}{
+    %\includegraphics[width=0.45\textwidth]{figure-PDPA-timings}
+    \input{figure-PDPA-timings-small}
+  }
+  \vskip -0.5cm
+  \caption{Timing results on 2752 segmentation problems from the
+    histone mark ChIP-seq benchmark data. For each problem we ran the
+    GPDPA with the up-down constraint and a max of $K=19$
+    segments.  \textbf{Left}: number of intervals stored in
+    $\FCC_{k,t}$ cost functions (median, inter-quartile range, and
+    maximum over all data points $t$ and segments $k$),
+    \textbf{Right}: timings in seconds (median line and min/max
+    band).}
+  \label{fig:timings}
+\end{figure*}
+
 Some examples:
 \begin{enumerate}
 \item If we take all $a_k,b_k,c_k=0$ then the constraints are
-  trivially satisfied, segment means are not constrained, and we
-  recover the segment neighborhood problem
+  trivially satisfied, we
+  recover the unconstrained segment neighborhood problem
   (\ref{eq:optimal_segment_neighborhood}).
 \item If we take all $a_{k} =1$, $b_{k}=-1$ and $c_{k} = 0$ we
   recover the segment neighborhood isotonic regression problem (\ref{eq:SNIR}).
@@ -1137,7 +1157,8 @@ minimization operator $f^g:\RR\rightarrow\RR$ as
 \end{equation}
 
 The constrained minimization operator is used in the following general
-dynamic programming update rule which can be used to compute the solution to (\ref{eq:min_general_affine_inequality})
+dynamic programming update rule which can be used to compute the
+solution to (\ref{eq:min_general_affine_inequality})
 \begin{equation}
   \label{eq:general_dp}
   \FCC_{k,t}(u) = \ell(y_t,u) + \min\{
@@ -1166,6 +1187,26 @@ for binary classification at every base position. The positive class
 is peaks (genomic regions with large counts, representing protein
 binding or modification) and the negative class is background noise
 with small counts.
+
+\begin{figure*}[b!]
+  \centering
+  %\includegraphics[width=\textwidth]{figure-test-error-mean}
+  \includegraphics[width=\textwidth]{figure-test-error-dots}
+  \vskip -0.5cm
+  \caption{Four-fold cross-validation was used to estimate prediction
+    accuracy of each algorithm (one panel for each of 7 ChIP-seq data sets). 
+Each black circle shows the test AUC in one of four
+    cross-validation folds, the shaded grey circle is the mean, and
+    the vertical line shows the maximum mean in each data set. It is
+    clear that the proposed GPDPA is
+    just as accurate as the previous state-of-the-art CDPA, and both are
+    more accurate than the other baseline methods. 
+% Interactive version
+%     available at
+%     \url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}
+  }
+  \label{fig:test-error-dots}
+\end{figure*}
 
 \citet{HOCKING-PeakSeg} proposed a constrained dynamic programming
 algorithm (CDPA) to approximately compute the optimal change-points,
@@ -1259,27 +1300,6 @@ that our proposed GPDPA enjoys $O(n\log n)$ time complexity in
 ChIP-seq data, which makes it possible to use for very large data
 sets.
 
-\begin{figure*}[b!]
-  \centering
-  \parbox{0.49\textwidth}{
-    %\includegraphics[width=0.45\textwidth]{figure-PDPA-intervals-all}
-    \input{figure-PDPA-intervals-small}
-  }
-  \parbox{0.49\textwidth}{
-    %\includegraphics[width=0.45\textwidth]{figure-PDPA-timings}
-    \input{figure-PDPA-timings-small}
-  }
-  \vskip -0.5cm
-  \caption{Timing results on 2752 segmentation problems from the
-    histone mark ChIP-seq benchmark data. For each problem we ran the
-    GPDPA with the up-down constraint and a max of $K=19$
-    segments.  \textbf{Left}: number of intervals stored in
-    $\FCC_{k,t}$ cost functions (median, inter-quartile range, and
-    maximum over all data points $t$ and segments $k$),
-    \textbf{Right}: timings in seconds (median line and min/max
-    band).}
-  \label{fig:timings}
-\end{figure*}
 
 % \subsection{Feasibility and optimality in ChIP-seq data}
 
@@ -1376,25 +1396,6 @@ optimization-based algorithms in all 7 data sets. Overall, these data
 indicate that the proposed GPDPA achieves state-of-the-art accuracy in
 these ChIP-seq data sets.
 
-\begin{figure*}[b!]
-  \centering
-  %\includegraphics[width=\textwidth]{figure-test-error-mean}
-  \includegraphics[width=\textwidth]{figure-test-error-dots}
-  \vskip -0.5cm
-  \caption{Four-fold cross-validation was used to estimate prediction
-    accuracy of each algorithm (one panel for each of 7 ChIP-seq data sets). 
-Each black circle shows the test AUC in one of four
-    cross-validation folds, the shaded grey circle is the mean, and
-    the vertical line shows the maximum mean in each data set. It is
-    clear that the proposed GPDPA is
-    just as accurate as the previous state-of-the-art CDPA, and both are
-    more accurate than the other baseline methods. 
-% Interactive version
-%     available at
-%     \url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}
-  }
-  \label{fig:test-error-dots}
-\end{figure*}
 
 % \begin{table}[b!]
 %   \centering
@@ -1446,7 +1447,7 @@ alternative for large data sets.
 TODO more general future work.
 
 \bibliographystyle{icml2016}
+\newpage
 \bibliography{refs-abbrev}
 
 \end{document} 
-
