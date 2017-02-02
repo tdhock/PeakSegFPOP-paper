@@ -176,11 +176,11 @@ constrained model.
 
 \subsection{Contributions and organization}
 
-The main contribution of this paper is a family of dynamic programming
-algorithms for solving constrained segmentation problems. In
-Section~2, we discuss related work into algorithms for change-point
-detection and isotonic regression. Section~3 introduces one
-optimization problem that our algorithm can solve: segment
+TODO The main contribution of this paper is a family of dynamic
+programming algorithms for solving constrained segmentation
+problems. In Section~2, we discuss related work into algorithms for
+change-point detection and isotonic regression. Section~3 introduces
+one optimization problem that our algorithm can solve: segment
 neighborhood isotonic regression. We propose a new dynamic programming
 algorithm in Section~4, and show how it can be extended to related
 models in Section~5. We apply our algorithm to the up-down constrained
@@ -191,13 +191,12 @@ discussion of possible future work (Section~7).
 \section{Related work}
 \label{sec:related}
 
-of model parameters in the observed data
-series.When there are no constraints other than the number of
+When there are no constraints other than the number of
 change-points or segments, the Pruned Dynamic Programming Algorithm
 (PDPA) can be used to recover the change-points with minimum cost
 \citep{pruned-dp}. The Functional Pruning Optimal Partitioning (FPOP)
 algorithm can be used when there is no constraint on the number of
-change-points, but there is a positive penalty constant \citep{FPOP}.
+change-points, but there is a positive penalty constant \citep{fpop}.
 
 The isotonic regression problem is another example of constrained
 change-point detection. Typically there is no limit on the number of
@@ -444,6 +443,25 @@ This results in the following optimization problem,
 Rather than explicitly summing over data points $i$ as in problem
 (\ref{eq:SNIR}), this problem sums over segments $k$. 
 
+\begin{figure*}[b!]
+  \centering
+  \input{figure-compare-unconstrained}
+  \input{figure-compare-cost}
+  \vskip -0.5cm
+  \caption{Comparison of previous unconstrained algorithm (grey) with
+    new algorithm that constrains segment means to be non-decreasing (red),
+    for the toy data set $\mathbf y= [ 2, 1, 0, 4 ] \in\RR^4$ and the
+    square loss. \textbf{Left:} rather than computing the
+    unconstrained minimum (constant grey function), the new algorithm
+    computes the min-less operator (red), resulting in a larger cost
+    when the segment mean is less than the first data point
+    ($u\leq 2$). \textbf{Right:} adding the cost of the second data
+    point $(u-1)^2$ and minimizing yields equal means
+    $u_1=u_2=1.5$ for the constrained model and decreasing 
+    means $u_1=2,\, u_2=1$ for the unconstrained model.}
+  \label{fig:compare-unconstrained}
+\end{figure*}
+
 % The next lemma
 % proves that it is equivalent to solve this simpler optimization problem.
 
@@ -471,25 +489,6 @@ Rather than explicitly summing over data points $i$ as in problem
 % \end{proof}
 
 \subsection{Dynamic programming update rules}
-
-\begin{figure*}[b!]
-  \centering
-  \input{figure-compare-unconstrained}
-  \input{figure-compare-cost}
-  \vskip -0.5cm
-  \caption{Comparison of previous unconstrained algorithm (grey) with
-    new algorithm that constrains segment means to be non-decreasing (red),
-    for the toy data set $\mathbf y= [ 2, 1, 0, 4 ] \in\RR^4$ and the
-    square loss. \textbf{Left:} rather than computing the
-    unconstrained minimum (constant grey function), the new algorithm
-    computes the min-less operator (red), resulting in a larger cost
-    when the segment mean is less than the first data point
-    ($u\leq 2$). \textbf{Right:} adding the cost of the second data
-    point $(u-1)^2$ and minimizing yields equal means
-    $u_1=u_2=1.5$ for the constrained model and decreasing 
-    means $u_1=2,\, u_2=1$ for the unconstrained model.}
-  \label{fig:compare-unconstrained}
-\end{figure*}
 
 Optimization problem (\ref{eq:isotonic_ut}) has $K$ segment mean
 variables and $K-1$ change-point index variables. Minimizing over all
@@ -1117,26 +1116,6 @@ In this section we briefly discuss how to apply our proposed dynamic
 programming algorithm to optimization problems with general affine
 inequality constraints between adjacent segment means.
 
-\begin{definition}[General affine inequality constraints]
-\label{def:affine-inequality-constraints}
-  Let $a_k,b_k,c_k\in\RR$ for $k\in\{1,\dots,K-1\}$ be arbitrary
-  coefficients that define affine functions
-  $g_k(u_k, u_{k+1})=a_k u_k + b_k u_{k+1} + c_k$. Then we define
-  $(\mathbf u, \mathbf t)\in\mathcal M^n_K$ as the set of all
-  increasing change-point indices $0=t_0<t_1<\cdots<t_{K-1}<t_K=n$ and
-  segment means $\mathbf u\in\RR^K$ that satisfy
-  $g_k(u_k, u_{k+1}) \leq 0$ for all $k\in\{1,\dots, K-1\}$.
-\end{definition}
-The general optimization problem uses this constraint set with the
-standard objective function:
-\begin{equation}
-  \label{eq:min_general_affine_inequality}
-    \minimize_{
-        (\mathbf u, \mathbf t)\in\mathcal M^n_K
-      } \ 
-\sum_{k=1}^K h_{t_{k-1}, t_k}(u_k).
-\end{equation}
-
 \begin{figure*}[b!]
   \centering
   \parbox{0.49\textwidth}{
@@ -1158,6 +1137,26 @@ standard objective function:
     band).}
   \label{fig:timings}
 \end{figure*}
+
+\begin{definition}[General affine inequality constraints]
+\label{def:affine-inequality-constraints}
+  Let $a_k,b_k,c_k\in\RR$ for $k\in\{1,\dots,K-1\}$ be arbitrary
+  coefficients that define affine functions
+  $g_k(u_k, u_{k+1})=a_k u_k + b_k u_{k+1} + c_k$. Then we define
+  $(\mathbf u, \mathbf t)\in\mathcal M^n_K$ as the set of all
+  increasing change-point indices $0=t_0<t_1<\cdots<t_{K-1}<t_K=n$ and
+  segment means $\mathbf u\in\RR^K$ that satisfy
+  $g_k(u_k, u_{k+1}) \leq 0$ for all $k\in\{1,\dots, K-1\}$.
+\end{definition}
+The general optimization problem uses this constraint set with the
+standard objective function:
+\begin{equation}
+  \label{eq:min_general_affine_inequality}
+    \minimize_{
+        (\mathbf u, \mathbf t)\in\mathcal M^n_K
+      } \ 
+\sum_{k=1}^K h_{t_{k-1}, t_k}(u_k).
+\end{equation}
 
 Some examples:
 \begin{enumerate}
@@ -1215,26 +1214,6 @@ is peaks (genomic regions with large counts, representing protein
 binding or modification) and the negative class is background noise
 with small counts.
 
-\begin{figure*}[b!]
-  \centering
-  %\includegraphics[width=\textwidth]{figure-test-error-mean}
-  \includegraphics[width=\textwidth]{figure-test-error-dots}
-  \vskip -0.5cm
-  \caption{Four-fold cross-validation was used to estimate prediction
-    accuracy of each algorithm (one panel for each of 7 ChIP-seq data sets). 
-Each black circle shows the test AUC in one of four
-    cross-validation folds, the shaded grey circle is the mean, and
-    the vertical line shows the maximum mean in each data set. It is
-    clear that the proposed GPDPA is
-    just as accurate as the previous state-of-the-art CDPA, and both are
-    more accurate than the other baseline methods. 
-% Interactive version
-%     available at
-%     \url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}
-  }
-  \label{fig:test-error-dots}
-\end{figure*}
-
 \citet{HOCKING-PeakSeg} proposed a constrained dynamic programming
 algorithm (CDPA) to approximately compute the optimal change-points,
 subject to the PeakSeg up-down constraint. The CDPA has been shown to
@@ -1291,6 +1270,26 @@ Programming Algorithm (PDPA) of \citet{pruned-dp} as a baseline
 
 \subsection{Empirical time complexity in ChIP-seq data}
 \label{sec:results_time}
+
+\begin{figure*}[b!]
+  \centering
+  %\includegraphics[width=\textwidth]{figure-test-error-mean}
+  \includegraphics[width=\textwidth]{figure-test-error-dots}
+  \vskip -0.5cm
+  \caption{Four-fold cross-validation was used to estimate prediction
+    accuracy of each algorithm (one panel for each of 7 ChIP-seq data sets). 
+Each black circle shows the test AUC in one of four
+    cross-validation folds, the shaded grey circle is the mean, and
+    the vertical line shows the maximum mean in each data set. It is
+    clear that the proposed GPDPA is
+    just as accurate as the previous state-of-the-art CDPA, and both are
+    more accurate than the other baseline methods. 
+% Interactive version
+%     available at
+%     \url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}
+  }
+  \label{fig:test-error-dots}
+\end{figure*}
 
 The McGill ChIP-seq benchmark consists of 7 separate data sets,
 consisting of 2752 segmentation problems, varying in size from $n=87$
@@ -1471,7 +1470,9 @@ sub-optimal heuristics have been preferred because of their speed, but
 our proposed log-linear time GPDPA can now be used as an optimal
 alternative for large data sets.
 
-TODO more general future work.
+For future work we will be interested in exploring pruning techniques
+for other constrained change-point models. TODO discuss OP
+\citep{optimal-partitioning}. TODO discuss PELT \citep{pelt}.
 
 \bibliographystyle{icml2016}
 \newpage
