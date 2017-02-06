@@ -209,26 +209,24 @@ likelihood from 1 to $n$ data points. An L1 relaxed version of this
 problem is known as fused lasso \citep{fused-lasso}.
 
 Several pruning methods have been recently proposed in order to reduce
-the time complexity of the algorithms, while maintaining
-optimality. \citet{pelt} proposed an inequality pruning technique,
-which results in an algorithm of $O(n\log n)$ time
-complexity. \citet{pruned-dp} and \citep{phd-johnson} independently
-discovered a functional pruning technique, which also results in
-algorithms of $O(n\log n)$ time complexity. \citet{fpop} provides a
-clear discussion on the differences between the two pruning
-techniques.
+the time complexity of the algorithms, while maintaining optimality.
+\citet{pruned-dp} and \citet{phd-johnson} independently discovered a
+functional pruning technique, which results in algorithms of
+$O(n\log n)$ time complexity. \citet{pelt} proposed an inequality
+pruning technique, which also results in an algorithm of $O(n\log n)$
+time complexity. \citet{fpop} provides a clear discussion on the
+differences between the two pruning techniques.
 
 All algorithms discussed thus far are for solving problems with no
 constraints between adjacent segment mean parameters, but there are
 many examples of constrained change-point detection models. Rather
-than searching all possible change-points, a constraint is used to
-search a smaller, more interpretable model space. For example,
-\citet{haiminen2008algorithms} propose an $O(Kn^2)$ algorithm for
-unimodal regression, which enforces no up changes after the first down
-change. \citet{HOCKING-PeakSeg} propose an $O(Kn^2)$ algorithm for
-peak detection, which enforces a down change after each up change, and
-vice versa.
-
+than searching all possible change-points and likelihood parameters, a
+constraint is used to search a smaller, more interpretable model
+space. For example, \citet{haiminen2008algorithms} propose an
+$O(Kn^2)$ algorithm for unimodal regression, which enforces no up
+changes after the first down change. \citet{HOCKING-PeakSeg} proposed
+an $O(Kn^2)$ algorithm for peak detection, which enforces a down
+change after each up change, and vice versa.
 
 Isotonic regression is another example of a constrained change-point
 detection model. There is no limit on the number of segments $K$, but
@@ -239,8 +237,16 @@ dynamic programming algorithm \citep{isotonic-dp}. An L1 relaxed
 version of this problem is known as nearly-isotonic regression
 \citep{tibshirani2011nearly}. A problem known as reduced isotonic
 regression occurs by imposing an additional constraint of $K$ segments
-\citep{reduced-monotonic-regression}. There are sub-quadratic time
-algorithms for solving this problem \citep{hardwick2014optimal}. 
+\citep{reduced-monotonic-regression}. The techniques for solving this
+problem lead to sub-quadratic time algorithms
+\citep{hardwick2014optimal}, but do not generalize to other kinds of
+constraints.
+
+In contrast, our proposed Generalized Pruned Dynamic Programming
+Algorithm enjoys $O(Kn\log n)$ time complexity, and works for any
+change-point model with affine constraints between adjacent segment
+means (including isotonic regression, unimodal regression, and peak
+detection).
 
 %histogram construction\citep{halim2009fast}.
 
