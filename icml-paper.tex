@@ -197,66 +197,53 @@ achieves state-of-the-art speed and accuracy in genomic data
 \section{Related work}
 \label{sec:related}
 
-When there are no constraints other than the number of
-change-points or segments, the Pruned Dynamic Programming Algorithm
-(PDPA) can be used to recover the change-points with minimum cost
-\citep{pruned-dp}. The Functional Pruning Optimal Partitioning (FPOP)
-algorithm can be used when there is no constraint on the number of
-change-points, but there is a positive penalty constant \citep{fpop}.
+There are many efficient algorithms available for computing the
+optimal $K-1$ change-points in $n$ data
+points. \citet{segment-neighborhood} proposed an $O(K n^2)$ algorithm
+for computing the sequence of models with $1,\dots,K$ segments, and
+\citet{optimal-partitioning} proposed a similar $O(n^2)$ algorithm for
+computing the single model for a given penalty constant
+$\lambda$. Both of these algorithms follow from using dynamic
+programming updates \citep{bellman} to recursively compute the maximum
+likelihood from 1 to $n$ data points. An L1 relaxed version of this
+problem is known as fused lasso \citep{fused-lasso}.
 
-The isotonic regression problem is another example of constrained
-change-point detection. Typically there is no limit on the number of
-changes, as long as they are all in the same direction. This problem
-can be solved using the pool-adjacent-violators algorithm
-\citep{mair2009isotone}. An L1 relaxed version of this problem is
-nearly-isotonic regression \citep{tibshirani2011nearly}.
+Several pruning methods have been recently proposed in order to reduce
+the time complexity of the algorithms, while maintaining
+optimality. \citet{pelt} proposed an inequality pruning technique,
+which results in an algorithm of $O(n\log n)$ time
+complexity. \citet{pruned-dp} and \citep{phd-johnson} independently
+discovered a functional pruning technique, which also results in
+algorithms of $O(n\log n)$ time complexity. \citet{fpop} provides a
+clear discussion on the differences between the two pruning
+techniques.
 
-TODO discuss isotonic DP \citep{isotonic-dp}, functional pruning
-\citep{phd-johnson}, reduced isotonic regression
-\citep{hardwick2014optimal, reduced-monotonic-regression}, unimodal
-segmentation \citep{haiminen2008algorithms}, histogram construction
-\citep{halim2009fast}.
+All algorithms discussed thus far are for solving problems with no
+constraints between adjacent segment mean parameters, but there are
+many examples of constrained change-point detection models. Rather
+than searching all possible change-points, a constraint is used to
+search a smaller, more interpretable model space. For example,
+\citet{haiminen2008algorithms} propose an $O(Kn^2)$ algorithm for
+unimodal regression, which enforces no up changes after the first down
+change. \citet{HOCKING-PeakSeg} propose an $O(Kn^2)$ algorithm for
+peak detection, which enforces a down change after each up change, and
+vice versa.
 
-The real data analysis problem that motivates this work is the
-detection of peaks in ChIP-seq data, which typically come from
-genome-wide assays for histone modifications or transcription factor
-binding sites \citep{practical}. These data are typically represented
-as a vector of non-negative counts $\mathbf y\in\ZZ_+^n$ of aligned
-sequence reads for $n$ bases in a genome. A peak detection algorithm
-can be represented as a function $f(\mathbf y)\in\{0,1\}^n$ for binary
-classification at every base position. The positive class is peaks
-(genomic regions with large values, representing protein binding or
-modification) and the negative class is background noise (small
-values).
 
-Since peaks and noise occur in long contiguous genomic regions, the
-up-down constrained change-point model was proposed for peak
-detection. The Constrained Dynamic Programming Algorithm (CDPA) of
-\citet{HOCKING-PeakSeg} was shown to achieve state-of-the-art peak
-detection accuracy, but it has two drawbacks. The main drawback is
-that the quadratic $O(Kn^2)$ time complexity for $n$ data points makes
-the CDPA too slow to run on large ChIP-seq data sets. The second
-drawback is that the algorithm recovers a sub-optimal solution to the
-up-down constrained segmentation problem.
+Isotonic regression is another example of a constrained change-point
+detection model. There is no limit on the number of segments $K$, but
+the segment means are constrained to be non-decreasing. This problem
+can be solved in $O(n)$ time using the pool-adjacent-violators
+algorithm \citep{mair2009isotone}, or in $O(n\log n)$ time using a
+dynamic programming algorithm \citep{isotonic-dp}. An L1 relaxed
+version of this problem is known as nearly-isotonic regression
+\citep{tibshirani2011nearly}. A problem known as reduced isotonic
+regression occurs by imposing an additional constraint of $K$ segments
+\citep{reduced-monotonic-regression}. There are sub-quadratic time
+algorithms for solving this problem \citep{hardwick2014optimal}. 
 
-The models we consider in this paper can be considered constrained
-versions of optimal segmentation \citep{Segmentor} and isotonic
-regression \citep{mair2009isotone}. The optimal segmentation model can
-be computed using a dynamic programming algorithm (DPA)
-\citep{bellman, segment-neighborhood, optimal-partitioning}, or a
-pruned dynamic programming algorithm (pDPA) \citep{pruned-dp}. Both
-algorithms are guaranteed to recover the exact solution to the
-unconstrained model, but there are two important differences. The pDPA
-is more complicated to implement, but is also computationally faster
-than the DPA. For segmenting a sequence of $n$ data points, the pDPA
-takes on average $O(Kn\log n)$ time whereas the DPA takes $O(Kn^2)$
-time.
+%histogram construction\citep{halim2009fast}.
 
-The constraints that we consider in this paper are a generalization of
-the peak detection model \citep{HOCKING-PeakSeg}. Rather than
-searching all possible change-points to find the most likely model
-with $K$ segments, we propose to constrain the possible change-points
-so that the segment means may be more easily interpreted.
 
 \section{Isotonic regression and segment neighborhood models}
 \label{sec:models}
