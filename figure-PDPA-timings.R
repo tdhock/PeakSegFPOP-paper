@@ -9,15 +9,16 @@ stopifnot(nrow(PDPA.timings)==2752)
 stopifnot(nrow(dp.timings)==2752)
 stopifnot(nrow(dp.timings.reverse)==2752)
 
+
 algo <- function(algorithm, ...){
   data.table(algorithm, ...)
 }
 CDPA.name <- "PeakSegDP\nO(N^2)"
 PDPA.name <- "Segmentor\nO(N log N)"
 GPDPA.name <- "coseg\nO(N log N)"
-CDPA.name <- "CDPA\nO(N^2)"
-PDPA.name <- "PDPA\nO(N log N)"
-GPDPA.name <- "GPDPA\nO(N log N)"
+CDPA.name <- "CDPA\nO(n^2)"
+PDPA.name <- "PDPA\nO(n log n)"
+GPDPA.name <- "GPDPA\nO(n log n)"
 all.timings <- rbind(
   algo(CDPA.name, dp.timings),
   algo(PDPA.name, Segmentor.timings),
