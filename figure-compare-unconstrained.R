@@ -39,28 +39,28 @@ C12minless <- rbind(
 gg <- ggplot()+
   ggtitle("Cost of 2 segment model\nup to data point 2")+
   theme_bw()+
-  xlab("segment mean $u$")+
+  xlab("segment mean $\\mu$")+
   geom_line(aes(mean, cost), data=getLines(C22), color="red", size=3)+
   geom_line(aes(mean, cost), data=getLines(C22un), color="grey50", size=1.5)+
   geom_text(aes(x=1.5,y=8.5,label="constrained"),color="red")+
-  geom_text(aes(x=1.5,y=7,label="$C_{2,2}(u)=$"),color="red")+
+  geom_text(aes(x=1.5,y=7,label="$C_{2,2}(\\mu)=$"),color="red")+
   geom_text(aes(x=2.4,y=1,label="unconstrained"),color="grey50", hjust=0, vjust=0)+
-  geom_text(aes(x=2.5,y=0,label="$(u-1)^2$"),color="grey50", hjust=0, vjust=0)+
-  geom_text(aes(x=1.5,y=5.5,label="$C^\\leq_{1,1}(u)+(u-1)^2$"),color="red")
+  geom_text(aes(x=2.5,y=0,label="$(\\mu-1)^2$"),color="grey50", hjust=0, vjust=0)+
+  geom_text(aes(x=1.5,y=5.5,label="$C^\\leq_{1,1}(\\mu)+(\\mu-1)^2$"),color="red")
 tikz("figure-compare-cost.tex", 3, 2.5)
 print(gg)
 dev.off()
 gg <- ggplot()+
   ggtitle("Min-less computation")+
   theme_bw()+
-  xlab("segment mean $u$")+
+  xlab("segment mean $\\mu$")+
   geom_line(aes(mean, cost), data=getLines(C11minless), color="red", size=3)+
   geom_line(aes(mean, cost), data=getLines(C11min), color="grey50", size=1.5)+
   geom_line(aes(mean, cost), data=getLines(C11), color="black", size=1)+
-  geom_text(aes(x=3.5,y=3.5,label="$C_{1,1}(u) = (u-2)^2$"),color="black", hjust=1)+
-  geom_text(aes(x=-Inf,y=0.2,label="$\\min_u C_{1,1}(u)$"),color="grey50", hjust=0, vjust=0)+
-  geom_text(aes(x=2,y=2.4,label="$C^\\leq_{1,1}(u)=$"),color="red")+
-  geom_text(aes(x=2,y=2,label="$\\min_{x\\leq u} C_{1,1}(x)$"),color="red")
+  geom_text(aes(x=3.5,y=3.5,label="$C_{1,1}(\\mu) = (\\mu-2)^2$"),color="black", hjust=1)+
+  geom_text(aes(x=-Inf,y=0.2,label="$\\min_\\mu C_{1,1}(\\mu)$"),color="grey50", hjust=0, vjust=0)+
+  geom_text(aes(x=2,y=2.4,label="$C^\\leq_{1,1}(\\mu)=$"),color="red")+
+  geom_text(aes(x=2,y=2,label="$\\min_{x\\leq \\mu} C_{1,1}(x)$"),color="red")
 tikz("figure-compare-unconstrained.tex", 3, 2.5)
 print(gg)
 dev.off()
