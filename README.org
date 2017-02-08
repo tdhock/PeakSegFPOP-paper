@@ -1,6 +1,106 @@
 The goal of this paper is to implement a fast algorithm for solving
 the PeakSeg problem described in
 http://jmlr.org/proceedings/papers/v37/hocking15.html
+** 7 Feb 2017
+
+Ideas about how to define a state graph for a solver of the Optimal
+Partitioning problem with affine constraints between adjacent segment
+means.
+
+#+BEGIN_SRC R
+  library(data.table)
+  ### Define an affine constraint function
+  ### g(from, to) = from.coef*from + to.coef*to + constant
+  ### to be used as g(from, to) <= 0,
+  ### e.g. from <= to is coded as 1*from -1*to + 0 <= 0.
+  affine.constraint <- function(from.coef, to.coef, constant){
+    data.table(from.coef, to.coef, constant)
+  }
+
+  no.constraint <- affine.constraint(0, 0, 0)
+  non.increasing <- affine.constraint(-1, 1, 0)
+  non.decreasing <- affine.constraint(1, -1, 0)
+
+  state <- function(state.name){
+    structure(data.table(state.name), type="state")
+  }
+
+  change <- function(from, to, penalty, constraint){
+    structure(data.table(from, to, penalty, constraint), type="change")
+  }
+
+  loss <- function(loss.name){
+    structure(data.table(loss.name), type="loss")
+  }
+
+  start <- function(...){
+    structure(data.table(state.name=c(...)), type="start")
+  }
+
+  end <- function(...){
+    structure(data.table(state.name=c(...)), type="end")
+  }
+
+  penalty <- 0.1
+
+  unconstrained <- list(
+    state("anything"),
+    change("anything", "anything", penalty, no.constraint))
+
+  unconstrained.Gaussian <- c(unconstrained, list(
+    loss("Gaussian")))
+
+  unconstrained.Poisson <- c(unconstrained, list(
+    loss("Poisson")))
+
+  PeakSegFPOP <- function(data.vec, weight.vec, penalty){
+    model <- list(
+      loss("Poisson"),
+      state("peak"),
+      state("background"),
+      start("background"),
+      change("background", "peak", 0, non.decreasing),
+      change("peak", "background", penalty, non.increasing),
+      end("background"))
+    GFPOP(model, data.vec, weight.vec)
+  }
+
+  PeakSegFPOP.start.or.end.up <- list(
+    loss("Poisson"),
+    state("peak"),
+    state("background"),
+    change("background", "peak", penalty, non.decreasing),
+    change("peak", "background", penalty, non.increasing))
+
+  model.list <- PeakSegFPOP.start.or.end.up
+
+  type.vec <- sapply(model.list, attr, "type")
+  model.info <- sapply(unique(type.vec), function(type){
+    do.call(rbind, model.list[type.vec==type])
+  })
+  ## TODO functions for error checking, plotting, solving.
+
+  reduced.isotonic.regression <- list(
+    state("anything"),
+    change("anything", "anything", penalty, non.decreasing))
+
+  unimodal.regression <- list(
+    state("can.change.up.or.down"),
+    state("can.change.down"),
+    change("can.change.up.or.down", "can.change.up.or.down", penalty, non.decreasing),
+    change("can.change.up.or.down", "can.change.down", penalty, non.increasing),
+    change("can.change.down", "can.change.down", penalty, non.increasing))
+
+  unimodal.at.least.one.up <- c(unimodel.regression, list(
+    state("start"),
+    start("start"),
+    change("start", "can.change.up.or.down", penalty, non.decreasing)))
+
+  unimodal.at.least.one.up.and.down <- c(unimodal.at.least.one.up, list(
+    end("can.change.down")))
+
+#+END_SRC
+
 ** 26 Jan 2017
 Guillaume's group meeting presentation slides
 http://members.cbio.mines-paristech.fr/~thocking/HOCKING-PeakSegFPOP-pipeline-slides.pdf
