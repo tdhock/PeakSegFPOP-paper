@@ -96,6 +96,37 @@ print(dl.log)
 dev.off()
 
 gg.log <- ggplot()+
+  theme_bw()+
+  geom_hline(aes(yintercept=seconds),
+             data=lab.df,
+             color="grey")+
+  geom_ribbon(aes(max.data, ymin=min, ymax=max,
+                  fill=algo.tex),
+              data=window.seconds,
+              alpha=0.5)+
+  geom_line(aes(max.data, median,
+                color=algo.tex),
+            data=window.seconds)+
+  geom_text(aes(10^2.5, seconds, label=label),
+            data=lab.df,
+            size=3,
+            color="grey",
+            vjust=-0.5)+
+  scale_y_log10("seconds (log scale)")+
+  scale_x_log10(
+    "data points to segment (log scale)",
+    breaks=c(1e3, 1e4, range(all.timings$data)))
+my.method <- list("last.points", dl.trans(x=x+0.1))
+dl.log <- direct.label(gg.log, "last.polygons")+
+  coord_cartesian(xlim=c(min(all.timings$data), 3e6))
+tikz("figure-PDPA-timings-log-log.tex", 3.3, 2.5)
+print(dl.log)
+dev.off()
+pdf("figure-PDPA-timings-log-log.pdf", 3.3, 2.5)
+print(dl.log)
+dev.off()
+
+gg.log <- ggplot()+
   geom_hline(aes(yintercept=log10(seconds)),
              data=lab.df,
              color="grey")+

@@ -1,5 +1,4 @@
-library(ggplot2)
-library(data.table)
+source("packages.R")
 
 load("PDPA.intervals.all.RData")
 
@@ -86,6 +85,46 @@ gg <- ggplot()+
 tikz("figure-PDPA-intervals-small.tex", w=3.3, h=2.5)
 print(gg)
 dev.off()
+
+gg <- ggplot()+
+  geom_text(aes(10^3, 10^2.3, label="max"),
+            color="blue")+
+  geom_text(aes(10^4, 10^0.6, label="median, inter-quartile range"),
+            color="black")+
+  geom_point(aes(n.data, `100%`),
+             color="blue",
+             shape=21,
+             data=PDPA.intervals.all)+
+  geom_ribbon(aes(n.data, ymin=`25%`, ymax=`75%`),
+              alpha=0.5,
+              data=PDPA.intervals.all)+
+  geom_line(aes(n.data, `50%`),
+            data=PDPA.intervals.all)+
+  theme_bw()+
+  theme(
+    plot.margin=grid::unit(c(6, 12, 6, 6), "pt"),
+    panel.margin=grid::unit(0, "lines"))+
+  scale_x_log10(
+    "data points to segment (log scale)",
+    breaks=c(
+      1e3, 1e4, 
+      range(PDPA.intervals.all$n.data))
+    )+
+  scale_y_log10(
+    "intervals stored (log scale)",
+    breaks=c(
+      10, 100, 
+      max(PDPA.intervals.all[["100%"]]),
+      min(PDPA.intervals.all[["25%"]])
+      )
+    )
+tikz("figure-PDPA-intervals-log-log.tex", w=3.3, h=2.5)
+print(gg)
+dev.off()
+pdf("figure-PDPA-intervals-log-log.pdf", w=3.3, h=2.5)
+print(gg)
+dev.off()
+theme_bw()$plot.margin
 
 ggplot()+
   ggtitle(paste(

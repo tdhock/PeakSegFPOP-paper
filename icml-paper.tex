@@ -203,20 +203,24 @@ points. \citet{segment-neighborhood} proposed an $O(K n^2)$ algorithm
 for computing the sequence of models with $1,\dots,K$ segments, and
 \citet{optimal-partitioning} proposed a similar $O(n^2)$ algorithm for
 computing the single model for a given penalty constant
-$\lambda$. Both of these algorithms follow from using dynamic
-programming updates \citep{bellman} to recursively compute the maximum
-likelihood from 1 to $n$ data points. An L1 relaxed version of this
-problem is known as the fused lasso signal approximator, for which
-efficient solvers also exist \citep{flsa}.
+$\lambda$. Both of these algorithms recover the optimal solution, and
+follow from using dynamic programming updates \citep{bellman} to
+recursively compute the maximum likelihood from 1 to $n$ data
+points. Binary segmentation is an $O(n\log n)$ time algorithm that is
+not guaranteed to recover the optimal solution
+\citep{binary-segmentation}. An L1 relaxed version of this problem is
+known as the fused lasso signal approximator, for which efficient
+solvers also exist \citep{flsa}.
 
 Several pruning methods have been recently proposed in order to reduce
 time complexity, while maintaining optimality.  \citet{pruned-dp} and
 \citet{phd-johnson} independently discovered a functional pruning
-technique, which results in algorithms of $O(n\log n)$ time
+technique, which results in algorithms with $O(n\log n)$ average time
 complexity. \citet{pelt} proposed an inequality pruning technique,
-which also results in $O(n\log n)$ time
-complexity. \citet{fpop} provides a clear discussion on the
-differences between the two pruning techniques.
+which results in an algorithm with average time complexity from $O(n)$
+to $O(n^2)$, depending on the number of changes. \citet{fpop} provides
+a clear discussion on the differences between the two pruning
+techniques.
 
 All algorithms discussed thus far are for solving problems with no
 constraints between adjacent segment mean parameters, but there are
@@ -284,8 +288,8 @@ of the set of possible mean vectors.
 \end{equation}
 Now, assume that the data are a realization of a probability
 distribution with mean parameter $\mathbf m$. For example, assuming
-$y_i \sim \mathcal N(m_i, \sigma^2)$ 
-and performing maximum likelihood inference results in a convex minimization problem,
+$y_i \sim \mathcal N(m_i, \sigma^2)$ and performing maximum likelihood
+inference results in a convex minimization problem with affine constraints,
 % results in the following maximum
 % likelihood isotonic regression problem
 % \begin{equation}
@@ -309,8 +313,8 @@ One potential problem with the isotonic regression model is that it
 has no limit on the number of change-points where $m_i < m_{i+1}$. In
 particular, for an ever-increasing data set with $y_i < y_{i+1}$ for
 all $i<n$, it is clear that the solution to the isotonic regression
-problem (\ref{eq:isotonic}) is $m_i=y_i$ for all $i$, which implies
-$n-1$ change-points. 
+problem (\ref{eq:isotonic}) is $m_i=y_i$ for all $i$, which overfits
+with $n-1$ change-points.
 
 In contrast, it may be preferable to recover the $K\leq n$ most likely
 segments (the $K-1$ most likely changes). For example, consider the
@@ -346,7 +350,7 @@ the following segment neighborhood problem:
 \end{equation}
 Note that this optimization problem is non-convex since the model
 complexity is the number of change-points, measured via the non-convex
-the indicator function $I$ (\ref{eq:Sk}). Nonetheless, the optimal
+indicator function $I$ (\ref{eq:Sk}). Nonetheless, the optimal
 solution can be computed in $O(K n^2)$ time using the standard dynamic
 programming algorithm \citep{segment-neighborhood}. By exploiting the
 structure of the convex loss function $\ell$, the pruned dynamic
@@ -395,8 +399,8 @@ problem as
 
 Note that our definition includes the explicit change-point indicator
 $\mathbf c$. In the next section, we explain that this allows making
-an explicit link to an equivalent problem in a smaller optimization
-space.
+an explicit link to an equivalent problem with fewer optimization
+variables.
 
 %%%% update rules
 %\newcommand{\FCC}{\widetilde{C}}
@@ -408,9 +412,15 @@ pruning algorithms for constrained
 \label{sec:algorithms}
 
 
-In this section we propose a new dynamic programming algorithm that
-can be used to compute the solution to the segment neighborhood
-isotonic regression problem (\ref{eq:reduced}). 
+% In this section we propose a Generalized Pruned Dynamic Programming
+% Algorithm (GPDPA) that computes the solution to constrained
+% change-point problems. We begin by discussing how to solve a special
+% case, the reduced isotonic regression problem
+% (\ref{eq:reduced}).
+
+We begin by discussing an algorithm for solving the reduced isotonic
+regression problem (\ref{eq:reduced}), then explain how the algorithm
+generalizes to other constrained change-point problems.
 
 \subsection{Equivalent smaller optimization space}
 
@@ -420,7 +430,7 @@ $\mathbf c$ in $\mathcal I_K^n$, which we can equivalently represent
 using the following optimization space with only $K$ segment means and
 $K-1$ change-point indices.
 
-\begin{definition}[Smaller optimization space]
+\begin{definition}[Optimization space with fewer variables]
 \label{def:Ibar}
   Let $(\mathbf u, \mathbf t)\in\bar{\mathcal I}^n_K$ be the set of
   non-decreasing segment means $u_1\leq\cdots\leq u_K$ and
@@ -527,24 +537,22 @@ represents a convex function piece, and implementation details depend
 on the choice of the loss function $\ell$ (for an example using the
 square loss see Section~\ref{sec:example-comparison}).
 
-Computing $C_{k,t}(u_k)$ using the original unconstrained PDPA
-requires taking the minimum of $C_{k,t-1}(u_k)$ (a real-valued
-function of the last segment mean $u_k$) and
-$\hat C_{k-1,t-1} = \min_{u_{k-1}} C_{k-1,t-1}(u_{k-1})$ (the constant loss
-resulting from an unconstrained minimization with respect to the
+In the original unconstrained PDPA, computing the $C_{k,t}(u_k)$
+function requires taking the minimum of $C_{k,t-1}(u_k)$ (a function
+of the last segment mean $u_k$) and
+$\hat C_{k-1,t-1} = \min_{u_{k-1}} C_{k-1,t-1}(u_{k-1})$ (the constant
+loss resulting from an unconstrained minimization with respect to the
 previous segment mean $u_{k-1}$). The main novelty of our paper is the
 discovery that this update can also be computed efficiently for
 constrained problems. For example in isotonic regression the second
-term is no longer a constant, but instead another real-valued function
-of $u_k$,
+term is no longer a constant, but instead a function of $u_k$,
 $C_{k-1,t-1}^{\leq}(u_k) = \min_{u_{k-1}\leq u_k}
 C_{k-1,t-1}(u_{k-1})$, which we refer to as the min-less operator
 (Figure~\ref{fig:compare-unconstrained}, left).
 
 \begin{definition}[Min-less operator]
-For any real-valued
-function $f:\RR\rightarrow\RR$, we define the min-less operator as
-$f^\leq(\mu)=\min_{x\leq \mu} f(x)$.
+  For any function $f:\RR\rightarrow\RR$, we define the min-less
+  operator as $f^\leq(\mu)=\min_{x\leq \mu} f(x)$.
 \end{definition}
 
 The min-less operator is used in the following Theorem, which states
@@ -789,7 +797,7 @@ $\FCC_{1,1}(\mu)=\ell(y_1,\mu)$, and for the other data
 % the optimal segment mean and change-point parameters. 
 
 The dynamic programming algorithm requires computing $O(Kn)$
-real-valued cost functions $\FCC_{k,t}$. As in the original pruned
+cost functions $\FCC_{k,t}$. As in the original pruned
 dynamic programming algorithm, the time complexity of the algorithm is
 $O(K n I)$ where $I$ is the number of intervals (convex function
 pieces; candidate change-points) that are used to represent the cost
@@ -935,7 +943,7 @@ complexity of the algorithm is $O(K n \log n)$.
 % $s-1$ is stored in $T_{k,s}$ (line~\ref{line:decode-ks}).
 
 
-\subsection{Example and comparison with unconstrained algorithm}
+\subsection{Example and comparison with unconstrained case}
 \label{sec:example-comparison}
 
 To clarify the discussion, consider the 
@@ -964,12 +972,12 @@ this function (red curve on left of Figure~\ref{fig:compare-unconstrained}),
     0 + 0\mu + 0\mu^2 & \text{ if }\mu\in[2,4],\,  \mu'=2.
   \end{cases}
 \end{equation}
-It is clear that this function can be stored as a list of
-coefficients and associated intervals of segment mean $\mu$ values.
-In addition, to facilitate recovery of the optimal parameters, we
-store the previous segment mean $\mu'$ and endpoint (not shown). Note
-that $\mu'=\mu$ means that the equality constraint is active
-($u_1=u_2$).
+It is clear that this function can be stored as a list of two
+intervals of $\mu$ values, each with associated Poisson loss
+coefficients. In addition, to facilitate recovery of the optimal
+parameters, we store the previous segment mean $\mu'$ and endpoint
+(not shown). Note that $\mu'=\mu$ means that the equality constraint
+is active ($u_1=u_2$).
 
 By adding the first min-less function $\FCC_{1,1}^\leq(\mu)$ to the
 cost of the second data point $(\mu-2)^2$ we obtain the optimal cost in $K=2$
@@ -1143,15 +1151,16 @@ found in the supplementary materials.
 % The update rule is a priori valid for more complex constraints, typically quadratic constraints, yet recovering
 % $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}$ from $\FCC^{k}_{t}(\mu')$ would possibly be much more difficult.
 
+
 \begin{figure*}[b!]
   \centering
   \parbox{0.49\textwidth}{
-    %\includegraphics[width=0.45\textwidth]{figure-PDPA-intervals-all}
-    \input{figure-PDPA-intervals-small}
+    %\input{figure-PDPA-intervals-small}
+    \input{figure-PDPA-intervals-log-log}
   }
   \parbox{0.49\textwidth}{
-    %\includegraphics[width=0.45\textwidth]{figure-PDPA-timings}
-    \input{figure-PDPA-timings-small}
+    \input{figure-PDPA-timings-log-log}
+    %\input{figure-PDPA-timings-small} 
   }
   \vskip -0.5cm
   \caption{Timing results on 2752 segmentation problems from the
@@ -1190,7 +1199,7 @@ standard objective function:
 \sum_{k=1}^K h_{t_{k-1}, t_k}(u_k).
 \end{equation}
 
-Some examples:
+Some examples of models that are special cases:
 \begin{enumerate}
 \item If we take all $a_k,b_k,c_k=0$ then the constraints are
   trivially satisfied, we
@@ -1242,12 +1251,15 @@ detection of peaks in ChIP-seq data, which typically come from
 genome-wide assays for histone modifications or transcription factor
 binding sites \citep{practical}. These data are typically represented
 as a vector of non-negative counts $\mathbf y\in\ZZ_+^n$ of aligned
-sequence reads for $n$ continguous bases in a genome. A peak detection
-algorithm can be represented as a function $c(\mathbf y)\in\{0,1\}^n$
-for binary classification at every base position. The positive class
-is peaks (genomic regions with large values, representing protein
-binding or modification) and the negative class is background noise
-(small values).
+sequence reads for $n$ continguous bases in a genome. Data sizes are
+between $n=10^5$ (maximum of the benchmark we consider) and $n=10^8$
+(largest region with no gaps in the human genome hg19). A peak
+detection algorithm can be represented as a function
+$c(\mathbf y)\in\{0,1\}^n$ for binary classification at every base
+position. The positive class is peaks (genomic regions with large
+values, representing protein binding or modification) and the negative
+class is background noise (small values).
+
 
 In the supervised learning framework of \citet{HOCKING2016-chipseq}, a
 data set consists of $m$ count data vectors
@@ -1334,7 +1346,8 @@ varying in size from $n=87$ to $n=263169$ data. For each count data
 vector $\mathbf y_i$, we ran each algorithm (CDPA, PDPA, GDPDA) with a
 maximum of $K=19$ segments. To analyze the empirical time complexity,
 we recorded the number of intervals stored in the $\FCC_{k,t}$ cost
-functions (Section~TODO), as well as the computation time in seconds.
+functions (Section~\ref{sec:algorithms}), as well as the computation
+time in seconds.
 
 As in the PDPA, the time complexity of our proposed GPDPA is
 $O(K n I)$, which depends on the number of intervals $I$ (candidate
@@ -1353,15 +1366,18 @@ We recorded the timings of each algorithm when $K=19$ is fixed, so the
 expected time complexity was $O(n^2)$ for the CDPA and $O(n \log n)$
 for the PDPA and GPDPA. In agreement with these expectations, our
 proposed GPDPA shows $O(n\log n)$ asymptotic timings similar to the
-PDPA (right of Figure~\ref{fig:timings}). It is clear that the $O(n^2)$
-CDPA algorithm is slower than the other two algorithms,
-especially for larger data sets. For the largest data set
+PDPA (right of Figure~\ref{fig:timings}). It is clear that the
+$O(n^2)$ CDPA algorithm is slower than the other two algorithms,
+especially for larger data sets. For the largest count data vector
 ($n=263169$), the CDPA took over two hours, but the GPDPA took only
-about two minutes. The total computation time was 156 hours for the
-CDPA, and only 6 hours for the GPDPA. Overall, these results suggest
-that our proposed GPDPA enjoys $O(n\log n)$ time complexity in
-ChIP-seq data, which makes it possible to use for very large data
-sets.
+% H3K36me3_TDH_immune        3 McGill0001  146.680 263169
+% chr10:18761902-22380580
+about two minutes. HMCanBroad and MACS took TODO minutes on this data
+set. The total computation time to process all 2752 count data vectors
+was 156 hours for the CDPA, and only 6 hours for the GPDPA (26 times
+faster). Overall, these results suggest that our proposed GPDPA enjoys
+$O(n\log n)$ time complexity in ChIP-seq data, which makes it possible
+to use for very large data sets.
 
 \begin{figure*}[b!]
   \centering
@@ -1468,41 +1484,59 @@ penalty constant $\lambda$,
     c^{K_i^\lambda}(\mathbf y_i), 
     L_i\right].
 \end{equation}
-Multi-parameter affine penalty functions could further increase prediction
-accuracy \citep{HOCKING-penalties}, but we observed that learning a
-single penalty constant is sufficient for state-of-the-art accuracy in
-these data sets (Figure~\ref{fig:test-error-dots}). 
 
-Furthermore, we wanted to perform a fair comparison with the following
-two baselines from the bioinformatics literature, which also learn
-only one parameter.
-% To provide two more baselines, we also computed the accuracy of two
-% unsupervised heuristic algorithms from the bioinformatics literature:
-% MACS and HMCanBroad \citep{MACS, HMCan}. 
-MACS is a popular algorithm for data with a sharp peak pattern such as
-H3K4me3 \citep{MACS}, and \mbox{HMCanBroad} is a popular algorithm for
-data with a broad peak pattern such as H3K36me3 \citep{HMCan}. Although these
-algorithms are not designed for supervised learning, we trained them
-by performing grid search over a single significance threshold
-parameter (qvalue for MACS and finalThreshold for HMCanBroad).
-%Note that since these are not change-point detection algorithms, there is no parameter for  we did not use these algorithms in the speed comparison
+% Multi-parameter affine penalty functions could further increase prediction
+% accuracy \citep{HOCKING-penalties}, but we observed that learning a
+% single penalty constant is sufficient for state-of-the-art accuracy in
+% these data sets (Figure~\ref{fig:test-error-dots}). 
 
 In each of the seven data sets in the histone 
 benchmark,
 %\citep{HOCKING2016-chipseq}, 
 we performed four-fold cross-validation and computed test AUC to
-estimate the accuracy of each algorithm.  The previous algorithm with
-state-of-the-art accuracy on this benchmark was the CDPA, and we
-observed that the new GPDPA algorithm achieves comparable test AUC
+estimate the accuracy of each algorithm. The previous algorithm with
+state-of-the-art accuracy on this benchmark was the CDPA, which
+enforces the up-down constraint on segment means. We expected our
+proposed GPDPA to perform just as well, since it also enforces that
+constraint. In agreement with our expectation, we observed that the
+CDPA and GPDPA yield comparable test AUC in all seven data sets
 (Figure~\ref{fig:test-error-dots}). In contrast, the unconstrained
-PDPA often had much lower test AUC, because of lower true positive
-rates. Although the baseline HMCanBroad algorithm showed
+PDPA had much lower test AUC in several data sets, because of lower
+true positive rates. These results provide convincing
+evidence that the constraint is necessary for optimal peak detection
+accuracy.
+
+% Furthermore, we wanted to perform a fair comparison with the following
+% two baselines from the bioinformatics literature, which also learn
+% only one parameter.
+To demonstrate that constrained optimal segmentation is more accurate
+than typical unsupervised heuristics from the bioinformatics
+literature, we also computed test AUC for the MACS and HMCanBroad
+algorithms \citep{MACS, HMCan}. MACS is a popular heuristic for data
+with a sharp peak pattern such as H3K4me3, and \mbox{HMCanBroad} is a
+popular heuristic for data with a broad peak pattern such as
+H3K36me3. Although these algorithms are not designed for supervised
+learning, we trained them by performing grid search over a single
+significance threshold parameter (qvalue for MACS and finalThreshold
+for HMCanBroad).
+% Note that since these are not change-point detection algorithms,
+% there is no parameter for we did not use these algorithms in the
+% speed comparison
+% Without this training step, the unsupervised default parameters of
+% these algorithms yield high false positive rates.
+
+Since the baseline HMCanBroad algorithm was designed for data with a
+broad peak pattern, we expected it to perform well in the H3K36me3
+data. In agreement with this expectation, HMCanBroad showed
 state-of-the-art test AUC in two H3K36me3 data sets (broad peak
-pattern), it was very inaccurate in four sharp H3K4me3 data sets
-(sharp peak pattern). The baseline MACS algorithm had test AUC values
-much lower than the optimization-based algorithms in all seven data
-sets. Overall, these data indicate that the proposed GPDPA achieves
-state-of-the-art accuracy in these ChIP-seq data sets.
+pattern), but was very inaccurate in four H3K4me3 data sets (sharp
+peak pattern). We expected the baseline MACS algorithm to perform well
+in the H3K4me3 data sets, since it was designed for data with a sharp
+peak pattern. In contrast to this expectation, MACS had test AUC
+values much lower than the optimization-based algorithms in all seven
+data sets (Figure~\ref{fig:test-error-dots}). These results suggest
+that constrained optimal change-point detection algorithms are more
+accurate than the heuristics from the bioinformatics literature.
 
 
 % \begin{table}[b!]
@@ -1558,13 +1592,14 @@ for other constrained change-point models. When the number of expected
 change-points grows with the number of data points, then $K=O(n)$ and
 our proposed GPDPA has $O(n^2 \log n)$ time complexity since it
 computes all models with $1,\dots,K$ segments. We have already started
-studying an extension of the GPDPA to the optimal partitioning model
-\citep{optimal-partitioning}, which computes the $K$-segment model for a
-single penalty constant $\lambda$ (without computing models
-with $1,\dots,K-1$ segments) in $O(n\log n)$ time. We will also be
-interested to study whether the inequality pruning technique of
-\citet{pelt} can be used with models that have constraints between
-adjacent segment mean parameters.
+modifying the GPDPA for optimal partitioning
+\citep{optimal-partitioning}, which computes the $K$-segment model for
+a single penalty constant $\lambda$ (without computing models with
+$1,\dots,K-1$ segments) in $O(n\log n)$ time. We have not yet found a
+way to use the inequality pruning technique of \citet{pelt} for
+constrained change-point models. This will be an interesting direction
+for future research, since inequality pruning is easier to implement
+than functional pruning \citep{fpop}.
 
 \bibliographystyle{icml2016}
 \newpage

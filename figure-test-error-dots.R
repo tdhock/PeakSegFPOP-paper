@@ -5,7 +5,7 @@ load("test.error.RData")
 levs <- c(
   MACS="MACS(popular baseline)",
   HMCanBroad="HMCanBroad(popular baseline)",
-  Segmentor="PDPA(no up-down)",
+  Segmentor="PDPA(unconstrained baseline)",
   PeakSegDP="CDPA(previous best)",
   ##coseg.inf="GPDPAinf",
   coseg="GPDPA(proposed)")
