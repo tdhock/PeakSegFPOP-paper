@@ -25,7 +25,7 @@ means.
     structure(data.table(state.name), type="state")
   }
 
-  change <- function(from, to, penalty, constraint){
+  change <- function(from, to, constraint, penalty=NA){
     structure(data.table(from, to, penalty, constraint), type="change")
   }
 
@@ -41,11 +41,9 @@ means.
     structure(data.table(state.name=c(...)), type="end")
   }
 
-  penalty <- 0.1
-
   unconstrained <- list(
     state("anything"),
-    change("anything", "anything", penalty, no.constraint))
+    change("anything", "anything", no.constraint))
 
   unconstrained.Gaussian <- c(unconstrained, list(
     loss("Gaussian")))
@@ -53,51 +51,54 @@ means.
   unconstrained.Poisson <- c(unconstrained, list(
     loss("Poisson")))
 
-  PeakSegFPOP <- function(data.vec, weight.vec, penalty){
-    model <- list(
-      loss("Poisson"),
-      state("peak"),
-      state("background"),
-      start("background"),
-      change("background", "peak", 0, non.decreasing),
-      change("peak", "background", penalty, non.increasing),
-      end("background"))
-    GFPOP(model, data.vec, weight.vec)
-  }
+  PeakSegFPOP <- list(
+    loss("Poisson"),
+    state("peak"),
+    state("background"),
+    start("background"),
+    change("background", "peak", non.decreasing, penalty=0),
+    change("peak", "background", non.increasing),
+    end("background"))
 
   PeakSegFPOP.start.or.end.up <- list(
     loss("Poisson"),
     state("peak"),
     state("background"),
-    change("background", "peak", penalty, non.decreasing),
+    change("background", "peak", non.decreasing),
     change("peak", "background", penalty, non.increasing))
-
-  model.list <- PeakSegFPOP.start.or.end.up
-
-  type.vec <- sapply(model.list, attr, "type")
-  model.info <- sapply(unique(type.vec), function(type){
-    do.call(rbind, model.list[type.vec==type])
-  })
-  ## TODO functions for error checking, plotting, solving.
 
   reduced.isotonic.regression <- list(
     state("anything"),
-    change("anything", "anything", penalty, non.decreasing))
+    change("anything", "anything", non.decreasing))
 
   unimodal.regression <- list(
     state("can.change.up.or.down"),
     state("can.change.down"),
-    change("can.change.up.or.down", "can.change.up.or.down", penalty, non.decreasing),
-    change("can.change.up.or.down", "can.change.down", penalty, non.increasing),
-    change("can.change.down", "can.change.down", penalty, non.increasing))
+    change("can.change.up.or.down", "can.change.up.or.down", non.decreasing),
+    change("can.change.up.or.down", "can.change.down", non.increasing),
+    change("can.change.down", "can.change.down", non.increasing))
 
-  unimodal.at.least.one.up <- c(unimodel.regression, list(
+  unimodal.at.least.one.up <- c(unimodal.regression, list(
     state("start"),
     start("start"),
-    change("start", "can.change.up.or.down", penalty, non.decreasing)))
+    change("start", "can.change.up.or.down", non.decreasing)))
 
   unimodal.at.least.one.up.and.down <- c(unimodal.at.least.one.up, list(
     end("can.change.down")))
+
+  checkModel <- function(model.list){
+    type.vec <- sapply(model.list, attr, "type")
+    model.info <- sapply(unique(type.vec), function(type){
+      do.call(rbind, model.list[type.vec==type])
+    })
+    ## TODO error checking.
+    model.info
+  }
+  checkModel(unimodal.at.least.one.up.and.down)
+  checkModel(PeakSegFPOP)
+
+  ## TODO functions for plotting, solving.
+  GFPOP(model, data.vec, weight.vec, penalty)
 
 #+END_SRC
 
