@@ -74,7 +74,7 @@
 % Therefore, a short form for the running title is supplied here:
 \icmltitlerunning{
 A log-linear time algorithm 
-for learning constrained optimal change-point detection models
+for constrained changepoint detection
 }
 
 \begin{document} 
@@ -82,7 +82,7 @@ for learning constrained optimal change-point detection models
 \twocolumn[
 \icmltitle{
 A log-linear time algorithm 
-for learning constrained optimal change-point detection models
+for constrained changepoint detection
 }
 
 % It is OKAY to include author information, even for blind
@@ -105,17 +105,29 @@ for learning constrained optimal change-point detection models
 ]
 
 \begin{abstract}
-  Change-point detection is a central problem in time series and
-  genomic data, in which constraints on the directions of changes
-  are often desired to learn an interpretable model. We show how a
-  recently proposed functional pruning technique can be generalized to
-  solve change-point detection problems with affine constraints on
-  adjacent segment means. We propose a Generalized Pruned
-  Dynamic Programming Algorithm (GPDPA), which we show empirically
-  achieves state-of-the-art speed and accuracy in a benchmark of
-  several genomic data sets. In contrast to previous heuristic
-  quadratic time solvers for this problem, the GPDPA recovers the
-  optimal solution in log-linear time.
+  changepoint detection is a central problem in time series and
+  genomic data. For some applications, it is natural to impose
+  constraints on the directions of changes. One example is ChIP-seq
+  data, for which adding an up-down constraint improves peak detection
+  accuracy, but makes the optimization problem more difficult. We show
+  how a recently proposed functional pruning technique can be adapted
+  to solve such constrained changepoint detection problems. This
+  leads to a new algorithm with empirical computational cost that is
+  log-linear in the amount of data. This algorithm achieves
+  state-of-the-art accuracy in a benchmark of several genomic data
+  sets, and is orders of magnitude faster than existing algorithms
+  that have similar accuracy.
+  % changepoint detection is a central problem in time series and
+  % genomic data, in which constraints on the directions of changes
+  % are often desired to learn an interpretable model. We show how a
+  % recently proposed functional pruning technique can be generalized to
+  % solve changepoint detection problems with affine constraints on
+  % adjacent segment means. We propose a Generalized Pruned
+  % Dynamic Programming Algorithm (GPDPA), which we show empirically
+  % achieves state-of-the-art speed and accuracy in a benchmark of
+  % several genomic data sets. In contrast to previous heuristic
+  % quadratic time solvers for this problem, the GPDPA recovers the
+  % optimal solution in log-linear time.
 \end{abstract}
 
 \section{Introduction}
@@ -139,32 +151,32 @@ for learning constrained optimal change-point detection models
   \caption{Our contribution is 
 the Generalized Pruned Dynamic Programming Algorithm (GPDPA), 
  which uses a functional pruning technique 
-    to compute the constrained optimal $K-1$ change-points 
+    to compute the constrained optimal $K-1$ changepoints 
 in a sequence of $n$ data.}
 \label{tab:contribution}
 \end{table*}
 
-Change-point detection is a central problem in fields such as finance
+changepoint detection is a central problem in fields such as finance
 or genomics, where $n$ data are gathered in a sequence over time or
-space. Many models define the optimal change-points using maximum
+space. Many models define the optimal changepoints using maximum
 likelihood, resulting in a discrete optimization problem. Multiple
-change-point detection models seek the optimal $K$ segments
+changepoint detection models seek the optimal $K$ segments
 ($K-1$ changes), which amounts to optimizing likelihood
 parameters over a space that contains $O(n^{K-1})$ discrete
-arrangements of change-points. In general this problem can be solved
+arrangements of changepoints. In general this problem can be solved
 in $O(Kn^2)$ time using the original dynamic programming algorithm of
 \citet{segment-neighborhood}. Recently proposed pruning techniques
-reduce the number of change-points considered by the algorithm, thus
+reduce the number of changepoints considered by the algorithm, thus
 reducing time complexity to $O(K n\log n)$ while maintaining
 optimality \citep{pruned-dp, pelt, johnson, fpop}.
 
-In ``unconstrained'' change-point models, there are no contraints
+In ``unconstrained'' changepoint models, there are no contraints
 between model parameters on separate segments. To regularize and obtain a more
 interpretable model, it is often desirable to introduce constraints
-between model parameters before and after change-points. 
+between model parameters before and after changepoints. 
 %For example, learning a peak detection function in genomic data amounts to classifying each data point as either part of a peak (positive class for large data values) or background noise (negative class for small data values). 
 For example, the main problem that motivates this paper is peak detection in
-ChIP-seq data, for which the \mbox{PeakSeg} constrained change-point
+ChIP-seq data, for which the \mbox{PeakSeg} constrained changepoint
 detection model has been shown to achieve state-of-the-art peak
 detection accuracy \citep{HOCKING-PeakSeg}. The \mbox{PeakSeg}
 constraints force an up change in the segment mean parameter after
@@ -182,13 +194,13 @@ propose a new algorithm that fixes both of these issues.
 \subsection{Contributions and organization}
 
 We begin by discussing previous research into pruning techniques for
-solving unconstrained change-point detection problems
+solving unconstrained changepoint detection problems
 (Section~\ref{sec:related}), then state the constrained optimization
 problems (Section~\ref{sec:models}). Our main contribution is
 Section~\ref{sec:algorithms}, which generalizes the functional pruning
 technique of \citet{pruned-dp}, thus providing a new Generalized
 Pruned Dynamic Progamming Algorithm (GPDPA) for solving a class of
-constrained change-point detection problems. We show that the GPDPA
+constrained changepoint detection problems. We show that the GPDPA
 achieves state-of-the-art speed and accuracy in genomic data with
 several different labeled patterns (Section~\ref{sec:results}), then
 conclude with a brief discussion of future work
@@ -198,7 +210,7 @@ conclude with a brief discussion of future work
 \label{sec:related}
 
 There are many efficient algorithms available for computing the
-optimal $K-1$ change-points in $n$ data
+optimal $K-1$ changepoints in $n$ data
 points. \citet{segment-neighborhood} proposed an $O(K n^2)$ algorithm
 for computing the sequence of models with $1,\dots,K$ segments, and
 \citet{optimal-partitioning} proposed a similar $O(n^2)$ algorithm for
@@ -224,8 +236,8 @@ techniques.
 
 All algorithms discussed thus far are for solving problems with no
 constraints between adjacent segment mean parameters, but there are
-many examples of constrained change-point detection models. Rather
-than searching all possible change-points and likelihood parameters,
+many examples of constrained changepoint detection models. Rather
+than searching all possible changepoints and likelihood parameters,
 the idea is to use a constraint in order to search a smaller, more
 interpretable model space. For example, \citet{haiminen2008algorithms}
 propose an $O(Kn^2)$ algorithm for unimodal regression, which enforces
@@ -233,7 +245,7 @@ no up changes after the first down change. \citet{HOCKING-PeakSeg}
 proposed an $O(Kn^2)$ algorithm for peak detection, which enforces a
 down change after each up change, and vice versa.
 
-Isotonic regression is another example of a constrained change-point
+Isotonic regression is another example of a constrained changepoint
 detection model. There is no limit on the number of segments $K$, but
 the segment means are constrained to be non-decreasing. This problem
 can be solved in $O(n)$ time using the pool-adjacent-violators
@@ -248,73 +260,52 @@ problem lead to sub-quadratic time algorithms
 constraints (such as unimodal regression or peak detection).
 
 Our contribution in this paper is proving that the functional pruning
-technique can be generalized to constrained change-point models
+technique can be generalized to constrained changepoint models
 (Table~\ref{tab:contribution}). Our resulting Generalized Pruned
 Dynamic Programming Algorithm (GPDPA) enjoys $O(Kn\log n)$ time
-complexity, and works for any change-point model with affine
+complexity, and works for any changepoint model with affine
 constraints between adjacent segment means (including isotonic
 regression, unimodal regression, and peak detection).
 
 %histogram construction\citep{halim2009fast}.
 
 
-\section{Isotonic regression and segment neighborhood models}
+\section{Isotonic regression and changepoint models}
 \label{sec:models}
 
-Although our proposed algorithm can solve many constrained
-change-point problems (Section~\ref{sec:general}), we will simplify
-our discussion by emphasizing the isotonic regression model.  We first
-explain the classical isotonic regression model which has inequality
-constraints on segment means, but no limit on the number of segments
-\citep{mair2009isotone}. Then we explain the segment neighborhood
-model \citep{segment-neighborhood}, which limits the number of segment
-means, but has no inequality constraints. Finally, we discuss a
-combination of the two models which has been called reduced isotonic
-regression \citep{reduced-monotonic-regression}.
+Although our proposed algorithm can solve many constrained changepoint
+detection problems (Section~\ref{sec:general}), we will simplify our
+discussion by emphasizing the isotonic regression model. 
 
 \subsection{Classical isotonic regression}
 
-For a data set $\mathbf y\in\RR^n$, the classical isotonic regression
-model is defined as the most likely sequence of increasing segment
-means $\mathbf m = \left[
-\begin{array}{ccc}
-  m_1& \cdots &m_n
-\end{array}
-\right]
-\in\RR^n$. More precisely, consider the following definition
-of the set of possible mean vectors.
-\begin{equation}
-  \mathcal I^n = \{\mathbf m\in\RR^n \mid m_i \leq m_{i+1} \ \forall\ i<n\}
-\end{equation}
-Now, assume that the data are a realization of a probability
-distribution with mean parameter $\mathbf m$. For example, assuming
-$y_i \sim \mathcal N(m_i, \sigma^2)$ and performing maximum likelihood
-inference results in a convex minimization problem with affine constraints,
-% results in the following maximum
-% likelihood isotonic regression problem
-% \begin{equation}
-%   \label{eq:max_lik}
-%   \maximize_{\mathbf m\in\mathcal I^n, \sigma} \sum_{i=1}^n \Lik(y_i| m_i, \sigma^2).
-% \end{equation}
-% It is easy to show that the above concave maximization problem is equivalent
-% to the convex minimization problem below,
-\begin{equation}
+The classical isotonic regression model is defined as the most likely
+sequence of increasing segment means. More
+precisely, assume that the data $\mathbf y\in\RR^n$ are a realization
+of a probability distribution with mean parameter $\mathbf m\in\RR^n$. For
+example, assuming $y_i \sim \mathcal N(m_i, \sigma^2)$ and performing
+maximum likelihood inference results in a convex minimization problem
+with affine constraints,
+\begin{align}
   \label{eq:isotonic}
-  %\tag{\textbf{IsotonicRegression}}
-  \minimize_{\mathbf m\in\mathcal I^n} \sum_{i=1}^n \ell(y_i, m_i),
-\end{equation}
-where the convex loss function $\ell:\RR\times \RR\rightarrow\RR$ in
-this case is the square loss $\ell(y, m) = (y-m)^2$. This optimization
-problem (\ref{eq:isotonic}) is referred to as isotonic regression, and
-can be efficiently solved in $O(n)$ time using the
-Pool-Adjacent-Violators Algorithm (PAVA) \citep{isotonic-unifying}.
+  &\minimize_{\mathbf m\in\RR^n} && 
+  \sum_{i=1}^n \ell(y_i, m_i)\\
+  &\text{subject to} && m_i \leq m_{i+1},\, \forall i<n.
+  \nonumber
+\end{align}
+The convex loss function $\ell:\RR\times \RR\rightarrow\RR$ in the
+case of the Gaussian likelihood is the square loss
+$\ell(y, m) = (y-m)^2$. This optimization problem (\ref{eq:isotonic})
+is referred to as isotonic regression, and can be efficiently solved
+in $O(n)$ time using the Pool-Adjacent-Violators Algorithm (PAVA)
+\citep{isotonic-unifying}.
 
 One potential problem with the isotonic regression model is that it
-has no limit on the number of change-points where $m_i < m_{i+1}$. In
+has no limit on the number of changepoints where $m_i < m_{i+1}$. In
 particular, for an ever-increasing data set with $y_i < y_{i+1}$ for
 all $i<n$, it is clear that the solution to the isotonic regression
 problem (\ref{eq:isotonic}) is $m_i=y_i$ for all $i$, which overfits
-with $n-1$ change-points.
+with $n-1$ changepoints.
 
 In contrast, it may be preferable to recover the $K\leq n$ most likely
 segments (the $K-1$ most likely changes). For example, consider the
@@ -332,30 +323,23 @@ neighborhood model, which we discuss in the next section.
 
 The segment neighborhood model of \citet{segment-neighborhood} uses
 the same cost function as isotonic regression, but a different
-constraint set. Let $K\leq n$ be the number of segments, and define
-the set of segment means with $K-1$ change-points as
-\begin{equation}
-  \label{eq:Sk}
-  \mathcal S_K^n = \left\{
-  \mathbf m\in\RR^n
-  \mid
-  \sum_{i=1}^{n-1} I(m_i \neq m_{i+1}) = K-1
-  \right\}.
-\end{equation}
-Using this constraint set with the same objective function results in
-the following segment neighborhood problem:
-\begin{equation}
+constraint set. There is no constraint on the direction of changes,
+but there must be exactly $K\leq n$ distinct segments ($K-1$ changes).
+\begin{align}
   \label{eq:optimal_segment_neighborhood}
-  \minimize_{\mathbf m\in\mathcal S_K^n} \sum_{i=1}^n \ell(y_i, m_i).
-\end{equation}
-Note that this optimization problem is non-convex since the model
-complexity is the number of change-points, measured via the non-convex
-indicator function $I$ (\ref{eq:Sk}). Nonetheless, the optimal
-solution can be computed in $O(K n^2)$ time using the standard dynamic
-programming algorithm \citep{segment-neighborhood}. By exploiting the
-structure of the convex loss function $\ell$, the pruned dynamic
-programming algorithm of \citet{pruned-dp} computes the same optimal
-solution in faster $O(K n \log n)$ time.
+  &\minimize_{\mathbf m\in\RR^n} && 
+  \sum_{i=1}^n \ell(y_i, m_i)\\
+  &\text{subject to} && \sum_{i=1}^{n-1} I(m_i \neq m_{i+1}) = K-1.
+  \nonumber
+\end{align}
+This optimization problem is non-convex since the model complexity is
+the number of changepoints, measured via the non-convex indicator
+function $I$. Nonetheless, the optimal solution can be computed in
+$O(K n^2)$ time using the standard dynamic programming algorithm
+\citep{segment-neighborhood}. By exploiting the structure of the
+convex loss function $\ell$, the pruned dynamic programming algorithm
+of \citet{pruned-dp} computes the same optimal solution in faster
+$O(K n \log n)$ time.
 
 Unlike isotonic regression, the segment neighborhood model does not
 constrain the direction of the changes. Thus, for some data sets
@@ -368,39 +352,21 @@ problem, which we introduce in the next section.
 \subsection{Reduced isotonic regression}
 
 The idea of fitting a non-decreasing function with a limited number of
-change-points has been previously described as reduced isotonic
-regression \citep{reduced-monotonic-regression}. Combining the segment
-neighborhood constraint with the isotonic regression
-constraint results in the following constraint set.
-
-\begin{definition}[Reduced isotonic regression constraints]
-  \label{def:I}
-  Let $(\mathbf m, \mathbf c)\in\mathcal I_K^n$ be the set of segment means
-  $\mathbf m\in\RR^n$ and change-point indicators
-  $\mathbf c\in\{0,1\}^{n-1}$ such that the following constraints are
-  verified:
-  \begin{enumerate}
-  \item There are $K-1$ non-zero change-point indicators:
-    $\sum_{i=1}^{n-1} I(c_i \neq 0) = K-1$,
-  \item Zero-valued change-point variables indicate no change in
-    segment mean: $c_i = 0 \Rightarrow m_i = m_{i+1}$,
-  \item Positive change-point variables indicate a possible change up:
-    $c_i = 1 \Rightarrow m_i \leq m_{i+1}$.
-  \end{enumerate}
-\end{definition}
-
-For a given data set $\mathbf y\in\RR^n$, loss function $\ell$, and
-number of segments $K$, we define the reduced isotonic regression
-problem as
-\begin{equation}
+changepoints has been previously described as reduced isotonic
+regression \citep{reduced-monotonic-regression}. Combining the
+constraints of the isotonic regression (\ref{eq:isotonic}) and segment
+neighborhood (\ref{eq:optimal_segment_neighborhood}) problems gives
+\begin{align}
   \label{eq:reduced}
-  \minimize_{(\mathbf m, \mathbf c)\in\mathcal I_K^n} \sum_{i=1}^n \ell(y_i, m_i).
-\end{equation}
-
-Note that our definition includes the explicit change-point indicator
-$\mathbf c$. In the next section, we explain that this allows making
-an explicit link to an equivalent problem with fewer optimization
-variables.
+  &\minimize_{\mathbf m\in\RR^n} && 
+  \sum_{i=1}^n \ell(y_i, m_i)\\
+  &\text{subject to} && \sum_{i=1}^{n-1} I(m_i \neq m_{i+1}) = K-1,
+  \nonumber\\
+  & && m_i \leq m_{i+1},\, \forall i<n.
+  \nonumber 
+\end{align}
+In the next section, we explain how the functional pruning technique
+can be applied to solving this problem.
 
 %%%% update rules
 %\newcommand{\FCC}{\widetilde{C}}
@@ -408,47 +374,44 @@ variables.
 \newcommand{\M}{\mathcal{M}}
 \section{Functional 
 pruning algorithms for constrained
-  change-point models}
+  changepoint models}
 \label{sec:algorithms}
 
 
 % In this section we propose a Generalized Pruned Dynamic Programming
 % Algorithm (GPDPA) that computes the solution to constrained
-% change-point problems. We begin by discussing how to solve a special
+% changepoint problems. We begin by discussing how to solve a special
 % case, the reduced isotonic regression problem
 % (\ref{eq:reduced}).
 
 We begin by discussing an algorithm for solving the reduced isotonic
-regression problem (\ref{eq:reduced}), then explain how the algorithm
-generalizes to other constrained change-point problems.
+regression problem, then explain how the algorithm
+generalizes to other constrained changepoint problems.
 
-\subsection{Equivalent smaller optimization space}
+\subsection{Equivalent optimization space}
 
-Note that there are $n$
-segment mean variables $\mathbf m$ and $n-1$ change-point indicators
-$\mathbf c$ in $\mathcal I_K^n$, which we can equivalently represent
-using the following optimization space with only $K$ segment means and
-$K-1$ change-point indices.
-
-\begin{definition}[Optimization space with fewer variables]
+The reduced isotonic regression problem (\ref{eq:reduced}) has $n$
+segment mean variables $\mathbf m$, one for each data point. To derive
+our algorithm, we re-write the problem in terms of the mean
+$ u_k\in\RR$ and last data point $t_k\in\{1,\dots,n\}$ for each
+segment $k\in\{1,\dots, K\}$.
+\begin{definition}[Reduced isotonic regression optimization space]
 \label{def:Ibar}
-  Let $(\mathbf u, \mathbf t)\in\bar{\mathcal I}^n_K$ be the set of
+  Let $(\mathbf u, \mathbf t)\in{\mathcal I}^n_K$ be the set of
   non-decreasing segment means $u_1\leq\cdots\leq u_K$ and
-  increasing change-point indices $0=t_0<t_1<\cdots<t_{K-1}<t_K=n$.
+  increasing changepoint indices $0=t_0<t_1<\cdots<t_{K-1}<t_K=n$.
 \end{definition}
-
-Each segment mean $u_k$ in this optimization problem is assigned to
-data points $i\in(t_{k-1},t_k]$, resulting in the following cost
-for each segment $k\in\{1, \dots, K\}$,
-
+Each segment mean $u_k$ is assigned to data points
+$i\in(t_{k-1},t_k]\subset\{1,\dots,n\}$, resulting in the following
+cost for each segment $k\in\{1, \dots, K\}$, 
 \begin{equation}
   \label{eq:h}
   h_{t_{k-1}, t_k}(u_k) = \sum_{i=t_{k-1}+1}^{t_k} \ell(y_i, u_k).
 \end{equation}
-This results in the following optimization problem,
+The reduced isotonic regression problem can be equivalently written as
 \begin{equation}
   \label{eq:isotonic_ut}
-  \minimize_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}^n_K}
+  \minimize_{(\mathbf u, \mathbf t)\in{\mathcal I}^n_K}
   \sum_{k=1}^K
   h_{t_{k-1}, t_k}(u_k)
 \end{equation}
@@ -485,7 +448,7 @@ Rather than explicitly summing over data points $i$ as in problem
 %   the original larger space $\mathcal I_K^n$. For each segment
 %   $k\in\{1,\dots,K\}$, we assign $m_i = u_k$ for all data points
 %   $i\in(t_{k-1},t_k]$ on that segment. For all
-%   $i\in\{t_1,\dots,t_{K-1}\}$ (data points before change-points) we
+%   $i\in\{t_1,\dots,t_{K-1}\}$ (data points before changepoints) we
 %   assign $c_i=1$, and $c_i=0$ for all other data points $i$. Then
 %   $(\mathbf m, \mathbf c)$ is the solution to problem
 %   (\ref{eq:isotonic}).
@@ -503,7 +466,7 @@ Rather than explicitly summing over data points $i$ as in problem
 \subsection{Dynamic programming update rules}
 \label{sec:dyn-prog}
 Optimization problem (\ref{eq:isotonic_ut}) has $K$ segment mean
-variables and $K-1$ change-point index variables. Minimizing over all
+variables and $K-1$ changepoint index variables. Minimizing over all
 variables except the last segment mean $u_K$ results in the following
 definition of the optimal cost.
 
@@ -522,7 +485,7 @@ definition of the optimal cost.
   $\mu$:
 %% we take the minimum with the constraint that the last mean (u_k) is mu
 \begin{equation}
-\FCC_{K,n}(\mu) = \min_{(\mathbf u, \mathbf t)\in\bar{\mathcal I}^n_K \ | \ u_K = \mu} \
+\FCC_{K,n}(\mu) = \min_{(\mathbf u, \mathbf t)\in{\mathcal I}^n_K \ | \ u_K = \mu} \
   \left\{ \sum_{k=1}^K
   h_{t_{k-1}, t_k}(u_k) \right\}.
 \end{equation}
@@ -559,7 +522,7 @@ The min-less operator is used in the following Theorem, which states
 the update rules used in our proposed algorithm.
 
 \begin{theorem}[Generalized Pruned Dynamic Programming Algorithm
-  for constrained change-point detection]
+  for constrained changepoint detection]
   The optimal cost functions $C_{K,n}$ can be recursively computed
   using the following update rules.
 \begin{enumerate}
@@ -661,8 +624,8 @@ $\FCC_{1,1}(\mu)=\ell(y_1,\mu)$, and for the other data
 
 % Now, consider the following lemma, which shows that the dynamic
 % programming minimization over two cost functions is equivalent to the
-% minimization over all possible change-points.
-% \begin{lemma}[Dynamic programming minimizes with respect to all possible change-points]
+% minimization over all possible changepoints.
+% \begin{lemma}[Dynamic programming minimizes with respect to all possible changepoints]
 % \label{lemma:t_change_points}
 %   For the cost up to any data point $t> K$, the recursive dynamic
 %   programming cost $\FCC_{K,t}(u)$ is equivalent to the minimum cost
@@ -694,7 +657,7 @@ $\FCC_{1,1}(\mu)=\ell(y_1,\mu)$, and for the other data
 %   Definition~\ref{def:fcc}. Equation (\ref{eq:proof_h}) follows from
 %   the definition of $h_{K,K+1}$ and $h_{K-1,K+1}$ in
 %   (\ref{eq:h}). Finally, equation (\ref{eq:proof_tau}) results from
-%   introducing the change-point optimization variable $\tau$. Thus, we
+%   introducing the changepoint optimization variable $\tau$. Thus, we
 %   have proved that the equivalence holds for $t=K+1$ data points.
 
 %   Now, we
@@ -716,7 +679,7 @@ $\FCC_{1,1}(\mu)=\ell(y_1,\mu)$, and for the other data
 %   (\ref{eq:proof_induction_h}) follows from the definition of
 %   $h_{t,t+1}$ and the induction assumption. Finally, equation
 %   (\ref{eq:proof_tau2}) results from re-writing the top $h_{t,t+1}$ term using the
-%   change-point optimization variable $\tau$.  This concludes the proof
+%   changepoint optimization variable $\tau$.  This concludes the proof
 %   by induction.
 % \end{proof}
 
@@ -794,13 +757,13 @@ $\FCC_{1,1}(\mu)=\ell(y_1,\mu)$, and for the other data
 % \label{sec:decoding}
 % In the previous sections we have only discussed computation of the
 % optimal cost, but in this section we discuss how to store and compute
-% the optimal segment mean and change-point parameters. 
+% the optimal segment mean and changepoint parameters. 
 
 The dynamic programming algorithm requires computing $O(Kn)$
 cost functions $\FCC_{k,t}$. As in the original pruned
 dynamic programming algorithm, the time complexity of the algorithm is
 $O(K n I)$ where $I$ is the number of intervals (convex function
-pieces; candidate change-points) that are used to represent the cost
+pieces; candidate changepoints) that are used to represent the cost
 functions. There are pathological data sets for which the number of
 intervals $I=O(n)$, implying a worst-case time complexity of
 $O(K n^2)$ \citep{pruned-dp-new}. However, the average number of
@@ -823,10 +786,10 @@ complexity of the algorithm is $O(K n \log n)$.
 % \item $\text{OnePiece}(y, \underline u, \overline u)$: initialize a
 %   FunctionPieceList with just one FunctionPiece $\ell(y, u)$ defined
 %   on $[\underline u, \overline u]$.
-% \item $\text{MinLess}(t, f)$: an algorithm that inputs a change-point
+% \item $\text{MinLess}(t, f)$: an algorithm that inputs a changepoint
 %   and a FunctionPieceList, and outputs the corresponding min-less
 %   operator $f^\leq$ (another FunctionPieceList), with the previous
-%   change-point set to $t'=t$ for each of its pieces. This algorithm
+%   changepoint set to $t'=t$ for each of its pieces. This algorithm
 %   also needs to store the previous mean value $u'$ for each of the
 %   function pieces. The supplementary materials
 %   (Section~\ref{sec:implementation-details}) contains
@@ -870,7 +833,7 @@ complexity of the algorithm is $O(K n \log n)$.
 %   % \STATE if $t=k$:
 %   % \begin{ALC@g}
 %   %   \STATE $\text{min\_new}\gets\text{min\_prev}$ // there is only one
-%   %   possible change-point, before $t$
+%   %   possible changepoint, before $t$
 %   % \end{ALC@g}
 %   % \STATE else:
 %   % \begin{ALC@g}
@@ -915,8 +878,8 @@ complexity of the algorithm is $O(K n \log n)$.
 % FunctionPieceList min\_prev (which represents the function
 % $\FCC_{k-1,t-1}^\leq$). Line~\ref{line:MinOfTwo} sets the temporary
 % FunctionPieceList min\_new to the cost of the only possible
-% change-point if $t=k$; otherwise, it uses the MinOfTwo sub-routine to
-% compute the cost of the best change-point for every possible mean
+% changepoint if $t=k$; otherwise, it uses the MinOfTwo sub-routine to
+% compute the cost of the best changepoint for every possible mean
 % value. Line~\ref{line:AddNew} adds the cost of data point $t$, and
 % stores the resulting FunctionPieceList in $\FCC_{k,t}$.
 
@@ -1010,17 +973,17 @@ changes. More precisely, we define the constraint set as follows.
 \begin{definition}[PeakSeg constraints]
   \label{def:U}
   Let $(\mathbf m, \mathbf c)\in\mathcal P_K^n$ be the set of all
-  segment means $\mathbf m\in\RR^n$ and change-point indicators
+  segment means $\mathbf m\in\RR^n$ and changepoint indicators
   $\mathbf c\in\{-1, 0,1\}^{n-1}$ such that the following constraints
   are verified:
   \begin{enumerate}
   \item The three reduced isotonic regression constraints in
     Definition~\ref{def:I} are verified,
-  \item Negative change-point variables indicate a possible change down:
+  \item Negative changepoint variables indicate a possible change down:
     $c_i = -1 \Rightarrow m_i \geq m_{i+1}$,
   \item The first change is an up change, and every up change is followed by a
     down change, and vice versa. Mathematically, the cumulative sum of
-    change-point variables up to $t$ is either zero or one, for all $t<n$:
+    changepoint variables up to $t$ is either zero or one, for all $t<n$:
     $\sum_{i=1}^t c_i \in \{0, 1\}$.
   \end{enumerate}
 \end{definition}
@@ -1185,7 +1148,7 @@ between adjacent segment means.
   coefficients that define affine functions
   $g_k(u_k, u_{k+1})=a_k u_k + b_k u_{k+1} + c_k$. Then we define
   $(\mathbf u, \mathbf t)\in\mathcal M^n_K$ as the set of all
-  increasing change-point indices $0=t_0<t_1<\cdots<t_{K-1}<t_K=n$ and
+  increasing changepoint indices $0=t_0<t_1<\cdots<t_{K-1}<t_K=n$ and
   segment means $\mathbf u\in\RR^K$ that satisfy
   $g_k(u_k, u_{k+1}) \leq 0$ for all $k\in\{1,\dots, K-1\}$.
 \end{definition}
@@ -1281,7 +1244,7 @@ that minimizes the total number of incorrectly predicted labels:
 \end{equation}
 
 \citet{HOCKING-PeakSeg} proposed a constrained dynamic programming
-algorithm (CDPA) to approximately compute the optimal change-points,
+algorithm (CDPA) to approximately compute the optimal changepoints,
 subject to the PeakSeg up-down constraint. The CDPA has been shown to
 achieve state-of-the-art peak detection accuracy in several ChIP-seq
 data sets, but its quadratic $O(Kn^2)$ time complexity makes it too
@@ -1351,14 +1314,14 @@ time in seconds.
 
 As in the PDPA, the time complexity of our proposed GPDPA is
 $O(K n I)$, which depends on the number of intervals $I$ (candidate
-change-points) stored in the $\FCC_{k,t}$ cost functions
+changepoints) stored in the $\FCC_{k,t}$ cost functions
 \citep{pruned-dp-new}. We observed that the number of intervals stored
 by the GPDPA increases as a sub-linear function of the number of data
 points $n$ (left of Figure~\ref{fig:timings}). For the largest data
 set ($n=263169$), the algorithm only stored median=16 and maximum=43
 intervals. The most intervals stored was 253 for one data set with
 $n=7776$. These results suggest that our proposed GPDPA only stores on
-average $O(\log n)$ intervals (possible change-points), as in the
+average $O(\log n)$ intervals (possible changepoints), as in the
 original PDPA. The overall empirical time complexity is thus
 $O(K n \log n)$ for $K$ segments and $n$ data points.
 
@@ -1466,7 +1429,7 @@ Each black circle shows the test AUC in one of four
 % fold, we treat it as a test set, and train a model using all other
 % folds.
 
-For the optimal change-point detection algorithms (CDPA, PDPA, GPDPA),
+For the optimal changepoint detection algorithms (CDPA, PDPA, GPDPA),
 the prediction problem simplifies to selecting the number of segments
 $K_i\in \{1, 3,\dots, 19\}$ for each data vector $i$, resulting in a
 predicted peak vector $c^{K_i}(\mathbf y_i)\in\{0,1\}^n$. We select the
@@ -1519,7 +1482,7 @@ H3K36me3. Although these algorithms are not designed for supervised
 learning, we trained them by performing grid search over a single
 significance threshold parameter (qvalue for MACS and finalThreshold
 for HMCanBroad).
-% Note that since these are not change-point detection algorithms,
+% Note that since these are not changepoint detection algorithms,
 % there is no parameter for we did not use these algorithms in the
 % speed comparison
 % Without this training step, the unsupervised default parameters of
@@ -1535,7 +1498,7 @@ in the H3K4me3 data sets, since it was designed for data with a sharp
 peak pattern. In contrast to this expectation, MACS had test AUC
 values much lower than the optimization-based algorithms in all seven
 data sets (Figure~\ref{fig:test-error-dots}). These results suggest
-that constrained optimal change-point detection algorithms are more
+that constrained optimal changepoint detection algorithms are more
 accurate than the heuristics from the bioinformatics literature.
 
 
@@ -1560,12 +1523,12 @@ accurate than the heuristics from the bioinformatics literature.
 \section{Discussion and conclusions}
 \label{sec:discussion}
 
-Algorithms for change-point detection can be classified in terms of
+Algorithms for changepoint detection can be classified in terms of
 time complexity, optimality, constraints, and pruning techniques
 (Table~1). In this paper, we investigated generalizing the functional
 pruning technique originally discovered by \citet{pruned-dp} and
 \citet{johnson}. We showed that the functional pruning technique can
-be used to compute optimal change-points subject to affine constraints
+be used to compute optimal changepoints subject to affine constraints
 on adjacent segment mean parameters.
 
 We showed that our proposed Generalized Pruned Dynamic Programming
@@ -1575,21 +1538,21 @@ detection in ChIP-seq data sets (Figure~\ref{fig:timings}). However,
 we observed that the up-down constrained GPDPA is much more accurate
 than the unconstrained PDPA (Figure~\ref{fig:test-error-dots}). These
 results suggest that the up-down constraint is necessary for computing
-a change-point model with optimal peak detection accuracy. Indeed, we
+a changepoint model with optimal peak detection accuracy. Indeed, we
 observed that the GPDPA enjoys the same state-of-the-art accuracy as
 the previous best, the relatively slow quadratic $O(Kn^2)$ time
 CDPA.
 
 In contrast, we observed that the heuristic algorithms which are
 popular in the bioinformatics literature are much less accurate than
-all of the optimal change-point algorithms. In the past these
+all of the optimal changepoint algorithms. In the past these
 sub-optimal heuristics have been preferred because of their speed, but
 our proposed log-linear time GPDPA can now be used as an optimal
 alternative for large data sets.
 
 For future work we will be interested in exploring pruning techniques
-for other constrained change-point models. When the number of expected
-change-points grows with the number of data points, then $K=O(n)$ and
+for other constrained changepoint models. When the number of expected
+changepoints grows with the number of data points, then $K=O(n)$ and
 our proposed GPDPA has $O(n^2 \log n)$ time complexity since it
 computes all models with $1,\dots,K$ segments. We have already started
 modifying the GPDPA for optimal partitioning
@@ -1597,7 +1560,7 @@ modifying the GPDPA for optimal partitioning
 a single penalty constant $\lambda$ (without computing models with
 $1,\dots,K-1$ segments) in $O(n\log n)$ time. We have not yet found a
 way to use the inequality pruning technique of \citet{pelt} for
-constrained change-point models. This will be an interesting direction
+constrained changepoint models. This will be an interesting direction
 for future research, since inequality pruning is easier to implement
 than functional pruning \citep{fpop}.
 
