@@ -25,8 +25,10 @@ all.timings <- rbind(
   ## algo("DP.fwd", dp.timings),
   ## algo("DP.rev", dp.timings.reverse),
   algo(GPDPA.name, PDPA.timings))
-all.timings[, algo.tex := sub(
-  "\nO[(]", "\n$O(", sub("[)]$", ")$", sub("log", "\\\\log", algorithm)))]
+totex <- function(a){
+  sub("\nO[(]", "\n$O(", sub("[)]$", ")$", sub("log", "\\\\log", a)))
+}
+all.timings[, algo.tex := totex(algorithm)]
 
 gg.quad <- ggplot()+
   ylab("hours of computation time")+
@@ -91,10 +93,14 @@ dl.log <- direct.label(gg.log, "last.polygons")+
   scale_x_continuous(
     "log10(data points to segment)")+
   coord_cartesian(xlim=c(2, 6.7), expand=FALSE)
-tikz("figure-PDPA-timings-small.tex", 3.3, 2.5)
+tikz("figure-PDPA-timings-small.tex", 3.3, 2.2)
 print(dl.log)
 dev.off()
 
+algo.colors <- c("#66C2A5", "#FC8D62",
+                 "grey30")
+#"#8DA0CB")
+names(algo.colors) <- totex(c(PDPA.name, CDPA.name, GPDPA.name))
 gg.log <- ggplot()+
   theme_bw()+
   geom_hline(aes(yintercept=seconds),
@@ -113,18 +119,22 @@ gg.log <- ggplot()+
             color="grey",
             vjust=-0.5)+
   scale_y_log10("seconds (log scale)")+
+  scale_color_manual(values=algo.colors)+
+  scale_fill_manual(values=algo.colors)+
+  guides(color="none", fill="none")+
   scale_x_log10(
     "data points to segment (log scale)",
     breaks=c(1e3, 1e4, range(all.timings$data)))
 my.method <- list("last.points", dl.trans(x=x+0.1))
 dl.log <- direct.label(gg.log, "last.polygons")+
   coord_cartesian(xlim=c(min(all.timings$data), 3e6))
-tikz("figure-PDPA-timings-log-log.tex", 3.3, 2.5)
+tikz("figure-PDPA-timings-log-log.tex", 3.3, 2.2)
 print(dl.log)
 dev.off()
-pdf("figure-PDPA-timings-log-log.pdf", 3.3, 2.5)
+pdf("figure-PDPA-timings-log-log.pdf", 3.3, 2.2)
 print(dl.log)
 dev.off()
+
 
 gg.log <- ggplot()+
   geom_hline(aes(yintercept=log10(seconds)),

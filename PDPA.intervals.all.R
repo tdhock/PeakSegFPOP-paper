@@ -5,6 +5,7 @@ library(coseg)
 
 model.file.vec <- Sys.glob("data/H*/*/PDPA.model.RData")
 PDPA.intervals.list <- list()
+PDPA.intervals.raw <- list()
 file.i <- 42
 sample.i <- 24
 file.i.vec <- seq_along(model.file.vec)
@@ -23,7 +24,12 @@ for(file.i in file.i.vec){
       model.list <- PDPA.model[[sample.id]]
       q.vec <- quantile(model.list$intervals.mat[, -(1:19)])
       PDPA.intervals.list[[paste(model.file, sample.id)]] <- data.table(
-          n.data=model.list$n.data, t(q.vec))
+        n.data=model.list$n.data, t(q.vec))
+      ## PDPA.intervals.raw[[paste(model.file, sample.id)]] <- with(model.list, {
+      ##   data.table(
+      ##     n.data,
+      ##     intervals=as.integer(intervals.mat),
+      ##     as.integer(row(intervals.mat)
     }
   }
 }
