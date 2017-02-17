@@ -1245,17 +1245,22 @@ that minimizes the total number of incorrectly predicted labels:
 
 \citet{HOCKING-PeakSeg} proposed a constrained dynamic programming
 algorithm (CDPA) to approximately compute the optimal changepoints,
-subject to the PeakSeg up-down constraint. The CDPA has been shown to
-achieve state-of-the-art peak detection accuracy in several ChIP-seq
-data sets, but its quadratic $O(Kn^2)$ time complexity makes it too
+subject to the PeakSeg up-down constraint
+(Section~\ref{sec:PeakSeg}). The CDPA has been shown to achieve
+state-of-the-art peak detection accuracy, by classifying even-numbered
+segments $k$ as peaks, and odd-numbered segments $k$ as background
+noise. However, its quadratic $O(Kn^2)$ time complexity makes it too
 slow to run on large ChIP-seq data sets.
 
-In this section, we show that our proposed GPDPA
-can be used to overcome this speed drawback, while maintaining
-state-of-the-art accuracy. To show the importance of enforcing the
-up-down constraint, we also consider the unconstrained Pruned Dynamic
-Programming Algorithm (PDPA) of \citet{pruned-dp} as a baseline
-(Table~\ref{tab:contribution}).
+In this section, we show that our proposed GPDPA can be used to
+overcome this speed drawback, while maintaining state-of-the-art
+accuracy. To show the importance of enforcing the up-down constraint,
+we consider the unconstrained Pruned Dynamic Programming Algorithm
+(PDPA) of \citet{pruned-dp} as a baseline
+(Table~\ref{tab:contribution}). We also compare against two popular
+heuristics from the bioinformatics literature, in order to demonstrate
+that constrained optimization algorithms such as the CDPA and GPDPA
+are more accurate.
 
 % \begin{description}
 % \item[Segmentor3IsBack::Segmentor] is an implementation of a
@@ -1307,7 +1312,9 @@ sets.
 Overall there are 2752 count data vectors $\mathbf y_i$ to segment,
 varying in size from $n=87$ to $n=263169$ data. For each count data
 vector $\mathbf y_i$, we ran each algorithm (CDPA, PDPA, GDPDA) with a
-maximum of $K=19$ segments. To analyze the empirical time complexity,
+maximum of $K=19$ segments. This implies a maximum of 9 peaks (one for
+each even-numbered segment), which is more than enough in these
+relatively small data sets. To analyze the empirical time complexity,
 we recorded the number of intervals stored in the $\FCC_{k,t}$ cost
 functions (Section~\ref{sec:algorithms}), as well as the computation
 time in seconds.
@@ -1325,19 +1332,26 @@ average $O(\log n)$ intervals (possible changepoints), as in the
 original PDPA. The overall empirical time complexity is thus
 $O(K n \log n)$ for $K$ segments and $n$ data points.
 
-We recorded the timings of each algorithm when $K=19$ is fixed, so the
-expected time complexity was $O(n^2)$ for the CDPA and $O(n \log n)$
-for the PDPA and GPDPA. In agreement with these expectations, our
-proposed GPDPA shows $O(n\log n)$ asymptotic timings similar to the
-PDPA (right of Figure~\ref{fig:timings}). It is clear that the
-$O(n^2)$ CDPA algorithm is slower than the other two algorithms,
-especially for larger data sets. For the largest count data vector
-($n=263169$), the CDPA took over two hours, but the GPDPA took only
+We recorded the timings of each algorithm for computing models with up
+to $K=19$ segments (a total of 10 peak models $k\in\{1,3,\dots,19\}$,
+from 0 to 9 peaks). Since $K$ is constant, the expected time
+complexity was $O(n^2)$ for the CDPA and $O(n \log n)$ for the PDPA
+and GPDPA. In agreement with these expectations, our proposed GPDPA
+shows $O(n\log n)$ asymptotic timings similar to the PDPA (right of
+Figure~\ref{fig:timings}). 
+
+It is clear that the $O(n^2)$ CDPA algorithm is slower than the other
+two algorithms, especially for larger data sets. For the largest count
+data vector ($n=263169$), the CDPA took over two hours, but the GPDPA
+took only
 % H3K36me3_TDH_immune        3 McGill0001  146.680 263169
 % chr10:18761902-22380580
-about two minutes. HMCanBroad and MACS took TODO minutes on this data
-set. The total computation time to process all 2752 count data vectors
-was 156 hours for the CDPA, and only 6 hours for the GPDPA (26 times
+about two minutes. The GPDPA is nearly as fast as a heuristic
+algorithm from the bioinformatics literature (MACS; \citet{MACS}),
+which took about 1 minute to compute 10 peak models for this data set.
+
+The total computation time to process all 2752 count data vectors was
+156 hours for the CDPA, and only 6 hours for the GPDPA (26 times
 faster). Overall, these results suggest that our proposed GPDPA enjoys
 $O(n\log n)$ time complexity in ChIP-seq data, which makes it possible
 to use for very large data sets.
@@ -1546,9 +1560,14 @@ CDPA.
 In contrast, we observed that the heuristic algorithms which are
 popular in the bioinformatics literature are much less accurate than
 all of the optimal changepoint algorithms. In the past these
-sub-optimal heuristics have been preferred because of their speed, but
-our proposed log-linear time GPDPA can now be used as an optimal
-alternative for large data sets.
+sub-optimal heuristics have been preferred because of their speed. For
+example, the CDPA took 2 hours to compute 10 peak models in the
+largest data set in the ChIP-seq benchmark, whereas the GPDPA took 2
+minutes, and the MACS heuristic took 1 minute. Using our proposed
+GPDPA, it is now possible to compute highly accurate models in an
+amount of time that is comparable to heuristic algorithms. For large
+data sets where accuracy is essential, our proposed GPDPA can now be
+used as an optimal alternative to heuristic algorithms.
 
 For future work we will be interested in exploring pruning techniques
 for other constrained changepoint models. When the number of expected
