@@ -37,7 +37,7 @@ C12minless <- rbind(
   funPiece(2, -6, 5, 0, 1.5),
   funPiece(0, 0, 0.5, 1.5, 4))
 gg <- ggplot()+
-  ggtitle("Cost of 2 segment model\nup to data point 2")+
+  ggtitle("Cost of 2 segments up to data point 2")+
   theme_bw()+
   xlab("segment mean $\\mu$")+
   geom_line(aes(mean, cost), data=getLines(C22), color="red", size=3)+
@@ -51,7 +51,7 @@ tikz("figure-compare-cost.tex", 3, 2.5)
 print(gg)
 dev.off()
 gg <- ggplot()+
-  ggtitle("Min-less computation")+
+  ggtitle("Min-less computation for data point 1")+
   theme_bw()+
   xlab("segment mean $\\mu$")+
   geom_line(aes(mean, cost), data=getLines(C11minless), color="red", size=3)+

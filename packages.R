@@ -71,7 +71,7 @@ suppressPackageStartupMessages({
 library(coseg)
 options(
   tikzDocumentDeclaration=paste(
-    "\\documentclass{article}",
+    "\\documentclass[12pt]{article}",
     "\\usepackage{amsmath,amssymb,amsthm}"),
   tikzMetricsDictionary="tikzMetrics")
 
