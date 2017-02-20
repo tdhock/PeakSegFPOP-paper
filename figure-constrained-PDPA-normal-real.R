@@ -982,7 +982,7 @@ envelope.list <- list()
 data.vec <- -subset(intreg$signals, signal=="4.2")$logratio[80:200]
 ## TODO: increase the number of data points and see where the bug is
 ## coming from.
-##data.vec <- data.vec[1:60]
+data.vec <- data.vec[1:40]
 min.mean <- min(data.vec)
 max.mean <- max(data.vec)
 gamma.dt <- data.table(
@@ -997,7 +997,7 @@ cost.models.list <- list()
 for(data.i in 1:nrow(C1.dt)){
   cost.models.list[[paste(1, data.i)]] <- C1.dt[data.i,]
 }
-max.segments <- 5
+max.segments <- 3
 for(total.segments in 2:max.segments){
   prev.cost.model <- cost.models.list[[paste(total.segments-1, total.segments-1)]]
   if(total.segments %% 2){

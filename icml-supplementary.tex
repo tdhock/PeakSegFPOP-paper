@@ -1,0 +1,464 @@
+\documentclass{article}
+\usepackage{tikz}
+\usepackage{amssymb,amsmath,amsthm}
+\usepackage{fullpage}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\newcommand{\FCC}{C}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\maximize}{maximize}
+\DeclareMathOperator*{\minimize}{minimize}
+\newcommand{\ZZ}{\mathbb Z}
+\newcommand{\NN}{\mathbb N}
+\newcommand{\RR}{\mathbb R}
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+
+\title{Supplementary material for ``A log-linear time algorithm 
+for constrained changepoint detection''}
+
+\begin{document}
+
+\maketitle
+
+\section{Proof of optimality of dynamic programming algorithm}
+
+\subsection{Reminder of relevant definitions}
+
+Let $y_1,\dots,y_n$ be a sequence of $n$ data points to segment. The
+optimization space for the reduced isotonic regression model with $K$
+segments is
+\begin{definition}
+\label{def:Ibar}
+  Let $(\mathbf u, \mathbf t)\in{\mathcal I}_n^K$ be the set of
+  all non-decreasing segment means $u_1\leq\cdots\leq u_K$ and
+  increasing changepoint indices $0=t_0<t_1<\cdots<t_{K-1}<t_K=n$.
+\end{definition}
+Each segment
+mean $u_k$ is assigned to data points
+$\tau\in(t_{k-1},t_k]\subset\{1,\dots,n\}$, resulting in the following
+cost for each segment $k\in\{1, \dots, K\}$,
+\begin{equation}
+  \label{eq:h}
+  h_{t_{k-1}, t_k}(u_k) = \sum_{\tau=t_{k-1}+1}^{t_k} \ell(y_\tau, u_k),
+\end{equation}
+where $\ell:\RR\times\RR\rightarrow\RR$ is a convex loss function.
+The optimal cost functions are defined as
+\begin{definition}
+\label{def:fcc}
+  We define $\FCC_{K,n}(\mu)$ the optimal cost of the segmentation
+  with $K$ segments, up to data point $n$, with last segment mean
+  $\mu$. In other words:
+%% we take the minimum with the constraint that the last mean (u_k) is mu
+\begin{equation}
+\FCC_{K,n}(\mu) = \min_{(\mathbf u, \mathbf t)\in{\mathcal I}_n^K \ | \ u_K = \mu} \
+  \left\{ \sum_{k=1}^K
+  h_{t_{k-1}, t_k}(u_k) \right\}
+\end{equation}
+\end{definition}
+For
+any function $f:\RR\rightarrow\RR$, we define the min-less operator as
+\begin{equation}
+  \label{eq:min-less-def}
+  f^\leq(\mu)=\min_{x\leq \mu} f(x).
+\end{equation}
+
+\subsection{Proof of update rules}
+
+\begin{theorem}
+  The optimal cost functions can be recursively computed using the
+  following dynamic programming update rules.
+\begin{enumerate}
+\item For $K=1$ we have
+$\FCC_{1,1}(u)=\ell(y_1,u)$, and for the other data
+  points $t>1$ :
+\begin{equation}
+\FCC_{1,t}(u)=\FCC_{1,t-1}(u)+\ell(y_t,u)
+\end{equation}
+
+\item For $K>1$ and $t=K$
+\begin{equation}
+  \FCC_{K,t}(u)=\ell(y_K, u)+\FCC_{K-1,K-1}^\leq(u)
+\end{equation}
+\item In all other cases we have
+  \begin{equation}
+  \FCC_{K,t}(u)=\ell(y_t,u)+
+  \min\{
+  \FCC_{K-1,t-1}^\leq(u),\,
+  \FCC_{K,t-1}(u)
+  \}.
+  \end{equation}
+\end{enumerate}
+\end{theorem}
+
+%% we now prove the lemma
+%% Case 1 and 2 are true almost by definition 
+%% (there is only one possible segmentation in 1) and 
+%% (there is only possible segmentation in K of K points)
+\begin{proof}
+Case 1 and 2 follow from the definition of $\FCC_{K,t}(u)$.
+
+We now focus on case 3.
+First notice that by definition of $\FCC_{K,t+1}(u)$ (i.e. the optimal segmentation) we must have
+$\FCC_{K,t+1}(u) \leq \FCC_{K,t}(u) + \ell(y_t,u)$ and also
+$\FCC_{K,t+1}(u) \leq \FCC_{K-1,t}(u) + \ell(y_t,u)$. Thus we have
+$\FCC_{K,t+1}(u) \leq \min \{ \FCC_{K,t}(u) + \FCC_{K-1,t}(u) \} + \ell(y_{t+1},u)$.
+
+Now let us assume,
+$$\FCC_{K,t+1}(u) < \min \{ \FCC_{K,t}(u) + \FCC_{K-1,t}(u) \} + \ell(y_{t+1},u).$$
+We will show that this lead to a contradiction.
+
+We consider the optimal segmentation $(\mathbf u, \mathbf t)\in{\mathcal I}_{t+1}^K$ achieving the optimal $\FCC_{K,t+1}(u)$.
+We consider two possible cases:
+\begin{description}
+\item[Scenario 1: $t_K < t$.]
+Define $\mathbf t'$ such that for all $i < K$ $t'_i = t_i$ and $t'_K = t$.
+We have $(\mathbf u, \mathbf t')\in{\mathcal I}_{t}^K$.
+We can thus decompose $\FCC_{K,t+1}(u)$ as
+
+$$\FCC_{K,t+1}(u) = \sum_{k=1}^K
+  h_{t'_{k-1}, t'_k}(u_k) + \ell(y_{t+1},u).$$ 
+
+By assumption we would recover $\sum_{k=1}^K h_{t'_{k-1}, t'_k}(u_k) < \FCC_{K,t}(u)$ which is a contradiction
+by definition of $\FCC_{K,t}(u)$. 
+
+\item[Scenario 2: $t_K=t$.]
+Define $\mathbf t'$ such that for all $i < K-1$ $t'_i = t_i$ and $t'_{K-1} = t$ as well as
+$\mathbf u'$ such that for all $i \leq K-1$ $u'_i = u_i$.
+We have $(\mathbf u', \mathbf t')\in{\mathcal I}_{t}^{K-1}$.
+We can then decompose $\FCC_{K,t+1}(u)$ as
+
+$$\FCC_{K,t+1}(u) = \sum_{k=1}^K
+  h_{t'_{k-1}, t'_k}(u'_k) + \ell(y_{t+1},u).$$ 
+
+By assumption we would recover $\sum_{k=1}^{K-1} h_{t'_{k-1}, t'_k}(u'_k) < \FCC_{K-1,t}(u)$ which is a contradiction
+by definition of $\FCC_{K-1,t}(u)$. 
+\end{description}
+\end{proof}
+We have thus proved that the dynamic programming update rules can be
+used for computing the optimal cost functions $C_{k,t}$.
+
+\section{Algorithm pseudocode}
+
+\subsection{GPDPA for reduced isotonic regression}
+In this section we give pseudocode for our proposed Generalized Pruned
+Dynamic Programming Algorithm (GPDPA) for the reduced isotonic
+regression problem. We propose the following data structures and
+sub-routines for the computation:
+\begin{itemize}
+\item FunctionPiece: a data structure which represents one piece of a
+  $C_{k,t}(u)$ cost function (for one interval of mean values $u$). It
+  has coefficients which depend on the convex loss function $\ell$
+  (for the square loss it has three real-valued coefficients $a,b,c$
+  which define a function $au^2 + bu + c$). It also has two
+  real-valued elements for min/max mean values
+  $[\underline u, \overline u]$ of this interval, meaning the function
+  $C_{k,t}(u)=au^2 + bu + c$ for all
+  $u\in[\underline u, \overline u]$. Finally it stores a previous
+  segment endpoint $t'$ (integer) and mean $u'$ (real).
+\item FunctionPieceList: an ordered list of FunctionPiece objects,
+  which exactly stores a cost function $\FCC_{k,t}(u)$ for all values
+  of last segment mean $u$.
+\item $\text{OnePiece}(y, \underline u, \overline u)$: a sub-routine
+  that initializes a FunctionPieceList with just one FunctionPiece
+  $\ell(y, u)$ defined on $[\underline u, \overline u]$.
+\item $\text{MinLess}(t, f)$: an algorithm that inputs a changepoint
+  and a FunctionPieceList, and outputs the corresponding min-less
+  operator $f^\leq$ (another FunctionPieceList), with the previous
+  changepoint set to $t'=t$ for each of its pieces. This algorithm
+  also needs to store the previous mean value $u'$ for each of the
+  function pieces (see pseudocode below). 
+\item $\text{MinOfTwo} (f_1, f_2)$: an algorithm that inputs two
+  FunctionPieceList objects, and outputs another FunctionPieceList
+  object which is their minimum. 
+\item $\text{ArgMin}(f)$: an algorithm that inputs a FunctionPieceList
+  and outputs three values: the optimal mean $u^*=\argmin_u f(u)$, the
+  previous segment end $t'$ and mean $u'$.
+\item $\text{FindMean}(u, f)$ an algorithm that inputs a mean value
+  and a FunctionPieceList. It finds the FunctionPiece in $f$ with mean
+  $u\in[\underline u, \overline u]$ contained in its interval, then
+  outputs the previous segment end $t'$ and mean $u'$ stored in that
+  FunctionPiece.
+\end{itemize}
+The above data structures and sub-routines are used in the following
+pseudo-code, which describes the GPDPA for solving the reduced
+isotonic regression problem.
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE Input: data set $\mathbf y\in\RR^n$, maximum number of segments $K\in\{2,\dots, n\}$.
+\STATE Output: matrices of optimal segment means $U\in\RR^{K\times K}$ 
+and ends $T\in\{1,\dots,n\}^{K\times K}$
+\STATE Compute min $\underline y$ and max $\overline y$ of $\mathbf y$.
+\label{line:min-max}
+\STATE $\FCC_{1,1}\gets \text{OnePiece}(y_1, \underline y, \overline y)$
+\label{line:init-1}
+\STATE for data points $t$ from 2 to $n$:
+\begin{ALC@g}
+  \STATE $\FCC_{1,t}\gets \text{OnePiece}(y_t, \underline y, \overline y) + \FCC_{1,t-1}$
+\label{line:init-t}
+\end{ALC@g}
+\STATE for segments $k$ from 2 to $K$: for data points $t$ from $k$ to $n$: // dynamic programming
+\label{line:for-k-t}
+\begin{ALC@g}
+  \STATE $\text{min\_prev}\gets \text{MinLess}(t-1, \FCC_{k-1,t-1})$ // this is $\FCC_{k-1,t-1}^\leq$
+  \label{line:MinLess}
+  % \STATE if $t=k$:
+  % \begin{ALC@g}
+  %   \STATE $\text{min\_new}\gets\text{min\_prev}$ // there is only one
+  %   possible changepoint, before $t$
+  % \end{ALC@g}
+  % \STATE else:
+  % \begin{ALC@g}
+  %   \STATE $\text{min\_new}\gets\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
+  % \end{ALC@g}
+    \STATE $\text{min\_new}\gets\text{min\_prev}$ if $t=k$, 
+else $\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
+  \label{line:MinOfTwo}
+  \STATE $\FCC_{k,t}\gets \text{min\_new} + \text{OnePiece}(y_t, \underline y, \overline y)$
+  \label{line:AddNew}
+\end{ALC@g}
+\STATE for segments $k$ from 1 to $K$: // decoding for every model size $k$
+\label{line:for-k-decoding}
+\begin{ALC@g}
+  \STATE $u^*,t',u'\gets \text{ArgMin}(\FCC_{k,n})$
+  \label{line:ArgMin}
+  \STATE $U_{k,k}\gets u^*;\, T_{k,k}\gets t'$ // store mean of segment $k$ and end of segment $k-1$
+  \label{line:decode-kk}
+  \STATE for segment $s$ from $k-1$ to $1$: // decoding for every segment $s<k$
+  \label{line:for-s-decoding}
+  \begin{ALC@g}
+    \STATE if $u' < \infty$: $u^*\gets u'$ // equality constraint active, $u_s = u_{s+1}$
+    \label{line:equality-constraint-active}
+    \STATE $t',u'\gets\text{FindMean}(u^*, \FCC_{s,t'})$
+    \label{line:FindMean}
+    \STATE $U_{k,s}\gets u^*;\, T_{k,s}\gets t'$ // store mean of segment $s$ and end of segment $s-1$
+    \label{line:decode-ks}
+  \end{ALC@g}
+\end{ALC@g}
+\caption{\label{algo:SNIR}Generalized Pruned Dynamic Programming
+  Algorithm (GPDPA) for solving the reduced isotonic regression
+  problem.}
+\end{algorithmic}
+\end{algorithm}
+
+Algorithm~\ref{algo:SNIR} begins by computing the min/max on
+line~\ref{line:min-max}.  The main storage of the algorithm is
+$\FCC_{k,t}$, which should be initialized as a $K\times n$ array of
+empty FunctionPieceList objects. The computation of $\FCC_{1,t}$ for
+all $t$ occurs on lines~\ref{line:init-1}--\ref{line:init-t}. 
+
+The dynamic programming updates occur in the for loops on
+lines~\ref{line:for-k-t}--\ref{line:AddNew}. Line~\ref{line:MinLess}
+uses the MinLess sub-routine to compute the temporary
+FunctionPieceList min\_prev (which represents the function
+$\FCC_{k-1,t-1}^\leq$). Line~\ref{line:MinOfTwo} sets the temporary
+FunctionPieceList min\_new to the cost of the only possible
+changepoint if $t=k$; otherwise, it uses the MinOfTwo sub-routine to
+compute the cost of the best changepoint for every possible mean
+value. Line~\ref{line:AddNew} adds the cost of data point $t$, and
+stores the resulting FunctionPieceList in $\FCC_{k,t}$.
+
+The decoding of the optimal segment mean $U$ (a $K\times K$ array of
+real numbers) and end $T$ (a $K\times K$ array of integers) variables
+occurs in the for loops on
+lines~\ref{line:for-k-decoding}--\ref{line:decode-ks}. For a given
+model size $k$, the decoding begins on line~\ref{line:ArgMin} by using
+the ArgMin sub-routine to solve $u^* = \argmin_u \FCC_{k,n}(u)$ (the
+optimal values for the previous segment end $t'$ and mean $u'$ are
+also returned). Now we know that $u^*$ is the optimal mean of the last
+($k$-th) segment, which occurs from data point $t'+1$ to $n$. These
+values are stored in $U_{k,k}$ and $T_{k,k}$
+(line~\ref{line:decode-kk}). And we already know that the optimal mean
+of segment $k-1$ is $u'$.  Note that the $u'=\infty$ flag means that
+the equality constraint is active
+(line~\ref{line:equality-constraint-active}). The decoding of the
+other segments $s<k$ proceeds using the FindMean sub-routine
+(line~\ref{line:FindMean}). It takes the cost $\FCC_{s,t'}$ of the
+best model in $s$ segments up to data point $t'$, finds the
+FunctionPiece that stores the cost of $u^*$, and returns the new
+optimal values of the previous segment end $t'$ and mean $u'$. The
+mean of segment $s$ is stored in $U_{k,s}$ and the end of segment
+$s-1$ is stored in $T_{k,s}$ (line~\ref{line:decode-ks}).
+
+The time complexity of Algorithm~\ref{algo:SNIR} is $O(K n I)$ where
+$I$ is the complexity of the MinLess and MinOfTwo sub-routines, which
+is linear in the number of intervals (FunctionPiece objects) that are
+used to represent the cost functions. There are pathological synthetic
+data sets for which the number of intervals $I=O(n)$, implying a
+worst-case time complexity of $O(K n^2)$. However, the average number
+of intervals in real data sets is empirically $I=O(\log n)$, so the
+average time complexity of Algorithm~\ref{algo:SNIR} is
+$O(K n \log n)$.
+
+\subsection{Min-less algorithm}
+
+The following sub-routines are used to implement the MinLess algorithm.
+
+\begin{itemize}
+\item $\text{GetCost}(p, u)$: an algorithm that takes a FunctionPiece
+  object $p$, and a mean value $u$, and computes the cost at $u$. For
+  a square loss FunctionPiece $p$ with coefficients $a,b,c\in\RR$, we
+  have $\text{GetCost}(p,u)=au^2+bu+c$.
+\item $\text{OptimalMean}(p)$: an algorithm that takes one
+  FunctionPiece object, and computes the optimal mean value. For a
+  square loss FunctionPiece $p$ we have
+  $\text{OptimalMean}(p)=-b/(2a)$.
+\item $\text{ComputeRoots}(p, d)$: an algorithm that takes one
+  FunctionPiece object, and computes the solutions to $p(u)=d$. For
+  the square loss we propose to use the quadratic formula. For other
+  convex losses that do not have closed form expressions for their
+  roots, we propose to use Newton's root finding method. Note that for
+  some constants $d$ there are no roots, and the algorithm needs to
+  report that.
+\item $f.\text{push\_piece}(\underline u, \overline u, p, u')$: push a
+  new FunctionPiece at the end of FunctionPieceList $f$, with
+  coefficients defined by FunctionPiece $p$, on interval
+  $[\underline u, \overline u]$, with previous segment mean set to
+  $u'$.
+\item $\text{ConstPiece}(c)$: sub-routine that initializes a
+  FunctionPiece $p$ with constant cost $c$ (for the square loss it
+  sets $a=b=0$ in $a^2u + bu + c$).
+\end{itemize}
+
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE Input: The previous segment end $t_{\text{prev}}$ (an integer), 
+ and $f_{\text{in}}$ (a FunctionPieceList).
+\STATE Output: FunctionPieceList $f_{\text{out}}$, initialized as an empty list.
+\STATE $\text{prev\_cost} \gets\infty$
+\STATE $\text{new\_lower\_limit}\gets \text{LowerLimit}(f_{\text{in}}[0])$.
+\STATE $i\gets 0$; // start at FunctionPiece on the left
+\STATE while $i < $ Length($f_{\text{in}}$): // continue until FunctionPiece on the right
+\begin{ALC@g}
+  \STATE FunctionPiece $p\gets f_{\text{in}}[i]$
+  \STATE if prev\_cost = $\infty$: // look for min in this interval.
+  \begin{ALC@g}
+    \STATE $\text{candidate\_mean}\gets \text{OptimalMean}(p)$ 
+    \STATE if $\text{LowerLimit}(p)< \text{candidate\_mean} < \text{UpperLimit}(p)$:
+    \begin{ALC@g}
+      \STATE $\text{new\_upper\_limit}\gets \text{candidate\_mean}$ // Minimum found in this interval.
+      \STATE $\text{prev\_cost}\gets \text{GetCost}(p, \text{candidate\_mean})$
+      \STATE $\text{prev\_mean}\gets \text{candidate\_mean}$
+    \end{ALC@g}
+    \STATE else: // No minimum in this interval.
+    \begin{ALC@g}
+      \STATE 
+      $\text{new\_upper\_limit}\gets
+ \text{UpperLimit}(p)$
+    \end{ALC@g}
+    \STATE $f_{\text{out}}\text{.push\_piece}(\text{new\_lower\_limit},\text{new\_upper\_limit},p,\infty)$
+    \STATE $\text{new\_lower\_limit}\gets\text{new\_upper\_limit}$
+    \STATE $i\gets i+1$
+  \end{ALC@g}
+  \STATE else: // look for equality of $p$ and prev\_cost
+  \begin{ALC@g}
+    \STATE $(\text{small\_root},\text{large\_root})\gets\text{ComputeRoots}(p, \text{prev\_cost})$
+    \STATE if $\text{LowerLimit}(p) < \text{small\_root} < \text{UpperLimit}(p)$:
+    \begin{ALC@g}
+      \STATE $f_{\text{out}}\text{.push\_piece}(
+      \text{new\_lower\_limit}, 
+      \text{small\_root}, 
+      \text{ConstPiece}(\text{prev\_cost}), 
+      \text{prev\_mean})$
+      \STATE $\text{new\_lower\_limit}\gets \text{small\_root}$
+      \STATE $\text{prev\_cost}\gets \infty$ 
+    \end{ALC@g}
+    \STATE else: // no equality in this interval
+    \begin{ALC@g}
+      \STATE $i\gets i+1$ // continue to next FunctionPiece
+    \end{ALC@g}
+  \end{ALC@g}
+\end{ALC@g}
+  \STATE if $\text{prev\_cost} < \infty$: // ending on constant piece
+  \begin{ALC@g}
+    \STATE $f_{\text{out}}\text{.push\_piece}(
+    \text{new\_lower\_limit}, 
+    \text{UpperLimit}(p), 
+    \text{ConstPiece}(\text{prev\_cost}), 
+    \text{prev\_mean})$
+  \end{ALC@g}
+\STATE Set all previous segment end $t'=t_{\text{prev}}$  for all FunctionPieces in $f_{\text{out}}$
+\caption{\label{algo:minless}MinLess algorithm.}
+\end{algorithmic}
+\end{algorithm}
+
+Consider Algorithm~\ref{algo:minless} which contains pseudocode for
+the computation of the min-less operator. The algorithm follows the
+convex function pieces from left to right until finding a
+minimum. Then TODO discuss lines.
+
+\subsection{Implementation details}
+
+Some implementation details that we found to be important:
+\begin{description}
+\item[Weights] for data sequences that contain repeats it is
+  computationally advantageous to use a run-length encoding of the
+  data, and a corresponding loss function. For example if the data
+  sequence 5,1,1,1,0,0,5,5 is encoded as $n=4$ counts $y_t$ 5,1,0,5 with
+  corresponding weights $w_t$ 1,3,2,2 then the Poisson loss function
+  for mean $\mu$ is $\ell(y_t, w_t, \mu) = w_t(\mu- y_t\log \mu)$.
+\item[Mean cost] The text defines $C_{k,t}$ functions as the total
+  cost. However for very large data sets the cost values will be very
+  large, resulting in numerical instability. To overcome this issue we
+  instead implemented update rules using the mean cost.  For weights
+  $W_{t}=\sum_{i=1}^t w_i$, the update rule to compute the mean cost is
+$$  C_{k,t}(\mu) = \frac{1}{W_{t}} \left[\ell(y_t, \mu) + 
+W_{t-1}
+\min\{ C_{k,t-1}(\mu),\, C_{k-1,t-1}^\leq(\mu)  \}\right]$$
+\item[Intervals in log(mean) space] For the Poisson model of
+  non-negative count data $y_t\in\{0,1,2,\dots\}$ there is no possible
+  mean $\mu$ value less than 0. We thus used $\log(\mu)$ values to
+  implement intervals in FunctionPiece objects. For example rather
+  than storing $\mu\in[0,1]$ we store $\log\mu\in[-\infty, 0]$.
+\item[Root finding] For the ComputeRoots sub-routine for the Poisson
+  loss, we used Newton root finding. For the larger root we solve
+  $a\log\mu + b\mu + c = 0$ (linear as $\mu\rightarrow\infty$) and for
+  the smaller root we solve $a x + be^x + c = 0$ ($x=\log \mu$, linear
+  as $x\rightarrow -\infty$ and $\mu\rightarrow 0$). We stop the root
+  finding when the cost is near zero (absolute cost difference less
+  than $10^{-12}$).
+\item[Storage] Since the dynamic programming update rule for $C_{k,t}$
+  only depends on $C_{k-1,t-1}^\geq$ and $C_{k,t-1}$, these are the
+  only functions that need to be in memory, and the rest of the cost
+  functions can be stored on disk (until the decoding step). We used
+  the Berkeley DB Standard Template Library to store all the $C_{k,t}$
+  as a vector of FunctionPieceList objects.
+\end{description}
+
+\begin{figure*}
+  \centering
+  \input{figure-2-min-envelope}
+\vskip -1cm
+  \caption{
+% Computing the optimal cost functions $C_{3,t}(u_3)$ subject
+%     to the constraint $u_3\leq u_2$. \textbf{Left:} the pruning at
+%     $t=34$ takes the minimum of the cost of a non-increasing change
+%     after data point $t=34$ ($C_{2,34}^\geq$) to the cost of a change
+%     before ($C_{3,34}$). \textbf{Middle:} the optimal cost up to
+%     $t=35$ is defined as the cost of the new data point
+%     $\ell_{35}(u_3)=\ell(y_{35},u_3)$ plus the minimum of the previous
+%     pruning step $M_{3,34}=\min\{C_{3,34},
+%     C_{2,34}^\geq\}$. \textbf{Right:} because
+%     $C_{2,34}^\geq(u_3)<C_{3,35}(u_3)$ for all mean values $u_3$, all
+%     previous changepoints can be pruned, resulting in an optimal cost
+%     $M_{3,35}=\min\{C_{3,35},C_{2,35}^\geq\}=C_{2,35}^\geq$ with only
+%     two intervals.
+% (one constant, one convex).
+    The cost $C_{k,t}$ in $k$ segments up to data point $t$ is
+    computed using the min $M_{k,t-1}$, which prunes intervals
+    (candidate changepoints) with sub-optimal cost. \textbf{Left:}
+    the min $M_{3,34}$ is the minimum of two functions:
+    $C^{\geq}_{2,34}$ is the cost if the second segment ends at data
+    point $t=34$ (with a non-increasing change after), and $C_{3,34}$
+    is the cost if the second segment ends before
+    that. \textbf{Middle:} the optimal cost $C_{3,35}$ is the sum of
+    the min $M_{3,34}$ and the cost of the next data point
+    $\ell_{35}$. \textbf{Right:} in the next step, the algorithm
+    prunes all previously considered changepoints (cost $C_{3,35}$),
+    and only considers the model with a the second segment ending at
+    data point $t=35$ (cost $C^{\geq}_{2,35}$ with only two intervals).  }
+  \label{fig:min-envelope}
+\end{figure*}
+
+\end{document}

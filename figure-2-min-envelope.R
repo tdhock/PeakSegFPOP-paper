@@ -12,10 +12,10 @@ between.intervals <- left.of.intervals[min.mean != min(data.vec),]
 
 
 type.code <- c(
-  minimum="min\nenvelope\n$M_{3,t}$",
-  add="cost of\ndata $t$\n$\\gamma_{t}$",
-  model="min cost\nin 3 segments\nup to data $t$\n$C_{3,t}$",
-  compare="cost\nof change\nafter $t$\n$C^{\\geq}_{2,t}$")
+  minimum="min $M_{3,t}$",
+  add="$\\ell_t(u_3)=\\ell(y_t,u_3)$\ncost of data $t$",
+  model="$C_{3,t}=$min cost\nup to data $t$",
+  compare="$C^{\\geq}_{2,t}=$cost of\nchange after $t$")
 cfac <- function(cost.type){
   factor(cost.type, c("model", "compare", "minimum", "add"))
 }
@@ -90,18 +90,18 @@ l <- function(mean, cost, s, cost.type, label){
 label.dt <- rbind(
   l(0.5,0.2,pstep(35),"compare","$C^{\\geq}_{2,34}$"),
   l(0,0.3,pstep(35),"model","$C_{3,34}$"),
-  l(0.25,0.1,pstep(35),
-    "minimum","$M_{3,34}=$\n$\\min\\{C_{3,34},C^{\\geq}_{2,34}\\}$"),
+  l(0.25,0.05,pstep(35),
+    "minimum","$M_{3,34}=\\min\\{C_{3,34},C^{\\geq}_{2,34}\\}$"),
   l(0.25, 0.35, step(),
-    "model","$C_{3,35}=$\n$M_{3,34}+$\n$\\gamma_{35}$"),
+    "model","$C_{3,35}=\\ell_{35}+$\n$M_{3,34}$"),
   l(0.5, 0.2, step(),
     "minimum", "$M_{3,34}$"),
   l(0.4, 0.1, step(),
-    "add", "$\\gamma_{35}$"),
+    "add", "$\\ell_{35}$"),
   l(0.2,0.35,pstep(36),"model","$C_{3,35}$"),
-  l(0.25,0.15,pstep(36),"compare","$C^{\\geq}_{2,35}$"),
-  l(0.25,0.1,pstep(36),
-    "minimum","$M_{3,35}=$\n$\\min\\{C_{3,35},C^{\\geq}_{2,35}\\}$"))
+  l(0.25,0.13,pstep(36),"compare","$C^{\\geq}_{2,35}$"),
+  l(0.25,0.05,pstep(36),
+    "minimum","$M_{3,35}=\\min\\{C_{3,35},C^{\\geq}_{2,35}\\}$"))
 cost.env <- envelope[timestep==35 & total.segments==3,]
 cost.env$step <- step()
 compute.cost <- cost.lines[total.segments==3 & timestep==36 & cost.type=="model",]
@@ -123,7 +123,7 @@ gg.pruning <- ggplot()+
     "#4DAF4A",
     add="#984EA3", "#FF7F00", "#FFFF33", 
     "#A65628", "#F781BF",
-    minimum="grey50"), labels=type.code)+
+    minimum="grey80"), labels=type.code)+
   scale_size_manual(
     "cost type",
     ##breaks=c("model", "compare", "minimum"),
@@ -133,7 +133,9 @@ gg.pruning <- ggplot()+
     compare=1,
     minimum=3), labels=type.code)+
   theme_bw()+
-  theme(panel.margin=grid::unit(0, "lines"))+
+  theme(
+    panel.grid=element_blank(),
+    panel.margin=grid::unit(0, "lines"))+
   facet_grid(. ~ step)+
   geom_line(aes(mean, cost,
                 color=cfac("minimum"),
@@ -151,6 +153,7 @@ gg.pruning <- ggplot()+
                  key=mean,
                  showSelected=total.segments, showSelected2=timestep),
              shape=1,
+             size=0.5,
              data=between.intervals[total.segments==3 & timestep %in% ti,])+
   geom_line(aes(mean, cost, 
                 color=cost.type.fac,
@@ -162,14 +165,17 @@ gg.pruning <- ggplot()+
             data=compute.cost)+
   ## geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
   ##            data=minima[total.segments==3 & timestep %in% ti,])+
-  xlab("mean $\\mu$ of segment 3")+
-  ylab("cost value $C(\\mu)$")+
+  xlab("mean $u_3$ of segment 3")+
+  ylab("cost value $C(u_3)$")+
   coord_cartesian(ylim=c(0,0.4), xlim=c(-0.19, 0.79))+
-  guides(color=guide_legend(keyheight=4))+
+  guides(color=guide_legend(keyheight=2))+
   geom_text(aes(mean, cost, label=label, color=cost.type.fac),
             size=3.5,
-            data=label.dt)
-tikz("figure-2-min-envelope.tex", 6.5, 3)
+            data=label.dt[cost.type!="minimum",])+
+  geom_text(aes(mean, cost, label=label),
+            size=3.5,
+            data=label.dt[cost.type=="minimum",])
+tikz("figure-2-min-envelope.tex", 6.5, 2)
 print(gg.pruning)
 dev.off()
 
