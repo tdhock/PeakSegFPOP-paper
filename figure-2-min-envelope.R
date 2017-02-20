@@ -149,9 +149,7 @@ gg.pruning <- ggplot()+
                 color=cfac("minimum"),
                 size=cfac("minimum")),
             data=envelope[total.segments==3 & timestep %in% ti,])+
-  geom_point(aes(mean, cost,
-                 key=mean,
-                 showSelected=total.segments, showSelected2=timestep),
+  geom_point(aes(mean, cost),
              shape=1,
              size=0.5,
              data=between.intervals[total.segments==3 & timestep %in% ti,])+

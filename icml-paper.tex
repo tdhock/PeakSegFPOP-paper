@@ -109,7 +109,7 @@ for constrained changepoint detection
   genomic data. For some applications, it is natural to impose
   constraints on the directions of changes. One example is ChIP-seq
   data, for which adding an up-down constraint improves peak detection
-  accuracy, but makes the optimization problem more difficult. We show
+  accuracy, but makes the optimization problem more complicated. We show
   how a recently proposed functional pruning technique can be adapted
   to solve such constrained changepoint detection problems. This leads
   to a new algorithm which can solve problems with arbitrary affine
@@ -169,7 +169,7 @@ in $O(Kn^2)$ time using the original dynamic programming algorithm of
 \citet{segment-neighborhood}. Recently proposed pruning techniques
 reduce the number of changepoints considered by the algorithm, thus
 reducing time complexity to $O(K n\log n)$ while maintaining
-optimality \citep{pruned-dp, pelt, johnson, fpop}.
+optimality \citep{pruned-dp, johnson, fpop}.
 
 In ``unconstrained'' changepoint models, there are no contraints
 between model parameters on separate segments. To regularize and obtain a more
@@ -281,7 +281,7 @@ discussion by emphasizing the isotonic regression model.
 \subsection{Classical isotonic regression}
 
 The classical isotonic regression model is defined as the most likely
-sequence of increasing segment means. More
+sequence of non-decreasing segment means. More
 precisely, assume that the data $\mathbf y\in\RR^n$ are a realization
 of a probability distribution with mean parameter $\mathbf m\in\RR^n$. For
 example, assuming $y_t \sim \mathcal N(m_t, \sigma^2)$ and performing
@@ -301,26 +301,21 @@ is referred to as isotonic regression, and can be efficiently solved
 in $O(n)$ time using the Pool-Adjacent-Violators Algorithm (PAVA)
 \citep{isotonic-unifying}.
 
-One potential problem with the isotonic regression model is that it
-has no limit on the number of changepoints where $m_t < m_{t+1}$. In
-particular, for an ever-increasing data set with $y_t < y_{t+1}$ for
-all $t<n$, it is clear that the solution to the isotonic regression
-problem (\ref{eq:isotonic}) is $m_t=y_t$ for all $t$, which overfits
-with $n-1$ changepoints.
-
-In contrast, it may be preferable to recover the $K\leq n$ most likely
-segments (the $K-1$ most likely changes). For example, consider the
-toy data set $\mathbf y= \left[
+Since isotonic regression imposes no limit on the number of
+changepoints ($m_t < m_{t+1}$), it tends to overfit. For example,
+consider the toy data set $\mathbf y= \left[
 \begin{array}{cccccc}
   2 & 5 & 30 & 34 & 600 & 621
 \end{array}
-\right] \in\RR^6$. These data are strictly increasing, so the isotonic
-regression (\ref{eq:isotonic}) solution is the trivial model
-$m_t=y_t$. However, these data contain only two abrupt changes. To
-recover these changes, we could instead use the segment
-neighborhood model, which we discuss in the next section.
+\right] \in\RR^6$. Because these data are strictly increasing, the
+isotonic regression (\ref{eq:isotonic}) solution is the trivial model
+$m_t=y_t$. However, these data contain only two large changes. To
+recover these changes, we could instead use the segment neighborhood
+model, which we discuss in the next section.
 
-\subsection{Segment neighborhood}
+
+\subsection{Segment neighborhood changepoint model}
+
 
 The segment neighborhood model of \citet{segment-neighborhood} uses
 the same cost function as isotonic regression, but a different
@@ -762,6 +757,44 @@ $\FCC_{1,1}(\mu)=\ell(y_1,\mu)$, and for the other data
 % optimal cost, but in this section we discuss how to store and compute
 % the optimal segment mean and changepoint parameters. 
 
+\begin{figure*}[t!]
+  \centering
+  \input{figure-2-min-envelope}
+\vskip -0.5cm
+  \caption{
+% Computing the optimal cost functions $C_{3,t}(u_3)$ subject
+%     to the constraint $u_3\leq u_2$. \textbf{Left:} the pruning at
+%     $t=34$ takes the minimum of the cost of a non-increasing change
+%     after data point $t=34$ ($C_{2,34}^\geq$) to the cost of a change
+%     before ($C_{3,34}$). \textbf{Middle:} the optimal cost up to
+%     $t=35$ is defined as the cost of the new data point
+%     $\ell_{35}(u_3)=\ell(y_{35},u_3)$ plus the minimum of the previous
+%     pruning step $M_{3,34}=\min\{C_{3,34},
+%     C_{2,34}^\geq\}$. \textbf{Right:} because
+%     $C_{2,34}^\geq(u_3)<C_{3,35}(u_3)$ for all mean values $u_3$, all
+%     previous changepoints can be pruned, resulting in an optimal cost
+%     $M_{3,35}=\min\{C_{3,35},C_{2,35}^\geq\}=C_{2,35}^\geq$ with only
+%     two intervals.
+% (one constant, one convex).
+    % The cost $C_{k,t}$ of the PeakSeg model~(\ref{eq:PeakSeg}) in $k$
+    % segments up to data point $t$ is computed using the min
+    % $M_{k,t-1}$, which prunes intervals with sub-optimal cost (black
+    % dots show interval limits). 
+    Demonstration of GPDPA for the PeakSeg model~(\ref{eq:PeakSeg})
+    with $k=3$ segments. Cost functions are stored as piecewise
+    functions on intervals (black dots show limits between function
+    pieces). \textbf{Left:} the min $M_{3,34}$ is the minimum of two
+    functions: $C^{\geq}_{2,34}$ is the cost if the second segment
+    ends at data point $t=34$ (the min-more operator forces a
+    non-increasing change after), and $C_{3,34}$ is the cost if the
+    second segment ends before that. \textbf{Middle:} the cost
+    $C_{3,35}$ is the sum of the min $M_{3,34}$ and the cost of the
+    next data point $\ell_{35}$. \textbf{Right:} in the next step, all
+    previously considered changepoints are pruned (cost $C_{3,35}$),
+    since the model with a the second segment ending at data point
+    $t=35$ is always less costly ($C^{\geq}_{2,35}$).  }
+  \label{fig:min-envelope}
+\end{figure*}
 The dynamic programming algorithm requires computing $O(Kn)$ cost
 functions $\FCC_{k,t}$. As in the original pruned dynamic programming
 algorithm, the time complexity of the algorithm is $O(K n I)$ where
@@ -941,7 +974,7 @@ Figure~\ref{fig:compare-unconstrained}),
   \end{cases}
 \end{equation}
 This function can be stored as a list of two
-intervals of $\mu$ values, each with associated Poisson loss
+intervals of $\mu$ values, each with associated real-valued
 coefficients. In addition, to facilitate recovery of the optimal
 parameters, we store the previous segment mean $\mu'$ and endpoint
 (not shown). Note that $\mu'=\mu$ means that the equality constraint
@@ -1006,10 +1039,13 @@ changes, the updates for odd $k\in\{3, 5, \dots\}$ are
   \},
 \end{equation}
 where the min-more operator is defined for any function $f:\RR\rightarrow\RR$ as
-\begin{equation}
-  \label{eq:min-more-def}
-  f^\geq(\mu) = \min_{x\geq \mu} f(x).
-\end{equation}
+% \begin{equation}
+%   \label{eq:min-more-def}
+%   f^\geq(\mu) = \min_{x\geq \mu} f(x).
+% \end{equation}
+$f^\geq(\mu) = \min_{x\geq \mu} f(x)$. Figure~\ref{fig:min-envelope}
+shows the geometric interpretation of the min-more operator, along
+with an example of how the $\min\{\}$ operation performs pruning.
 We implemented this algorithm using the Poisson loss
 $\ell(y, \mu) = \mu - y\log \mu$, since our application in
 Section~\ref{sec:results-chip-seq} is on count data
@@ -1018,7 +1054,7 @@ $y\in\ZZ_+ = \{0, 1, 2, \dots\}$.
 % is available as the PeakSegPDPA function in the R package coseg
 % (\url{https://github.com/tdhock/coseg}). 
 A free/open-source C++ implementation of this algorithm will be made
-available online after acceptance. More implementation details can be
+available online after acceptance. Implementation details can be
 found in the supplementary materials.
 
 \subsection{General affine inequality constraints
@@ -1111,28 +1147,6 @@ found in the supplementary materials.
 % $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}$ from $\FCC^{k}_{t}(\mu')$ would possibly be much more difficult.
 
 
-\begin{figure*}[t!]
-  \centering
-  \parbox{0.49\textwidth}{
-    %\input{figure-PDPA-intervals-small}
-    \input{figure-PDPA-intervals-log-log}
-  }
-  \parbox{0.49\textwidth}{
-    \input{figure-PDPA-timings-log-log}
-    %\input{figure-PDPA-timings-small} 
-  }
-  \vskip -0.8cm
-  \caption{Timing results on 2752 segmentation problems from the
-    histone mark ChIP-seq benchmark data. For each problem we ran the
-    GPDPA with the up-down constraint and a max of $K=19$
-    segments.  \textbf{Left}: number of intervals stored in
-    $\FCC_{k,t}$ cost functions (median, inter-quartile range, and
-    maximum over all data points $t$ and segments $k$),
-    \textbf{Right}: timings in seconds (median line and min/max
-    band).}
-  \label{fig:timings}
-\end{figure*}
-
 In this section we briefly discuss how our proposed Generalized Pruned
 Dynamic Programming Algorithm (GPDPA) can be used to solve any
 optimization problem with general affine inequality constraints
@@ -1201,7 +1215,7 @@ minimization operator $f^g:\RR\rightarrow\RR$ as
   \label{eq:constrained-min-operator}
   f^g(u_{k}) = \min_{u_{k-1} : g(u_{k-1}, u_{k})\leq 0} f(u_{k-1}).
 \end{equation}
-
+%When $g$ is affine, the constrained minimization operator can be computed using a simple TODO
 The constrained minimization operator is used in the following general
 dynamic programming update rule which can be used to compute the
 solution to (\ref{eq:min_general_affine_inequality})
@@ -1218,6 +1232,31 @@ closed-form computation of the constrained minimization operator
 (\ref{eq:constrained-min-operator}) would possibly be much more
 difficult for these more general constraint functions (e.g. quadratic
 constraint functions).
+
+\begin{figure*}[t!]
+  \centering
+  \parbox{0.49\textwidth}{
+    %\input{figure-PDPA-intervals-small}
+    \input{figure-PDPA-intervals-log-log}
+  }
+  \parbox{0.49\textwidth}{
+    \input{figure-PDPA-timings-log-log}
+    %\input{figure-PDPA-timings-small} 
+  }
+  \vskip -0.8cm
+  \caption{Empirical speed analysis on 2752 count data vectors from
+    the histone mark ChIP-seq benchmark. For each vector we ran the
+    GPDPA with the up-down constraint and a max of $K=19$
+    segments. The expected time complexity is $O(KnI)$ where $I$ is
+    the average number of intervals (function pieces; candidate
+    changepoints) stored in the $C_{k,t}$ cost
+    functions. \textbf{Left}: number of intervals stored is
+    $I=O(\log n)$ (median, inter-quartile range, and maximum over all
+    data points $t$ and segments $k$).  \textbf{Right}: time
+    complexity of the GPDPA is $O(n\log n)$ (median line and min/max
+    band).}
+  \label{fig:timings}
+\end{figure*}
 
 \section{Results on peak detection in ChIP-seq data}
 \label{sec:results-chip-seq}
@@ -1265,26 +1304,6 @@ state-of-the-art peak detection accuracy, by classifying even-numbered
 segments $k$ as peaks, and odd-numbered segments $k$ as background
 noise. However, its quadratic $O(Kn^2)$ time complexity makes it too
 slow to run on large ChIP-seq data sets.
-
-\begin{figure*}[t!]
-  \centering
-  %\includegraphics[width=\textwidth]{figure-test-error-mean}
-  \includegraphics[width=\textwidth]{figure-test-error-dots}
-  \vskip -0.5cm
-  \caption{Four-fold cross-validation was used to estimate prediction
-    accuracy of each algorithm (one panel for each of 7 ChIP-seq data sets). 
-Each black circle shows the test AUC in one of four
-    cross-validation folds, the shaded grey circle is the mean, and
-    the vertical line shows the maximum mean in each data set. It is
-    clear that the proposed GPDPA is
-    just as accurate as the previous state-of-the-art CDPA, and both are
-    more accurate than the other baseline methods. 
-% Interactive version
-%     available at
-%     \url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}
-  }
-  \label{fig:test-error-dots}
-\end{figure*}
 
 In this section, we show that our proposed GPDPA can be used to
 overcome this speed drawback, while maintaining state-of-the-art
@@ -1353,6 +1372,27 @@ we recorded the number of intervals stored in the $\FCC_{k,t}$ cost
 functions (Section~\ref{sec:algorithms}), as well as the computation
 time in seconds.
 
+
+\begin{figure*}[t!]
+  \centering
+  %\includegraphics[width=\textwidth]{figure-test-error-mean}
+  \includegraphics[width=\textwidth]{figure-test-error-dots}
+  \vskip -0.5cm
+  \caption{Four-fold cross-validation was used to estimate prediction
+    accuracy of each algorithm (one panel for each of 7 ChIP-seq data sets). 
+Each black circle shows the test AUC in one of four
+    cross-validation folds, the shaded grey circle is the mean, and
+    the vertical line shows the maximum mean in each data set. It is
+    clear that the proposed GPDPA is
+    just as accurate as the previous state-of-the-art CDPA, and both are
+    more accurate than the other baseline methods. 
+% Interactive version
+%     available at
+%     \url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}
+  }
+  \label{fig:test-error-dots}
+\end{figure*}
+
 % TODO: define I?
 As in the PDPA, the time complexity of our proposed GPDPA is
 $O(K n I)$, which depends on the number of intervals $I$ (candidate
@@ -1382,8 +1422,9 @@ took only
 % H3K36me3_TDH_immune        3 McGill0001  146.680 263169
 % chr10:18761902-22380580
 about two minutes. Our proposed GPDPA is nearly as fast as MACS
-\citep{MACS}, a heuristic algorithm from the bioinformatics literature
-which took about 1 minute to compute 10 peak models for this data set.
+\citep{MACS}, a heuristic from the bioinformatics literature which
+took about 1 minute to compute 10 peak models for this data set. 
+%The MACS heuristic uses a Poisson significance test in a sliding window, sacrificing optimality for speed.
 
 The total computation time to process all 2752 count data vectors was
 156 hours for the CDPA, and only 6 hours for the GPDPA (26 times
@@ -1488,10 +1529,10 @@ penalty constant $\lambda$,
 To demonstrate that constrained optimal segmentation is more accurate
 than typical unsupervised heuristics from the bioinformatics
 literature, we also computed test AUC for the MACS and HMCanBroad
-algorithms \citep{MACS, HMCan}. MACS is a popular heuristic for data
-with a sharp peak pattern such as H3K4me3, and \mbox{HMCanBroad} is a
+methods \citep{MACS, HMCan}. MACS is a popular heuristic for data with
+a sharp peak pattern such as H3K4me3, and \mbox{HMCanBroad} is a
 popular heuristic for data with a broad peak pattern such as
-H3K36me3. Although these algorithms are not designed for supervised
+H3K36me3. Although they are not designed for supervised
 learning, we trained them by performing grid search over a single
 significance threshold parameter (qvalue for MACS and finalThreshold
 for HMCanBroad).
@@ -1572,18 +1613,18 @@ observed that the GPDPA enjoys the same state-of-the-art accuracy as
 the previous best, the relatively slow quadratic $O(Kn^2)$ time
 CDPA.
 
-We observed that the heuristic algorithms which are
-popular in the bioinformatics literature (MACS, HMCanBroad) are much
-less accurate than the optimal changepoint detection algorithms (CDPA,
-PDPA, GPDPA). In the past these sub-optimal heuristics have been
-preferred because of their speed. For example, the CDPA took 2 hours
-to compute 10 peak models in the largest data set in the ChIP-seq
-benchmark, whereas the GPDPA took 2 minutes, and the MACS heuristic
-took 1 minute. Using our proposed GPDPA, it is now possible to compute
-highly accurate models in an amount of time that is comparable to
-heuristic algorithms. For large data sets where accuracy is essential,
-our proposed GPDPA can now be used as an optimal alternative to
-heuristic algorithms.
+
+We observed that the heuristic algorithms which are popular in the
+bioinformatics literature (MACS, HMCanBroad) are much less accurate
+than the optimal changepoint detection algorithms (CDPA, PDPA,
+GPDPA). In the past these sub-optimal heuristics have been preferred
+because of their speed. For example, the CDPA took 2 hours to compute
+10 peak models in the largest data set in the ChIP-seq benchmark,
+whereas the GPDPA took 2 minutes, and the MACS heuristic took 1
+minute. Using our proposed GPDPA, it is now possible to compute highly
+accurate models in an amount of time that is comparable to heuristic
+algorithms. Our proposed GPDPA can now be used as an optimal
+alternative to heuristic algorithms, even for large data sets.
 
 For future work we will be interested in exploring pruning techniques
 for other constrained changepoint models. When the number of expected
@@ -1598,6 +1639,7 @@ way to use the inequality pruning technique of \citet{pelt} for
 constrained changepoint models. This will be an interesting direction
 for future research, since inequality pruning is easier to implement
 than functional pruning \citep{fpop}.
+
 
 \bibliographystyle{icml2016}
 \newpage

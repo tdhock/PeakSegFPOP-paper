@@ -164,23 +164,23 @@ gg <- ggplot()+
     plot.margin=grid::unit(c(6, 12, 6, 6), "pt"),
     panel.margin=grid::unit(0, "lines"))+
   scale_x_log10(
-    "data points to segment (log scale)",
+    "$n$ = data points to segment (log scale)",
     breaks=c(
       1e3, 1e4, 
       range(PDPA.intervals.all$n.data))
     )+
   scale_y_log10(
-    "intervals stored (log scale)",
+    "$I$ = intervals stored\n(log scale)",
     breaks=c(
       10, 100, 
       max(PDPA.intervals.all[["100%"]]),
       min(PDPA.intervals.all[["25%"]])
       )
     )
-tikz("figure-PDPA-intervals-log-log.tex", w=3.3, h=2.2)
+tikz("figure-PDPA-intervals-log-log.tex", w=3.3, h=1.8)
 print(gg)
 dev.off()
-pdf("figure-PDPA-intervals-log-log.pdf", w=3.3, h=2.2)
+pdf("figure-PDPA-intervals-log-log.pdf", w=3.3, h=1.8)
 print(gg)
 dev.off()
 theme_bw()$plot.margin

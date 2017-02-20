@@ -113,6 +113,12 @@ ggplot()+
   facet_grid(set.i ~ set.name, labeller=function(df){
     if("set.name" %in% names(df)){
       df$set.name <- gsub("_", "\n", df$set.name)
+      df$set.name <- paste0(
+        ifelse(
+          grepl("H3K36me3", df$set.name),
+          "Broad", "Sharp"),
+        "\n",
+        df$set.name)
     }
     df
   })+
@@ -303,6 +309,12 @@ dots <- ggplot()+
              data=auc, pch=1)+
   facet_grid(. ~ set.name, labeller=function(df){
     df$set.name <- gsub("_", "\n", df$set.name)
+    df$set.name <- paste0(
+      ifelse(
+        grepl("H3K36me3", df$set.name),
+        "Broad", "Sharp"),
+      "\n",
+      df$set.name)
     df
   }, scales="free_y", space="free_y")+
   scale_y_discrete("algorithm")+

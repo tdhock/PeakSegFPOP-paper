@@ -385,8 +385,25 @@ The following sub-routines are used to implement the MinLess algorithm.
 
 Consider Algorithm~\ref{algo:minless} which contains pseudocode for
 the computation of the min-less operator. The algorithm follows the
-convex function pieces from left to right until finding a
-minimum. Then TODO discuss lines.
+convex function pieces from left to right until finding a minimum. If
+no minimum is found in a given convex FunctionPiece (line~15), it is
+simply pushed on to the end of the new FunctionPieceList (line~16). If
+a minimum occurs within an interval (line~10), the cost and mean are
+stored (lines 11--12), and a new convex FunctionPiece is created with
+upper limit ending at that mean value (line~16). Then the algorithm
+starts looking for another FunctionPiece with the same cost, by
+computing the smaller root of the convex loss function (line~20). When
+a FunctionPiece is found with a root in the interval, a new constant
+FunctionPiece is pushed (line~22), and the algorithm resumes searching
+for a minimum. At the end of the algorithm, a constant FunctionPiece
+is pushed if necessary (line~28). The complexity of this algorithm is
+$O(I)$ where $I$ is the number of FunctionPiece objects in
+$f_\text{in}$.
+
+The algorithm which implements the min-more operator is
+analogous. Rather than searching from left to right, it searches from
+right to left. Rather than using the small root (line~21), it uses the
+large root.
 
 \subsection{Implementation details}
 
@@ -416,7 +433,7 @@ W_{t-1}
   $a\log\mu + b\mu + c = 0$ (linear as $\mu\rightarrow\infty$) and for
   the smaller root we solve $a x + be^x + c = 0$ ($x=\log \mu$, linear
   as $x\rightarrow -\infty$ and $\mu\rightarrow 0$). We stop the root
-  finding when the cost is near zero (absolute cost difference less
+  finding when the cost is near zero (absolute cost value less
   than $10^{-12}$).
 \item[Storage] Since the dynamic programming update rule for $C_{k,t}$
   only depends on $C_{k-1,t-1}^\geq$ and $C_{k,t-1}$, these are the
@@ -426,39 +443,5 @@ W_{t-1}
   as a vector of FunctionPieceList objects.
 \end{description}
 
-\begin{figure*}
-  \centering
-  \input{figure-2-min-envelope}
-\vskip -1cm
-  \caption{
-% Computing the optimal cost functions $C_{3,t}(u_3)$ subject
-%     to the constraint $u_3\leq u_2$. \textbf{Left:} the pruning at
-%     $t=34$ takes the minimum of the cost of a non-increasing change
-%     after data point $t=34$ ($C_{2,34}^\geq$) to the cost of a change
-%     before ($C_{3,34}$). \textbf{Middle:} the optimal cost up to
-%     $t=35$ is defined as the cost of the new data point
-%     $\ell_{35}(u_3)=\ell(y_{35},u_3)$ plus the minimum of the previous
-%     pruning step $M_{3,34}=\min\{C_{3,34},
-%     C_{2,34}^\geq\}$. \textbf{Right:} because
-%     $C_{2,34}^\geq(u_3)<C_{3,35}(u_3)$ for all mean values $u_3$, all
-%     previous changepoints can be pruned, resulting in an optimal cost
-%     $M_{3,35}=\min\{C_{3,35},C_{2,35}^\geq\}=C_{2,35}^\geq$ with only
-%     two intervals.
-% (one constant, one convex).
-    The cost $C_{k,t}$ in $k$ segments up to data point $t$ is
-    computed using the min $M_{k,t-1}$, which prunes intervals
-    (candidate changepoints) with sub-optimal cost. \textbf{Left:}
-    the min $M_{3,34}$ is the minimum of two functions:
-    $C^{\geq}_{2,34}$ is the cost if the second segment ends at data
-    point $t=34$ (with a non-increasing change after), and $C_{3,34}$
-    is the cost if the second segment ends before
-    that. \textbf{Middle:} the optimal cost $C_{3,35}$ is the sum of
-    the min $M_{3,34}$ and the cost of the next data point
-    $\ell_{35}$. \textbf{Right:} in the next step, the algorithm
-    prunes all previously considered changepoints (cost $C_{3,35}$),
-    and only considers the model with a the second segment ending at
-    data point $t=35$ (cost $C^{\geq}_{2,35}$ with only two intervals).  }
-  \label{fig:min-envelope}
-\end{figure*}
 
 \end{document}
