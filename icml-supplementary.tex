@@ -103,19 +103,20 @@ We now focus on case 3.
 First notice that by definition of $\FCC_{K,t+1}(u)$ (i.e. the optimal segmentation) we must have
 $\FCC_{K,t+1}(u) \leq \FCC_{K,t}(u) + \ell(y_t,u)$ and also
 $\FCC_{K,t+1}(u) \leq \FCC_{K-1,t}(u) + \ell(y_t,u)$. Thus we have
-$\FCC_{K,t+1}(u) \leq \min \{ \FCC_{K,t}(u) + \FCC_{K-1,t}(u) \} + \ell(y_{t+1},u)$.
+$\FCC_{K,t+1}(u) \leq \min \{ \FCC_{K,t}(u) , \FCC_{K-1,t}(u) \} + \ell(y_{t+1},u)$.
 
 Now let us assume,
-$$\FCC_{K,t+1}(u) < \min \{ \FCC_{K,t}(u) + \FCC_{K-1,t}(u) \} + \ell(y_{t+1},u).$$
+$$\FCC_{K,t+1}(u) < \min \{ \FCC_{K,t}(u) , \FCC_{K-1,t}(u) \} + \ell(y_{t+1},u).$$
 We will show that this lead to a contradiction.
 
-We consider the optimal segmentation $(\mathbf u, \mathbf t)\in{\mathcal I}_{t+1}^K$ achieving the optimal $\FCC_{K,t+1}(u)$.
-We consider two possible cases:
+We consider the optimal segmentation
+$(\mathbf u, \mathbf t)\in{\mathcal I}_{t+1}^K$ which achieves the
+optimum of $\FCC_{K,t+1}(u)$. We consider two possible cases:
 \begin{description}
-\item[Scenario 1: $t_K < t$.]
-Define $\mathbf t'$ such that for all $i < K$ $t'_i = t_i$ and $t'_K = t$.
-We have $(\mathbf u, \mathbf t')\in{\mathcal I}_{t}^K$.
-We can thus decompose $\FCC_{K,t+1}(u)$ as
+\item[Scenario 1: $t_K < t$.]  Define $\mathbf t'$ such that for all
+  $i < K$, we have $t'_i = t_i$ and $t'_K = t$.  We have
+  $(\mathbf u, \mathbf t')\in{\mathcal I}_{t}^K$.  We can thus
+  decompose $\FCC_{K,t+1}(u)$ as
 
 $$\FCC_{K,t+1}(u) = \sum_{k=1}^K
   h_{t'_{k-1}, t'_k}(u_k) + \ell(y_{t+1},u).$$ 
@@ -123,11 +124,11 @@ $$\FCC_{K,t+1}(u) = \sum_{k=1}^K
 By assumption we would recover $\sum_{k=1}^K h_{t'_{k-1}, t'_k}(u_k) < \FCC_{K,t}(u)$ which is a contradiction
 by definition of $\FCC_{K,t}(u)$. 
 
-\item[Scenario 2: $t_K=t$.]
-Define $\mathbf t'$ such that for all $i < K-1$ $t'_i = t_i$ and $t'_{K-1} = t$ as well as
-$\mathbf u'$ such that for all $i \leq K-1$ $u'_i = u_i$.
-We have $(\mathbf u', \mathbf t')\in{\mathcal I}_{t}^{K-1}$.
-We can then decompose $\FCC_{K,t+1}(u)$ as
+\item[Scenario 2: $t_K=t$.]  Define $\mathbf t'$ such that for all
+  $i < K-1$, we have $t'_i = t_i$ and $t'_{K-1} = t$. Also define
+  $\mathbf u'$ such that for all $k \leq K-1$, we have $u'_k = u_k$.
+  Thus $(\mathbf u', \mathbf t')\in{\mathcal I}_{t}^{K-1}$, and can
+  then decompose $\FCC_{K,t+1}(u)$ as
 
 $$\FCC_{K,t+1}(u) = \sum_{k=1}^K
   h_{t'_{k-1}, t'_k}(u'_k) + \ell(y_{t+1},u).$$ 
@@ -318,7 +319,7 @@ The following sub-routines are used to implement the MinLess algorithm.
   $u'$.
 \item $\text{ConstPiece}(c)$: sub-routine that initializes a
   FunctionPiece $p$ with constant cost $c$ (for the square loss it
-  sets $a=b=0$ in $a^2u + bu + c$).
+  sets $a=b=0$ in $au^2 + bu + c$).
 \end{itemize}
 
 \begin{algorithm}[H]
@@ -384,16 +385,20 @@ The following sub-routines are used to implement the MinLess algorithm.
 \end{algorithm}
 
 Consider Algorithm~\ref{algo:minless} which contains pseudocode for
-the computation of the min-less operator. The algorithm follows the
-convex function pieces from left to right until finding a minimum. If
-no minimum is found in a given convex FunctionPiece (line~15), it is
-simply pushed on to the end of the new FunctionPieceList (line~16). If
-a minimum occurs within an interval (line~10), the cost and mean are
-stored (lines 11--12), and a new convex FunctionPiece is created with
-upper limit ending at that mean value (line~16). Then the algorithm
-starts looking for another FunctionPiece with the same cost, by
-computing the smaller root of the convex loss function (line~20). When
-a FunctionPiece is found with a root in the interval, a new constant
+the computation of the min-less operator. The algorithm initializes
+prev\_cost (line~3), which is a state variable that is used on line~8
+to decide whether the algorithm should look for a local minimum or an
+intersection with a finite cost. Since prev\_cost is initially set to
+$\infty$, the algorithm begins by following the convex function pieces
+from left to right until finding a local minimum. If no minimum is found in
+a given convex FunctionPiece (line~15), it is simply pushed on to the
+end of the new FunctionPieceList (line~16). If a minimum occurs within
+an interval (line~10), the cost and mean are stored (lines 11--12),
+and a new convex FunctionPiece is created with upper limit ending at
+that mean value (line~16). Then the algorithm starts looking for
+another FunctionPiece with the same cost, by computing the smaller
+root of the convex loss function (line~20). When a FunctionPiece is
+found with a root in the interval (line~21), a new constant
 FunctionPiece is pushed (line~22), and the algorithm resumes searching
 for a minimum. At the end of the algorithm, a constant FunctionPiece
 is pushed if necessary (line~28). The complexity of this algorithm is

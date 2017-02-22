@@ -1,5 +1,5 @@
 source("packages.R")
-h <- 2 #inches
+h <- 1.8 #inches
 y.min <- 0
 y.max <- 4
 sloss <- function(dt, x){
@@ -45,7 +45,7 @@ gg <- ggplot()+
   geom_line(aes(mean, cost), data=getLines(C22un), color="grey50", size=1.5)+
   geom_text(aes(x=1.5,y=8.5,label="constrained"),color="red")+
   geom_text(aes(x=1.5,y=7,label="$C_{2,2}(\\mu)=$"),color="red")+
-  geom_text(aes(x=2.4,y=1,label="unconstrained"),color="grey50", hjust=0, vjust=0)+
+  geom_text(aes(x=2.6,y=1.1,label="unconstrained"),color="grey50", hjust=0, vjust=0)+
   geom_text(aes(x=2.5,y=0,label="$(\\mu-1)^2$"),color="grey50", hjust=0, vjust=0)+
   geom_text(aes(x=1.5,y=5.5,label="$C^\\leq_{1,1}(\\mu)+(\\mu-1)^2$"),color="red")
 tikz("figure-compare-cost.tex", 3, h)
@@ -60,8 +60,8 @@ gg <- ggplot()+
   geom_line(aes(mean, cost), data=getLines(C11), color="black", size=1)+
   geom_text(aes(x=3.5,y=3.5,label="$C_{1,1}(\\mu) = (\\mu-2)^2$"),color="black", hjust=1)+
   geom_text(aes(x=-Inf,y=0.3,label="$\\min_\\mu C_{1,1}(\\mu)$"),color="grey50", hjust=0, vjust=0)+
-  geom_text(aes(x=2,y=2.5,label="$C^\\leq_{1,1}(\\mu)=$"),color="red")+
-  geom_text(aes(x=2,y=1.9,label="$\\min_{x\\leq \\mu} C_{1,1}(x)$"),color="red")
+  geom_text(aes(x=2,y=1.8,label="$C^\\leq_{1,1}(\\mu)=$"),color="red")+
+  geom_text(aes(x=2,y=1,label="$\\min_{x\\leq \\mu} C_{1,1}(x)$"),color="red")
 tikz("figure-compare-unconstrained.tex", 3, h)
 print(gg)
 dev.off()

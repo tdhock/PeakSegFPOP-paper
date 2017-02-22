@@ -26,6 +26,12 @@
 % following usepackage line and replace \usepackage{icml2016} with
 % \usepackage[nohyperref]{icml2016} above.
 \usepackage{hyperref}
+\usepackage{xcolor}
+\definecolor{Ckt}{HTML}{E41A1C}
+\definecolor{Min}{HTML}{4D4D4D}%grey30
+%{B3B3B3}%grey70
+\definecolor{MinMore}{HTML}{377EB8}
+\definecolor{Data}{HTML}{984EA3}
 
 % Packages hyperref and algorithmic misbehave sometimes.  We can fix
 % this with the following command.
@@ -177,11 +183,13 @@ interpretable model, it is often desirable to introduce constraints
 between model parameters before and after changepoints. 
 %For example, learning a peak detection function in genomic data amounts to classifying each data point as either part of a peak (positive class for large data values) or background noise (negative class for small data values). 
 For example, the main problem that motivates this paper is peak
-detection in ChIP-seq data, for which an up-down constrained
-changepoint detection model has been shown to achieve state-of-the-art
-peak detection accuracy \citep{HOCKING-PeakSeg}. The constraints of
-this model force an up change in the segment mean parameter after
-each down change, and vice versa.
+detection in ChIP-seq data, which provide noisy measurements of
+protein binding or modification throughout a genome \citep{practical}. An
+up-down constrained changepoint detection model has been shown to
+achieve state-of-the-art peak detection accuracy in ChIP-seq data
+\citep{HOCKING-PeakSeg}. The constraints of this model force an up
+change in the segment mean parameter after each down change, and vice
+versa.
 % These constraints result in a model that can be used to
 % classify data into peaks (after up changes) and background (after down
 % changes). 
@@ -189,7 +197,7 @@ The fastest existing solver for this problem is the Constrained
 Dynamic Programming Algorithm (CDPA), which has two issues. First, it
 is a heuristic algorithm that is not guaranteed to recover the optimal
 solution. Second, its $O(Kn^2)$ quadratic time complexity is too slow
-for use on typical genomic data sets, which have large $n$. In this
+for use on large data sets. In this
 paper we propose a new algorithm that fixes both of these issues.
 
 \subsection{Contributions and organization}
@@ -213,17 +221,20 @@ conclude by discussing the significance of our contributions
 There are many efficient algorithms available for computing the
 optimal $K-1$ changepoints in $n$ data
 points. \citet{segment-neighborhood} proposed an $O(K n^2)$ algorithm
-for computing the sequence of models with $1,\dots,K$ segments, and
-\citet{optimal-partitioning} proposed a similar $O(n^2)$ algorithm for
-computing the single model for a given penalty constant
-$\lambda$. Both of these algorithms recover the optimal solution, and
-follow from using dynamic programming updates \citep{bellman} to
-recursively compute the maximum likelihood from 1 to $n$ data
-points. Binary segmentation is an $O(n\log n)$ time algorithm that is
-not guaranteed to recover the optimal solution
-\citep{binary-segmentation}. An L1 relaxation of this problem is
-known as the fused lasso signal approximator, for which efficient
-solvers also exist \citep{flsa}.
+for computing the sequence of models with $1,\dots,K$ segments.
+\citet{optimal-partitioning} consider a related approach, which
+introduces a penalty for each changepoint, rather than fixing the
+number of changepoints. Their $O(n^2)$ algorithm computes the single
+model for a given penalty constant $\lambda$. Both of these algorithms
+recover the optimal solution, and follow from using dynamic
+programming updates \citep{bellman} to recursively compute the maximum
+likelihood from 1 to $n$ data points. Alternatively there are methods
+which are computationally faster but are not guaranteed to find the
+optimal segmentation. The most popular of these is the binary
+segmentation algorithm which has $O(Kn)$ worst-case time complexity
+\citep{binary-segmentation}. An L1 relaxation of this problem is known
+as the fused lasso signal approximator, for which efficient solvers
+also exist \citep{flsa}.
 
 Several pruning methods have been recently proposed in order to reduce
 time complexity, while maintaining optimality.  \citet{pruned-dp} and
@@ -361,8 +372,8 @@ neighborhood (\ref{eq:optimal_segment_neighborhood}) problems gives
   & && m_t \leq m_{t+1},\, \forall t<n.
   \nonumber 
 \end{align}
-In the next section, we explain how the functional pruning technique
-can be applied to solving this problem.
+In the next section, we explain how functional pruning
+can be used for solving this and related changepoint problems.
 
 %%%% update rules
 %\newcommand{\FCC}{\widetilde{C}}
@@ -389,7 +400,7 @@ generalizes to other constrained changepoint problems.
 The reduced isotonic regression problem (\ref{eq:reduced}) has $n$
 segment mean variables $m_t$, one for each data point $t$. To derive
 our algorithm, we re-write the problem in terms of the mean
-$ u_k\in\RR$ and last data point $t_k\in\{1,\dots,n\}$ for each
+$u_k\in\RR$ and endpoint $t_k\in\{1,\dots,n\}$ for each
 segment $k\in\{1,\dots, K\}$.
 \begin{definition}[Reduced isotonic regression optimization space]
 \label{def:Ibar}
@@ -420,17 +431,18 @@ Rather than explicitly summing over data points $i$ as in problem
   \input{figure-compare-unconstrained}
   \input{figure-compare-cost}
   \vskip -0.5cm
-  \caption{Comparison of previous unconstrained algorithm (grey) with
-    new algorithm that constrains segment means to be non-decreasing (red),
-    for the toy data set $\mathbf y= [ 2, 1, 0, 4 ] \in\RR^4$ and the
-    square loss. \textbf{Left:} rather than computing the
-    unconstrained minimum (constant grey function), the new algorithm
-    computes the min-less operator (red), resulting in a larger cost
-    when the segment mean is less than the first data point
-    ($\mu\leq 2$). \textbf{Right:} adding the cost of the second data
-    point $(\mu-1)^2$ and minimizing yields equal means
-    $u_1=u_2=1.5$ for the constrained model and decreasing 
-    means $u_1=2,\, u_2=1$ for the unconstrained model.}
+  \caption{Comparison of previous unconstrained algorithm
+    (\textcolor{Min}{grey}) with new algorithm that constrains segment
+    means to be non-decreasing (\textcolor{Ckt}{red}), for the toy data
+    set $\mathbf y= [ 2, 1, 0, 4 ] \in\RR^4$ and the square
+    loss. \textbf{Left:} rather than computing the unconstrained
+    minimum (constant grey function), the new algorithm computes the
+    min-less operator (red), resulting in a larger cost when the
+    segment mean is less than the first data point ($\mu\leq
+    2$). \textbf{Right:} adding the cost of the second data point
+    $(\mu-1)^2$ and minimizing yields equal means $u_1=u_2=1.5$ for
+    the constrained model and decreasing means $u_1=2,\, u_2=1$ for
+    the unconstrained model.}
   \label{fig:compare-unconstrained}
 \end{figure*}
 
@@ -491,12 +503,12 @@ definition of the optimal cost.
 As in the PDPA of \citet{pruned-dp}, our proposed dynamic programming
 algorithm uses an exact representation of the
 $C_{k,t}:\RR\rightarrow\RR$ cost functions. Each $C_{k,t}(\mu)$ is
-represented as a piecewise function on intervals of $\mu$, which is
-implemented as a linked list in C++ (for details see Supplementary
-Materials). Each element of the linked list represents a convex
-function piece, and implementation details depend on the choice of the
-loss function $\ell$ (for an example using the square loss see
-Section~\ref{sec:example-comparison}).
+represented as a piecewise function on intervals of $\mu$. This is
+implemented as a linked list of FunctionPiece objects in C++ (for
+details see Supplementary Materials). Each element of the linked list
+represents a convex function piece, and implementation details depend
+on the choice of the loss function $\ell$ (for an example using the
+square loss see Section~\ref{sec:example-comparison}).
 
 In the original unconstrained PDPA, computing the $C_{k,t}(u_k)$
 function requires taking the minimum of $C_{k,t-1}(u_k)$ (a function
@@ -520,7 +532,7 @@ The min-less operator is used in the following Theorem, which states
 the update rules used in our proposed algorithm.
 
 \begin{theorem}[Generalized Pruned Dynamic Programming Algorithm
-  for constrained changepoint detection]
+  for reduced isotonic regression]
   The optimal cost functions $C_{k,t}$ can be recursively computed
   using the following update rules.
 \begin{enumerate}
@@ -532,7 +544,7 @@ $\FCC_{1,1}(\mu)=\ell(y_1,\mu)$, and for the other data
 \end{equation}
 \item For $k>1$ and $t=k$ we have
 \begin{equation}
-  \FCC_{k,t}(\mu)=\ell(y_k, \mu)+\FCC_{k-1,k-1}^\leq(\mu)
+  \FCC_{k,k}(\mu)=\ell(y_k, \mu)+\FCC_{k-1,k-1}^\leq(\mu)
 \end{equation}
 \item In all other cases we have
   \begin{equation}
@@ -783,16 +795,18 @@ $\FCC_{1,1}(\mu)=\ell(y_1,\mu)$, and for the other data
     Demonstration of GPDPA for the PeakSeg model~(\ref{eq:PeakSeg})
     with $k=3$ segments. Cost functions are stored as piecewise
     functions on intervals (black dots show limits between function
-    pieces). \textbf{Left:} the min $M_{3,34}$ is the minimum of two
-    functions: $C^{\geq}_{2,34}$ is the cost if the second segment
-    ends at data point $t=34$ (the min-more operator forces a
-    non-increasing change after), and $C_{3,34}$ is the cost if the
-    second segment ends before that. \textbf{Middle:} the cost
-    $C_{3,35}$ is the sum of the min $M_{3,34}$ and the cost of the
-    next data point $\ell_{35}$. \textbf{Right:} in the next step, all
-    previously considered changepoints are pruned (cost $C_{3,35}$),
-    since the model with a the second segment ending at data point
-    $t=35$ is always less costly ($C^{\geq}_{2,35}$).  }
+    pieces). \textbf{Left:} the min \textcolor{Min}{$M_{3,34}$} is the
+    minimum of two functions: \textcolor{MinMore}{$C^{\geq}_{2,34}$}
+    is the cost if the second segment ends at data point $t=34$ (the
+    min-more operator forces a non-increasing change after), and
+    \textcolor{Ckt}{$C_{3,34}$} is the cost if the second segment ends
+    before that. \textbf{Middle:} the cost \textcolor{Ckt}{$C_{3,35}$}
+    is the sum of the min \textcolor{Min}{$M_{3,34}$} and the cost of
+    the next data point \textcolor{Data}{$\ell_{35}$}. \textbf{Right:}
+    in the next step, all previously considered changepoints are
+    pruned (cost \textcolor{Ckt}{$C_{3,35}$}), since the model with a the second
+    segment ending at data point $t=35$ is always less costly
+    (\textcolor{MinMore}{$C^{\geq}_{2,35}$}).  }
   \label{fig:min-envelope}
 \end{figure*}
 The dynamic programming algorithm requires computing $O(Kn)$ cost
@@ -1149,8 +1163,8 @@ found in the supplementary materials.
 
 In this section we briefly discuss how our proposed Generalized Pruned
 Dynamic Programming Algorithm (GPDPA) can be used to solve any
-optimization problem with general affine inequality constraints
-between adjacent segment means. For all changes $k\in\{1,\dots,K-1\}$,
+optimization problem with affine inequality constraints
+between adjacent segment means. For each change $k\in\{1,\dots,K-1\}$,
 let $a_k,b_k,c_k\in\RR$ be arbitrary coefficients that define affine
 functions $g_k(u_k, u_{k+1})=a_k u_k + b_k u_{k+1} + c_k$. The
 changepoint detection problem with general affine constraints is
@@ -1206,7 +1220,7 @@ Some examples of models that are special cases:
   $a_{k} =1$, $b_{k}=-1$ and for even $k\in\{2,4,\dots\}$ we take
   $a_{k} =-1$, $b_{k}=1$.
 \end{enumerate}
-In the general case, we need to compute the analog of the
+To solve these problems, we need to compute the analog of the
 min-less/more operator, which we call the constrained minimization
 operator. For any cost function $f:\RR\rightarrow\RR$ and constraint
 function $g:\RR\times\RR\rightarrow\RR$, we define the constrained
@@ -1216,9 +1230,15 @@ minimization operator $f^g:\RR\rightarrow\RR$ as
   f^g(u_{k}) = \min_{u_{k-1} : g(u_{k-1}, u_{k})\leq 0} f(u_{k-1}).
 \end{equation}
 %When $g$ is affine, the constrained minimization operator can be computed using a simple TODO
-The constrained minimization operator is used in the following general
-dynamic programming update rule which can be used to compute the
-solution to (\ref{eq:min_general_affine_inequality})
+When $g$ is affine, the constrained minimization operator is either
+non-decreasing or non-increasing. In this case it can be computed
+using a simple algorithm that scans the piecewise function $f$ either
+from left to right or right to left. When a local minimum is found,
+its value is recorded, and a constant function piece is added (for
+details see pseudocode for MinLess algorithm in supplementary
+materials). The constrained minimization operator is used in the
+following general dynamic programming update rule which can be used to
+compute the solution to (\ref{eq:min_general_affine_inequality})
 \begin{equation}
   \label{eq:general_dp}
   \FCC_{k,t}(\mu) = \ell(y_t,\mu) + \min\{
@@ -1262,19 +1282,18 @@ constraint functions).
 \label{sec:results-chip-seq}
 \label{sec:results}
 
+
 The real data analysis problem that motivates this work is the
-detection of peaks in ChIP-seq data, which typically come from
-genome-wide assays for histone modifications or transcription factor
-binding sites \citep{practical}. These data are typically represented
-as a vector of non-negative counts $\mathbf y\in\ZZ_+^n$ of aligned
-sequence reads for $n$ continguous bases in a genome. Data sizes are
-between $n=10^5$ (maximum of the benchmark we consider) and $n=10^8$
-(largest region with no gaps in the human genome hg19). A peak
-detection algorithm can be represented as a function
-$c(\mathbf y)\in\{0,1\}^n$ for binary classification at every base
-position. The positive class is peaks (genomic regions with large
-values, representing protein binding or modification) and the negative
-class is background noise (small values).
+detection of peaks in ChIP-seq data \citep{practical}, which are
+typically represented as a vector of non-negative counts
+$\mathbf y\in\ZZ_+^n$ of aligned sequence reads for $n$ continguous
+bases in a genome. Data sizes are between $n=10^5$ (maximum of the
+benchmark we consider) and $n=10^8$ (largest region with no gaps in
+the human genome hg19). A peak detector can be represented
+as a function $c(\mathbf y)\in\{0,1\}^n$ for binary classification at
+every base position. The positive class is peaks (genomic regions with
+large values, representing protein binding or modification) and the
+negative class is background noise (small values).
 
 
 In the supervised learning framework of \citet{HOCKING2016-chipseq}, a
@@ -1287,11 +1306,14 @@ labels with no predicted peak). The benchmark consists of seven
 histone ChIP-seq data sets, each with a different peak pattern
 (experiment type, labeler, cell types). The goal in each data set is
 to learn the pattern encoded in the labels, and find a classifier $c$
-that minimizes the total number of incorrectly predicted labels:
+that minimizes the total number of incorrectly predicted labels in a
+held-out test set:
 \begin{equation}
   \label{eq:learn}
   \minimize_c
-  \sum_{i=1}^m E\left[
+  \sum_{i=1}^m 
+  %\sum_{i\in\text{test}}
+  E\left[
     c(\mathbf y_i), L_i
   \right].
 \end{equation}
@@ -1378,11 +1400,14 @@ time in seconds.
   %\includegraphics[width=\textwidth]{figure-test-error-mean}
   \includegraphics[width=\textwidth]{figure-test-error-dots}
   \vskip -0.5cm
-  \caption{Four-fold cross-validation was used to estimate prediction
-    accuracy of each algorithm (one panel for each of 7 ChIP-seq data sets). 
-Each black circle shows the test AUC in one of four
+  \caption{Four-fold cross-validation 
+was used to estimate peak detection accuracy. 
+    Each panel shows one of seven ChIP-seq data sets, 
+    labeled by experiment (Broad H3K36me3), 
+    labeler (AM), and cell types (immune).
+    Each black circle shows test AUC in one of four
     cross-validation folds, the shaded grey circle is the mean, and
-    the vertical line shows the maximum mean in each data set. It is
+    the vertical line is the maximum mean in each data set. It is
     clear that the proposed GPDPA is
     just as accurate as the previous state-of-the-art CDPA, and both are
     more accurate than the other baseline methods. 
@@ -1508,7 +1533,7 @@ $K_i^\lambda=\argmin_k l_{ik} + \lambda o_{ik}$
 \citep{cleynen2013segmentation}, where $l_{ik}$ is the Poisson loss and
 $o_{ik}$ is the oracle model complexity for the model with $k$
 segments for data vector $i$. 
-The learning problem thus simplifies to learning a scalar
+The problem thus simplifies to learning a scalar
 penalty constant $\lambda$,
 \begin{equation}
   \label{eq:learn-lambda}
@@ -1518,6 +1543,8 @@ penalty constant $\lambda$,
     L_i\right].
 \end{equation}
 
+
+
 % Multi-parameter affine penalty functions could further increase prediction
 % accuracy \citep{HOCKING-penalties}, but we observed that learning a
 % single penalty constant is sufficient for state-of-the-art accuracy in
@@ -1526,16 +1553,15 @@ penalty constant $\lambda$,
 % Furthermore, we wanted to perform a fair comparison with the following
 % two baselines from the bioinformatics literature, which also learn
 % only one parameter.
-To demonstrate that constrained optimal segmentation is more accurate
-than typical unsupervised heuristics from the bioinformatics
-literature, we also computed test AUC for the MACS and HMCanBroad
-methods \citep{MACS, HMCan}. MACS is a popular heuristic for data with
-a sharp peak pattern such as H3K4me3, and \mbox{HMCanBroad} is a
-popular heuristic for data with a broad peak pattern such as
-H3K36me3. Although they are not designed for supervised
-learning, we trained them by performing grid search over a single
-significance threshold parameter (qvalue for MACS and finalThreshold
-for HMCanBroad).
+To demonstrate that changepoint detection algorithms are more accurate
+than typical heuristics from the bioinformatics literature, we also
+compared with the MACS and HMCanBroad methods \citep{MACS,
+  HMCan}. MACS is a popular heuristic for data with a sharp peak
+pattern such as H3K4me3, and \mbox{HMCanBroad} is a popular heuristic
+for data with a broad peak pattern such as H3K36me3. Although they are
+not designed for supervised learning, we trained them by performing
+grid search over a single significance threshold parameter (qvalue for
+MACS and finalThreshold for HMCanBroad).
 % Note that since these are not changepoint detection algorithms,
 % there is no parameter for we did not use these algorithms in the
 % speed comparison
@@ -1545,8 +1571,9 @@ for HMCanBroad).
 
 In each of the seven data sets in the histone benchmark,
 %\citep{HOCKING2016-chipseq}, 
-we performed four-fold cross-validation and computed test AUC to
-estimate the accuracy of each algorithm. The previous algorithm with
+we performed four-fold cross-validation and computed test AUC (area
+under the Receiver Operating Characteristic curve) to estimate the
+accuracy of each algorithm. The previous algorithm with
 state-of-the-art accuracy on this benchmark was the CDPA, which
 enforces the up-down constraint on segment means. We expected our
 proposed GPDPA to perform just as well, since it also enforces that
@@ -1554,9 +1581,8 @@ constraint. In agreement with our expectation, we observed that the
 CDPA and GPDPA yield comparable test AUC in all seven data sets
 (Figure~\ref{fig:test-error-dots}). In contrast, the unconstrained
 PDPA had much lower test AUC in several data sets, because of lower
-true positive rates. These results provide convincing
-evidence that the constraint is necessary for optimal peak detection
-accuracy.
+true positive rates. These results provide convincing evidence that
+the constraint is necessary for optimal peak detection accuracy.
 
 Since the baseline HMCanBroad algorithm was designed for data with a
 broad peak pattern, we expected it to perform well in the H3K36me3
@@ -1634,11 +1660,12 @@ it computes all models with $1,\dots,K$ segments). We have already
 started modifying the GPDPA for optimal partitioning
 \citep{optimal-partitioning}, which computes the $K$-segment model for
 a single penalty constant $\lambda$ (without computing models with
-$1,\dots,K-1$ segments) in $O(n\log n)$ time. We have not yet found a
-way to use the inequality pruning technique of \citet{pelt} for
-constrained changepoint models. This will be an interesting direction
-for future research, since inequality pruning is easier to implement
-than functional pruning \citep{fpop}.
+$1,\dots,K-1$ segments) in $O(n\log n)$ time. 
+% We have not yet found a
+% way to use the inequality pruning technique of \citet{pelt} for
+% constrained changepoint models. This will be an interesting direction
+% for future research, since inequality pruning is easier to implement
+% than functional pruning \citep{fpop}.
 
 
 \bibliographystyle{icml2016}

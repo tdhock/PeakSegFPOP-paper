@@ -228,7 +228,7 @@ viz <- list(
     theme(panel.margin=grid::unit(0, "cm"),
           legend.position="top")+
     scale_x_continuous(
-      "Test AUC (area under the Receiver Operating Characteristic curve)",
+      "Test AUC (larger values indicate more accurate peak detection)",
       breaks=c(0.6, 0.8, 1),
       labels=c("0.6", "0.8", "1")),
   rocZoom=ggplot()+
@@ -322,7 +322,7 @@ dots <- ggplot()+
   theme(panel.margin=grid::unit(0, "cm"),
         legend.position="top")+
   scale_x_continuous(
-    "Test AUC (area under the Receiver Operating Characteristic curve)",
+    "Test AUC (larger values indicate more accurate peak detection)",
     breaks=c(0.6, 0.8, 1),
     labels=c("0.6", "0.8", "1"))
 pdf("figure-test-error-dots.pdf", h=2, w=8)

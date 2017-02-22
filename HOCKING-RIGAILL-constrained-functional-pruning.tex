@@ -2066,6 +2066,68 @@ the computation of the min-less operator. The algorithm follows the
 convex function pieces from left to right until finding a
 minimum. Then TODO discuss lines.
 
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE Input: data $\mathbf y$, weights $\mathbf w$, 
+number of states $S$, starts, transitions.
+\STATE Output: $S\times n$ array of optimal cost functions $C_{s,t}$.
+\STATE for $t$ from $1$ to $n$:
+\begin{ALC@g}
+  \STATE if $t==1$:
+  \begin{ALC@g}
+    \STATE for $s$ in starts: 
+    \begin{ALC@g}
+      \STATE $C_{s,t}\gets\text{InitialCost}(y_t, w_t)$
+    \end{ALC@g}
+  \end{ALC@g}
+  \STATE else:
+  \begin{ALC@g}
+    \STATE for $s$ from $1$ to $S$: // cost of no changes
+    \begin{ALC@g}
+      \STATE if $C_{s,t-1}$ is NOT NULL:
+      \begin{ALC@g}
+        \STATE $C_{s,t}\gets C_{s,t-1}$
+      \end{ALC@g}
+    \end{ALC@g}
+    \STATE for (from, to, penalty, ConstrainedCost) in transitions:
+    \begin{ALC@g}
+      \STATE if $C_{\text{from},t-1}$ is NOT NULL:
+      \begin{ALC@g}
+        \STATE
+        $\text{cost\_of\_change}\gets
+        \text{ConstrainedCost}(C_{\text{from}, t-1})$
+        \STATE
+        $\text{cost\_of\_change.set}
+        (\text{from}, t-1)$
+        \STATE
+        $\text{cost\_of\_change.addPenalty}
+        (\text{penalty})$
+        \STATE if $C_{\text{to},t}$ is NULL:
+        \begin{ALC@g}
+          \STATE $C_{\text{to},t}\gets\text{cost\_of\_change}$
+        \end{ALC@g}
+        \STATE else:
+        \begin{ALC@g}
+          \STATE
+          $C_{\text{to},t}\gets \text{MinOfTwo}(C_{\text{to},t},
+          \text{cost\_of\_change})$
+        \end{ALC@g}
+      \end{ALC@g}
+    \end{ALC@g}
+    \STATE for $s$ from $1$ to $S$:
+    \begin{ALC@g}
+      \STATE if $C_{s,t}$ is NOT NULL:
+      \begin{ALC@g}
+        \STATE $C_{s,t}\text{.addDataPoint}(y_t, w_t)$
+      \end{ALC@g}
+    \end{ALC@g}
+  \end{ALC@g}
+\end{ALC@g}
+\caption{\label{algo:GFPOP}Generalized Functional Pruning Optimal
+  Partitioning Algorithm.}
+\end{algorithmic}
+\end{algorithm}
+
 \subsection{Results on very large data sets}
 
 TODO: Empirical time and memory analysis FPOP vs PeakSegFPOP on really
