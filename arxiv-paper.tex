@@ -40,7 +40,8 @@
 % Employ the following version of the ``usepackage'' statement for
 % submitting the draft version of the paper for review.  This will set
 % the note in the first column to ``Under review.  Do not distribute.''
-\usepackage{icml2016} 
+%\usepackage{icml2016} 
+\usepackage{fullpage}
 
 % Employ this version of the ``usepackage'' statement after the paper has
 % been accepted, when creating the final version.  This will set the
@@ -48,6 +49,7 @@
 %\usepackage[accepted]{icml2016}
 
 \usepackage{tikz}
+\usetikzlibrary{arrows}
 \usepackage{amssymb,amsmath}
 \usepackage{natbib}
 \usepackage{amsthm}
@@ -76,92 +78,42 @@
 
 
 
-% The \icmltitle you define below is probably too long as a header.
-% Therefore, a short form for the running title is supplied here:
-\icmltitlerunning{
-A log-linear time algorithm 
-for constrained changepoint detection
+\begin{document}
+
+\title{A log-linear time algorithm for constrained changepoint detection}
+\author{
+Toby Dylan Hocking (toby.hocking@r-project.org)\\
+Guillem Rigaill (guillem.rigaill@inra.fr)\\
+Paul Fearnhead (p.fearnhead@lancaster.ac.uk)\\
+Guillaume Bourque (guil.bourque@mcgill.ca)
 }
-
-\begin{document} 
-
-\twocolumn[
-\icmltitle{
-A log-linear time algorithm 
-for constrained changepoint detection
-}
-
-% It is OKAY to include author information, even for blind
-% submissions: the style file will automatically remove it for you
-% unless you've provided the [accepted] option to the icml2016
-% package.
-\icmlauthor{Your Name}{email@yourdomain.edu}
-\icmladdress{Your Fantastic Institute,
-            314159 Pi St., Palo Alto, CA 94306 USA}
-\icmlauthor{Your CoAuthor's Name}{email@coauthordomain.edu}
-\icmladdress{Their Fantastic Institute,
-            27182 Exp St., Toronto, ON M6H 2T1 CANADA}
-
-% You may provide any keywords that you 
-% find helpful for describing your paper; these are used to populate 
-% the "keywords" metadata in the PDF but will not be shown in the document
-\icmlkeywords{boring formatting information, machine learning, ICML}
-
-\vskip 0.3in
-]
+\maketitle
 
 \begin{abstract}
   Changepoint detection is a central problem in time series and
   genomic data. For some applications, it is natural to impose
   constraints on the directions of changes. One example is ChIP-seq
   data, for which adding an up-down constraint improves peak detection
-  accuracy, but makes the optimization problem more complicated. We show
-  how a recently proposed functional pruning technique can be adapted
-  to solve such constrained changepoint detection problems. This leads
-  to a new algorithm which can solve problems with arbitrary affine
-  constraints on adjacent segment means, and which has empirical time
-  complexity that is log-linear in the amount of data. This algorithm
-  achieves state-of-the-art accuracy in a benchmark of several genomic
-  data sets, and is orders of magnitude faster than existing
-  algorithms that have similar accuracy.
-  % changepoint detection is a central problem in time series and
-  % genomic data, in which constraints on the directions of changes
-  % are often desired to learn an interpretable model. We show how a
-  % recently proposed functional pruning technique can be generalized to
-  % solve changepoint detection problems with affine constraints on
-  % adjacent segment means. We propose a Generalized Pruned
-  % Dynamic Programming Algorithm (GPDPA), which we show empirically
-  % achieves state-of-the-art speed and accuracy in a benchmark of
-  % several genomic data sets. In contrast to previous heuristic
-  % quadratic time solvers for this problem, the GPDPA recovers the
-  % optimal solution in log-linear time.
+  accuracy, but makes the optimization problem more complicated. We
+  show how a recently proposed functional pruning technique can be
+  adapted to solve such constrained changepoint detection
+  problems. This leads to a new algorithm which can solve problems
+  with arbitrary affine constraints on adjacent segment means, and
+  which has empirical time complexity that is log-linear in the amount
+  of data. This algorithm achieves state-of-the-art accuracy in a
+  benchmark of several genomic data sets, and is orders of magnitude
+  faster than existing algorithms that have similar accuracy. Our
+  implementation is available as the PeakSegPDPA function in the coseg
+  R package, \url{https://github.com/tdhock/coseg}
 \end{abstract}
 
-\section{Introduction}
+\newpage
 
-\begin{table*}
-  \centering
-  \begin{tabular}{r|c|c}
-    & No pruning & Functional pruning \\
-    \hline
-    Unconstrained & Dynamic Programming Algorithm (DPA) & Pruned DPA (PDPA) \\
-    & Optimal solution, $O(Kn^2)$ time & Optimal solution, $O(Kn\log n)$ time\\
-    % & \citet{segment-neighborhood} & \\
-    % & \citet{optimal-partitioning} & \\
-    & \citet{segment-neighborhood}     & \citet{pruned-dp, johnson} \\
-    \hline
-    Up-down constrained & Constrained DPA (CDPA) & Generalized Pruned DPA (GPDPA) \\
-    & Sub-optimal solution, $O(Kn^2)$ time & Optimal solution, $O(Kn\log n)$ time\\
-    & \citet{HOCKING-PeakSeg} & \textbf{This paper} \\
-    \hline
-  \end{tabular}
-  \caption{Our contribution is 
-the Generalized Pruned Dynamic Programming Algorithm (GPDPA), 
- which uses a functional pruning technique 
-    to compute the constrained optimal $K-1$ changepoints 
-in a sequence of $n$ data, in $O(K n\log n)$ time on average.}
-\label{tab:contribution}
-\end{table*}
+\tableofcontents
+
+\newpage
+
+\section{Introduction}
 
 Changepoint detection is a central problem in fields such as finance
 or genomics, where $n$ data are gathered in a sequence over time or
@@ -214,6 +166,30 @@ achieves state-of-the-art speed and accuracy in genomic data with
 several different labeled patterns (Section~\ref{sec:results}), then
 conclude by discussing the significance of our contributions
 (Section~\ref{sec:discussion}).
+
+\begin{table*}[b!]
+  \centering
+  \begin{tabular}{r|c|c}
+    & No pruning & Functional pruning \\
+    \hline
+    Unconstrained & Dynamic Programming Algorithm (DPA) & Pruned DPA (PDPA) \\
+    & Optimal solution, $O(Kn^2)$ time & Optimal solution, $O(Kn\log n)$ time\\
+    % & \citet{segment-neighborhood} & \\
+    % & \citet{optimal-partitioning} & \\
+    & \citet{segment-neighborhood, optimal-partitioning}     & \citet{pruned-dp, johnson} \\
+    \hline
+    Up-down constrained & Constrained DPA (CDPA) & Generalized Pruned DPA (GPDPA) \\
+    & Sub-optimal solution, $O(Kn^2)$ time & Optimal solution, $O(Kn\log n)$ time\\
+    & \citet{HOCKING-PeakSeg} & \textbf{This paper} \\
+    \hline
+  \end{tabular}
+  \caption{Our contribution is 
+the Generalized Pruned Dynamic Programming Algorithm (GPDPA), 
+ which uses a functional pruning technique 
+    to compute the constrained optimal $K-1$ changepoints 
+in a sequence of $n$ data, in $O(K n\log n)$ time on average.}
+\label{tab:contribution}
+\end{table*}
 
 \section{Related work}
 \label{sec:related}
@@ -300,9 +276,9 @@ maximum likelihood inference results in a convex minimization problem
 with affine constraints,
 \begin{align}
   \label{eq:isotonic}
-  &\minimize_{\mathbf m\in\RR^n} && 
+  \minimize_{\mathbf m\in\RR^n} &\ \ 
   \sum_{t=1}^n \ell(y_t, m_t)\\
-  &\text{subject to} && m_t \leq m_{t+1},\, \forall t<n.
+  \text{subject to} & \ \ m_t \leq m_{t+1},\, \forall t<n.
   \nonumber
 \end{align}
 The convex loss function $\ell:\RR\times \RR\rightarrow\RR$ in the
@@ -334,9 +310,9 @@ constraint set. There is no constraint on the direction of changes,
 but there must be exactly $K\leq n$ distinct segments ($K-1$ changes).
 \begin{align}
   \label{eq:optimal_segment_neighborhood}
-  &\minimize_{\mathbf m\in\RR^n} && 
+  \minimize_{\mathbf m\in\RR^n} &\ \ 
   \sum_{t=1}^n \ell(y_t, m_t)\\
-  &\text{subject to} && \sum_{t=1}^{n-1} I(m_t \neq m_{t+1}) = K-1.
+  \text{subject to} &\ \  \sum_{t=1}^{n-1} I(m_t \neq m_{t+1}) = K-1.
   \nonumber
 \end{align}
 This optimization problem is non-convex since the model complexity is
@@ -365,11 +341,11 @@ constraints of the isotonic regression (\ref{eq:isotonic}) and segment
 neighborhood (\ref{eq:optimal_segment_neighborhood}) problems gives
 \begin{align}
   \label{eq:reduced}
-  &\minimize_{\mathbf m\in\RR^n} && 
+  \minimize_{\mathbf m\in\RR^n} &\ \ 
   \sum_{t=1}^n \ell(y_t, m_t)\\
-  &\text{subject to} && \sum_{t=1}^{n-1} I(m_t \neq m_{t+1}) = K-1,
+  \text{subject to} &\ \  \sum_{t=1}^{n-1} I(m_t \neq m_{t+1}) = K-1,
   \nonumber\\
-  & && m_t \leq m_{t+1},\, \forall t<n.
+  &\ \  m_t \leq m_{t+1},\, \forall t<n.
   \nonumber 
 \end{align}
 In the next section, we explain how functional pruning
@@ -505,7 +481,7 @@ algorithm uses an exact representation of the
 $C_{k,t}:\RR\rightarrow\RR$ cost functions. Each $C_{k,t}(\mu)$ is
 represented as a piecewise function on intervals of $\mu$. This is
 implemented as a linked list of FunctionPiece objects in C++ (for
-details see Supplementary Materials). Each element of the linked list
+details see Section~\ref{sec:pseudocode}). Each element of the linked list
 represents a convex function piece, and implementation details depend
 on the choice of the loss function $\ell$ (for an example using the
 square loss see Section~\ref{sec:example-comparison}).
@@ -524,6 +500,7 @@ C_{k-1,t-1}(u_{k-1})$, which we refer to as the min-less operator
 (Figure~\ref{fig:compare-unconstrained}, left).
 
 \begin{definition}[Min-less operator]
+\label{def:min-less}
   Given any real-valued function $f:\RR\rightarrow\RR$, we define the min-less
   operator of that function as $f^\leq(\mu)=\min_{x\leq \mu} f(x)$.
 \end{definition}
@@ -533,6 +510,7 @@ the update rules used in our proposed algorithm.
 
 \begin{theorem}[Generalized Pruned Dynamic Programming Algorithm
   for reduced isotonic regression]
+\label{thm:gpdpa}
   The optimal cost functions $C_{k,t}$ can be recursively computed
   using the following update rules.
 \begin{enumerate}
@@ -562,8 +540,7 @@ $\FCC_{1,1}(\mu)=\ell(y_1,\mu)$, and for the other data
 %% (there is only one possible segmentation in 1) and 
 %% (there is only possible segmentation in K of K points)
 \begin{proof}
-  Case 1 and 2 follow from Definition~\ref{def:fcc}, and the
-  supplementary materials prove case 3.
+  Case 1 and 2 follow from Definition~\ref{def:fcc}, and there is a proof for case 3 in Section~\ref{sec:proof}.
 
 % We now
 %   focus on case 3.  First notice that by definition of
@@ -769,57 +746,16 @@ $\FCC_{1,1}(\mu)=\ell(y_1,\mu)$, and for the other data
 % optimal cost, but in this section we discuss how to store and compute
 % the optimal segment mean and changepoint parameters. 
 
-\begin{figure*}[t!]
-  \centering
-  \input{figure-2-min-envelope}
-\vskip -0.5cm
-  \caption{
-% Computing the optimal cost functions $C_{3,t}(u_3)$ subject
-%     to the constraint $u_3\leq u_2$. \textbf{Left:} the pruning at
-%     $t=34$ takes the minimum of the cost of a non-increasing change
-%     after data point $t=34$ ($C_{2,34}^\geq$) to the cost of a change
-%     before ($C_{3,34}$). \textbf{Middle:} the optimal cost up to
-%     $t=35$ is defined as the cost of the new data point
-%     $\ell_{35}(u_3)=\ell(y_{35},u_3)$ plus the minimum of the previous
-%     pruning step $M_{3,34}=\min\{C_{3,34},
-%     C_{2,34}^\geq\}$. \textbf{Right:} because
-%     $C_{2,34}^\geq(u_3)<C_{3,35}(u_3)$ for all mean values $u_3$, all
-%     previous changepoints can be pruned, resulting in an optimal cost
-%     $M_{3,35}=\min\{C_{3,35},C_{2,35}^\geq\}=C_{2,35}^\geq$ with only
-%     two intervals.
-% (one constant, one convex).
-    % The cost $C_{k,t}$ of the PeakSeg model~(\ref{eq:PeakSeg}) in $k$
-    % segments up to data point $t$ is computed using the min
-    % $M_{k,t-1}$, which prunes intervals with sub-optimal cost (black
-    % dots show interval limits). 
-    Demonstration of GPDPA for the PeakSeg model~(\ref{eq:PeakSeg})
-    with $k=3$ segments. Cost functions are stored as piecewise
-    functions on intervals (black dots show limits between function
-    pieces). \textbf{Left:} the min \textcolor{Min}{$M_{3,34}$} is the
-    minimum of two functions: \textcolor{MinMore}{$C^{\geq}_{2,34}$}
-    is the cost if the second segment ends at data point $t=34$ (the
-    min-more operator forces a non-increasing change after), and
-    \textcolor{Ckt}{$C_{3,34}$} is the cost if the second segment ends
-    before that. \textbf{Middle:} the cost \textcolor{Ckt}{$C_{3,35}$}
-    is the sum of the min \textcolor{Min}{$M_{3,34}$} and the cost of
-    the next data point \textcolor{Data}{$\ell_{35}$}. \textbf{Right:}
-    in the next step, all previously considered changepoints are
-    pruned (cost \textcolor{Ckt}{$C_{3,35}$}), since the model with a the second
-    segment ending at data point $t=35$ is always less costly
-    (\textcolor{MinMore}{$C^{\geq}_{2,35}$}).  }
-  \label{fig:min-envelope}
-\end{figure*}
 The dynamic programming algorithm requires computing $O(Kn)$ cost
 functions $\FCC_{k,t}$. As in the original pruned dynamic programming
 algorithm, the time complexity of the algorithm is $O(K n I)$ where
 $I$ is the number of intervals (convex function pieces; candidate
 changepoints) that are used to represent the cost functions. The
-theoretical maximum number of intervals is $I=O(n)$, implying a
-time complexity of $O(K n^2)$
-\citep{pruned-dp-new}. However, this maximum is only achieved in
-pathological synthetic data sets, such as a monotonic increasing data
-sequence. The average number of intervals in real data sets is
-empirically $I=O(\log n)$, as we will show in
+theoretical maximum number of intervals is $I=O(n)$, implying a time
+complexity of $O(K n^2)$ \citep{pruned-dp-new}. However, this maximum
+is only achieved in pathological synthetic data sets, such as a
+monotonic increasing data sequence. The average number of intervals in
+real data sets is empirically $I=O(\log n)$, as we will show in
 Section~\ref{sec:results_time}. Thus the average time complexity of
 the algorithm is $O(K n \log n)$.
 
@@ -861,7 +797,7 @@ the algorithm is $O(K n \log n)$.
 %   FunctionPiece.
 % \end{itemize}
 % The above data structures and sub-routines are used in the following
-% pseudo-code, which describes an algorithm for solving the SNIR
+% pseudocode, which describes an algorithm for solving the SNIR
 % problem.
 % \begin{algorithm}[H]
 % \begin{algorithmic}[1]
@@ -915,11 +851,11 @@ the algorithm is $O(K n \log n)$.
 %     \label{line:decode-ks}
 %   \end{ALC@g}
 % \end{ALC@g}
-% \caption{\label{algo:SNIR} SNIR solver TODO separate decoding into separate algo?}
+% \caption{\label{algo:GPDPA} SNIR solver TODO separate decoding into separate algo?}
 % \end{algorithmic}
 % \end{algorithm}
 
-% Algorithm~\ref{algo:SNIR} begins by computing the min/max on
+% Algorithm~\ref{algo:GPDPA} begins by computing the min/max on
 % line~\ref{line:min-max}.  The main storage of the algorithm is
 % $\FCC_{k,t}$, which should be initialized as a $K\times n$ array of
 % empty FunctionPieceList objects. The computation of $\FCC_{1,t}$ for
@@ -1026,20 +962,61 @@ changes. More precisely, the constrained optimization problem can be
 stated as
 \begin{align}
   \label{eq:PeakSeg}
-  &\minimize_{
+  \minimize_{
         \substack{\mathbf u\in\RR^K \\
     0=t_0<t_1<\cdots<t_{K-1}<t_K=n
     %\mathbf t\in\{1,\dots,n\}^{K+1}
 }
-    } && 
+    } &\ \ 
   \sum_{k=1}^K h_{t_{k-1}, t_k}(u_k)\\
-  &\text{\hskip 1.05cm subject to} && u_{k-1} \leq u_k\ \forall k\in\{2,4,\dots\},
+      \text{subject to \hskip 0.9cm} &\ \ u_{k-1} \leq u_k\ \forall k\in\{2,4,\dots\},
   \nonumber\\
-  & && u_{k-1} \geq u_k\ \forall k\in\{3,5,\dots\}.
+  &\ \ u_{k-1} \geq u_k\ \forall k\in\{3,5,\dots\}.
   \nonumber
   %\\&&& 0=t_0<t_1<\cdots<t_{K-1}<t_K=n.
 \nonumber
 \end{align}
+
+\begin{figure*}[t!]
+  \centering
+  \input{figure-2-min-envelope}
+\vskip -0.5cm
+  \caption{
+% Computing the optimal cost functions $C_{3,t}(u_3)$ subject
+%     to the constraint $u_3\leq u_2$. \textbf{Left:} the pruning at
+%     $t=34$ takes the minimum of the cost of a non-increasing change
+%     after data point $t=34$ ($C_{2,34}^\geq$) to the cost of a change
+%     before ($C_{3,34}$). \textbf{Middle:} the optimal cost up to
+%     $t=35$ is defined as the cost of the new data point
+%     $\ell_{35}(u_3)=\ell(y_{35},u_3)$ plus the minimum of the previous
+%     pruning step $M_{3,34}=\min\{C_{3,34},
+%     C_{2,34}^\geq\}$. \textbf{Right:} because
+%     $C_{2,34}^\geq(u_3)<C_{3,35}(u_3)$ for all mean values $u_3$, all
+%     previous changepoints can be pruned, resulting in an optimal cost
+%     $M_{3,35}=\min\{C_{3,35},C_{2,35}^\geq\}=C_{2,35}^\geq$ with only
+%     two intervals.
+% (one constant, one convex).
+    % The cost $C_{k,t}$ of the PeakSeg model~(\ref{eq:PeakSeg}) in $k$
+    % segments up to data point $t$ is computed using the min
+    % $M_{k,t-1}$, which prunes intervals with sub-optimal cost (black
+    % dots show interval limits). 
+    Demonstration of GPDPA for the PeakSeg model~(\ref{eq:PeakSeg})
+    with $k=3$ segments. Cost functions are stored as piecewise
+    functions on intervals (black dots show limits between function
+    pieces). \textbf{Left:} the min \textcolor{Min}{$M_{3,34}$} is the
+    minimum of two functions: \textcolor{MinMore}{$C^{\geq}_{2,34}$}
+    is the cost if the second segment ends at data point $t=34$ (the
+    min-more operator forces a non-increasing change after), and
+    \textcolor{Ckt}{$C_{3,34}$} is the cost if the second segment ends
+    before that. \textbf{Middle:} the cost \textcolor{Ckt}{$C_{3,35}$}
+    is the sum of the min \textcolor{Min}{$M_{3,34}$} and the cost of
+    the next data point \textcolor{Data}{$\ell_{35}$}. \textbf{Right:}
+    in the next step, all previously considered changepoints are
+    pruned (cost \textcolor{Ckt}{$C_{3,35}$}), since the model with a the second
+    segment ending at data point $t=35$ is always less costly
+    (\textcolor{MinMore}{$C^{\geq}_{2,35}$}).  }
+  \label{fig:min-envelope}
+\end{figure*}
 
 Our proposed Generalized Pruned Dynamic Programming Algorithm (GPDPA)
 can be used to solve the PeakSeg problem. The initialization $k=1$ is
@@ -1067,9 +1044,11 @@ $y\in\ZZ_+ = \{0, 1, 2, \dots\}$.
 % Our free/open-source implementation
 % is available as the PeakSegPDPA function in the R package coseg
 % (\url{https://github.com/tdhock/coseg}). 
-A free/open-source C++ implementation of this algorithm will be made
-available online after acceptance. Implementation details can be
-found in the supplementary materials.
+We implemented this algorithm in C++, and our free/open-source code is
+available as the PeakSegPDPA function in the coseg R package for
+constrained optimal segmentation
+(\url{https://github.com/tdhock/coseg}). Implementation details can be
+found in Section~\ref{sec:pseudocode}.
 
 \subsection{General affine inequality constraints
   between adjacent segment means}
@@ -1170,17 +1149,17 @@ functions $g_k(u_k, u_{k+1})=a_k u_k + b_k u_{k+1} + c_k$. The
 changepoint detection problem with general affine constraints is
 \begin{align}
   \label{eq:min_general_affine_inequality}
-  &\minimize_{
+  \minimize_{
     \substack{
     \mathbf u\in\RR^K\\
 0=t_0<t_1<\cdots<t_{K-1}<t_K=n
 }
   %\mathbf t\in\{1,\dots,n\}^{K+1}
-    } && 
+    } &\ \ 
   \sum_{k=1}^K h_{t_{k-1}, t_k}(u_k)\\
-  &\text{\hskip 1.05cm subject to} && \forall k\in\{1,\dots,K-1\},
+  \text{subject to \hskip 0.9cm} &\ \  \forall k\in\{1,\dots,K-1\},
   \nonumber\\
-& &&g_k(u_k, u_{k+1})\leq 0.\nonumber                        
+&\ \ g_k(u_k, u_{k+1})\leq 0.\nonumber                        
   %\\&&& 0=t_0<t_1<\cdots<t_{K-1}<t_K=n.
 \nonumber
 \end{align}
@@ -1235,10 +1214,11 @@ non-decreasing or non-increasing. In this case it can be computed
 using a simple algorithm that scans the piecewise function $f$ either
 from left to right or right to left. When a local minimum is found,
 its value is recorded, and a constant function piece is added (for
-details see pseudocode for MinLess algorithm in supplementary
-materials). The constrained minimization operator is used in the
-following general dynamic programming update rule which can be used to
-compute the solution to (\ref{eq:min_general_affine_inequality})
+details see pseudocode for MinLess algorithm in
+Section~\ref{sec:MinLess}). The constrained minimization operator is
+used in the following general dynamic programming update rule which
+can be used to compute the solution to
+(\ref{eq:min_general_affine_inequality})
 \begin{equation}
   \label{eq:general_dp}
   \FCC_{k,t}(\mu) = \ell(y_t,\mu) + \min\{
@@ -1252,31 +1232,6 @@ closed-form computation of the constrained minimization operator
 (\ref{eq:constrained-min-operator}) would possibly be much more
 difficult for these more general constraint functions (e.g. quadratic
 constraint functions).
-
-\begin{figure*}[t!]
-  \centering
-  \parbox{0.49\textwidth}{
-    %\input{figure-PDPA-intervals-small}
-    \input{figure-PDPA-intervals-log-log}
-  }
-  \parbox{0.49\textwidth}{
-    \input{figure-PDPA-timings-log-log}
-    %\input{figure-PDPA-timings-small} 
-  }
-  \vskip -0.8cm
-  \caption{Empirical speed analysis on 2752 count data vectors from
-    the histone mark ChIP-seq benchmark. For each vector we ran the
-    GPDPA with the up-down constraint and a max of $K=19$
-    segments. The expected time complexity is $O(KnI)$ where $I$ is
-    the average number of intervals (function pieces; candidate
-    changepoints) stored in the $C_{k,t}$ cost
-    functions. \textbf{Left}: number of intervals stored is
-    $I=O(\log n)$ (median, inter-quartile range, and maximum over all
-    data points $t$ and segments $k$).  \textbf{Right}: time
-    complexity of the GPDPA is $O(n\log n)$ (median line and min/max
-    band).}
-  \label{fig:timings}
-\end{figure*}
 
 \section{Results on peak detection in ChIP-seq data}
 \label{sec:results-chip-seq}
@@ -1326,6 +1281,31 @@ state-of-the-art peak detection accuracy, by classifying even-numbered
 segments $k$ as peaks, and odd-numbered segments $k$ as background
 noise. However, its quadratic $O(Kn^2)$ time complexity makes it too
 slow to run on large ChIP-seq data sets.
+
+\begin{figure*}[t!]
+  \centering
+  \parbox{0.49\textwidth}{
+    %\input{figure-PDPA-intervals-small}
+    \input{figure-PDPA-intervals-log-log}
+  }
+  \parbox{0.49\textwidth}{
+    \input{figure-PDPA-timings-log-log}
+    %\input{figure-PDPA-timings-small} 
+  }
+  \vskip -0.8cm
+  \caption{Empirical speed analysis on 2752 count data vectors from
+    the histone mark ChIP-seq benchmark. For each vector we ran the
+    GPDPA with the up-down constraint and a max of $K=19$
+    segments. The expected time complexity is $O(KnI)$ where $I$ is
+    the average number of intervals (function pieces; candidate
+    changepoints) stored in the $C_{k,t}$ cost
+    functions. \textbf{Left}: number of intervals stored is
+    $I=O(\log n)$ (median, inter-quartile range, and maximum over all
+    data points $t$ and segments $k$).  \textbf{Right}: time
+    complexity of the GPDPA is $O(n\log n)$ (median line and min/max
+    band).}
+  \label{fig:timings}
+\end{figure*}
 
 In this section, we show that our proposed GPDPA can be used to
 overcome this speed drawback, while maintaining state-of-the-art
@@ -1394,29 +1374,6 @@ we recorded the number of intervals stored in the $\FCC_{k,t}$ cost
 functions (Section~\ref{sec:algorithms}), as well as the computation
 time in seconds.
 
-
-\begin{figure*}[t!]
-  \centering
-  %\includegraphics[width=\textwidth]{figure-test-error-mean}
-  \includegraphics[width=\textwidth]{figure-test-error-dots}
-  \vskip -0.5cm
-  \caption{Four-fold cross-validation 
-was used to estimate peak detection accuracy. 
-    Each panel shows one of seven ChIP-seq data sets, 
-    named by experiment (Broad H3K36me3), 
-    labeler (AM), and cell types (immune).
-    Each black circle shows test AUC in one of four
-    cross-validation folds, the shaded grey circle is the mean, and
-    the vertical line is the maximum mean in each data set. It is
-    clear that the proposed GPDPA is
-    just as accurate as the previous state-of-the-art CDPA, and both are
-    more accurate than the other baseline methods. 
-% Interactive version
-%     available at
-%     \url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}
-  }
-  \label{fig:test-error-dots}
-\end{figure*}
 
 % TODO: define I?
 As in the PDPA, the time complexity of our proposed GPDPA is
@@ -1523,6 +1480,29 @@ to use for very large data sets.
 % sets, we randomly assigned labeled data to one of four folds. For each
 % fold, we treat it as a test set, and train a model using all other
 % folds.
+
+\begin{figure*}[t!]
+  \centering
+  %\includegraphics[width=\textwidth]{figure-test-error-mean}
+  \includegraphics[width=\textwidth]{figure-test-error-dots}
+  \vskip -0.5cm
+  \caption{Four-fold cross-validation 
+was used to estimate peak detection accuracy. 
+    Each panel shows one of seven ChIP-seq data sets, 
+    labeled by experiment (Broad H3K36me3), 
+    labeler (AM), and cell types (immune).
+    Each black circle shows test AUC in one of four
+    cross-validation folds, the shaded grey circle is the mean, and
+    the vertical line is the maximum mean in each data set. It is
+    clear that the proposed GPDPA is
+    just as accurate as the previous state-of-the-art CDPA, and both are
+    more accurate than the other baseline methods. 
+% Interactive version
+%     available at
+%     \url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}
+  }
+  \label{fig:test-error-dots}
+\end{figure*}
 
 For the optimal changepoint detection algorithms (CDPA, PDPA, GPDPA),
 the prediction problem simplifies to selecting the number of segments
@@ -1639,6 +1619,7 @@ observed that the GPDPA enjoys the same state-of-the-art accuracy as
 the previous best, the relatively slow quadratic $O(Kn^2)$ time
 CDPA.
 
+
 We observed that the heuristic algorithms which are popular in the
 bioinformatics literature (MACS, HMCanBroad) are much less accurate
 than the optimal changepoint detection algorithms (CDPA, PDPA,
@@ -1657,18 +1638,679 @@ changepoints grows with the number of data points, then $K=O(n)$ and
 our proposed GPDPA has $O(n^2 \log n)$ average time complexity (since
 it computes all models with $1,\dots,K$ segments). We have already
 started modifying the GPDPA for optimal partitioning
-\citep{optimal-partitioning}, which computes the $K$-segment model for
-a single penalty constant $\lambda$ (without computing models with
-$1,\dots,K-1$ segments) in $O(n\log n)$ time. 
-% We have not yet found a
-% way to use the inequality pruning technique of \citet{pelt} for
-% constrained changepoint models. This will be an interesting direction
-% for future research, since inequality pruning is easier to implement
-% than functional pruning \citep{fpop}.
+\citep{optimal-partitioning}, which results in the Generalized
+Functional Prunining Optimal Partitioning (GFPOP) algorithm
+(Section~\ref{sec:GFPOP}). It computes the $K$-segment model for a
+single penalty constant $\lambda$ (without computing models with
+$1,\dots,K-1$ segments) in $O(n\log n)$ time.
 
+\section{Reproducible Research Statement}
 
-\bibliographystyle{icml2016}
+The source code and data used to create this manuscript (including all
+figures) is available at
+\url{https://github.com/tdhock/PeakSegFPOP-paper}
+
 \newpage
+
+\appendix
+The supplementary materials begin on this page.
+\section{Proof of optimality of 
+dynamic programming algorithm}
+\label{sec:proof}
+In this section we give a proof of Theorem~\ref{thm:gpdpa}.
+\begin{proof}
+Case 1 and 2 follow from the definition of $\FCC_{K,t}(u)$.
+
+We now focus on case 3.
+First notice that by definition of $\FCC_{K,t+1}(u)$ (i.e. the optimal segmentation) we must have
+$\FCC_{K,t+1}(u) \leq \FCC_{K,t}(u) + \ell(y_t,u)$ and also
+$\FCC_{K,t+1}(u) \leq \FCC_{K-1,t}(u) + \ell(y_t,u)$. Thus we have
+$\FCC_{K,t+1}(u) \leq \min \{ \FCC_{K,t}(u) , \FCC_{K-1,t}(u) \} + \ell(y_{t+1},u)$.
+
+Now let us assume,
+$$\FCC_{K,t+1}(u) < \min \{ \FCC_{K,t}(u) , \FCC_{K-1,t}(u) \} + \ell(y_{t+1},u).$$
+We will show that this lead to a contradiction.
+
+We consider the optimal segmentation
+$(\mathbf u, \mathbf t)\in{\mathcal I}_{t+1}^K$ which achieves the
+optimum of $\FCC_{K,t+1}(u)$. We consider two possible cases:
+\begin{description}
+\item[Scenario 1: $t_K < t$.]  Define $\mathbf t'$ such that for all
+  $i < K$, we have $t'_i = t_i$ and $t'_K = t$.  We have
+  $(\mathbf u, \mathbf t')\in{\mathcal I}_{t}^K$.  We can thus
+  decompose $\FCC_{K,t+1}(u)$ as
+
+$$\FCC_{K,t+1}(u) = \sum_{k=1}^K
+  h_{t'_{k-1}, t'_k}(u_k) + \ell(y_{t+1},u).$$ 
+
+By assumption we would recover $\sum_{k=1}^K h_{t'_{k-1}, t'_k}(u_k) < \FCC_{K,t}(u)$ which is a contradiction
+by definition of $\FCC_{K,t}(u)$. 
+
+\item[Scenario 2: $t_K=t$.]  Define $\mathbf t'$ such that for all
+  $i < K-1$, we have $t'_i = t_i$ and $t'_{K-1} = t$. Also define
+  $\mathbf u'$ such that for all $k \leq K-1$, we have $u'_k = u_k$.
+  Thus $(\mathbf u', \mathbf t')\in{\mathcal I}_{t}^{K-1}$, and can
+  then decompose $\FCC_{K,t+1}(u)$ as
+
+$$\FCC_{K,t+1}(u) = \sum_{k=1}^K
+  h_{t'_{k-1}, t'_k}(u'_k) + \ell(y_{t+1},u).$$ 
+
+By assumption we would recover $\sum_{k=1}^{K-1} h_{t'_{k-1}, t'_k}(u'_k) < \FCC_{K-1,t}(u)$ which is a contradiction
+by definition of $\FCC_{K-1,t}(u)$. 
+\end{description}
+\end{proof}
+We have thus proved that the dynamic programming update rules can be
+used for computing the optimal cost functions $C_{k,t}$.
+
+\section{Algorithm pseudocode}
+\label{sec:pseudocode}
+In this section we give pseudocode for our proposed Generalized Pruned
+Dynamic Programming Algorithm (GPDPA), and related algorithms.
+\subsection{GPDPA for reduced isotonic regression}
+We begin by providing a pseudocode solver for the simplest case, the
+reduced isotonic regression problem. We propose the following data
+structures and sub-routines for the computation:
+\begin{itemize}
+\item FunctionPiece: a data structure which represents one piece of a
+  $C_{k,t}(u)$ cost function (for one interval of mean values $u$). It
+  has coefficients which depend on the convex loss function $\ell$
+  (for the square loss it has three real-valued coefficients $a,b,c$
+  which define a function $au^2 + bu + c$). It also has two
+  real-valued elements for min/max mean values
+  $[\underline u, \overline u]$ of this interval, meaning the function
+  $C_{k,t}(u)=au^2 + bu + c$ for all
+  $u\in[\underline u, \overline u]$. Finally it stores a previous
+  segment endpoint $t'$ (integer) and mean $u'$ (real).
+\item FunctionPieceList: an ordered list of FunctionPiece objects,
+  which exactly stores a cost function $\FCC_{k,t}(u)$ for all values
+  of last segment mean $u$.
+\item $\text{OnePiece}(y, \underline u, \overline u)$: a sub-routine
+  that initializes a FunctionPieceList with just one FunctionPiece
+  $\ell(y, u)$ defined on $[\underline u, \overline u]$.
+\item $\text{MinLess}(t, f)$: an algorithm that inputs a changepoint
+  and a FunctionPieceList, and outputs the corresponding min-less
+  operator $f^\leq$ (another FunctionPieceList), with the previous
+  changepoint set to $t'=t$ for each of its pieces. This algorithm
+  also needs to store the previous mean value $u'$ for each of the
+  function pieces (see pseudocode below). 
+\item $\text{MinOfTwo} (f_1, f_2)$: an algorithm that inputs two
+  FunctionPieceList objects, and outputs another FunctionPieceList
+  object which is their minimum. 
+\item $\text{ArgMin}(f)$: an algorithm that inputs a FunctionPieceList
+  and outputs three values: the optimal mean $u^*=\argmin_u f(u)$, the
+  previous segment end $t'$ and mean $u'$.
+\item $\text{FindMean}(u, f)$ an algorithm that inputs a mean value
+  and a FunctionPieceList. It finds the FunctionPiece in $f$ with mean
+  $u\in[\underline u, \overline u]$ contained in its interval, then
+  outputs the previous segment end $t'$ and mean $u'$ stored in that
+  FunctionPiece.
+\end{itemize}
+The above data structures and sub-routines are used in the following
+pseudocode, which describes the GPDPA for solving the reduced
+isotonic regression problem.
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE Input: data set $\mathbf y\in\RR^n$, maximum number of segments $K\in\{2,\dots, n\}$.
+\STATE Output: matrices of optimal segment means $U\in\RR^{K\times K}$ 
+and ends $T\in\{1,\dots,n\}^{K\times K}$
+\STATE Compute min $\underline y$ and max $\overline y$ of $\mathbf y$.
+\label{line:min-max}
+\STATE $\FCC_{1,1}\gets \text{OnePiece}(y_1, \underline y, \overline y)$
+\label{line:init-1}
+\STATE for data points $t$ from 2 to $n$:
+\begin{ALC@g}
+  \STATE $\FCC_{1,t}\gets \text{OnePiece}(y_t, \underline y, \overline y) + \FCC_{1,t-1}$
+\label{line:init-t}
+\end{ALC@g}
+\STATE for segments $k$ from 2 to $K$: for data points $t$ from $k$ to $n$: // dynamic programming
+\label{line:for-k-t}
+\begin{ALC@g}
+  \STATE $\text{min\_prev}\gets \text{MinLess}(t-1, \FCC_{k-1,t-1})$ // this is $\FCC_{k-1,t-1}^\leq$
+  \label{line:MinLess}
+  % \STATE if $t=k$:
+  % \begin{ALC@g}
+  %   \STATE $\text{min\_new}\gets\text{min\_prev}$ // there is only one
+  %   possible changepoint, before $t$
+  % \end{ALC@g}
+  % \STATE else:
+  % \begin{ALC@g}
+  %   \STATE $\text{min\_new}\gets\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
+  % \end{ALC@g}
+    \STATE $\text{min\_new}\gets\text{min\_prev}$ if $t=k$, 
+else $\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
+  \label{line:MinOfTwo}
+  \STATE $\FCC_{k,t}\gets \text{min\_new} + \text{OnePiece}(y_t, \underline y, \overline y)$
+  \label{line:AddNew}
+\end{ALC@g}
+\STATE for segments $k$ from 1 to $K$: // decoding for every model size $k$
+\label{line:for-k-decoding}
+\begin{ALC@g}
+  \STATE $u^*,t',u'\gets \text{ArgMin}(\FCC_{k,n})$
+  \label{line:ArgMin}
+  \STATE $U_{k,k}\gets u^*;\, T_{k,k}\gets t'$ // store mean of segment $k$ and end of segment $k-1$
+  \label{line:decode-kk}
+  \STATE for segment $s$ from $k-1$ to $1$: // decoding for every segment $s<k$
+  \label{line:for-s-decoding}
+  \begin{ALC@g}
+    \STATE if $u' < \infty$: $u^*\gets u'$ // equality constraint active, $u_s = u_{s+1}$
+    \label{line:equality-constraint-active}
+    \STATE $t',u'\gets\text{FindMean}(u^*, \FCC_{s,t'})$
+    \label{line:FindMean}
+    \STATE $U_{k,s}\gets u^*;\, T_{k,s}\gets t'$ // store mean of segment $s$ and end of segment $s-1$
+    \label{line:decode-ks}
+  \end{ALC@g}
+\end{ALC@g}
+\caption{\label{algo:GPDPA}Generalized Pruned Dynamic Programming
+  Algorithm (GPDPA) for solving the reduced isotonic regression
+  problem.}
+\end{algorithmic}
+\end{algorithm}
+
+Algorithm~\ref{algo:GPDPA} begins by computing the min/max on
+line~\ref{line:min-max}.  The main storage of the algorithm is
+$\FCC_{k,t}$, which should be initialized as a $K\times n$ array of
+empty FunctionPieceList objects. The computation of $\FCC_{1,t}$ for
+all $t$ occurs on lines~\ref{line:init-1}--\ref{line:init-t}. 
+
+The dynamic programming updates occur in the for loops on
+lines~\ref{line:for-k-t}--\ref{line:AddNew}. Line~\ref{line:MinLess}
+uses the MinLess sub-routine to compute the temporary
+FunctionPieceList min\_prev (which represents the function
+$\FCC_{k-1,t-1}^\leq$). Line~\ref{line:MinOfTwo} sets the temporary
+FunctionPieceList min\_new to the cost of the only possible
+changepoint if $t=k$; otherwise, it uses the MinOfTwo sub-routine to
+compute the cost of the best changepoint for every possible mean
+value. Line~\ref{line:AddNew} adds the cost of data point $t$, and
+stores the resulting FunctionPieceList in $\FCC_{k,t}$.
+
+The decoding of the optimal segment mean $U$ (a $K\times K$ array of
+real numbers) and end $T$ (a $K\times K$ array of integers) variables
+occurs in the for loops on
+lines~\ref{line:for-k-decoding}--\ref{line:decode-ks}. For a given
+model size $k$, the decoding begins on line~\ref{line:ArgMin} by using
+the ArgMin sub-routine to solve $u^* = \argmin_u \FCC_{k,n}(u)$ (the
+optimal values for the previous segment end $t'$ and mean $u'$ are
+also returned). Now we know that $u^*$ is the optimal mean of the last
+($k$-th) segment, which occurs from data point $t'+1$ to $n$. These
+values are stored in $U_{k,k}$ and $T_{k,k}$
+(line~\ref{line:decode-kk}). And we already know that the optimal mean
+of segment $k-1$ is $u'$.  Note that the $u'=\infty$ flag means that
+the equality constraint is active
+(line~\ref{line:equality-constraint-active}). The decoding of the
+other segments $s<k$ proceeds using the FindMean sub-routine
+(line~\ref{line:FindMean}). It takes the cost $\FCC_{s,t'}$ of the
+best model in $s$ segments up to data point $t'$, finds the
+FunctionPiece that stores the cost of $u^*$, and returns the new
+optimal values of the previous segment end $t'$ and mean $u'$. The
+mean of segment $s$ is stored in $U_{k,s}$ and the end of segment
+$s-1$ is stored in $T_{k,s}$ (line~\ref{line:decode-ks}).
+
+The time complexity of Algorithm~\ref{algo:GPDPA} is $O(K n I)$ where
+$I$ is the complexity of the MinLess and MinOfTwo sub-routines, which
+is linear in the number of intervals (FunctionPiece objects) that are
+used to represent the cost functions. There are pathological synthetic
+data sets for which the number of intervals $I=O(n)$, implying a
+time complexity of $O(K n^2)$. However, the average number
+of intervals in real data sets is empirically $I=O(\log n)$, so the
+average time complexity of Algorithm~\ref{algo:GPDPA} is
+$O(K n \log n)$.
+
+\subsection{MinLess algorithm}
+\label{sec:MinLess}
+The MinLess algorithm implements the min-less operator $f^\leq$
+(Definition~\ref{def:min-less}), which is an essential sub-routine of
+the GPDPA. The following sub-routines are used to implement the
+MinLess algorithm.
+
+\begin{itemize}
+\item $\text{GetCost}(p, u)$: an algorithm that takes a FunctionPiece
+  object $p$, and a mean value $u$, and computes the cost at $u$. For
+  a square loss FunctionPiece $p$ with coefficients $a,b,c\in\RR$, we
+  have $\text{GetCost}(p,u)=au^2+bu+c$.
+\item $\text{OptimalMean}(p)$: an algorithm that takes one
+  FunctionPiece object, and computes the optimal mean value. For a
+  square loss FunctionPiece $p$ we have
+  $\text{OptimalMean}(p)=-b/(2a)$.
+\item $\text{ComputeRoots}(p, d)$: an algorithm that takes one
+  FunctionPiece object, and computes the solutions to $p(u)=d$. For
+  the square loss we propose to use the quadratic formula. For other
+  convex losses that do not have closed form expressions for their
+  roots, we propose to use Newton's root finding method. Note that for
+  some constants $d$ there are no roots, and the algorithm needs to
+  report that.
+\item $f.\text{push\_piece}(\underline u, \overline u, p, u')$: push a
+  new FunctionPiece at the end of FunctionPieceList $f$, with
+  coefficients defined by FunctionPiece $p$, on interval
+  $[\underline u, \overline u]$, with previous segment mean set to
+  $u'$.
+\item $\text{ConstPiece}(c)$: sub-routine that initializes a
+  FunctionPiece $p$ with constant cost $c$ (for the square loss it
+  sets $a=b=0$ in $au^2 + bu + c$).
+\end{itemize}
+
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE Input: The previous segment end $t_{\text{prev}}$ (an integer), 
+ and $f_{\text{in}}$ (a FunctionPieceList).
+\STATE Output: FunctionPieceList $f_{\text{out}}$, initialized as an empty list.
+\STATE $\text{prev\_cost} \gets\infty$
+\STATE $\text{new\_lower\_limit}\gets \text{LowerLimit}(f_{\text{in}}[0])$.
+\STATE $i\gets 0$; // start at FunctionPiece on the left
+\STATE while $i < $ Length($f_{\text{in}}$): // continue until FunctionPiece on the right
+\begin{ALC@g}
+  \STATE FunctionPiece $p\gets f_{\text{in}}[i]$
+  \STATE if prev\_cost = $\infty$: // look for min in this interval.
+  \begin{ALC@g}
+    \STATE $\text{candidate\_mean}\gets \text{OptimalMean}(p)$ 
+    \STATE if $\text{LowerLimit}(p)< \text{candidate\_mean} < \text{UpperLimit}(p)$:
+    \begin{ALC@g}
+      \STATE $\text{new\_upper\_limit}\gets \text{candidate\_mean}$ // Minimum found in this interval.
+      \STATE $\text{prev\_cost}\gets \text{GetCost}(p, \text{candidate\_mean})$
+      \STATE $\text{prev\_mean}\gets \text{candidate\_mean}$
+    \end{ALC@g}
+    \STATE else: // No minimum in this interval.
+    \begin{ALC@g}
+      \STATE 
+      $\text{new\_upper\_limit}\gets
+ \text{UpperLimit}(p)$
+    \end{ALC@g}
+    \STATE $f_{\text{out}}\text{.push\_piece}(\text{new\_lower\_limit},\text{new\_upper\_limit},p,\infty)$
+    \STATE $\text{new\_lower\_limit}\gets\text{new\_upper\_limit}$
+    \STATE $i\gets i+1$
+  \end{ALC@g}
+  \STATE else: // look for equality of $p$ and prev\_cost
+  \begin{ALC@g}
+    \STATE $(\text{small\_root},\text{large\_root})\gets\text{ComputeRoots}(p, \text{prev\_cost})$
+    \STATE if $\text{LowerLimit}(p) < \text{small\_root} < \text{UpperLimit}(p)$:
+    \begin{ALC@g}
+      \STATE $f_{\text{out}}\text{.push\_piece}(
+      \text{new\_lower\_limit}, 
+      \text{small\_root}, 
+      \text{ConstPiece}(\text{prev\_cost}), 
+      \text{prev\_mean})$
+      \STATE $\text{new\_lower\_limit}\gets \text{small\_root}$
+      \STATE $\text{prev\_cost}\gets \infty$ 
+    \end{ALC@g}
+    \STATE else: // no equality in this interval
+    \begin{ALC@g}
+      \STATE $i\gets i+1$ // continue to next FunctionPiece
+    \end{ALC@g}
+  \end{ALC@g}
+\end{ALC@g}
+  \STATE if $\text{prev\_cost} < \infty$: // ending on constant piece
+  \begin{ALC@g}
+    \STATE $f_{\text{out}}\text{.push\_piece}(
+    \text{new\_lower\_limit}, 
+    \text{UpperLimit}(p), 
+    \text{ConstPiece}(\text{prev\_cost}), 
+    \text{prev\_mean})$
+  \end{ALC@g}
+\STATE Set all previous segment end $t'=t_{\text{prev}}$  for all FunctionPieces in $f_{\text{out}}$
+\caption{\label{algo:minless}MinLess algorithm.}
+\end{algorithmic}
+\end{algorithm}
+
+Consider Algorithm~\ref{algo:minless} which contains pseudocode for
+the computation of the min-less operator. The algorithm initializes
+prev\_cost (line~3), which is a state variable that is used on line~8
+to decide whether the algorithm should look for a local minimum or an
+intersection with a finite cost. Since prev\_cost is initially set to
+$\infty$, the algorithm begins by following the convex function pieces
+from left to right until finding a local minimum. If no minimum is found in
+a given convex FunctionPiece (line~15), it is simply pushed on to the
+end of the new FunctionPieceList (line~16). If a minimum occurs within
+an interval (line~10), the cost and mean are stored (lines 11--12),
+and a new convex FunctionPiece is created with upper limit ending at
+that mean value (line~16). Then the algorithm starts looking for
+another FunctionPiece with the same cost, by computing the smaller
+root of the convex loss function (line~20). When a FunctionPiece is
+found with a root in the interval (line~21), a new constant
+FunctionPiece is pushed (line~22), and the algorithm resumes searching
+for a minimum. At the end of the algorithm, a constant FunctionPiece
+is pushed if necessary (line~28). The complexity of this algorithm is
+$O(I)$ where $I$ is the number of FunctionPiece objects in
+$f_\text{in}$.
+
+The algorithm which implements the min-more operator is
+analogous. Rather than searching from left to right, it searches from
+right to left. Rather than using the small root (line~21), it uses the
+large root.
+
+\subsection{Implementation details}
+
+Some implementation details that we found to be important:
+\begin{description}
+\item[Weights] for data sequences that contain repeats it is
+  computationally advantageous to use a run-length encoding of the
+  data, and a corresponding loss function. For example if the data
+  sequence 5,1,1,1,0,0,5,5 is encoded as $n=4$ counts $y_t$ 5,1,0,5 with
+  corresponding weights $w_t$ 1,3,2,2 then the Poisson loss function
+  for mean $\mu$ is $\ell(y_t, w_t, \mu) = w_t(\mu- y_t\log \mu)$.
+\item[Mean cost] The text defines $C_{k,t}$ functions as the total
+  cost. However for very large data sets the cost values will be very
+  large, resulting in numerical instability. To overcome this issue we
+  instead implemented update rules using the mean cost.  For weights
+  $W_{t}=\sum_{i=1}^t w_i$, the update rule to compute the mean cost is
+$$  C_{k,t}(\mu) = \frac{1}{W_{t}} \left[\ell(y_t, \mu) + 
+W_{t-1}
+\min\{ C_{k,t-1}(\mu),\, C_{k-1,t-1}^\leq(\mu)  \}\right]$$
+\item[Intervals in log(mean) space] For the Poisson model of
+  non-negative count data $y_t\in\{0,1,2,\dots\}$ there is no possible
+  mean $\mu$ value less than 0. We thus used $\log(\mu)$ values to
+  implement intervals in FunctionPiece objects. For example rather
+  than storing $\mu\in[0,1]$ we store $\log\mu\in[-\infty, 0]$.
+\item[Root finding] For the ComputeRoots sub-routine for the Poisson
+  loss, we used Newton root finding. For the larger root we solve
+  $a\log\mu + b\mu + c = 0$ (linear as $\mu\rightarrow\infty$) and for
+  the smaller root we solve $a x + be^x + c = 0$ ($x=\log \mu$, linear
+  as $x\rightarrow -\infty$ and $\mu\rightarrow 0$). We stop the root
+  finding when the cost is near zero (absolute cost value less
+  than $10^{-12}$).
+\item[Storage] Since the dynamic programming update rule for $C_{k,t}$
+  only depends on $C_{k-1,t-1}^\geq$ and $C_{k,t-1}$, these are the
+  only functions that need to be in memory, and the rest of the cost
+  functions can be stored on disk (until the decoding step). We used
+  the Berkeley DB Standard Template Library to store all the $C_{k,t}$
+  as a vector of FunctionPieceList objects.
+\end{description}
+
+\subsection{Penalized version of reduced isotonic regression}
+
+\citet{fpop} proposed the Functional Pruning Optimal Partitioning
+(FPOP) algorithm to solve the ``penalized'' or ``optimal
+partitioning'' version of the segment neighborhood problem, where the
+constraint of $K$ segments is replaced by a non-negative penalty
+$\lambda\in\RR_+$ on the number of changes in the objective
+function. Rather than computing all models from 1 to $K$ segments (as
+in the PDPA), the FPOP algorithm computes the single model with $K$
+segments (without computing models from 1 to $K-1$ segments). The same
+penalization idea can be applied to models with affine constraints
+between adjacent segment means.  The penalized version of the reduced
+isotonic regression problem (\ref{eq:reduced}) can be stated as
+\begin{align}
+  \label{eq:penalized_reduced_isotonic}
+  \minimize_{
+    \substack{
+    \mathbf m\in\RR^n\\
+\mathbf c\in\{0,1\}^{n-1}
+}
+  %\mathbf t\in\{1,\dots,n\}^{K+1}
+    } &\ \ 
+  \sum_{t=1}^n \ell(y_t, m_t) + \lambda \sum_{t=1}^{n-1} I(c_t \neq 0) \\
+  \text{subject to\,} &\ \ c_t = 0 \Rightarrow m_t = m_{t+1}
+  \nonumber\\
+&\ \ c_t = 1 \Rightarrow m_t \leq m_{t+1}.
+\nonumber
+\nonumber
+\end{align}
+Note that the $c_t$ variable is a changepoint indicator.  The same
+functional pruning techniques used for the GPDPA can be exploited to
+create a solver for this problem. This results in the Generalized
+Functional Pruning Optimal Partitioning Algorithm (GFPOP, see
+Table~\ref{tab:GFPOP}).
+
+\begin{table}
+  \centering
+\begin{tabular}{c|c|c}
+  & Segment Neighborhood & Optimal Partitioning\\
+\hline
+unconstrained & PDPA & FPOP \\
+\hline
+constrained & GPDPA & GFPOP 
+\end{tabular}
+\caption{
+Algorithms for solving constrained and unconstrained versions 
+of the Segment Neighborhood and Optimal Partitioning problems. 
+PDPA = Pruned Dynamic Programming Algorithm, 
+FPOP = Functional Pruning Optimal Partitioning, 
+G = Generalized (can handle affine constraints on adjacent segment means).}
+\label{tab:GFPOP}
+\end{table}
+
+Let $\overline C_{\lambda,t}(u)$ be the
+penalized cost of the most likely segmentation up to data point $t$,
+with last segment mean $u$. The initialization for the first data
+point is $\overline C_{\lambda,1}(u) = \ell(y_1, u)$. The dynamic programming update rule
+for all data points $t>1$ is
+\begin{equation}
+  \overline C_{\lambda,t}(u) = \ell(y_t, u) + \min\{
+  \overline C_{\lambda,t-1}^\leq(u) + \lambda,\, \overline C_{\lambda,t-1}(u)
+  \}.
+\end{equation}
+The same sub-routines described in Section~\ref{sec:MinLess} can be
+used to implement the algorithm below, which solves the penalized
+reduced isotonic regression problem
+(\ref{eq:penalized_reduced_isotonic}).
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE Input: data set $\mathbf y\in\RR^n$, penalty constant $\lambda\geq 0$.
+\STATE Output: vectors of optimal segment means $U\in\RR^{n}$ and ends $T\in\{1,\dots,n\}^{n}$
+\STATE Compute min $\underline y$ and max $\overline y$ of $\mathbf y$.
+\label{line:op-min-max}
+\STATE $\overline C_{\lambda,1}\gets \text{OnePiece}(y_1, \underline y, \overline y)$
+\STATE for data points $t$ from 2 to $n$: // dynamic programming
+\label{line:for-dp-t}
+\begin{ALC@g}
+  \STATE $\text{min\_prev}\gets \lambda + \text{MinLess}(t-1, \overline C_{\lambda,t-1})$
+  \label{line:op-MinLess}
+  \STATE $\text{min\_new}\gets \text{MinOfTwo}(\text{min\_prev}, \overline C_{\lambda, t-1})$
+  \label{line:op-MinOfTwo}
+  \STATE $\overline C_{\lambda,t}\gets \text{min\_new} + \text{OnePiece}(y_t, \underline y, \overline y)$
+  \label{line:op-AddNew}
+\end{ALC@g}
+\STATE $u^*,t',u'\gets \text{ArgMin}(\overline C_{\lambda,n})$ // begin decoding
+\label{line:op-ArgMin}
+\STATE $i\gets 1;\, U_{i}\gets u^*;\, T_{i}\gets t'$
+\label{line:op-store-i}
+\STATE while $t' > 0$:
+\begin{ALC@g}
+  \STATE if $u' < \infty$: $u^*\gets u'$
+  \STATE $t',u'\gets\text{FindMean}(u^*, \overline C_{\lambda,t'})$
+  \STATE $i\gets i+1;\, U_{i}\gets u^*;\, T_{i}\gets t'$
+\label{line:op-i+1}
+\end{ALC@g}
+\caption{\label{algo:OPIR}Generalized Functional Pruning Optimal
+  Partitioning (GFPOP) for penalized reduced isotonic regression}
+\end{algorithmic}
+\end{algorithm}
+
+Algorithm~\ref{algo:OPIR} begins by computing the min/max
+(line~\ref{line:op-min-max}). The main storage
+of the algorithm is $\overline C_{\lambda, t}$, which should be
+initialized as an array of $n$ empty FunctionPieceList objects. 
+
+The dynamic programming recursion in this algorithm has only one for
+loop over data points $t$ (line~\ref{line:for-dp-t}). The penalty
+constant $\lambda$ is added to all of the function pieces that result
+from MinLess (line~\ref{line:op-MinLess}), before computing MinOfTwo
+(line~\ref{line:op-MinOfTwo}). The last step of each dynamic
+programming update is to add the cost of the new data point
+(line~\ref{line:op-AddNew}).
+
+The decoding process on lines~\ref{line:op-ArgMin}--\ref{line:op-i+1}
+is essentially the same as the GPDPA (Algorithm~\ref{algo:GPDPA}). The
+last segment mean and second to last segment end are first stored on
+line~\ref{line:op-store-i} in $(U_1,T_1)$. For each other segment $i$,
+the mean and previous segment end are stored on line~\ref{line:op-i+1}
+in $(U_i,T_i)$. Note that there should be space to store $(U_i,T_i)$
+parameters for up to $n$ segments. However, there are usually less
+than $n$ segments, and the algorithm should return a special flag for
+unused parameters, for example $(U_i=\infty, T_i=-1)$.
+
+The time complexity of Algorithm~\ref{algo:OPIR} is $O(n I)$, where
+$I$ is the time complexity of the MinLess and MinOfTwo
+sub-routines. As in the GPDPA, the time complexity of these
+sub-routines is linear in the number of intervals (FunctionPiece
+objects) that are used to represent the $\overline C_{\lambda, t}$
+cost functions. Since the number of intervals in real data is
+typically $I=O(\log n)$ (see Section~\ref{sec:results_time}), the
+overall time complexity of Algorithm~\ref{algo:OPIR} is on average
+$O(n \log n)$.
+
+\subsection{Generalized Functional Pruning Optimal Partitioning
+  Solvers}
+\label{sec:GFPOP}
+
+The GFPOP algorithm can solve problems with more general constraints
+than reduced isotonic regression. Let $G=(V,E)$ be a directed graph
+that represents the model constraints. The vertices
+$V=\{1,\dots,|V|\}$ can be represented as integers, one for every
+distinct state. The edges $E=\{1,\dots,|E|\}$ represent the possible
+changes between states. Each change $c\in E$ has corresponding
+$(\underline v_c, \overline v_c, \lambda_c, g_c)$ which specifies a
+transition from state $\underline v_c$ to state $\overline v_c$, with
+a penalty of $\lambda_c\in\RR_+$, and a constraint function
+$g_c:\RR\times\RR\rightarrow\RR$. 
+
+\begin{figure*}
+  \centering
+\parbox{1in}{
+\centering \textbf{Unconstrained}\\
+  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+                    thick,main node/.style={circle,draw}]
+
+  \node[main node] (1) {1};
+
+  \path[every node/.style={font=\sffamily\small}]
+    (1) edge [loop below] node {$g_0$} (1);
+\end{tikzpicture}
+}
+\parbox{1in}{
+\centering \textbf{Reduced\\
+isotonic\\
+ regression}\\
+  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+                    thick,main node/.style={circle,draw}]
+
+  \node[main node] (1) {1};
+
+  \path[every node/.style={font=\sffamily\small}]
+    (1) edge [loop below] node {$g_\uparrow$} (1);
+\end{tikzpicture}
+}
+\parbox{1.5in}{
+\centering \textbf{Peak detection}
+  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+                    thick,main node/.style={circle,draw}]
+
+  \node[main node] (1) {peak};
+  \node[main node] (2) [below of=1] {background};
+
+  \path[every node/.style={font=\sffamily\small}]
+    (2) edge [bend left] node {$g_\uparrow$} (1)
+    (1) edge [bend left] node {$g_\downarrow$} (2);
+\end{tikzpicture}
+}
+\parbox{2.5in}{
+\centering \textbf{Unimodal regression}
+  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+                    thick,main node/.style={circle,draw}]
+
+  \node[main node] (1) {up/down};
+  \node[main node] (2) [below left of=1] {up};
+  \node[main node] (3) [below right of=1] {down};
+
+  \path[every node/.style={font=\sffamily\small}]
+    (2) edge [bend left] node {$g_\uparrow$} (1)
+    (1) edge [loop below] node {$g_\uparrow$} (1)
+    (3) edge [loop right] node {$g_\downarrow$} (3)
+    (1) edge [bend left] node {$g_\downarrow$} (3);
+\end{tikzpicture}
+}
+\caption{Examples of graphs for four models. Nodes represent
+  states and edges represent changes. Constraint functions $g$
+  determine what types of changes are possible ($g_0$ any change,
+  $g_\uparrow$ non-decreasing, $g_\downarrow$ non-increasing).}
+  \label{fig:graphs}
+\end{figure*}
+In the optimization problem below we
+also allow $c=0$, which implies no penalty $\lambda_0=0$, and means no
+change:
+\begin{align}
+  \label{eq:GFPOP_problem}
+  \minimize_{
+    \substack{
+    \mathbf m\in\RR^n,\ \mathbf s\in V^n\\
+\mathbf c\in \{0,1,\dots,|E|\}^{n-1}
+}
+    } &\ \ 
+  \sum_{t=1}^n \ell(y_t, m_t) + \sum_{t=1}^{n-1} \lambda_{c_t} \\
+  \text{subject to\,} &\ \ c_t = 0 \Rightarrow m_t = m_{t+1}
+\text{ and } s_t= s_{t+1}
+  \nonumber\\
+&\ \ c_t \neq 0 \Rightarrow g_{c_t}(m_t, m_{t+1})\leq 0\text{ and }
+(s_t,s_{t+1})=(\underline v_{c_t}, \overline v_{c_t}).
+\nonumber
+\end{align}
+If some states are desired at the start or end, then those constraints
+$s_1\in \underline S, s_n\in\overline S$ can also be enforced. To
+compute the solution to this optimization problem, we propose the
+algorithm below.
+
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE Input: data $\mathbf y$, weights $\mathbf w$, 
+number of states $S$, starts, transitions.
+\STATE Output: $S\times n$ array of optimal cost functions $C_{s,t}$.
+\STATE for $t$ from $1$ to $n$:
+\begin{ALC@g}
+  \STATE if $t==1$:
+  \begin{ALC@g}
+    \STATE for $s$ in starts: 
+    \begin{ALC@g}
+      \STATE $C_{s,t}\gets\text{InitialCost}(y_t, w_t)$
+    \end{ALC@g}
+  \end{ALC@g}
+  \STATE else:
+  \begin{ALC@g}
+    \STATE for $s$ from $1$ to $S$: // cost of no changes
+    \begin{ALC@g}
+      \STATE if $C_{s,t-1}$ is NOT NULL:
+      \begin{ALC@g}
+        \STATE $C_{s,t}\gets C_{s,t-1}$
+      \end{ALC@g}
+    \end{ALC@g}
+    \STATE for (from, to, penalty, ConstrainedCost) in transitions:
+    \begin{ALC@g}
+      \STATE if $C_{\text{from},t-1}$ is NOT NULL:
+      \begin{ALC@g}
+        \STATE
+        $\text{cost\_of\_change}\gets
+        \text{ConstrainedCost}(C_{\text{from}, t-1})$
+        \STATE
+        $\text{cost\_of\_change.set}
+        (\text{from}, t-1)$
+        \STATE
+        $\text{cost\_of\_change.addPenalty}
+        (\text{penalty})$
+        \STATE if $C_{\text{to},t}$ is NULL:
+        \begin{ALC@g}
+          \STATE $C_{\text{to},t}\gets\text{cost\_of\_change}$
+        \end{ALC@g}
+        \STATE else:
+        \begin{ALC@g}
+          \STATE
+          $C_{\text{to},t}\gets \text{MinOfTwo}(C_{\text{to},t},
+          \text{cost\_of\_change})$
+        \end{ALC@g}
+      \end{ALC@g}
+    \end{ALC@g}
+    \STATE for $s$ from $1$ to $S$:
+    \begin{ALC@g}
+      \STATE if $C_{s,t}$ is NOT NULL:
+      \begin{ALC@g}
+        \STATE $C_{s,t}\text{.addDataPoint}(y_t, w_t)$
+      \end{ALC@g}
+    \end{ALC@g}
+  \end{ALC@g}
+\end{ALC@g}
+\caption{\label{algo:GFPOP}Generalized Functional Pruning Optimal
+  Partitioning Algorithm.}
+\end{algorithmic}
+\end{algorithm}
+
+
+\bibliographystyle{abbrvnat}
 \bibliography{refs-abbrev}
 
 \end{document} 
