@@ -2217,10 +2217,12 @@ isotonic\\
     (1) edge [bend left] node {$g_\downarrow$} (3);
 \end{tikzpicture}
 }
-\caption{Examples of graphs for four models. Nodes represent
-  states and edges represent changes. Constraint functions $g$
-  determine what types of changes are possible ($g_0$ any change,
-  $g_\uparrow$ non-decreasing, $g_\downarrow$ non-increasing).}
+\caption{Examples of graphs for four models. Nodes represent states
+  and edges represent changes. Constraint functions $g$ determine what
+  types of changes are possible ($g_0$ any change, $g_\uparrow$
+  non-decreasing, $g_\downarrow$ non-increasing). Note that the
+  Unimodal regression state X should be interpreted as ``can change
+  X'' e.g. up/down means ``can change up/down.'' }
   \label{fig:graphs}
 \end{figure*}
 In the optimization problem below we
@@ -2249,53 +2251,56 @@ algorithm below.
 
 \begin{algorithm}[H]
 \begin{algorithmic}[1]
-\STATE Input: data $\mathbf y$, weights $\mathbf w$, 
-number of states $S$, starts, transitions.
-\STATE Output: $S\times n$ array of optimal cost functions $C_{s,t}$.
+\STATE Input: data $\mathbf y$ and weights $\mathbf w$ (both size $n$), 
+number of vertices/states $|V|$, starts $\underline S\subseteq V$, 
+edges/transitions $E$.
+\STATE Allocate $|V|\times n$ array of optimal cost functions $C_{s,t}$, 
+each initialized to NULL.
 \STATE for $t$ from $1$ to $n$:
 \begin{ALC@g}
   \STATE if $t==1$:
   \begin{ALC@g}
-    \STATE for $s$ in starts: 
+    \STATE for $s$ in $\underline S$: // initialize cost for all possible starting states
     \begin{ALC@g}
       \STATE $C_{s,t}\gets\text{InitialCost}(y_t, w_t)$
     \end{ALC@g}
   \end{ALC@g}
   \STATE else:
   \begin{ALC@g}
-    \STATE for $s$ from $1$ to $S$: // cost of no changes
+    \STATE for $s$ from $1$ to $|V|$: 
     \begin{ALC@g}
-      \STATE if $C_{s,t-1}$ is NOT NULL:
+      \STATE if $C_{s,t-1}$ is NOT NULL: // previous cost in this state has been computed
       \begin{ALC@g}
-        \STATE $C_{s,t}\gets C_{s,t-1}$
+        \STATE $C_{s,t}\gets C_{s,t-1}$ // cost of staying in this state (no change)
       \end{ALC@g}
     \end{ALC@g}
-    \STATE for (from, to, penalty, ConstrainedCost) in transitions:
+    \STATE for ($\underline v$, $\overline v$, $\lambda$,
+    ConstrainedCost) in $E$:
     \begin{ALC@g}
-      \STATE if $C_{\text{from},t-1}$ is NOT NULL:
+      \STATE if $C_{\underline v,t-1}$ is NOT NULL: // previous cost has been computed
       \begin{ALC@g}
         \STATE
         $\text{cost\_of\_change}\gets
-        \text{ConstrainedCost}(C_{\text{from}, t-1})$
+        \text{ConstrainedCost}(C_{\underline v, t-1})$
         \STATE
         $\text{cost\_of\_change.set}
-        (\text{from}, t-1)$
+        (\underline v, t-1)$
         \STATE
         $\text{cost\_of\_change.addPenalty}
-        (\text{penalty})$
-        \STATE if $C_{\text{to},t}$ is NULL:
+        (\text{$\lambda$})$
+        \STATE if $C_{\overline v,t}$ is NULL:
         \begin{ALC@g}
-          \STATE $C_{\text{to},t}\gets\text{cost\_of\_change}$
+          \STATE $C_{\overline v,t}\gets\text{cost\_of\_change}$
         \end{ALC@g}
         \STATE else:
         \begin{ALC@g}
           \STATE
-          $C_{\text{to},t}\gets \text{MinOfTwo}(C_{\text{to},t},
+          $C_{\overline v,t}\gets \text{MinOfTwo}(C_{\overline v,t},
           \text{cost\_of\_change})$
         \end{ALC@g}
       \end{ALC@g}
     \end{ALC@g}
-    \STATE for $s$ from $1$ to $S$:
+    \STATE for $s$ from $1$ to $|V|$:
     \begin{ALC@g}
       \STATE if $C_{s,t}$ is NOT NULL:
       \begin{ALC@g}
@@ -2304,11 +2309,44 @@ number of states $S$, starts, transitions.
     \end{ALC@g}
   \end{ALC@g}
 \end{ALC@g}
+\STATE Output: $|V|\times n$ array of optimal cost functions $C_{s,t}$.
 \caption{\label{algo:GFPOP}Generalized Functional Pruning Optimal
-  Partitioning Algorithm.}
+  Partitioning Algorithm, Dynamic Programming (GFPOP-DP)}
 \end{algorithmic}
 \end{algorithm}
 
+Note that for each constraint function $g$ there is a corresponding
+sub-routine (e.g. $g_0$ MinUnconstrained, $g_\uparrow$ MinLess,
+$g_\downarrow$ MinMore).
+
+Note that the algorithm above only performs the dynamic
+programming. The decoding of optimal model parameters is achieved
+using the algorithm below.
+
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE Output: $S\times n$ array of optimal cost functions $C_{s,t}$, 
+ends $\overline S\subseteq V$.
+\STATE Allocate
+$\mathbf m\in\RR^n$ (mean), 
+$\mathbf s\in\ZZ^n$ (state), 
+$\mathbf t\in\ZZ^n$ (segment end).
+\STATE $u^*,s^*,t',s'\gets \text{ArgMin}(C_{\cdot,n}, \overline S)$ // begin decoding
+\STATE $i\gets 1;\, m_{i}\gets u^*;\, s_i\gets s^*;\, t_{i}\gets n$
+\STATE while $t' > 0$:
+\begin{ALC@g}
+  \STATE $i\gets i+1;\, t_{i}\gets t'$
+  \STATE $u^*,s^*,t',s'\gets \text{ArgMin}(C_{s',t'})$
+  \STATE $m_{i}\gets u^*;\, s_i\gets s^*$
+\end{ALC@g}
+\STATE Output: 
+$\mathbf m$, 
+$\mathbf s$, 
+$\mathbf t$.
+\caption{\label{algo:GFPOP}Generalized Functional Pruning Optimal
+  Partitioning Algorithm, decoding (GFPOP-decode)}
+\end{algorithmic}
+\end{algorithm}
 
 \bibliographystyle{abbrvnat}
 \bibliography{refs-abbrev}
