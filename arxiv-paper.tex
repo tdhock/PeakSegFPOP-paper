@@ -2245,10 +2245,27 @@ change:
 \nonumber
 \end{align}
 If some states are desired at the start or end, then those constraints
-$s_1\in \underline S, s_n\in\overline S$ can also be enforced. To
+$s_1\in \underline S, s_n\in\overline S$ can also be enforced.  To
 compute the solution to this optimization problem, we propose the
-algorithm below.
-
+following dynamic programming algorithm.  The initialization for the
+first data point is $ C_{s,1}(u) = \ell(y_1, u)$ for all
+states $s$. The dynamic programming update rule for all data points
+$t>1$ is
+\begin{equation}
+   C_{s,t}(u) = \ell(y_t, u) + \min\{
+   M_{s,t-1}(u),\,  C_{s,t-1}(u)
+  \},
+\end{equation}
+where the minimum cost of all possible changes to state $s$ from time
+point $t$ is
+\begin{equation}
+  M_{s,t}(u) = \min_{c\in E_s} C_{\underline v_c, t}(u) + \lambda_c,
+\end{equation}
+and the set of all changes going to state $s$ is
+\begin{equation}
+  E_s = \{c\in E \mid \overline v_c = s\}.
+\end{equation}
+The pseudocode for this algorithm is stated below.
 \begin{algorithm}[H]
 \begin{algorithmic}[1]
 \STATE Input: data $\mathbf y$ and weights $\mathbf w$ (both size $n$), 
