@@ -2155,12 +2155,13 @@ The GFPOP algorithm can solve problems with more general constraints
 than reduced isotonic regression. Let $G=(V,E)$ be a directed graph
 that represents the model constraints. The vertices
 $V=\{1,\dots,|V|\}$ can be represented as integers, one for every
-distinct state. The edges $E=\{1,\dots,|E|\}$ represent the possible
-changes between states. Each change $c\in E$ has corresponding
+distinct state. The edges $E=\{1,\dots,|E|\}$ is another set of
+integers, each which represents one of the possible changes between
+states. Each edge/change $c\in E$ has corresponding data
 $(\underline v_c, \overline v_c, \lambda_c, g_c)$ which specifies a
 transition from state $\underline v_c$ to state $\overline v_c$, with
 a penalty of $\lambda_c\in\RR_+$, and a constraint function
-$g_c:\RR\times\RR\rightarrow\RR$. 
+$g_c:\RR\times\RR\rightarrow\RR$.
 
 \begin{figure*}
   \centering
@@ -2172,7 +2173,7 @@ $g_c:\RR\times\RR\rightarrow\RR$.
   \node[main node] (1) {1};
 
   \path[every node/.style={font=\sffamily\small}]
-    (1) edge [loop below] node {$g_0$} (1);
+    (1) edge [loop below] node {$g_0, \lambda$} (1);
 \end{tikzpicture}
 }
 \parbox{1in}{
@@ -2185,7 +2186,7 @@ isotonic\\
   \node[main node] (1) {1};
 
   \path[every node/.style={font=\sffamily\small}]
-    (1) edge [loop below] node {$g_\uparrow$} (1);
+    (1) edge [loop below] node {$g_\uparrow, \lambda$} (1);
 \end{tikzpicture}
 }
 \parbox{1.5in}{
@@ -2197,8 +2198,8 @@ isotonic\\
   \node[main node] (2) [below of=1] {background};
 
   \path[every node/.style={font=\sffamily\small}]
-    (2) edge [bend left] node {$g_\uparrow$} (1)
-    (1) edge [bend left] node {$g_\downarrow$} (2);
+    (2) edge [bend left] node {$g_\uparrow, \lambda_\uparrow$} (1)
+    (1) edge [bend left] node {$g_\downarrow, \lambda_\downarrow$} (2);
 \end{tikzpicture}
 }
 \parbox{2.5in}{
@@ -2211,18 +2212,19 @@ isotonic\\
   \node[main node] (3) [below right of=1] {down};
 
   \path[every node/.style={font=\sffamily\small}]
-    (2) edge [bend left] node {$g_\uparrow$} (1)
-    (1) edge [loop below] node {$g_\uparrow$} (1)
-    (3) edge [loop right] node {$g_\downarrow$} (3)
-    (1) edge [bend left] node {$g_\downarrow$} (3);
+    (2) edge [bend left] node {$g_\uparrow, \lambda_1$} (1)
+    (1) edge [loop below] node {$g_\uparrow, \lambda_2$} (1)
+    (1) edge [bend left] node {$g_\downarrow, \lambda_3$} (3)
+    (3) edge [loop right] node {$g_\downarrow, \lambda_4$} (3);
 \end{tikzpicture}
 }
-\caption{Examples of graphs for four models. Nodes represent states
-  and edges represent changes. Constraint functions $g$ determine what
-  types of changes are possible ($g_0$ any change, $g_\uparrow$
-  non-decreasing, $g_\downarrow$ non-increasing). Note that the
-  Unimodal regression state X should be interpreted as ``can change
-  X'' e.g. up/down means ``can change up/down.'' }
+\caption{Examples of state graphs for four models. Nodes represent states
+  and edges represent changes. Each change has a corresponding penalty
+  $\lambda$, and a function $g$ that determines what types of changes
+  are possible ($g_0$ any change, $g_\uparrow$ non-decreasing,
+  $g_\downarrow$ non-increasing). Note that the Unimodal regression
+  state X should be interpreted as ``can change X'' e.g. up/down means
+  ``can change up/down.'' }
   \label{fig:graphs}
 \end{figure*}
 In the optimization problem below we
@@ -2247,24 +2249,72 @@ change:
 If some states are desired at the start or end, then those constraints
 $s_1\in \underline S, s_n\in\overline S$ can also be enforced.  To
 compute the solution to this optimization problem, we propose the
-following dynamic programming algorithm.  The initialization for the
-first data point is $ C_{s,1}(u) = \ell(y_1, u)$ for all
-states $s$. The dynamic programming update rule for all data points
-$t>1$ is
+following dynamic programming algorithm.
+
+Let $C_{s,t}(u)$ be the optimal cost with mean $u$ and state $s$ at
+data point $t$. This quantity can be recursively computed using
+dynamic programming. The initialization for the first data point is
+$ C_{s,1}(u) = \ell(y_1, u)$ for all states $s$. The dynamic
+programming update rule for all data points $t>1$ is
 \begin{equation}
    C_{s,t}(u) = \ell(y_t, u) + \min\{
    M_{s,t-1}(u),\,  C_{s,t-1}(u)
   \},
 \end{equation}
 where the minimum cost of all possible changes to state $s$ from time
-point $t$ is
+point $t-1$ is
 \begin{equation}
-  M_{s,t}(u) = \min_{c\in E_s} C_{\underline v_c, t}(u) + \lambda_c,
+  M_{s,t-1}(u) = \min_{c\in E_s} C^{g_c}_{\underline v_c, t-1}(u) + \lambda_c,
 \end{equation}
 and the set of all changes going to state $s$ is
 \begin{equation}
   E_s = \{c\in E \mid \overline v_c = s\}.
 \end{equation}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+  thick,main node/.style={circle,draw}]
+
+ % \node[draw,circle] at (0, 6) (up_initial_t) {up t};
+ % \node[draw,circle] at (0, 3) (up_down_t) {up/down t};
+ % \node[draw,circle] at (0, 0) (down_t) {down t};
+
+ % \node[draw,circle] at (4, 6) (up_initial_t1) {up t+1};
+ % \node[draw,circle] at (4, 3) (up_down_t1) {up/down t+1};
+ % \node[draw,circle] at (4, 0) (down_t1) {down t+1};
+
+  \node[main node] (up_t) {$C_{\text{up},t}$};
+  \node[main node] (up_down_t) [below of=up_t] {$C_{\text{up/down}, t}$};
+  \node[main node] (down_t) [below of=up_down_t] {$C_{\text{down}, t}$};
+  \node[main node] (up_t1) [right of=up_t] {$C_{\text{up}, t+1}$};
+  \node[main node] (up_down_t1) [below of=up_t1] {$C_{\text{up/down}, t+1}$};
+  \node[main node] (down_t1) [below of=up_down_t1] {$C_{\text{down}, t+1}$};
+
+  \path[every node/.style={font=\sffamily\small}]
+    (up_t) edge node {$C_{\text{up}, t}$} (up_t1)
+    (up_down_t) edge node[midway, below] {$C_{\text{up/down}, t}$} (up_down_t1)
+    (down_t) edge node {$C_{\text{down}, t}$} (down_t1)
+    (up_t) edge node {$C_{\text{up}, t}^{g_\uparrow}+\lambda_{1}$} (up_down_t1)
+    (up_down_t) edge [bend left] node {$C_{\text{up/down}, t}^{g_\uparrow}+\lambda_{2}$} (up_down_t1)
+    (up_down_t) edge node [below left] {$C_{\text{up/down}, t}^{g_\downarrow}+\lambda_3$} (down_t1)
+    (down_t) edge [bend right] node [midway, below] {$C_{\text{down}, t}^{g_\downarrow}+\lambda_4$} (down_t1)
+;
+% \draw [-] (up_initial_t) to[out=40,in=150] (up_initial_t1) {foo} ;
+% \draw [->] (up_initial_t) edge (up_down_t1);
+
+% \draw [->] (up_down_t) edge (up_down_t1);
+% \draw [->] (up_down_t) edge (down_t1);
+% \draw [-] (up_down_t) to[out=40,in=150] (up_down_t1);
+
+% \draw [->] (down_t) edge (down_t1);
+% \draw [-] (down_t) to[out=40,in=150] (down_t1);
+ 
+\end{tikzpicture}
+  \caption{Computation graphs.}
+  \label{fig:comp-graphs}
+\end{figure}
+
 The pseudocode for this algorithm is stated below.
 \begin{algorithm}[H]
 \begin{algorithmic}[1]
@@ -2332,9 +2382,14 @@ each initialized to NULL.
 \end{algorithmic}
 \end{algorithm}
 
-Note that for each constraint function $g$ there is a corresponding
-sub-routine (e.g. $g_0$ MinUnconstrained, $g_\uparrow$ MinLess,
-$g_\downarrow$ MinMore).
+The algorithm above performs several checks if $C_{s,t}$ is NULL or
+not (lines 9, 12, 16, 21). All costs are initialized as NULL (line
+2). After having performed the cost update for data $t$, a NULL cost
+$C_{s,t}$ means that state $s$ is not feasible at data $t$. For each
+constraint function $g$ there is a corresponding ConstrainedCost
+sub-routine that is mentioned on lines~11 and 13 (e.g. no constraint
+$g_0$ MinUnconstrained, non-decreasing change $g_\uparrow$ MinLess,
+non-increasing change $g_\downarrow$ MinMore).
 
 Note that the algorithm above only performs the dynamic
 programming. The decoding of optimal model parameters is achieved
