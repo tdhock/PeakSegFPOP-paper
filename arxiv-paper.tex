@@ -2153,11 +2153,12 @@ $O(n \log n)$.
 
 The GFPOP algorithm can solve problems with more general constraints
 than reduced isotonic regression. Let $G=(V,E)$ be a directed graph
-that represents the model constraints. The vertices
-$V=\{1,\dots,|V|\}$ can be represented as integers, one for every
-distinct state. The edges $E=\{1,\dots,|E|\}$ is another set of
-integers, each which represents one of the possible changes between
-states. Each edge/change $c\in E$ has corresponding data
+that represents the model constraints (for examples see
+Figure~\ref{fig:state-graphs}). The vertices $V=\{1,\dots,|V|\}$ can be
+represented as integers, one for every distinct state. The edges
+$E=\{1,\dots,|E|\}$ is another set of integers, each which represents
+one of the possible changes between states. Each edge/change $c\in E$
+has corresponding data
 $(\underline v_c, \overline v_c, \lambda_c, g_c)$ which specifies a
 transition from state $\underline v_c$ to state $\overline v_c$, with
 a penalty of $\lambda_c\in\RR_+$, and a constraint function
@@ -2225,8 +2226,9 @@ isotonic\\
   $g_\downarrow$ non-increasing). Note that the Unimodal regression
   state X should be interpreted as ``can change X'' e.g. up/down means
   ``can change up/down.'' }
-  \label{fig:graphs}
+  \label{fig:state-graphs}
 \end{figure*}
+
 In the optimization problem below we
 also allow $c=0$, which implies no penalty $\lambda_0=0$, and means no
 change:
@@ -2257,6 +2259,7 @@ dynamic programming. The initialization for the first data point is
 $ C_{s,1}(u) = \ell(y_1, u)$ for all states $s$. The dynamic
 programming update rule for all data points $t>1$ is
 \begin{equation}
+\label{eq:generalDP}
    C_{s,t}(u) = \ell(y_t, u) + \min\{
    M_{s,t-1}(u),\,  C_{s,t-1}(u)
   \},
@@ -2270,52 +2273,76 @@ and the set of all changes going to state $s$ is
 \begin{equation}
   E_s = \{c\in E \mid \overline v_c = s\}.
 \end{equation}
+The computations required for the dynamic programming updates
+(\ref{eq:generalDP}) can be visualized using a computation graph
+(Figure~\ref{fig:computation-graphs}).
 
 \begin{figure}[H]
   \centering
+\parbox{2in}{
+\centering
+\textbf{Reduced Isotonic Regression}\\
   \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
   thick,main node/.style={circle,draw}]
-
- % \node[draw,circle] at (0, 6) (up_initial_t) {up t};
- % \node[draw,circle] at (0, 3) (up_down_t) {up/down t};
- % \node[draw,circle] at (0, 0) (down_t) {down t};
-
- % \node[draw,circle] at (4, 6) (up_initial_t1) {up t+1};
- % \node[draw,circle] at (4, 3) (up_down_t1) {up/down t+1};
- % \node[draw,circle] at (4, 0) (down_t1) {down t+1};
-
+  \node[main node] (t) {$C_{1,t}$};
+  \node[main node] (t1) [right of=t] {$C_{1, t+1}$};
+  \path[every node/.style={font=\small}]
+    (t) edge node {$C_{1, t}$} (t1)
+    (t) edge [red, bend right] node [below] {$C_{1, t}^{g_\uparrow}+\lambda$} (t1)
+;
+\end{tikzpicture}
+}
+\parbox{2in}{
+\centering
+\textbf{Peak detection}\\
+  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+  thick,main node/.style={circle,draw}]
+  \node[main node] (peak_t) {$C_{\text{peak},t}$};
+  \node[main node] (bkg_t) [below of=peak_t] {$C_{\text{bkg}, t}$};
+  \node[main node] (peak_t1) [right of=peak_t] {$C_{\text{peak}, t+1}$};
+  \node[main node] (bkg_t1) [right of=bkg_t] {$C_{\text{bkg}, t+1}$};
+  \path[every node/.style={font=\small}]
+    (peak_t) edge node {$C_{\text{peak}, t}$} (peak_t1)
+    (peak_t) edge [red, bend right] node [right] {$C_{\text{peak}, t}^{g_\downarrow}+\lambda_\downarrow$} (bkg_t1)
+    (bkg_t) edge node[midway, below] {$C_{\text{bkg}, t}$} (bkg_t1)
+    (bkg_t) edge [red, bend left] node[right] {$C_{\text{bkg}, t}^{g_\uparrow}+\lambda_\uparrow$} (peak_t1)
+;
+\end{tikzpicture}
+}
+\parbox{2in}{
+\centering
+\textbf{Unimodal regression}\\
+  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+  thick,main node/.style={circle,draw}]
   \node[main node] (up_t) {$C_{\text{up},t}$};
   \node[main node] (up_down_t) [below of=up_t] {$C_{\text{up/down}, t}$};
   \node[main node] (down_t) [below of=up_down_t] {$C_{\text{down}, t}$};
   \node[main node] (up_t1) [right of=up_t] {$C_{\text{up}, t+1}$};
   \node[main node] (up_down_t1) [below of=up_t1] {$C_{\text{up/down}, t+1}$};
   \node[main node] (down_t1) [below of=up_down_t1] {$C_{\text{down}, t+1}$};
-
-  \path[every node/.style={font=\sffamily\small}]
+  \path[every node/.style={font=\small}]
     (up_t) edge node {$C_{\text{up}, t}$} (up_t1)
     (up_down_t) edge node[midway, below] {$C_{\text{up/down}, t}$} (up_down_t1)
     (down_t) edge node {$C_{\text{down}, t}$} (down_t1)
-    (up_t) edge node {$C_{\text{up}, t}^{g_\uparrow}+\lambda_{1}$} (up_down_t1)
-    (up_down_t) edge [bend left] node {$C_{\text{up/down}, t}^{g_\uparrow}+\lambda_{2}$} (up_down_t1)
-    (up_down_t) edge node [below left] {$C_{\text{up/down}, t}^{g_\downarrow}+\lambda_3$} (down_t1)
-    (down_t) edge [bend right] node [midway, below] {$C_{\text{down}, t}^{g_\downarrow}+\lambda_4$} (down_t1)
+    (up_t) edge [red, bend left] node [near end] {$C_{\text{up}, t}^{g_\uparrow}+\lambda_{1}$} (up_down_t1)
+    (up_down_t) edge [red, bend left] node [above] {$C_{\text{up/down}, t}^{g_\uparrow}+\lambda_{2}\hspace{0.8cm}$} (up_down_t1)
+    (up_down_t) edge [red] node [below left] {$C_{\text{up/down}, t}^{g_\downarrow}+\lambda_3$} (down_t1)
+    (down_t) edge [red, bend right] node [midway, below] {$C_{\text{down}, t}^{g_\downarrow}+\lambda_4$} (down_t1)
 ;
-% \draw [-] (up_initial_t) to[out=40,in=150] (up_initial_t1) {foo} ;
-% \draw [->] (up_initial_t) edge (up_down_t1);
-
-% \draw [->] (up_down_t) edge (up_down_t1);
-% \draw [->] (up_down_t) edge (down_t1);
-% \draw [-] (up_down_t) to[out=40,in=150] (up_down_t1);
-
-% \draw [->] (down_t) edge (down_t1);
-% \draw [-] (down_t) to[out=40,in=150] (down_t1);
- 
 \end{tikzpicture}
-  \caption{Computation graphs.}
-  \label{fig:comp-graphs}
+}
+\caption{Computation graphs which represent the dynamic programming
+  updates (\ref{eq:generalDP}) for the state graph models in
+  Figure~\ref{fig:state-graphs}. Nodes represent cost functions
+  $C_{s,t}$ in each state $s$ at data $t$ and $t+1$. Edges represent
+  inputs to the $\min\{\}$ operation (\textcolor{red}{red for a
+    changepoint}, black for no change).}
+  \label{fig:computation-graphs}
 \end{figure}
 
-The pseudocode for this algorithm is stated below.
+
+The pseudocode for the algorithm which implements the dynamic
+programming updates (\ref{eq:generalDP}) is stated below.
 \begin{algorithm}[H]
 \begin{algorithmic}[1]
 \STATE Input: data $\mathbf y$ and weights $\mathbf w$ (both size $n$), 
@@ -2397,7 +2424,7 @@ using the algorithm below.
 
 \begin{algorithm}[H]
 \begin{algorithmic}[1]
-\STATE Output: $S\times n$ array of optimal cost functions $C_{s,t}$, 
+\STATE Output: $|V|\times n$ array of optimal cost functions $C_{s,t}$, 
 ends $\overline S\subseteq V$.
 \STATE Allocate
 $\mathbf m\in\RR^n$ (mean), 
