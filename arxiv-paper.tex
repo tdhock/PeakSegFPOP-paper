@@ -1650,6 +1650,15 @@ The source code and data used to create this manuscript (including all
 figures) is available at
 \url{https://github.com/tdhock/PeakSegFPOP-paper}
 
+\section{Acknowledgements}
+
+This work was supported by a Discovery Frontiers project grant, ``The
+Cancer Genome Collaboratory,'' jointly sponsored by the Natural
+Sciences and Engineering Research Council (NSERC), Genome Canada (GC),
+the Canadian Institutes of Health Research (CIHR) and the Canada
+Foundation for Innovation (CFI).
+
+
 \newpage
 
 \appendix
@@ -2219,15 +2228,80 @@ isotonic\\
     (3) edge [loop right] node {$g_\downarrow, \lambda_4$} (3);
 \end{tikzpicture}
 }
-\caption{Examples of state graphs for four models. Nodes represent states
-  and edges represent changes. Each change has a corresponding penalty
-  $\lambda$, and a function $g$ that determines what types of changes
-  are possible ($g_0$ any change, $g_\uparrow$ non-decreasing,
-  $g_\downarrow$ non-increasing). Note that the Unimodal regression
-  state X should be interpreted as ``can change X'' e.g. up/down means
-  ``can change up/down.'' }
+\caption{Examples of state graphs for four models. Nodes represent
+  states and edges represent changes. Each change has a corresponding
+  penalty $\lambda$, and a function $g$ that determines what types of
+  changes are possible ($g_0$ any change, $g_\uparrow$ non-decreasing,
+  $g_\downarrow$ non-increasing). Even if there is no edge from a node
+  to itself, it is still possible to stay in the same state without
+  introducing a changepoint and penalty. Note that the Unimodal
+  regression state X should be interpreted as ``can change X''
+  e.g. up/down means ``can change up/down.'' }
   \label{fig:state-graphs}
 \end{figure*}
+\begin{figure}[H]
+  \centering
+\parbox{2in}{
+\centering
+\textbf{Reduced Isotonic Regression}\\
+  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+  thick,main node/.style={circle,draw}]
+  \node[main node] (t) {$C_{1,t}$};
+  \node[main node] (t1) [right of=t] {$C_{1, t+1}$};
+  \path[every node/.style={font=\small}]
+    (t) edge [dotted] node {$C_{1, t}$} (t1)
+    (t) edge [black, bend right] node [below] {$C_{1, t}^{g_\uparrow}+\lambda$} (t1)
+;
+\end{tikzpicture}
+}
+\parbox{2in}{
+\centering
+\textbf{Peak detection}\\
+  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+  thick,main node/.style={circle,draw}]
+  \node[main node] (peak_t) {$C_{\text{peak},t}$};
+  \node[main node] (bkg_t) [below of=peak_t] {$C_{\text{bkg}, t}$};
+  \node[main node] (peak_t1) [right of=peak_t] {$C_{\text{peak}, t+1}$};
+  \node[main node] (bkg_t1) [right of=bkg_t] {$C_{\text{bkg}, t+1}$};
+  \path[every node/.style={font=\small}]
+    (peak_t) edge [dotted] node {$C_{\text{peak}, t}$} (peak_t1)
+    (peak_t) edge [black, bend right] node [right] {$C_{\text{peak}, t}^{g_\downarrow}+\lambda_\downarrow$} (bkg_t1)
+    (bkg_t) edge [dotted] node[midway, below] {$C_{\text{bkg}, t}$} (bkg_t1)
+    (bkg_t) edge [black, bend left] node[right] {$C_{\text{bkg}, t}^{g_\uparrow}+\lambda_\uparrow$} (peak_t1)
+;
+\end{tikzpicture}
+}
+\parbox{2in}{
+\centering
+\textbf{Unimodal regression}\\
+  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+  thick,main node/.style={circle,draw}]
+  \node[main node] (up_t) {$C_{\text{up},t}$};
+  \node[main node] (up_down_t) [below of=up_t] {$C_{\text{up/down}, t}$};
+  \node[main node] (down_t) [below of=up_down_t] {$C_{\text{down}, t}$};
+  \node[main node] (up_t1) [right of=up_t] {$C_{\text{up}, t+1}$};
+  \node[main node] (up_down_t1) [below of=up_t1] {$C_{\text{up/down}, t+1}$};
+  \node[main node] (down_t1) [below of=up_down_t1] {$C_{\text{down}, t+1}$};
+  \path[every node/.style={font=\small}]
+    (up_t) edge [dotted] node {$C_{\text{up}, t}$} (up_t1)
+    (up_down_t) edge [dotted] node[midway, below] {$C_{\text{up/down}, t}$} (up_down_t1)
+    (down_t) edge [dotted] node {$C_{\text{down}, t}$} (down_t1)
+    (up_t) edge [black, bend left] node [near end] {$C_{\text{up}, t}^{g_\uparrow}+\lambda_{1}$} (up_down_t1)
+    (up_down_t) edge [black, bend left] node [above] {$C_{\text{up/down}, t}^{g_\uparrow}+\lambda_{2}\hspace{0.8cm}$} (up_down_t1)
+    (up_down_t) edge [black] node [below left] {$C_{\text{up/down}, t}^{g_\downarrow}+\lambda_3$} (down_t1)
+    (down_t) edge [black, bend right] node [midway, below] {$C_{\text{down}, t}^{g_\downarrow}+\lambda_4$} (down_t1)
+;
+\end{tikzpicture}
+}
+\caption{Computation graphs which represent the dynamic programming
+  updates (\ref{eq:generalDP}) for the state graph models in
+  Figure~\ref{fig:state-graphs}. Nodes represent cost functions
+  $C_{s,t}$ in each state $s$ at data $t$ and $t+1$. Edges represent
+  inputs to the $\min\{\}$ operation (solid for a changepoint, dotted
+  for no change). For example in reduced isotonic regression, $C_{1,t+1}(u) = \ell(y_{t+1}, u) + \min\{ C_{1,t}(u), C_{1,t}^{g_{\uparrow}}(u) + \lambda \}$.
+}
+  \label{fig:computation-graphs}
+\end{figure}
 
 In the optimization problem below we
 also allow $c=0$, which implies no penalty $\lambda_0=0$, and means no
@@ -2276,70 +2350,6 @@ and the set of all changes going to state $s$ is
 The computations required for the dynamic programming updates
 (\ref{eq:generalDP}) can be visualized using a computation graph
 (Figure~\ref{fig:computation-graphs}).
-
-\begin{figure}[H]
-  \centering
-\parbox{2in}{
-\centering
-\textbf{Reduced Isotonic Regression}\\
-  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
-  thick,main node/.style={circle,draw}]
-  \node[main node] (t) {$C_{1,t}$};
-  \node[main node] (t1) [right of=t] {$C_{1, t+1}$};
-  \path[every node/.style={font=\small}]
-    (t) edge node {$C_{1, t}$} (t1)
-    (t) edge [red, bend right] node [below] {$C_{1, t}^{g_\uparrow}+\lambda$} (t1)
-;
-\end{tikzpicture}
-}
-\parbox{2in}{
-\centering
-\textbf{Peak detection}\\
-  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
-  thick,main node/.style={circle,draw}]
-  \node[main node] (peak_t) {$C_{\text{peak},t}$};
-  \node[main node] (bkg_t) [below of=peak_t] {$C_{\text{bkg}, t}$};
-  \node[main node] (peak_t1) [right of=peak_t] {$C_{\text{peak}, t+1}$};
-  \node[main node] (bkg_t1) [right of=bkg_t] {$C_{\text{bkg}, t+1}$};
-  \path[every node/.style={font=\small}]
-    (peak_t) edge node {$C_{\text{peak}, t}$} (peak_t1)
-    (peak_t) edge [red, bend right] node [right] {$C_{\text{peak}, t}^{g_\downarrow}+\lambda_\downarrow$} (bkg_t1)
-    (bkg_t) edge node[midway, below] {$C_{\text{bkg}, t}$} (bkg_t1)
-    (bkg_t) edge [red, bend left] node[right] {$C_{\text{bkg}, t}^{g_\uparrow}+\lambda_\uparrow$} (peak_t1)
-;
-\end{tikzpicture}
-}
-\parbox{2in}{
-\centering
-\textbf{Unimodal regression}\\
-  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
-  thick,main node/.style={circle,draw}]
-  \node[main node] (up_t) {$C_{\text{up},t}$};
-  \node[main node] (up_down_t) [below of=up_t] {$C_{\text{up/down}, t}$};
-  \node[main node] (down_t) [below of=up_down_t] {$C_{\text{down}, t}$};
-  \node[main node] (up_t1) [right of=up_t] {$C_{\text{up}, t+1}$};
-  \node[main node] (up_down_t1) [below of=up_t1] {$C_{\text{up/down}, t+1}$};
-  \node[main node] (down_t1) [below of=up_down_t1] {$C_{\text{down}, t+1}$};
-  \path[every node/.style={font=\small}]
-    (up_t) edge node {$C_{\text{up}, t}$} (up_t1)
-    (up_down_t) edge node[midway, below] {$C_{\text{up/down}, t}$} (up_down_t1)
-    (down_t) edge node {$C_{\text{down}, t}$} (down_t1)
-    (up_t) edge [red, bend left] node [near end] {$C_{\text{up}, t}^{g_\uparrow}+\lambda_{1}$} (up_down_t1)
-    (up_down_t) edge [red, bend left] node [above] {$C_{\text{up/down}, t}^{g_\uparrow}+\lambda_{2}\hspace{0.8cm}$} (up_down_t1)
-    (up_down_t) edge [red] node [below left] {$C_{\text{up/down}, t}^{g_\downarrow}+\lambda_3$} (down_t1)
-    (down_t) edge [red, bend right] node [midway, below] {$C_{\text{down}, t}^{g_\downarrow}+\lambda_4$} (down_t1)
-;
-\end{tikzpicture}
-}
-\caption{Computation graphs which represent the dynamic programming
-  updates (\ref{eq:generalDP}) for the state graph models in
-  Figure~\ref{fig:state-graphs}. Nodes represent cost functions
-  $C_{s,t}$ in each state $s$ at data $t$ and $t+1$. Edges represent
-  inputs to the $\min\{\}$ operation (\textcolor{red}{red for a
-    changepoint}, black for no change).}
-  \label{fig:computation-graphs}
-\end{figure}
-
 
 The pseudocode for the algorithm which implements the dynamic
 programming updates (\ref{eq:generalDP}) is stated below.
