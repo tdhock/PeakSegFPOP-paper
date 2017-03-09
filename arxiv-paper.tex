@@ -176,7 +176,7 @@ conclude by discussing the significance of our contributions
     & Optimal solution, $O(Kn^2)$ time & Optimal solution, $O(Kn\log n)$ time\\
     % & \citet{segment-neighborhood} & \\
     % & \citet{optimal-partitioning} & \\
-    & \citet{segment-neighborhood, optimal-partitioning}     & \citet{pruned-dp, johnson} \\
+    & \citet{segment-neighborhood}     & \citet{pruned-dp, johnson} \\
     \hline
     Up-down constrained & Constrained DPA (CDPA) & Generalized Pruned DPA (GPDPA) \\
     & Sub-optimal solution, $O(Kn^2)$ time & Optimal solution, $O(Kn\log n)$ time\\
@@ -414,7 +414,7 @@ Rather than explicitly summing over data points $i$ as in problem
     loss. \textbf{Left:} rather than computing the unconstrained
     minimum (constant grey function), the new algorithm computes the
     min-less operator (red), resulting in a larger cost when the
-    segment mean is less than the first data point ($\mu\leq
+    segment mean is less than the first data point ($\mu <
     2$). \textbf{Right:} adding the cost of the second data point
     $(\mu-1)^2$ and minimizing yields equal means $u_1=u_2=1.5$ for
     the constrained model and decreasing means $u_1=2,\, u_2=1$ for
@@ -1022,7 +1022,7 @@ Our proposed Generalized Pruned Dynamic Programming Algorithm (GPDPA)
 can be used to solve the PeakSeg problem. The initialization $k=1$ is
 the same as in the reduced isotonic regression solver
 (Section~\ref{sec:dyn-prog}). The dynamic programming updates for even
-$k\in\{2, 4, \dots\}$ are also the same. However, to constrain down
+$k\in\{2, 4, \dots\}$ are also the same. However, to constrain non-increasing
 changes, the updates for odd $k\in\{3, 5, \dots\}$ are
 \begin{equation}
   \FCC_{k,t}(\mu) = \ell(y_t, \mu) + \min\{
@@ -1603,7 +1603,7 @@ Algorithms for changepoint detection can be classified in terms of
 time complexity, optimality, constraints, and pruning techniques
 (Table~1). In this paper, we investigated generalizing the functional
 pruning technique originally discovered by \citet{pruned-dp} and
-\citet{johnson}. We showed that the functional pruning technique can
+\citet{phd-johnson}. We showed that the functional pruning technique can
 be used to compute optimal changepoints subject to affine constraints
 on adjacent segment mean parameters.
 
@@ -2165,7 +2165,7 @@ than reduced isotonic regression. Let $G=(V,E)$ be a directed graph
 that represents the model constraints (for examples see
 Figure~\ref{fig:state-graphs}). The vertices $V=\{1,\dots,|V|\}$ can be
 represented as integers, one for every distinct state. The edges
-$E=\{1,\dots,|E|\}$ is another set of integers, each which represents
+$E=\{1,\dots,|E|\}$ is another set of integers, each of which represents
 one of the possible changes between states. Each edge/change $c\in E$
 has corresponding data
 $(\underline v_c, \overline v_c, \lambda_c, g_c)$ which specifies a
@@ -2315,7 +2315,7 @@ change:
 }
     } &\ \ 
   \sum_{t=1}^n \ell(y_t, m_t) + \sum_{t=1}^{n-1} \lambda_{c_t} \\
-  \text{subject to\,} &\ \ c_t = 0 \Rightarrow m_t = m_{t+1}
+  \text{subject to \hskip 0.9cm} &\ \ c_t = 0 \Rightarrow m_t = m_{t+1}
 \text{ and } s_t= s_{t+1}
   \nonumber\\
 &\ \ c_t \neq 0 \Rightarrow g_{c_t}(m_t, m_{t+1})\leq 0\text{ and }
