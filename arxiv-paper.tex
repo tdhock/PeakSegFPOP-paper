@@ -1652,11 +1652,12 @@ figures) is available at
 
 \section{Acknowledgements}
 
-This work was supported by a Discovery Frontiers project grant, ``The
-Cancer Genome Collaboratory,'' jointly sponsored by the Natural
-Sciences and Engineering Research Council (NSERC), Genome Canada (GC),
-the Canadian Institutes of Health Research (CIHR) and the Canada
-Foundation for Innovation (CFI).
+Toby Dylan Hocking and Guillaume Bourque were supported by a Discovery
+Frontiers project grant, ``The Cancer Genome Collaboratory,'' jointly
+sponsored by the Natural Sciences and Engineering Research Council
+(NSERC), Genome Canada (GC), the Canadian Institutes of Health
+Research (CIHR) and the Canada Foundation for Innovation (CFI). Paul
+Fearnhead acknowledges EPSRC grant EP/N031938/1 (StatScale).
 
 
 \newpage
@@ -2426,7 +2427,15 @@ $C_{s,t}$ means that state $s$ is not feasible at data $t$. For each
 constraint function $g$ there is a corresponding ConstrainedCost
 sub-routine that is mentioned on lines~11 and 13 (e.g. no constraint
 $g_0$ MinUnconstrained, non-decreasing change $g_\uparrow$ MinLess,
-non-increasing change $g_\downarrow$ MinMore).
+non-increasing change $g_\downarrow$ MinMore). 
+
+The average time and space complexity of Algorithm~\ref{algo:GFPOP} is
+$O(|V| n I)$ where $|V|$ is the number of states and $I$ is the
+average number of of intervals stored in the $|V|\times n$ array of
+$C_{s,t}$ cost functions. We observed that $I=\log n$ in the empirical
+tests of the peak detection model on ChIP-seq data
+(Section~\ref{sec:results_time}), so we expect that the average time
+complexity of Algorithm~\ref{algo:GFPOP} is $O(|V| n\log n)$.
 
 Note that the algorithm above only performs the dynamic
 programming. The decoding of optimal model parameters is achieved
@@ -2452,7 +2461,7 @@ $\mathbf t\in\ZZ^n$ (segment end).
 $\mathbf m$, 
 $\mathbf s$, 
 $\mathbf t$.
-\caption{\label{algo:GFPOP}Generalized Functional Pruning Optimal
+\caption{\label{algo:GFPOP-decode}Generalized Functional Pruning Optimal
   Partitioning Algorithm, decoding (GFPOP-decode)}
 \end{algorithmic}
 \end{algorithm}
