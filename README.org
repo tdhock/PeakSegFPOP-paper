@@ -1,6 +1,16 @@
-The goal of this paper is to implement a fast algorithm for solving
-the PeakSeg problem described in
-http://jmlr.org/proceedings/papers/v37/hocking15.html
+PeakSeg Functional Pruning Optimal Partitioning paper
+
+This repository contains the source code for our [[https://arxiv.org/abs/1703.03352][arXiv paper]] that
+describes a log-linear time algorithm for solving the PeakSeg
+constrained changepoint detection problem.
+** 28 Mar 2017
+- [[file:PDPA.timings.small.R]] runs the PeakSegPDPA algorithm for each
+  data set in the [[http://members.cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/][McGill ChIP-seq benchmark]], and only saves info for
+  the model up to the last data point. In constrast, the original
+  [[file:PDPA.timings.R]] creates much larger PDPA.model.RData files,
+  since it stores cost/data/intervals for all data points.
+- [[file:PDPA.target.mat.R]] computes target intervals for the PeakSegPDPA
+  models.
 ** 7 Feb 2017
 
 Ideas about how to define a state graph for a solver of the Optimal
