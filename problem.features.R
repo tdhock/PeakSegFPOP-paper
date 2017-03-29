@@ -1,7 +1,30 @@
 source("packages.R")
 
 files <- Sys.glob("data/H*/*/counts.RData")
-dp.peaks.features <- list()
+str_match_perl <- function(string,pattern){
+  stopifnot(is.character(string))
+  stopifnot(is.character(pattern))
+  stopifnot(length(pattern)==1)
+  parsed <- regexpr(pattern,string,perl=TRUE)
+  captured.text <- substr(string,parsed,parsed+attr(parsed,"match.length")-1)
+  captured.text[captured.text==""] <- NA
+  captured.groups <- do.call(rbind,lapply(seq_along(string),function(i){
+    st <- attr(parsed,"capture.start")[i,]
+    if(is.na(parsed[i]) || parsed[i]==-1)return(rep(NA,length(st)))
+    substring(string[i],st,st+attr(parsed,"capture.length")[i,]-1)
+  }))
+  result <- cbind(captured.text,captured.groups)
+  colnames(result) <- c("",attr(parsed,"capture.names"))
+  result
+}
+
+pattern <-
+  paste0("data/",
+         "(?<set_name>.+?)",
+         "/",
+         "(?<chunk_id>[0-9]+)")
+matched <- str_match_perl(files, pattern)
+problem.features <- list()
 for(file.i in seq_along(files)){
   r <- matched[file.i, ]
   set.name <- r[["set_name"]]
@@ -16,15 +39,11 @@ for(file.i in seq_along(files)){
     matrix(NA, length(sample.ids), 14*4,
            dimnames=list(sample.id=sample.ids, feature=NULL))
   for(sample.id in sample.ids){
+    count.df <- count.list[[sample.id]]
     bases <- with(count.df, chromEnd-chromStart)
     long <- rep(count.df$coverage, bases)
     n.bases <- sum(bases)
     n.data <- nrow(count.df)
-    under.sqrt <- 1.1 + log(n.data/n.segments)
-    in.square <- 1 + 4 * sqrt(under.sqrt)
-    cleynen.factor <- in.square * in.square
-    cleynen <- n.segments * cleynen.factor
-    names(under.sqrt) <- names(in.square) <- names(cleynen) <- peaks.str
     count.df <- count.list[[sample.id]]
     feature.vec <-
       c(unweighted.quartile=quantile(count.df$coverage),
@@ -46,7 +65,7 @@ for(file.i in seq_along(files)){
   }
   colnames(chunk.mat) <- names(log.features)
   colnames(chunk.mat)[colMeans(is.finite(chunk.mat)) == 1]
-  dp.peaks.features[[regions.str]] <- chunk.mat
+  problem.features[[regions.str]] <- chunk.mat
 }
 
 save(problem.features, file="problem.features.RData")
