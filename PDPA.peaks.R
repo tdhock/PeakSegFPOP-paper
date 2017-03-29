@@ -46,11 +46,11 @@ for(file.i in seq_along(files)){
     is.feasible <- function(loss.vec){
       !any(diff(loss.vec) == 0, na.rm=TRUE)
     }
-    seg.vec <- seq(1, fit$max.segments, by=2)
+    seg.vec <- seq(1, 19, by=2)
     loss.df <- data.frame(
       segments=seg.vec,
       peaks=(seg.vec-1)/2,
-      PoissonLoss=fit$cost.mat[seg.vec, fit$n.data],
+      PoissonLoss=fit$loss.vec[seg.vec],
       feasible=apply(fit$mean.mat[seg.vec,], 1, is.feasible))
     feasible.df <- subset(loss.df, feasible)
     peaks.list <- list()
