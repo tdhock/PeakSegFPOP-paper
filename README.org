@@ -9,8 +9,8 @@ constrained changepoint detection problem.
   the model up to the last data point. In constrast, the original
   [[file:PDPA.timings.R]] creates much larger PDPA.model.RData files,
   since it stores cost/data/intervals for all data points.
-- [[file:PDPA.target.mat.R]] computes target intervals for the PeakSegPDPA
-  models.
+- [[file:PDPA.targets.R]] computes target intervals for the PeakSegPDPA
+  models, and [[file:problem.features.R]] computes features.
 ** 7 Feb 2017
 
 Ideas about how to define a state graph for a solver of the Optimal
