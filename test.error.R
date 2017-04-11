@@ -8,6 +8,10 @@ load("unsupervised.Segmentor.RData")
 load("dp.peaks.matrices.RData")
 load("dp.peaks.sets.RData")
 
+## for saving predicted peaks.
+load("dp.peaks.RData")
+load("PDPA.peaks.RData")
+
 default.params <-
   c(macs.trained="1.30103",
     hmcan.broad.trained="2.30258509299405")
@@ -20,6 +24,7 @@ seg.mat.list <- list(
 
 elist <- list()
 roc.list <- list()
+cv.peaks.list <- list()
 for(set.name in names(dp.peaks.sets)){
   train.sets <- dp.peaks.sets[[set.name]]
   chunk.list <- dp.peaks.matrices[[set.name]]
@@ -29,7 +34,6 @@ for(set.name in names(dp.peaks.sets)){
     testSet <- paste(set.name, "split", set.i)
     test.chunks <- train.sets[[set.i]]
     train.chunks <- names(chunk.list)[! names(chunk.list) %in% test.chunks]
-
     baseline.list <- list()
     for(algorithm in c("hmcan.broad.trained", "macs.trained")){
       train.mat.list <- list()
@@ -45,7 +49,6 @@ for(set.name in names(dp.peaks.sets)){
       abline(v=picked)
       baseline.list[[algorithm]] <- names(error.sorted)[[picked]]
     }
-    
     best.list <- c()
     for(algorithm in names(seg.mat.list)){
       train.list <- list()
@@ -65,7 +68,6 @@ for(set.name in names(dp.peaks.sets)){
       abline(v=picked)
       best.list[[algorithm]] <- picked
     }
-    
     ##print(c(best.list, baseline.list))
     cat(sprintf("%d / %d %s\n", set.i, length(train.sets), set.name))
     for(test.chunk in test.chunks){
@@ -92,8 +94,23 @@ for(set.name in names(dp.peaks.sets)){
           tp.mat <- test.tp[[algorithm]]
           fp.mat <- test.fp[[algorithm]]
           pred.peaks.vec <- (pred.seg.vec-1)/2
-          param.name <- as.character(pred.peaks.vec)
+          if(algorithm=="PeakSegDP"){
+            data.table(sample.id=names(pred.peaks.vec))[, {
+              pred.peaks.str <- paste(pred.peaks.vec[[sample.id]])
+              dp.peaks[[test.chunk]][[sample.id]][[pred.peaks.str]]
+            }, by=sample.id]
+          }else if(algorithm=="Segmentor"){
+          }else{
+          }
+          ##TODO add folds + pred peaks and error for paper 4-fold CV.
+            nrow(param.peaks)){
+            cv.peaks.list[[paste(
+              train.type, algorithm, test.chunk, set.name)]] <-
+                data.table(train.type, algorithm, test.chunk, set.name,
+                           param.peaks)
+          }
           sample.id <- names(pred.seg.vec)
+          param.name <- as.character(pred.peaks.vec)
           i.mat <- cbind(sample.id, param.name)
           if(train.type=="supervised"){
             seg.mat <- seg.mat.list[[algorithm]][[test.chunk]]
@@ -127,6 +144,8 @@ for(set.name in names(dp.peaks.sets)){
       }
       ## other baseline methods:
       for(algorithm in names(default.params)){
+        load(file.path(
+          "data", test.chunk, "peaks", paste0(algorithm, ".RData")))
         param.list <- list(
           unsupervised=default.params[[algorithm]],
           supervised=baseline.list[[algorithm]])
@@ -135,6 +154,13 @@ for(set.name in names(dp.peaks.sets)){
         fp.mat <- test.fp[[algorithm]]
         for(train.type in names(param.list)){
           param.name <- param.list[[train.type]]
+          param.peaks <- peaks[[param.name]]
+          if(nrow(param.peaks)){
+            cv.peaks.list[[paste(
+              train.type, algorithm, test.chunk, set.name)]] <-
+              data.table(train.type, algorithm, test.chunk, set.name,
+                         param.peaks)
+          }
           errors <- err.mat[, param.name]
           sample.id <- names(errors)
           elist[[paste(set.name, set.i, test.chunk, algorithm, train.type)]] <- 

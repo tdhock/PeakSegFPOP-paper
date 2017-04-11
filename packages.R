@@ -1,6 +1,6 @@
 suppressPackageStartupMessages({
   works_with_R(
-    "3.3.2",
+    "3.3.3",
     tikzDevice="0.10.1",
     LambertW="0.6.4",
     microbenchmark="1.4.2.1",
@@ -9,7 +9,7 @@ suppressPackageStartupMessages({
     quadmod="2013.8.23",
     geometry="0.3.6",
     "tdhock/memtime@8b80d7d2b151cf5e877b27138c2791eca365e7b1",
-    ##"tdhock/coseg@073dcf152355e6de32236f9556d97dda29574bf5",
+    "tdhock/coseg@4a996702eb6988ad253fdfd2510df3feb392ff3e",
     "tdhock/PeakError@b0f0b4edc413176ebb183fc68f1504c9d86e3ef7",
     "tdhock/PeakSegDP@4e476f1ddf8b6252179b73dfec8c4cd616e9b5ad",
     "faizan-khan-iit/ggplot2@5fb99d0cece13239bbbc09c6b8a7da7f86ac58e2",
@@ -17,7 +17,6 @@ suppressPackageStartupMessages({
     "tdhock/directlabels@dcf34672129bf99a79ddfaceaef73236ae0f696d",
     "Rdatatable/data.table@9fadbcdfb7109b5d15adce07f826c9b58a86d2cf")
 })
-library(coseg)
 options(
   tikzDocumentDeclaration=paste(
     "\\documentclass[12pt]{article}",

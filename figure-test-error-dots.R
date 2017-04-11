@@ -2,6 +2,14 @@ source("packages.R")
 library(animint)
 
 load("test.error.RData")
+
+algo.file <- c(
+  PeakSegDP="dp",
+  coseg="PDPA",
+  Segmentor="Segmentor",
+  MACS="macs",
+  Segmentor
+
 levs <- c(
   MACS="MACS(popular baseline)",
   HMCanBroad="HMCanBroad(popular baseline)",
