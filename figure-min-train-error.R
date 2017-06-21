@@ -13,20 +13,20 @@ macs.peaks.error$algorithm <- "macs"
 hmcan.broad.peaks.error$algorithm <- "hmcan.broad"
 pdpa <- data.table(PDPA.peaks.error)
 names(pdpa)[3] <- "param.name"
-pdpa$algorithm <- "coseg"
+pdpa$algorithm <- "GPDPA"
 Seg <- data.table(Segmentor.peaks.error)
 names(Seg)[3] <- "param.name"
-Seg$algorithm <- "Segmentor"
+Seg$algorithm <- "PDPA"
 error.regions.list <- list(
   macs=macs.peaks.error,
   hmcan.broad=hmcan.broad.peaks.error,
-  coseg=pdpa,
+  GPDPA=pdpa,
   Segmentor=Seg)
 for(chunk.name in names(dp.peaks.error)){
   one.chunk <- dp.peaks.error[[chunk.name]]
   error.regions.list[[chunk.name]] <- data.table(
     chunk.name, do.call(rbind, one.chunk),
-    algorithm="PeakSegDP")
+    algorithm="CDPA")
 }
 error.regions <- do.call(rbind, error.regions.list)
 
@@ -55,14 +55,14 @@ total.train.error <- min.train.error[, list(
 ## For each algorithm, how many problems had all ten models? how many
 ## models were computed and feasible in all?
 feasible <- PDPA.cDPA.compare$all.loss[, list(
-  PeakSegDP=sum(!is.na(dp.fwd)),
-  coseg=sum(PDPA.feasible),
-  Segmentor=sum(Seg.feasible),
+  CDPA=sum(!is.na(dp.fwd)),
+  GPDPA=sum(PDPA.feasible),
+  PDPA=sum(Seg.feasible),
   rows=.N
   ), by=.(chunk.name, sample.id)]
 stopifnot(all(feasible$rows==10))
 stopifnot(nrow(feasible)==2752)
-molt <- melt(feasible, measure.vars=c("PeakSegDP", "coseg", "Segmentor"))
+molt <- melt(feasible, measure.vars=c("CDPA", "GPDPA", "PDPA"))
 model.counts <- molt[, list(
   models=sum(value),
   ten=sum(value==10)
@@ -89,13 +89,13 @@ cat(txt.hline, file="table-min-train-error.tex")
 
 train.error.wide <-
   dcast(min.train.error, chunk.name + sample.id ~ algorithm, value.var="errors")
-train.error.wide[PeakSegDP < coseg & coseg < Segmentor,]
+train.error.wide[CDPA < GPDPA & GPDPA < PDPA,]
 ## nice example to show the difference between algos.
 ##  8:  H3K4me3_TDH_immune/4 McGill0005         1         4     2
-train.error.wide[coseg==0 & Segmentor==6,]
-train.error.wide[coseg==5 & PeakSegDP==1,]
-train.error.wide[coseg==3 & macs==0,]
-train.error.wide[coseg==0 & macs==7,]
+train.error.wide[GPDPA==0 & PDPA==6,]
+train.error.wide[GPDPA==5 & CDPA==1,]
+train.error.wide[GPDPA==3 & macs==0,]
+train.error.wide[GPDPA==0 & macs==7,]
 
 setkey(train.error.wide, chunk.name, sample.id)
 show.dt <- train.error.wide[J(
@@ -103,18 +103,18 @@ show.dt <- train.error.wide[J(
     "H3K4me3_TDH_immune/3", "H3K36me3_TDH_immune/2"),
   c("McGill0079", "McGill0095", "McGill0005", "McGill0091", "McGill0009")),]
 
-table(train.error.wide[, coseg-PeakSegDP])
-table(train.error.wide[, coseg-Segmentor])
+table(train.error.wide[, GPDPA-CDPA])
+table(train.error.wide[, GPDPA-PDPA])
 
-train.error.wide[, table(PeakSegDP, coseg)]
-train.error.wide[, table(Segmentor, coseg)]
-train.error.wide[, table(macs, coseg)]
+train.error.wide[, table(CDPA, GPDPA)]
+train.error.wide[, table(PDPA, GPDPA)]
+train.error.wide[, table(macs, GPDPA)]
 
 abline.dt <- data.table(slope=1, intercept=0)
 molt.list <- list()
-for(other.name in c("PeakSegDP", "Segmentor", "macs")){
+for(other.name in c("CDPA", "PDPA", "macs")){
   table.args <- list()
-  for(col.name in c(other.name, "coseg")){
+  for(col.name in c(other.name, "GPDPA")){
     table.args[[col.name]] <- train.error.wide[[col.name]]
   }
   tab <- do.call(table, table.args)
@@ -127,14 +127,14 @@ for(other.name in c("PeakSegDP", "Segmentor", "macs")){
       "model"))+
     ylab(paste(
       "incorrect labels in best",
-      "coseg",
+      "GPDPA",
       "model"))+
     theme_bw()+
     geom_abline(aes(slope=slope, intercept=intercept), data=abline.dt, color="grey")+
     coord_equal()+
     scale_fill_gradient(low="grey90", high=scales::muted("red"), na.value="white")+
-    geom_tile(aes_string(x=other.name, y="coseg", fill="log10.problems"), data=molt)+
-    geom_text(aes_string(x=other.name, y="coseg", label="problems"),
+    geom_tile(aes_string(x=other.name, y="GPDPA", fill="log10.problems"), data=molt)+
+    geom_text(aes_string(x=other.name, y="GPDPA", label="problems"),
               data=subset(molt, 0 < problems))
   pdf(sprintf("figure-min-train-error-%s.pdf", other.name), h=5)
   print(gg)
@@ -145,7 +145,7 @@ for(other.name in c("PeakSegDP", "Segmentor", "macs")){
 prob.counts <- do.call(rbind, molt.list)
 
 some.counts <- subset(prob.counts, 0 < problems & other.name != "macs")
-some.counts[, winner := ifelse(other.errors==coseg, "both", ifelse(other.errors<coseg, "other", "coseg"))]
+some.counts[, winner := ifelse(other.errors==GPDPA, "both", ifelse(other.errors<GPDPA, "other", "GPDPA"))]
 some.counts[, list(problems=sum(problems)), by=.(other.name, winner)]
 gg.some <- ggplot()+
   geom_abline(aes(slope=slope, intercept=intercept), data=abline.dt, color="grey")+
@@ -155,15 +155,15 @@ gg.some <- ggplot()+
     "model"))+
   ylab(paste(
     "incorrect labels in best",
-    "coseg",
+    "GPDPA",
     "model"))+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
   facet_grid(. ~ other.name)+
   coord_equal()+
   scale_fill_gradient(low="grey90", high=scales::muted("red"), na.value="white")+
-  geom_tile(aes(other.errors, coseg, fill=log10.problems), data=some.counts)+
-  geom_text(aes(other.errors, coseg, label=problems),
+  geom_tile(aes(other.errors, GPDPA, fill=log10.problems), data=some.counts)+
+  geom_text(aes(other.errors, GPDPA, label=problems),
             size=3,
             data=some.counts)
 print(gg.some)
@@ -180,15 +180,15 @@ gg.counts <- ggplot()+
     "model"))+
   ylab(paste(
     "incorrect labels in best",
-    "coseg",
+    "GPDPA",
     "model"))+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
   facet_grid(. ~ other.name)+
   coord_equal()+
   scale_fill_gradient(low="grey90", high=scales::muted("red"), na.value="white")+
-  geom_tile(aes(other.errors, coseg, fill=log10.problems), data=nonzero.counts)+
-  geom_text(aes(other.errors, coseg, label=problems),
+  geom_tile(aes(other.errors, GPDPA, fill=log10.problems), data=nonzero.counts)+
+  geom_text(aes(other.errors, GPDPA, label=problems),
             size=3,
             data=nonzero.counts)
 print(gg.counts)
@@ -212,9 +212,9 @@ for(show.row.i in 1:nrow(show.dt)){
   load(sub("counts", "Segmentor.model", counts.file))
   load(sub("counts", "dp.model", counts.file))
   sample.peaks.raw <- list(
-    coseg=PDPA.peaks[[paste(show.row$chunk.name)]][[paste(show.row$sample.id)]],
-    Segmentor=Segmentor.model[[paste(show.row$sample.id)]]$peaks,
-    PeakSegDP=dp.model[[paste(show.row$sample.id)]]$peaks)
+    GPDPA=PDPA.peaks[[paste(show.row$chunk.name)]][[paste(show.row$sample.id)]],
+    PDPA=Segmentor.model[[paste(show.row$sample.id)]]$peaks,
+    CDPA=dp.model[[paste(show.row$sample.id)]]$peaks)
   col.name.vec <- c("chromStart", "chromEnd", "peaks")
   sample.peaks.list <- list()
   for(algorithm in names(sample.peaks.raw)){
@@ -225,21 +225,21 @@ for(show.row.i in 1:nrow(show.dt)){
   sample.peaks <- do.call(rbind, sample.peaks.list)
 
   gg.counts.prob <- gg.counts+
-    geom_tile(aes(PeakSegDP, coseg),
+    geom_tile(aes(CDPA, GPDPA),
               fill=NA,
               color="black",
               size=2,
-              data=data.table(show.row, other.name="PeakSegDP"))+
-    geom_tile(aes(macs, coseg),
+              data=data.table(show.row, other.name="CDPA"))+
+    geom_tile(aes(macs, GPDPA),
               fill=NA,
               color="black",
               size=2,
               data=data.table(show.row, other.name="macs"))+
-    geom_tile(aes(Segmentor, coseg),
+    geom_tile(aes(PDPA, GPDPA),
               fill=NA,
               color="black",
               size=2,
-              data=data.table(show.row, other.name="Segmentor"))
+              data=data.table(show.row, other.name="PDPA"))
   pdf(sprintf("figure-min-train-error-problem%d.pdf", show.row.i), w=10)
   print(gg.counts.prob)
   dev.off()
@@ -247,7 +247,7 @@ for(show.row.i in 1:nrow(show.dt)){
   max.coverage <- max(sample.counts$coverage)
   first.chromStart <- min(sample.regions$chromStart)
   last.chromEnd <- max(sample.regions$chromEnd)
-  y.key <- c(coseg=1, Segmentor=2, PeakSegDP=3, macs=4)*max.coverage*-0.15
+  y.key <- c(GPDPA=1, PDPA=2, CDPA=3, macs=4)*max.coverage*-0.15
   h <- abs(diff(y.key)[1]/3)
 
   for(peaks.str in paste(0:6)){
@@ -261,7 +261,7 @@ for(show.row.i in 1:nrow(show.dt)){
       geom_tallrect(aes(xmin=chromStart/1e3, xmax=chromEnd/1e3, fill=annotation),
                     color="grey",
                     alpha=0.5,
-                    data=sample.regions[algorithm=="coseg" & param.name==0,])+
+                    data=sample.regions[algorithm=="GPDPA" & param.name==0,])+
       geom_step(aes(chromStart/1e3, coverage),
                 color="grey50",
                 data=sample.counts)+
@@ -324,15 +324,15 @@ for(show.row.i in 1:nrow(show.dt)){
     ggtitle(show.row[, paste("best models for problem", chunk.name, sample.id)])+
     xlab("position on chromosome (kb = kilo bases)")+
     ylab("aligned sequence reads")+
-    scale_fill_manual(values=ann.colors)+
+    scale_fill_manual("label", values=ann.colors)+
     geom_tallrect(aes(xmin=chromStart/1e3, xmax=chromEnd/1e3, fill=annotation),
                   color="grey",
                   alpha=0.5,
-                  data=sample.regions[algorithm=="coseg" & param.name==0,])+
+                  data=sample.regions[algorithm=="GPDPA" & param.name==0,])+
     geom_step(aes(chromStart/1e3, coverage),
               color="grey50",
               data=sample.counts)+
-    scale_linetype_manual("error type",
+    scale_linetype_manual("label error type",
                           values=c(correct=0,
                             "false negative"=3,
                             "false positive"=1))+
@@ -386,11 +386,11 @@ for(show.row.i in 1:nrow(show.dt)){
   }
 }
 
-train.error.wide[order(PeakSegDP-coseg),]
-sort(train.error.wide[PeakSegDP<coseg, table(chunk.name)])
-train.error.wide[PeakSegDP<coseg & grepl("TDH", chunk.name),]
+train.error.wide[order(CDPA-GPDPA),]
+sort(train.error.wide[CDPA<GPDPA, table(chunk.name)])
+train.error.wide[CDPA<GPDPA & grepl("TDH", chunk.name),]
 error.counts[chunk.name=="H3K4me3_PGP_immune/15" & sample.id=="McGill0079",]
-error.counts[chunk.name=="H3K4me3_PGP_immune/15" & algorithm=="coseg",]
+error.counts[chunk.name=="H3K4me3_PGP_immune/15" & algorithm=="GPDPA",]
 error.counts[chunk.name=="H3K4me3_TDH_immune/1" & sample.id=="McGill0011",]
 
 pdf("figure-min-train-error.pdf")

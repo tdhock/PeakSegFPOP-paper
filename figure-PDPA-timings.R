@@ -118,17 +118,17 @@ gg.log <- ggplot()+
             size=3,
             color="grey",
             vjust=-0.5)+
-  scale_y_log10("seconds (log scale)")+
+  scale_y_log10("seconds")+
   scale_color_manual(values=algo.colors)+
   scale_fill_manual(values=algo.colors)+
   guides(color="none", fill="none")+
   scale_x_log10(
-    "$n$ = data points to segment (log scale)",
+    "$n$ = data points to segment",
     breaks=c(1e3, 1e4, range(all.timings$data)))
 my.method <- list("last.points", dl.trans(x=x+0.1))
-dl.log <- direct.label(gg.log, list(cex=0.7, "last.polygons"))+
+dl.log <- direct.label(gg.log, list(cex=0.5, "last.polygons"))+
   coord_cartesian(xlim=c(min(all.timings$data), 3e6))
-tikz("figure-PDPA-timings-log-log.tex", 3.3, 1.8)
+tikz("figure-PDPA-timings-log-log.tex", 2.3, 1.8)
 print(dl.log)
 dev.off()
 pdf("figure-PDPA-timings-log-log.pdf", 3.3, 1.8)

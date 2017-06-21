@@ -131,13 +131,13 @@ gg <- ggplot()+
     plot.margin=grid::unit(c(6, 12, 6, 6), "pt"),
     panel.margin=grid::unit(0, "lines"))+
   scale_x_log10(
-    "data points to segment (log scale)",
+    "data points to segment",
     breaks=c(
       1e3, 1e4, 
       range(PDPA.intervals.all$n.data))
     )+
   scale_y_log10(
-    "intervals stored (log scale)",
+    "intervals stored",
     breaks=c(
       10, 100, 
       max(PDPA.intervals.all[["100%"]]),
@@ -147,7 +147,7 @@ gg <- ggplot()+
 gg <- ggplot()+
   geom_text(aes(10^3, 10^2.3, label="max"),
             color=max.color)+
-  geom_text(aes(10^4, 6, label="median, inter-quartile range"),
+  geom_text(aes(10^4, 6, label="median, quartiles"),
             color=med.color)+
   geom_line(aes(n.data, max),
              color=max.color,
@@ -164,20 +164,20 @@ gg <- ggplot()+
     plot.margin=grid::unit(c(6, 12, 6, 6), "pt"),
     panel.margin=grid::unit(0, "lines"))+
   scale_x_log10(
-    "$n$ = data points to segment (log scale)",
+    "$n$ = data points to segment",
     breaks=c(
       1e3, 1e4, 
       range(PDPA.intervals.all$n.data))
     )+
   scale_y_log10(
-    "$I$ = intervals stored\n(log scale)",
+    "$I$ = intervals stored",
     breaks=c(
       10, 100, 
       max(PDPA.intervals.all[["100%"]]),
       min(PDPA.intervals.all[["25%"]])
       )
     )
-tikz("figure-PDPA-intervals-log-log.tex", w=3.3, h=1.8)
+tikz("figure-PDPA-intervals-log-log.tex", w=2.3, h=1.8)
 print(gg)
 dev.off()
 pdf("figure-PDPA-intervals-log-log.pdf", w=3.3, h=1.8)

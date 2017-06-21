@@ -32,5 +32,6 @@ for(algo.type in c("PDPA", "PDPAInf")){
   }
 }
 PDPAInf.intervals <- do.call(rbind, PDPA.intervals.list)
+PDPAInf.intervals[, table(algo.type)]
 
 save(PDPAInf.intervals, file="PDPAInf.intervals.RData")

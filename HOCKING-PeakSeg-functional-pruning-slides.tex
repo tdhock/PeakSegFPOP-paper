@@ -34,8 +34,8 @@
 
 \begin{document}
 
-\title{A linear time algorithm for constrained 
-optimal segmentation}
+\title{A log-linear time algorithm for constrained 
+changepoint detection}
 
 \author{
   Toby Dylan Hocking\\
@@ -43,7 +43,7 @@ optimal segmentation}
   joint work with Guillem Rigaill, Paul Fearnhead, 
   Guillaume Bourque}
 
-\date{11 Nov 2016}
+%\date{11 Nov 2016}
 
 \maketitle
 
@@ -62,12 +62,13 @@ optimal segmentation}
   \frametitle{Problem: find peaks in each of several samples}
   \includegraphics[width=\textwidth]{screenshot-ucsc-edited}
 
-  Grey profiles are normalized aligned read count signals.
-
-  Black bars are ``peaks'' called by MACS2 (Zhang et al, 2008):
   \begin{itemize}
-  \item \alert<1>{many false positives}.
-  \item overlapping peaks have different start/end positions.
+  \item Grey profiles are noisy aligned read count signals -- \\peaks
+    are genomic locations with protein binding sites.
+  \item Black bars are peaks called by MACS2 (Zhang et al, 2008) -- many
+    false positives! (black bars where there is only noise)
+  \item From a machine learning perspective, this is binary
+    classification (positive=peaks, negative=noise).
   \end{itemize}
 \end{frame}
 
@@ -82,7 +83,7 @@ optimal segmentation}
   \item Triform, Kornacker et al, 2012.
   \item Histone modifications in cancer (HMCan), Ashoor et al, 2013.
   \item PeakSeg, Hocking, Rigaill, Bourque, ICML 2015.
-  \item PeakSegJoint Hocking and Bourque, arXiv:1506.01286.
+  %\item PeakSegJoint Hocking and Bourque, arXiv:1506.01286.
   \item ... dozens of others.
   \end{itemize}
   Two big questions: how to choose the best...
@@ -145,8 +146,10 @@ maxIter 20
   \frametitle{PeakSeg: search for the peaks with lowest loss}
   \includegraphics[width=1\textwidth]{figure-macs-problem-PeakSeg.png}
 
-  Choose the number of peaks via standard penalties (AIC, BIC,
-    ...)\\or learned penalties based on visual labels (more on this later).
+  Simple model with only one parameter (number of peaks).
+
+  %Choose the number of peaks via standard penalties (AIC, BIC,
+  %  ...)\\or learned penalties based on visual labels (more on this later).
 \end{frame}
 
 \begin{frame}
@@ -174,7 +177,7 @@ maxIter 20
   \end{itemize}
 \end{frame}
 
-\section{New linear time algorithm using functional pruning}
+\section{New functional pruning algorithm}
 
 \begin{frame}
   \frametitle{Statistical model is Poisson with change constraints}
@@ -203,66 +206,47 @@ maxIter 20
   \begin{tabular}{r|c|c}
     & no pruning & functional pruning \\
     \hline
-    unconstrained & \alert<1>{Dynamic Programming} & \alert<2>{Pruned DP} \\
-     & \alert<1>{exact $O(N^2)$} & \alert<2>{exact $O(N\log N)$}\\
+    unconstrained & \alert<1>{Dynamic Prog. Algo.} & \alert<2>{Pruned DPA} \\
+     & \alert<1>{exact $O(SN^2)$} & \alert<2>{exact $O(SN\log N)$}\\
     R pkgs: & \alert<1>{changepoint} & \alert<2>{cghseg, Segmentor}\\
     \hline
-    up-down constrained & \alert<3>{constrained DP} & \alert<4>{\textbf{this work}} \\
-     & \alert<3>{inexact $O(N^2)$} & \alert<4>{exact $O(N\log N)$}\\
-    R pkgs: & \alert<3>{PeakSegDP} & \alert<4>{coseg}\\
+    up-down constrained & \alert<3>{Constrained DPA} & \alert<4>{\textbf{GPDPA}} \\
+     & \alert<3>{inexact $O(SN^2)$} & \alert<4>{exact $O(SN\log N)$}\\
+    R pkgs: & \alert<3>{PeakSegDP} & \alert<4>{PeakSegOptimal}\\
     \hline
   \end{tabular}
   \begin{itemize}
   \item \alert<1>{Auger and Lawrence 1989, Jackson et al 2005}.
   \item \alert<2>{Rigaill 2010, Johnson 2013, Cleynen et al 2014}.
   \item \alert<3>{Hocking, Rigaill, Bourque 2015}.
-  \item \alert<4>{\textbf{Contribution}: new algorithm that
-      \textbf{exactly} computes the \textbf{constrained} optimal
-      segmentation for $N$ data points in linear $O(N\log N)$ time}.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Relation to previous work}
-TODO FPOP compare slide.
-  \begin{tabular}{r|c|c}
-    & no pruning & functional pruning \\
-    \hline
-    unconstrained & \alert<1>{Dynamic Programming} & \alert<2>{Pruned DP} \\
-     & \alert<1>{exact $O(N^2)$} & \alert<2>{exact $O(N\log N)$}\\
-    R pkgs: & \alert<1>{changepoint} & \alert<2>{cghseg, Segmentor}\\
-    \hline
-    up-down constrained & \alert<3>{constrained DP} & \alert<4>{\textbf{this work}} \\
-     & \alert<3>{inexact $O(N^2)$} & \alert<4>{exact $O(N\log N)$}\\
-    R pkgs: & \alert<3>{PeakSegDP} & \alert<4>{coseg}\\
-    \hline
-  \end{tabular}
-  \begin{itemize}
-  \item \alert<1>{Auger and Lawrence 1989, Jackson et al 2005}.
-  \item \alert<2>{Rigaill 2010, Johnson 2013, Cleynen et al 2014}.
-  \item \alert<3>{Hocking, Rigaill, Bourque 2015}.
-  \item \alert<4>{\textbf{Contribution}: new algorithm that
-      \textbf{exactly} computes the \textbf{constrained} optimal
-      segmentation for $N$ data points in linear $O(N\log N)$ time}.
+  \item \alert<4>{\textbf{Contribution:} Generalized Pruned Dynamic
+        Programming Algorithm (GPDPA) that \textbf{exactly} computes the
+      \textbf{constrained} model for $N$ data points and up to $S$ segments in
+       $O(SN\log N)$ time}.
   \end{itemize}
 \end{frame}
 
 \begin{frame}
   \frametitle{Dynamic programming and functional pruning}
   \textbf{Classical dynamic programming} (Auger and Lawrence 1989)
-  computes the optimal loss values up to $N$ data points, $O(N^2)$
+  computes the matrix of optimal loss values in $S$ segments up to $N$
+  data points, $O(S N^2)$
 $$
 \begin{array}{ccc}
-  \mathcal L_{1} & \cdots &   \mathcal L_{N}\\
+  \mathcal L_{1,1} & \cdots &   \mathcal L_{1,N}\\
+  \vdots &  & \vdots\\
+  \mathcal L_{S,1} & \cdots & \mathcal L_{S,N}\\
 \end{array}
 $$
-\textbf{Dynamic programming with functional pruning} (Rigaill
-2010) computes loss \textbf{functions}, the
-optimal loss up to $N$ data points with last segment mean $\mu$,
-$O(N\log N)$
+\textbf{Dynamic programming with functional pruning} (Rigaill 2010,
+Johnson 2013) computes a matrix of loss \textbf{functions}, the
+optimal loss up to $N$ data points if segment $S$ has mean $\mu_S$,
+$O(S N\log N)$
 $$
 \begin{array}{ccc}
-   L_{1}(\mu) & \cdots & L_{N}(\mu)\\
+   L_{1,1}(\mu_1) & \cdots & L_{1,N}(\mu_1)\\
+  \vdots &  & \vdots\\
+   L_{S,1}(\mu_S) & \cdots & L_{S,N}(\mu_S),\\
 \end{array}
 $$
 \textbf{Contribution of this work}: a new algorithm that applies the
@@ -270,7 +254,62 @@ functional pruning technique to the up-down constrained model.
 \end{frame}
 
 \begin{frame}
-  \frametitle{Comparison with unconstrained FPOP algo}
+  \frametitle{First segment, first data point}
+  \begin{itemize}
+  \item For data $z_1, \dots, z_N\in\ZZ_+$ let
+  \begin{equation*}
+    \gamma_t(\mu) = \ell(\mu, z_t) = \mu - z_t \log \mu
+  \end{equation*}
+  be the Poisson loss for each $t\in\{1, \dots, N\}$.
+\item For example $z = 2, 1, 0, 4$.
+\item Then $\gamma_1(\mu)=L_{1,1}(\mu)= \alert{1}\mu - \alert{2}\log \mu + \alert{0}$.
+\item Need to store 3 coefficients (\alert{linear}, \alert{log}, \alert{constant}).
+  \end{itemize}
+  \begin{center}
+    \includegraphics[width=0.7\textwidth]{figure-PeakSegPDPA-demo-cost-1segments-1data}
+  \end{center}
+\end{frame}
+
+\begin{frame}
+  \frametitle{First segment, other data points}
+  \begin{itemize}
+\item
+  The loss of the first segment up to data point $t$ is
+  \begin{equation*}
+    \label{eq:C1b}
+    L_{1,t}(\mu) = \sum_{i=1}^t \gamma_i(\mu).
+  \end{equation*}
+\item For example $z = 2, 1, 0, 4$.
+% \item $L_{1,2}(\mu) = (2\mu - 3\log\mu + 0)/2 = 1\mu - 1.5\log\mu + 0$.
+% \item $L_{1,3}(\mu) = (3\mu - 13\log\mu + 0)/3 = 1\mu - 4.333\log\mu + 0$.
+\item $L_{1,2}(\mu) = 2\mu - 3\log\mu + 0$.
+\item $L_{1,3}(\mu) = 3\mu - 12\log\mu + 0$.
+\item ...
+  \end{itemize}
+  \begin{center}
+    \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-cost-1segments-2data}
+    \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-cost-1segments-3data}
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Second segment, up to data point 2}
+  \begin{itemize}
+  \item The cost in 2 segments up to data point 2 is
+\begin{eqnarray*}
+  L_{2,2}(\mu_2) 
+  &=&  \gamma_2(\mu_2)+\min_{\mu_1 \leq \mu_2} L_{1,1}(\mu_1)\\
+  &=& \gamma_2(\mu_2)+L_{1,1}^{\leq}(\mu_2)
+\end{eqnarray*}
+\item Min-less operator is $L^\leq(\mu) = \min_{x\leq\mu} L(x),$
+    \begin{center}
+      \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minlessmore-2segments-2data}
+    \end{center}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Comparison with unconstrained Pruned DPA}
   \begin{itemize}
   \item For our constrained algorithm, the first segment mean must be
     less than the second, and the first segment cost is a function:
@@ -283,7 +322,7 @@ functional pruning technique to the up-down constrained model.
       \widehat{L}_{2,2}(\mu_2) = \gamma_2(\mu_2)+
       \alert<1>{\underbrace{\min_{\mu_1} L_{1,1}(\mu_1)}_{\mathcal L_{1,1}}}.
     \end{equation*}
-  \item For example $z = 2, 1, 9, 5, 10, 3$.
+  \item For example $z = 2, 1, 0, 4$.
     \begin{center}
       \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-mincompare-2segments-2data}
     \end{center}
@@ -293,69 +332,212 @@ functional pruning technique to the up-down constrained model.
 \begin{frame}
   \frametitle{Storage as a piecewise function on intervals}
   \begin{itemize}
-  \item For example $z = 2, 1, 9, 5, 10, 3$.
+  \item For example $z = 2, 1, 0, 4$.
     \begin{center}
-      TODO figure
+      \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minlessmore-2segments-2data}
     \end{center}
-  \item Storage: 
+  \item Storage: coefficients, intervals, previous segment mean,
+    $L_{2,2}(\mu) = \gamma_2(\mu) +$
     \begin{equation*}
-      L_{2,2}(\mu) = \gamma_2(\mu) + 
       \begin{cases}
-        L_{1,1}(\mu) = 1\mu - 2\log \mu + 0 & \text{ if } \mu\in[1,2],\\
-        \mathcal L_{1,1} = 0\mu -0\log\mu + 0.6137 & \text{ if } \mu\in[2,10].
+        %L_{1,1}(\mu) = 
+        1\mu - 2\log \mu + 0 & \text{ if } \mu\in[0, 2],\, \mu'=\mu\\
+        %\mathcal L_{1,1} = 
+        0\mu -0\log\mu + 0.6137 & \text{ if } \mu\in[2, 4],\, \mu'=2.
       \end{cases}
     \end{equation*}
   \end{itemize}
 \end{frame}
 
  
-\begin{frame}
-  \frametitle{General functional pruning equation}
+\begin{frame}[fragile]
+  \frametitle{Second segment, up to data point 3}
   \begin{itemize}
-  \item The constrained cost of a mean $\mu$ for the segment $s$,
-    up to data point $t$:
+  \item For data point 3 we need to consider two change-points:
     \begin{equation*}
-      L_{s,t}(\mu) = \gamma_t(\mu) + \min
+      L_{2,3}(\mu) =  \gamma_3(\mu) + \min
       \begin{cases}
-        L_{s,t-1}(\mu),\\
-        L_{s-1,t-1}^{*}(\mu),
+        L_{1,2}^{\leq}(\mu), & \text{ change up after data point 2},\\
+        L_{2,2}(\mu), & \text{ change up after data point 1}. 
       \end{cases}
     \end{equation*}
-  \item Time complexity of min and min-less/more * is linear in the
-    number of intervals, empirically sub-linear $O(\log N)$.
-    \includegraphics[width=0.5\textwidth]{figure-PDPA-intervals-all}
-  \item Total time complexity: $O(S N\log N)$.
+  \item For $z = 2, 1, 0, 4$ the min operation prunes a
+    change after data point 1.
+    \begin{center}
+      \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minenv-2segments-3data}
+    \end{center}
   \end{itemize}
 \end{frame}
 
 \begin{frame}
-  \frametitle{Target interval search algo}
-  TODO
+  \frametitle{Second segment, up to data point t}
+  \begin{itemize}
+  \item The updates continue for every data point $t\in\{3, ..., N\}$
+    \begin{equation*}
+      L_{2,t}(\mu) =  \gamma_t(\mu) + \min
+      \begin{cases}
+        L_{1,t-1}^{\leq}(\mu), & \text{change up after $t-1$,}\\
+        L_{2,t-1}(\mu), & \text{change up before $t-1$.}
+      \end{cases}
+    \end{equation*}
+  \item For example for $z = 2, 1, 0, 4$, at data point $t=4$
+    we only need to consider changes after 2 and 3 (1 has been
+    pruned).
+    \begin{center}
+      \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minenv-2segments-4data}
+    \end{center}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Generalized pruned dynamic programming algorithm (GPDPA)}
+  Dynamic programming update rule: the constrained cost of a
+  mean $\mu$ for the segment $s$, up to data point $t$.
+  \begin{itemize}
+  \item For $s=2, 4, \dots$
+    \begin{equation*}
+      L_{s,t}(\mu) = \gamma_t(\mu) + \min
+      \begin{cases}
+        L_{s,t-1}(\mu),\\
+        L_{s-1,t-1}^{\alert{\leq}}(\mu),
+      \end{cases}
+    \end{equation*}
+  \item For $s=3, 5, \dots$
+    \begin{equation*}
+      L_{s,t}(\mu) = \gamma_t(\mu) + \min
+      \begin{cases}
+        L_{s,t-1}(\mu),\\
+        L_{s-1,t-1}^{\alert{\geq}}(\mu),
+      \end{cases}
+    \end{equation*}
+  \end{itemize}
 \end{frame}
 
 \begin{frame}
-  \frametitle{Max-margin penalty learning algortihm}
-  \includegraphics[width=\textwidth]{figure-large-margin}
-
-\scriptsize \url{http://bl.ocks.org/tdhock/raw/9311ca39d643d127e04a088814c81ee1/}
-
-\end{frame}
-
-\section{Results on comparing several samples}
-
-\begin{frame}
-  \frametitle{Target interval computation time}
-  \includegraphics[width=\textwidth]{figure-target-interval-time}
+  \frametitle{More complex $\min\{\}$ computation}
+  Time/space complexity linear in number of intervals (candidate changepoints).
+  \begin{minipage}[t]{\linewidth}
+  \hskip -1cm
+  \input{figure-2-min-envelope} 
+  \end{minipage}
 \end{frame}
 
 \begin{frame}
-  \frametitle{More peaks in sharp H3K4me3 than in broad H3K36me3}
-  \includegraphics[width=0.7\textwidth]{figure-min-err-peaks-compare}
+  \frametitle{Implementation details}
+  Implemented using C++ Standard Template Library (linked list),
+  \url{https://cran.r-project.org/package=PeakSegOptimal}
+\begin{description}
+\item[Weights] for data sequences that contain repeats:
+  5,1,1,1,0,0,5,5 is encoded as $n=4$ counts $y_t$ 5,1,0,5 with
+  corresponding weights $w_t$ 1,3,2,2.
+\item[Mean cost rather than total cost] more complicated update rule,
+  but more numerically stable.
+\item[Intervals in log(mean) space] For example rather than storing
+  $\mu\in[0,1]$ we store $x=\log\mu\in[-\infty, 0]$ -- Poisson model,
+  negative mean impossible.
+\item[Newton root finding] For the larger root we solve
+  $a\log\mu + b\mu + c = 0$ (linear as $\mu\rightarrow\infty$) and for
+  the smaller root we solve $a x + be^x + c = 0$ ($x=\log \mu$, linear
+  as $x\rightarrow -\infty$ and $\mu\rightarrow 0$). 
+\end{description}
+  
+\end{frame}
+
+\section{Results on heartbeat audio time series}
+
+\begin{frame}
+  \frametitle{Heartbeat mp3}
+  \includegraphics[width=\textwidth]{figure-heartbeat-data-only}
+
+  \scriptsize
+  \url{https://github.com/tdhock/heartbeat/blob/master/heartbeat.mp3}
 \end{frame}
 
 \begin{frame}
-  \frametitle{More peaks in sharp H3K4me3 than in broad H3K36me3}
-  \includegraphics[width=0.7\textwidth]{figure-peak-size-model}
+  \frametitle{Unconstrained 
+model does not satisfy up-down constraint}
+  \includegraphics[width=\textwidth]{figure-heartbeat-unconstrained}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Up-down
+model interpretable in terms of heartbeats}
+  \includegraphics[width=\textwidth]{figure-heartbeat-PeakSeg}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Can measure heartbeat duration}
+  \includegraphics[width=\textwidth]{figure-heartbeat}
+\end{frame}
+
+\section{Results on ChIP-seq benchmark}
+
+\begin{frame}
+  \frametitle{Benchmark data sets, algorithms}
+
+ \url{http://cbio.ensmp.fr/~thocking/chip-seq-chunk-db/}
+  \begin{itemize}
+  \item Hocking \emph{et al} Bioinformatics (2016). Optimizing
+    ChIP-seq peak detectors using visual labels and supervised machine
+    learning.
+  \item 37 labeled H3K4me3 samples (sharp peak pattern).
+  \item 29 labeled H3K36me3 samples (broad peak pattern).
+  \item 12,826 labeled regions with and without peaks.
+  \item 2,752 separate segmentation problems.
+  \end{itemize}
+
+  Algorithms for $S$ optimal segmentations in $N$ data points:
+  \begin{center}
+  \begin{tabular}{ccccc}
+    algorithm & constraint & exact? & complexity \\
+    \hline
+    CDPA & $\mu_1 < \mu_2 > \mu_3 \dots$ & no & $O(S N^2)$\\
+    \textbf{GPDPA} &
+ $\mu_1 \leq \mu_2 \geq \mu_3 \dots$ & yes & $O(S N\log N)$ \\
+    PDPA & none & yes & $O(S N\log N)$
+  \end{tabular}
+
+  \vskip 0.5cm
+
+  PDPA loss $\leq$ GPDPA loss $\leq$ CDPA loss.
+  \end{center}
+\end{frame}
+
+\begin{frame}
+  \frametitle{0 errors for GPDPA/CDPA, 6 errors for PDPA}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem2-best.png}
+
+
+  Run each algo with $0,\dots,9$ peaks. Discard models which do not
+  satisfy peak constraint. Model with min train label error shown.
+\end{frame}
+
+\begin{frame}
+  \frametitle{Test AUC on 7 benchmark data sets}
+  \includegraphics[width=\textwidth]{figure-test-error-dots}
+  \begin{itemize}
+  \item 4-fold cross-validation: train on 3/4 of labels, test on 1/4.
+  \item All models trained by learning a scalar significance
+    threshold / penalty parameter, which is varied to compute ROC/AUC.
+  \item MACS is highly inaccurate in all data sets.
+  \item HMCanBroad is accurate for broad but not sharp pattern.
+  \item Unconstrained PDPA algorithm not as accurate as up-down
+    constrained algorithms (CDPA, \textbf{proposed GPDPA}).
+  \end{itemize}
+  \scriptsize
+\url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Functional pruning algorithms faster for larger data sets}
+  \includegraphics[width=1\textwidth]{figure-PDPA-timings.pdf}
+
+  Total time to compute 10 models (0, ..., 9 peaks) for all problems:
+  \begin{itemize}
+  \item CDPA: 156 hours, inexact.
+  \item GPDPA: 6 hours, exact.
+  \end{itemize}
 \end{frame}
 
 \section{Conclusions and future work}
@@ -395,20 +577,8 @@ maxIter 20
   \frametitle{PeakSeg: search for the peaks with lowest loss}
   \includegraphics[width=1\textwidth]{figure-macs-problem-PeakSeg.png}
   
-  Simple model with only one parameter to train (maxPeaks).
+  Simple model with only one parameter (number of peaks).
 \end{frame}
-
-\begin{frame}
-  \frametitle{Linear time algorithms faster for larger data sets}
-  \includegraphics[width=1\textwidth]{figure-PDPA-timings.pdf}
-
-  Total time to compute 10 models (0, ..., 9 peaks) for all data sets:
-  \begin{itemize}
-  \item PeakSegDP: 156 hours, inexact.
-  \item coseg: 6 hours, exact.
-  \end{itemize}
-\end{frame}
-
 
 \begin{frame}
   \frametitle{Conclusions}
@@ -416,25 +586,24 @@ maxIter 20
     & no pruning & functional pruning \\
     \hline
     unconstrained & Dynamic Programming & Pruned DP \\
-     & exact $O(N^2)$ & exact $O(N\log N)$\\
+     & exact $O(S N^2)$ & exact $O(SN\log N)$\\
     R pkgs: & changepoint & cghseg, Segmentor\\
     \hline
-    up-down constrained & constrained DP & \textbf{this work} \\
-     & inexact $O(N^2)$ & exact $O(N\log N)$\\
-    R pkgs: & PeakSegDP & \textbf{coseg}\\
+    up-down constrained & constrained DP & \textbf{GPDPA} \\
+     & inexact $O(SN^2)$ & exact $O(SN\log N)$\\
+    R pkgs: & PeakSegDP & \textbf{PeakSegOptimal}\\
     \hline
   \end{tabular}
   \begin{itemize}
-  \item New algorithm that \textbf{exactly} computes the
-    \textbf{constrained} optimal change-points/peaks for $N$ data points.
-  \item C++ code in coseg R package, $O(N \log N)$ memory
-    \url{https://github.com/tdhock/coseg}
-  \item PeakSegFPOP program for big $N > 10^6$ data,
-    $O(\log N)$ memory and $O(N\log N)$ disk space.
-  \item TODO: regularized isotonic regression solver.
-  \item TODO: supervised peak calling for ENCODE, Roadmap, ...
-  \item TODO: interactive web app for creating labels.
+  \item New GPDPA that computes optimal changepoints 
+    using the Poisson loss and the up-down constraint.
+  \item State-of-the-art peak detection accuracy in ChIP-seq data.
+  \item Empirically $O(S N \log N)$ time and memory for $N$ data
+    points and $S$ segments.
+  \item C++ code in PeakSegOptimal R package, 
+    \url{https://cran.r-project.org/package=PeakSegOptimal}
   \end{itemize}
+  Future work: other constraints and loss functions.
 \end{frame}
 
 \begin{frame}
@@ -442,15 +611,40 @@ maxIter 20
 
   Questions? toby.hocking@mail.mcgill.ca
   \begin{itemize}
+  \item A log-linear time algorithm for constrained changepoint
+    detection, by Toby Dylan Hocking, Guillem Rigaill, Paul Fearnhead,
+    Guillaume Bourque \url{https://arxiv.org/abs/1703.03352}
   \item 
-  \textbf{coseg} R package, \\
-  \url{https://github.com/tdhock/coseg}
-  \item 
-    \textbf{PeakSegFPOP} command line program, 
-  \url{https://github.com/tdhock/PeakSegFPOP}
+  PeakSegOptimal R package, \\
+\url{https://cran.r-project.org/package=PeakSegOptimal}
   \item source code for these slides:
   \url{https://github.com/tdhock/PeakSegFPOP-paper}
   \end{itemize}
+\end{frame}
+
+\section*{Results on comparing several samples}
+
+\begin{frame}
+  \frametitle{Target interval computation time}
+  \includegraphics[width=\textwidth]{figure-target-interval-time}
+\end{frame}
+
+\begin{frame}
+  \frametitle{More peaks in sharp H3K4me3 than in broad H3K36me3}
+  \includegraphics[width=0.7\textwidth]{figure-min-err-peaks-compare}
+\end{frame}
+
+\begin{frame}
+  \frametitle{More peaks in sharp H3K4me3 than in broad H3K36me3}
+  \includegraphics[width=0.7\textwidth]{figure-peak-size-model}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Max-margin penalty learning algortihm}
+  \includegraphics[width=\textwidth]{figure-large-margin}
+
+\scriptsize \url{http://bl.ocks.org/tdhock/raw/9311ca39d643d127e04a088814c81ee1/}
+
 \end{frame}
 
 \begin{frame}
@@ -838,6 +1032,47 @@ constraints}.
 \begin{frame}
   \frametitle{0 errors for coseg/PeakSegDP, 6 errors for Segmentor}
   \includegraphics[width=\textwidth]{figure-min-train-error-problem2}
+\end{frame}
+
+\begin{frame}
+  \frametitle{8 false negative labels for models with 0 peaks}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-0peaks}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Models with 1 peak are better (6 FN)}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-1peaks}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Models with 2 peaks are better still (4 FN)}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-2peaks}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Models with 3 peaks are the same (4 FN)}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-3peaks}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Models with 4 peaks are better (2 FN)}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-4peaks}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Models with 5 peaks have no incorrect labels}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-5peaks}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Models with 6 peaks are worse (1 false positive)}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-6peaks}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Constrained optimization better than macs}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-best}
 \end{frame}
 
 
