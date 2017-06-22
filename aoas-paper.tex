@@ -66,8 +66,8 @@
 \begin{frontmatter}
 
 % "Title of the paper"
-\title{A log-linear time algorithm for constrained changepoint detection}
-\runtitle{Log-linear time constrained changepoint detection}
+\title{A log-linear time segmentation algorithm for peak detection in genomic data}
+\runtitle{Log-linear time peak detection in genomic data}
 
 
 \begin{aug}
@@ -76,6 +76,7 @@
   \author{\fnms{Paul} \snm{Fearnhead}\ead[label=e3]{p.fearnhead@lancaster.ac.uk}}
     \and
   \author{\fnms{Guillaume} \snm{Bourque}\ead[label=e4]{guil.bourque@mcgill.ca}}
+
 
   \runauthor{TD Hocking et al.}
 
@@ -91,21 +92,23 @@
 \end{aug}
 
 \begin{abstract}
-  Changepoint detection is a central problem in time series and
-  genomic data. For some applications, it is natural to impose
-  constraints on the directions of changes. One example is ChIP-seq
-  data, for which adding an up-down constraint improves peak detection
-  accuracy, but makes the optimization problem more complicated. We
-  show how a recently proposed functional pruning technique can be
-  adapted to solve such constrained changepoint detection
-  problems. This leads to a new algorithm which can solve problems
-  with arbitrary affine constraints on adjacent segment means, and
-  which has empirical time complexity that is log-linear in the amount
-  of data. This algorithm achieves state-of-the-art accuracy in a
-  benchmark of several genomic data sets, and is orders of magnitude
-  faster than existing algorithms that have similar accuracy. Our
-  implementation is available as the PeakSegPDPA function in the coseg
-  R package, \url{https://github.com/tdhock/coseg}
+  Peak detection is a central problem in genomic data, which are
+  typically represented as a sequence of numbers along a chromosome. A
+  maximum likelihood changepoint detection model with an up-down
+  constraint on piecewise constant segment means has been shown to
+  achieve state-of-the-art peak detection accuracy in these
+  data. However, the only existing inference algorithm
+  has two issues: it does not necessarily compute the optimal
+  solution, and it can only be used on relatively small data sets due
+  to its quadratic time complexity. In this paper we show how a
+  recently proposed functional pruning technique can be used to
+  compute the optimal solution to constrained changepoint
+  problems. This results in a new algorithm that computes the optimal
+  solution in empirically log-linear time. In a benchmark of several
+  ChIP-seq data sets, our proposed algorithm achieves state-of-the-art
+  peak detection accuracy, and is orders of magnitude faster than the
+  previous quadratic time algorithm. Our implementation is available
+  in the PeakSegOptimal package on CRAN.
 \end{abstract}
 
 %\begin{keyword}[class=MSC]
@@ -123,6 +126,25 @@
 
 
 \section{Introduction}
+
+In recent years, high-throughput DNA sequencing technologies have been
+improving at a rapid pace, in progressively bigger genomic data
+sets. For example Chromatin ImmunoPrecipitation sequencing (ChIP-seq)
+is a genome-wide assay for histone modifications or transcription
+factor binding sites \citep{chip-seq}. Another example is the Assay
+for Transposase-Accessible Chromatin, which measures open chromatin
+\citep{ATACseq}. Briefly, each assay yields a set of DNA sequence reads
+which are aligned to a reference genome, and then the number of
+aligned reads are counted at each genomic position
+(Figure~\ref{fig:good-bad}). Although these read counts can be
+interpreted as quantitative data, they are most often interpreted
+using one of the many available peak detection algorithms
+\citep{evaluation2010, rye2010manually, chip-seq-bench}. A peak
+detection algorithm is a binary classifier for each genomic
+position. The positive class is enriched (peaks) and the negative
+class is background noise. Importantly, peaks and background occur in
+long contiguous segments across the genome.
+
 
 Changepoint detection is a central problem in fields such as finance
 or genomics, where $n$ data are gathered in a sequence over time or
@@ -1683,7 +1705,7 @@ Fearnhead acknowledges EPSRC grant EP/N031938/1 (StatScale).
 
 
 \bibliographystyle{abbrvnat}
-\bibliography{refs-abbrev}
+\bibliography{refs}
 
 
 
