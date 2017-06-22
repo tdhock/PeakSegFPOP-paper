@@ -136,52 +136,67 @@ for Transposase-Accessible Chromatin, which measures open chromatin
 \citep{ATACseq}. Briefly, each assay yields a set of DNA sequence reads
 which are aligned to a reference genome, and then the number of
 aligned reads are counted at each genomic position
-(Figure~\ref{fig:good-bad}). Although these read counts can be
-interpreted as quantitative data, they are most often interpreted
-using one of the many available peak detection algorithms
-\citep{evaluation2010, rye2010manually, chip-seq-bench}. A peak
-detection algorithm is a binary classifier for each genomic
-position. The positive class is enriched (peaks) and the negative
-class is background noise. Importantly, peaks and background occur in
-long contiguous segments across the genome.
+(Figure~\ref{fig:data-models}). 
 
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{figure-data-models}
+  \vskip -0.5cm
+  \caption{ChIP-seq read count data (grey lines) for one sample on a
+    subset of chromosome~11. \textbf{Left:} the unconstrained maximum
+    likelihood model with 5 segment means (horizontal green lines) has
+    two up changes followed by two down changes (vertical green
+    lines). It does not satisfy the up-down constraint (odd-numbered
+    changes must be up, and even-numbered changes must be
+    down). \textbf{Right:} the up-down constrained model is less
+    likely, but each up change is followed by a down
+    change. Odd-numbered segments are interpreted as background noise,
+    and even-numbered segments are interpreted as peaks.}
+  \label{fig:data-models}
+\end{figure}
 
-Changepoint detection is a central problem in fields such as finance
-or genomics, where $n$ data are gathered in a sequence over time or
-space. Many models define the optimal changepoints using maximum
-likelihood, resulting in a discrete optimization problem. Multiple
-changepoint detection models seek the optimal $K$ segments
-($K-1$ changes), which amounts to optimizing likelihood
-parameters over a space that contains $O(n^{K-1})$ discrete
-arrangements of changepoints. In general this problem can be solved
-in $O(Kn^2)$ time using the original dynamic programming algorithm of
-\citet{segment-neighborhood}. Recently proposed pruning techniques
-reduce the number of changepoints considered by the algorithm, thus
-reducing time complexity to $O(K n\log n)$ while maintaining
-optimality \citep{pruned-dp, johnson, fpop}.
+Although these read counts can be interpreted as quantitative data,
+they are most often interpreted using one of the many available peak
+detection algorithms \citep{evaluation2010, rye2010manually,
+  chip-seq-bench}. A peak detection algorithm is a binary classifier
+for each genomic position, where peaks are the positive class, and
+background noise is the negative class. Importantly, peaks and
+background occur in long contiguous segments across the genome. Most
+algorithms from the bioinformatics literature are heuristics with
+several parameters that affect peak detection accuracy (window/bin
+sizes, p-value thresholds, etc).
 
-In ``unconstrained'' changepoint models, there are no contraints
-between model parameters on separate segments. To regularize and obtain a more
-interpretable model, it is often desirable to introduce constraints
-between model parameters before and after changepoints. 
-%For example, learning a peak detection function in genomic data amounts to classifying each data point as either part of a peak (positive class for large data values) or background noise (negative class for small data values). 
-For example, the main problem that motivates this paper is peak
-detection in ChIP-seq data, which provide noisy measurements of
-protein binding or modification throughout a genome \citep{practical}. An
-up-down constrained changepoint detection model has been shown to
-achieve state-of-the-art peak detection accuracy in ChIP-seq data
-\citep{HOCKING-PeakSeg}. The constraints of this model force an up
-change in the segment mean parameter after each down change, and vice
-versa.
-% These constraints result in a model that can be used to
-% classify data into peaks (after up changes) and background (after down
-% changes). 
-The fastest existing solver for this problem is the Constrained
-Dynamic Programming Algorithm (CDPA), which has two issues. First, it
-is a heuristic algorithm that is not guaranteed to recover the optimal
+\citet{cleynen2013segmentation} proposed an unconstrained maximum
+likelihood segmentation model for genomic data. It is defined as the
+most likely model with exactly $K$ piecewise constant segment means.
+However, it sometimes has several consecutive up changes, which makes
+it non-trivial to interpret in terms of peaks
+(Figure~\ref{fig:data-models}, left). To ensure that the segmentation
+model is interpretable in terms of peaks and background, the PeakSeg
+model of imposes an additional constraint \citep{HOCKING-PeakSeg}. Up
+changes must be followed by down changes, and vice versa
+(Figure~\ref{fig:data-models}, right). This constraint ensures that
+odd-numbered segments can be interpreted as background, and
+even-numbered segments can be interpreted as peaks. 
+%In contrast to heuristic algorithms such as MACS and HMCan, PeakSeg has only one parameter that affects peak detection accuracy (the number of segments $K$). 
+In a
+recent comparison study, \citet{HOCKING2016-chipseq} showed that
+PeakSeg achieves state-of-the-art peak detection accuracy in a
+benchmark of several ChIP-seq data sets.
+
+For a sequence of $n$ noisy data points, multiple changepoint
+algorithms attempt to optimize $K$ real-valued segment mean parameters
+and $K-1$ discrete changepoint parameters. This amounts to optimizing
+segment means over a space that contains $O(n^{K-1})$ discrete
+arrangements of changepoints. In general this problem can be solved in
+$O(Kn^2)$ time using the original dynamic programming algorithm of
+\citet{segment-neighborhood}. \citet{HOCKING-PeakSeg} used these ideas
+to derive a Constrained Dynamic Programming Algorithm (CDPA) to infer
+the PeakSeg model parameters. However, it has two issues. First, it is
+a heuristic algorithm that is not guaranteed to recover the optimal
 solution. Second, its $O(Kn^2)$ quadratic time complexity is too slow
-for use on large data sets. In this
-paper we propose a new algorithm that fixes both of these issues.
+for use on large genomic data sets. In this paper we propose a new algorithm
+that resolves both of these issues.
 
 \subsection{Contributions and organization}
 
