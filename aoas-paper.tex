@@ -94,9 +94,10 @@
 
 \begin{abstract}
   Peak detection is a central problem for genomic data, and involves segmenting
-  counts of DNA reads that are aligned to different locations of a chromosome into
-  background and peak regions. These refer to regions with respectively lower and higher
-  numbers of counts. A
+  counts of DNA sequence reads that are aligned to different locations of 
+  a chromosome. 
+  The goal is to detect peaks with higher counts, 
+  and filter out background noise with lower counts. A
   maximum likelihood changepoint detection model with an up-down
   constraint on piecewise constant segment means has been shown to
   achieve state-of-the-art peak detection accuracy in such
@@ -105,9 +106,11 @@
   solution, and it can only be used on relatively small data sets due
   to its quadratic time complexity. In this paper we show how a
   recently proposed functional pruning technique can be used to
-  compute the optimal solution to constrained changepoint
-  problems. This results in a new algorithm that computes the optimal
-  solution and that empirically has a log-linear computational cost. In a benchmark of several
+  overcome both issues.
+  %compute the optimal solution to constrained changepoint problems. 
+  This results in a new algorithm that computes the optimal
+  solution and that empirically has a log-linear computational cost. 
+  In a benchmark of several
   ChIP-seq data sets, our proposed algorithm achieves state-of-the-art
   peak detection accuracy, and is orders of magnitude faster than the
   previous quadratic time algorithm. Our implementation is available
@@ -373,26 +376,6 @@ Rather than explicitly summing over data points $i$ as in problem
 (\ref{eq:reduced}), this problem uses the equivalent sum over segments $k$. 
   
 
-\begin{figure*}[t!]
-  \centering
-  \input{figure-compare-unconstrained}
-  \input{figure-compare-cost}
-  \vskip -0.5cm
-  \caption{Comparison of previous unconstrained algorithm
-    (\textcolor{Min}{grey}) with new algorithm that constrains segment
-    means to be non-decreasing (\textcolor{Ckt}{red}), for the toy data
-    set $\mathbf y= [ 2, 1, 0, 4 ] \in\RR^4$ and the square
-    loss. \textbf{Left:} rather than computing the unconstrained
-    minimum (constant grey function), the new algorithm computes the
-    min-less operator (red), resulting in a larger cost when the
-    segment mean is less than the first data point ($\mu <
-    2$). \textbf{Right:} adding the cost of the second data point
-    $(\mu-1)^2$ and minimizing yields equal means $u_1=u_2=1.5$ for
-    the constrained model and decreasing means $u_1=2,\, u_2=1$ for
-    the unconstrained model.}
-  \label{fig:compare-unconstrained}
-\end{figure*}
-
 % The next lemma
 % proves that it is equivalent to solve this simpler optimization problem.
 
@@ -457,6 +440,27 @@ represents a convex function piece, and implementation details depend
 on the choice of the loss function $\ell$ (for an example using the
 square loss see Section~\ref{sec:example-comparison}).
 
+
+\begin{figure*}[t!]
+  \centering
+  \input{figure-compare-unconstrained}
+  \input{figure-compare-cost}
+  \vskip -0.5cm
+  \caption{Comparison of previous unconstrained algorithm
+    (\textcolor{Min}{grey}) with new algorithm that constrains segment
+    means to be non-decreasing (\textcolor{Ckt}{red}), for the toy data
+    set $\mathbf y= [ 2, 1, 0, 4 ] \in\RR^4$ and the square
+    loss. \textbf{Left:} rather than computing the unconstrained
+    minimum (constant grey function), the new algorithm computes the
+    min-less operator (red), resulting in a larger cost when the
+    segment mean is less than the first data point ($\mu <
+    2$). \textbf{Right:} adding the cost of the second data point
+    $(\mu-1)^2$ and minimizing yields equal means $u_1=u_2=1.5$ for
+    the constrained model and decreasing means $u_1=2,\, u_2=1$ for
+    the unconstrained model.}
+  \label{fig:compare-unconstrained}
+\end{figure*}
+
 In the original unconstrained PDPA, computing the $C_{k,t}(u_k)$
 function requires taking the minimum of $C_{k,t-1}(u_k)$ (a function
 of the last segment mean $u_k$) and
@@ -488,21 +492,21 @@ the update rules used in our proposed algorithm.
 \item For $k=1$ we have
 $\FCC_{1,1}(\mu)=\ell(y_1,\mu)$, and for the other data
   points $t>1$ we have
-\begin{equation}
+$
 \FCC_{1,t}(\mu)=\FCC_{1,t-1}(\mu)+\ell(y_t,\mu)
-\end{equation}
+$
 \item For $k>1$ and $t=k$ we have
-\begin{equation}
+$
   \FCC_{k,k}(\mu)=\ell(y_k, \mu)+\FCC_{k-1,k-1}^\leq(\mu)
-\end{equation}
-\item In all other cases we have
-  \begin{equation}
+$
+\item In all other cases ($k>1$ and $t>k$) we have
+ $$
   \FCC_{k,t}(\mu)=\ell(y_t,\mu)+
   \min\{
   \FCC_{k-1,t-1}^\leq(\mu),\,
   \FCC_{k,t-1}(\mu)
   \}.
-  \end{equation}
+$$
 \end{enumerate}
 \end{theorem}
 
@@ -720,16 +724,17 @@ $\FCC_{1,1}(\mu)=\ell(y_1,\mu)$, and for the other data
 
 The dynamic programming algorithm requires computing $O(Kn)$ cost
 functions $\FCC_{k,t}$. As in the original pruned dynamic programming
-algorithm, the time complexity of the algorithm is $O(K n I)$ where
-$I$ is the number of intervals (convex function pieces; candidate
-changepoints) that are used to represent the cost functions. The
-theoretical maximum number of intervals is $I=O(n)$, implying a time
-complexity of $O(K n^2)$ \citep{pruned-dp-new}. However, this maximum
-is only achieved in pathological synthetic data sets, such as a
-monotonic increasing data sequence. The average number of intervals in
-real data sets is empirically $I=O(\log n)$, as we will show in
-Section~\ref{sec:results_time}. Thus the average empirical time complexity of
-the algorithm is $O(K n \log n)$.
+algorithm \citep{pruned-dp}, the time complexity of the algorithm is
+$O(K n I)$ where $I$ is the number of intervals (convex function
+pieces; candidate changepoints) that are used to represent the cost
+functions. The theoretical maximum number of intervals is $I=O(n)$,
+implying a time complexity of $O(K n^2)$
+\citep{pruned-dp-new}. However, this maximum is only achieved in
+pathological synthetic data sets, such as a monotonic increasing data
+sequence. The average number of intervals in real data sets is
+empirically $I=O(\log n)$, as we will show in
+Section~\ref{sec:results_time}. Thus the average empirical time
+complexity of the algorithm is $O(K n \log n)$.
 
 % We therefore propose the following data structures and sub-routines for
 % the computation:
@@ -1012,16 +1017,16 @@ with an example of how the $\min\{\}$ operation performs pruning.
 
 We implemented this algorithm using the Poisson loss
 $\ell(y, \mu) = \mu - y\log \mu$, since our application in
-Section~\ref{sec:results-chip-seq} is on ChIP-seq count data
+Section~\ref{sec:results-chip-seq} is on ChIP-seq non-negative count data
 $y\in\ZZ_+ = \{0, 1, 2, \dots\}$.
 % Our free/open-source implementation
 % is available as the PeakSegPDPA function in the R package coseg
 % (\url{https://github.com/tdhock/coseg}). 
 We implemented this algorithm in C++, and our free/open-source code is
-available as the PeakSegPDPA function in the coseg R package for
-constrained optimal segmentation
-(\url{https://github.com/tdhock/coseg}). Implementation details can be
-found in the supplementary materials.
+available as the PeakSegPDPA function in the PeakSegOptimal R package
+on
+CRAN.\footnote{\url{https://cran.r-project.org/package=PeakSegOptimal}}
+Implementation details can be found in the supplementary materials.
 
 \subsection{General affine inequality constraints
   between adjacent segment means}
@@ -1286,9 +1291,9 @@ accuracy. To show the importance of enforcing the up-down constraint,
 we consider the unconstrained Pruned Dynamic Programming Algorithm
 (PDPA) of \citet{pruned-dp} as a baseline
 (Table~\ref{tab:contribution}). We also compare against two popular
-heuristics from the bioinformatics literature, in order to demonstrate
-that constrained optimization algorithms such as the CDPA and GPDPA
-are more accurate.
+heuristics from the bioinformatics literature (MACS, \citet{MACS};
+HMCanBroad, \citet{HMCan}), in order to demonstrate that constrained
+optimization algorithms such as the CDPA and GPDPA are more accurate.
 
 % \begin{description}
 % \item[Segmentor3IsBack::Segmentor] is an implementation of a
@@ -1621,7 +1626,7 @@ time.
 \section{Reproducible Research Statement}
 
 The source code and data used to create this manuscript (including all
-figures) is available at
+figures) is available at\\
 \url{https://github.com/tdhock/PeakSegFPOP-paper}
 
 \section{Acknowledgements}
