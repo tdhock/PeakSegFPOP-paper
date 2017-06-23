@@ -20,7 +20,8 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows}
 \usepackage{amsthm,amsmath,amssymb,natbib}
-\usepackage{hyperref}
+%\usepackage{hyperref}
+\newcommand{\url}[1]{\texttt{#1}}
 %\RequirePackage[colorlinks,citecolor=blue,urlcolor=blue]{hyperref}
 % For algorithms
 \usepackage{algorithm}
@@ -163,10 +164,11 @@ detection algorithms \citep{evaluation2010, rye2010manually,
   chip-seq-bench}. A peak detection algorithm is a binary classifier
 for each genomic position, where peaks are the positive class, and
 background noise is the negative class. Importantly, peaks and
-background occur in long contiguous segments across the genome. Most
-algorithms from the bioinformatics literature are heuristics with
-several parameters that affect peak detection accuracy (window/bin
-sizes, p-value thresholds, etc).
+background occur in long contiguous segments across the
+genome. Typical algorithms from the bioinformatics literature such as
+MACS \citep{MACS} and HMCan \citep{HMCan} are heuristics with several
+parameters that affect peak detection accuracy (window/bin sizes,
+p-value thresholds, etc).
 
 %%%PF: Perhaps add some references to "Most algorithms from the bioinformatics literature %%%
 
@@ -206,6 +208,33 @@ of data points means that it can be  too slow
 for use on large genomic data sets. In this paper we propose a new algorithm
 that resolves both of these issues. 
 
+
+\begin{table*}[b!]
+  \centering
+  \begin{tabular}{r|c|c}
+    Constraint & No pruning & Functional pruning \\
+    \hline
+    None & Dynamic Prog. Algo. (DPA) & Pruned DPA (PDPA) \\
+    & Optimal, $O(Kn^2)$ time & Optimal, $O(Kn\log n)$ time\\
+    % & \citet{segment-neighborhood} & \\
+    % & \citet{optimal-partitioning} & \\
+    & \citet{segment-neighborhood}     & \citet{pruned-dp, johnson} \\
+    \hline
+    Up-down & Constrained DPA (CDPA) & Generalized Pruned DPA (GPDPA) \\
+    & Sub-optimal, $O(Kn^2)$ time & Optimal, $O(Kn\log n)$ time\\
+    & \citet{HOCKING-PeakSeg} & \textbf{This paper} \\
+    \hline
+  \end{tabular}
+  \caption{Our contribution is 
+the Generalized Pruned Dynamic Programming Algorithm (GPDPA), 
+ which uses a functional pruning technique 
+    to compute the constrained optimal $K-1$ changepoints 
+in a sequence of $n$ data. 
+Time complexity is on average, 
+in our empirical tests on real ChIP-seq data sets.}
+\label{tab:contribution}
+\end{table*}
+
 The paper is structured as follows. First we define a natural class of cost functions for 
 measuring the quality of a segmentation, and consider the problem of finding the best segmentation
 via minimising this cost. The problem of minimising the cost can be split into two cases, the first
@@ -215,7 +244,7 @@ mean for neighbouring segments. Whilst there are a number of efficient dynamic p
 that can solve the unconstrained minimisation, we are unaware of equivalent dynamic programming
 algorithms for constrained version.  Our main contribution is described in 
 Section~\ref{sec:algorithms}, where we generalize the functional pruning
-technique of \citet{pruned-dp} so that it can be applied to the constrained minimisation problem. This
+technique of \citet{pruned-dp} so that it can be applied to the constrained minimisation problem (Table~\ref{tab:contribution}). This
 results in a new algorithm, which we call Generalized
 Pruned Dynamic Progamming Algorithm (GPDPA), and which can cope not only with our up-down constraint, 
 but also with isotonic contraints and more general affine constraints on the segment means for 
@@ -275,45 +304,23 @@ regression \citep{reduced-monotonic-regression}, and is defined by
 To simplify description of our approach to solving constrained minimisation problems, such as with our
 up-down constraint, we will first explain how it solves (\ref{eq:reduced}).
 
-\begin{table*}[b!]
-  \centering
-  \begin{tabular}{r|c|c}
-    Constraint & No pruning & Functional pruning \\
-    \hline
-    None & Dynamic Prog. Algo. (DPA) & Pruned DPA (PDPA) \\
-    & Optimal, $O(Kn^2)$ time & Optimal, $O(Kn\log n)$ time\\
-    % & \citet{segment-neighborhood} & \\
-    % & \citet{optimal-partitioning} & \\
-    & \citet{segment-neighborhood}     & \citet{pruned-dp, johnson} \\
-    \hline
-    Up-down & Constrained DPA (CDPA) & Generalized Pruned DPA (GPDPA) \\
-    & Sub-optimal, $O(Kn^2)$ time & Optimal, $O(Kn\log n)$ time\\
-    & \citet{HOCKING-PeakSeg} & \textbf{This paper} \\
-    \hline
-  \end{tabular}
-  \caption{Our contribution is 
-the Generalized Pruned Dynamic Programming Algorithm (GPDPA), 
- which uses a functional pruning technique 
-    to compute the constrained optimal $K-1$ changepoints 
-in a sequence of $n$ data. 
-Time complexity is on average, 
-in our empirical tests on real ChIP-seq data sets.}
-\label{tab:contribution}
-\end{table*}
 
-
-Whilst there are many algorithms that solve the unconstrained minisation problem
-(\ref{eq:optimal_segment_neighborhood}) \cite[]{segment-neighborhood,pruned-dp,phd-johnson} or related 
-versions of it \cite[]{optimal-partitioning,pelt,fpop,flsa}, fewer algorithms exist for constrained
-minimisation problems such as (\ref{eq:reduced}) \cite[though see][for an approach for reduced isotonic regression]{hardwick2014optimal}. Our contribution in this paper is proving that the functional pruning
-technique of \cite{pruned-dp} and \cite{fpop} can be generalized to constrained changepoint models such as reduced
-isotonic regression and the up-down constrained that appears in peak detection problems
-(Table~\ref{tab:contribution}). Our resulting Generalized Pruned
-Dynamic Programming Algorithm (GPDPA) enjoys $O(Kn\log n)$ time
-complexity (on average in our empirical tests of real ChIP-seq data
-sets), and works for any changepoint model with affine constraints
-between adjacent segment means (including isotonic regression,
-unimodal regression, and peak detection).
+Whilst there are many algorithms that solve the unconstrained
+minisation problem (\ref{eq:optimal_segment_neighborhood})
+\citep{segment-neighborhood,pruned-dp,phd-johnson} or related versions
+of it \citep{optimal-partitioning,pelt,fpop,flsa}, fewer algorithms
+exist for constrained minimisation problems such as (\ref{eq:reduced})
+[though see \citet{hardwick2014optimal} for an approach
+for reduced isotonic regression]. Our contribution in this paper is
+proving that the functional pruning technique of \citet{pruned-dp} and
+\citet{fpop} can be generalized to constrained changepoint models such
+as reduced isotonic regression and the up-down constrained that
+appears in peak detection problems (Table~\ref{tab:contribution}). Our
+resulting Generalized Pruned Dynamic Programming Algorithm (GPDPA)
+enjoys $O(Kn\log n)$ time complexity (on average in our empirical
+tests of real ChIP-seq data sets), and works for any changepoint model
+with affine constraints between adjacent segment means (including
+isotonic regression and peak detection).
 
 %%%% update rules
 %\newcommand{\FCC}{\widetilde{C}}
@@ -1626,13 +1633,13 @@ sponsored by the Natural Sciences and Engineering Research Council
 Research (CIHR) and the Canada Foundation for Innovation (CFI). Paul
 Fearnhead acknowledges EPSRC grant EP/N031938/1 (StatScale).
 
-\begin{supplement}[id=suppA]
-  \sname{Supplement A}
-  \stitle{Title}
-  \slink[doi]{COMPLETED BY THE TYPESETTER}
-  \sdatatype{.pdf}
-  \sdescription{Some text}
-\end{supplement}
+% \begin{supplement}[id=suppA]
+%   \sname{Supplement A}
+%   \stitle{Title}
+%   \slink[doi]{COMPLETED BY THE TYPESETTER}
+%   \sdatatype{.pdf}
+%   \sdescription{Some text}
+% \end{supplement}
 
 
 \bibliographystyle{abbrvnat}
