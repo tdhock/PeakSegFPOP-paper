@@ -13,8 +13,8 @@ between.intervals <- left.of.intervals[min.mean != min(data.vec),]
 
 type.code <- c(
   minimum="min $M_{3,t}$",
-  add="$\\ell_t(u_3)=\\ell(y_t,u_3)$\ncost of data $t$",
-  model="$C_{3,t}=$cost\nup to data $t$",
+  add="$\\ell_t(u_3)=$\n$\\ell(y_t,u_3)$\ncost of data $t$",
+  model="$C_{3,t}=$cost\nto data $t$",
   compare="$C^{\\geq}_{2,t}=$cost of\nnon-increasing\nchange after $t$")
 cfac <- function(cost.type){
   factor(cost.type, c("model", "compare", "minimum", "add"))
@@ -144,6 +144,8 @@ gg.pruning <- ggplot()+
   theme_bw()+
   theme(
     panel.grid=element_blank(),
+    legend.position="bottom",
+    legend.box="horizontal",
     panel.margin=grid::unit(0, "lines"))+
   facet_grid(. ~ step)+
   ## below cost up to data t=35.
@@ -189,7 +191,10 @@ gg.pruning <- ggplot()+
             size=3.5,
             color="grey30",
             data=label.dt[cost.type=="minimum",])
-tikz("figure-2-min-envelope.tex", 6.5, 2)
+tikz("figure-2-min-envelope-slides.tex", 4.8, 3)
+print(gg.pruning)
+dev.off()
+tikz("figure-2-min-envelope.tex", 5, 3)
 print(gg.pruning)
 dev.off()
 

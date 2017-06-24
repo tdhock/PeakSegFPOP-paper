@@ -1,5 +1,5 @@
 source("packages.R")
-h <- 1.8 #inches
+h <- 2 #inches
 y.min <- 0
 y.max <- 4
 sloss <- function(dt, x){
@@ -37,33 +37,35 @@ C22un <- rbind(
 C12minless <- rbind(
   funPiece(2, -6, 5, 0, 1.5),
   funPiece(0, 0, 0.5, 1.5, 4))
+small.title <-   theme(plot.title=element_text(size=10))
 gg <- ggplot()+
   ggtitle("Cost of 2 segments up to data point 2")+
-  theme_bw()+
+  theme_bw()+small.title+
   xlab("segment mean $\\mu$")+
   geom_line(aes(mean, cost), data=getLines(C22), color="red", size=3)+
   geom_line(aes(mean, cost), data=getLines(C22un), color="grey50", size=1.5)+
   geom_text(aes(x=1.5,y=8.5,label="constrained"),color="red")+
   geom_text(aes(x=1.5,y=7,label="$C_{2,2}(\\mu)=$"),color="red")+
-  geom_text(aes(x=2.6,y=1.1,label="unconstrained"),color="grey50", hjust=0, vjust=0)+
-  geom_text(aes(x=2.5,y=0,label="$(\\mu-1)^2$"),color="grey50", hjust=0, vjust=0)+
+  geom_text(aes(x=3,y=1.1,label="$(\\mu-1)^2$"),color="grey50", hjust=0.5, vjust=0)+
+  geom_text(aes(x=3,y=0,label="unconstrained"),color="grey50", hjust=0.5, vjust=0)+
   geom_text(aes(x=1.5,y=5.5,label="$C^\\leq_{1,1}(\\mu)+(\\mu-1)^2$"),color="red")
-tikz("figure-compare-cost.tex", 3, h)
+tikz("figure-compare-cost.tex", 2.3, h)
 print(gg)
 dev.off()
 gg <- ggplot()+
   ggtitle("Min-less computation for data point 1")+
-  theme_bw()+
-  xlab("segment mean $\\mu$")+
+  scale_x_continuous("segment mean $\\mu$", limits=c(-0.5, 4))+
   geom_line(aes(mean, cost), data=getLines(C11minless), color="red", size=3)+
   geom_line(aes(mean, cost), data=getLines(C11min), color="grey50", size=1.5)+
   geom_line(aes(mean, cost), data=getLines(C11), color="black", size=1)+
   geom_text(aes(x=3.5,y=3.5,label="$C_{1,1}(\\mu) = (\\mu-2)^2$"),color="black", hjust=1)+
   geom_text(aes(x=-Inf,y=0.3,label="$\\min_\\mu C_{1,1}(\\mu)$"),color="grey50", hjust=0, vjust=0)+
-  geom_text(aes(x=2,y=1.8,label="$C^\\leq_{1,1}(\\mu)=$"),color="red")+
-  geom_text(aes(x=2,y=1,label="$\\min_{x\\leq \\mu} C_{1,1}(x)$"),color="red")
-tikz("figure-compare-unconstrained.tex", 3, h)
+  geom_text(aes(x=2,y=2.6,label="$C^\\leq_{1,1}(\\mu)=$"),color="red")+
+  geom_text(aes(x=2,y=2,label="$\\min_{x\\leq \\mu} C_{1,1}(x)$"),color="red")+
+  theme_bw()+small.title
+tikz("figure-compare-unconstrained.tex", 2.3, h)
 print(gg)
 dev.off()
+
 
 
