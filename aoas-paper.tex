@@ -134,7 +134,7 @@
 \section{Introduction}
 
 In recent years, high-throughput DNA sequencing technologies have been
-improving at a rapid pace, in progressively bigger genomic data
+improving at a rapid pace, resulting in progressively bigger genomic data
 sets. For example Chromatin ImmunoPrecipitation sequencing (ChIP-seq)
 is a genome-wide assay for histone modifications or transcription
 factor binding sites \citep{chip-seq}. Another example is the Assay
@@ -149,13 +149,13 @@ aligned reads are counted at each genomic position
   \includegraphics[width=\textwidth]{figure-data-models}
   \vskip -0.5cm
   \caption{ChIP-seq read count data (grey lines) for one sample on a
-    subset of chromosome~11. \textbf{Left:} the unconstrained maximum
-    likelihood model with 5 segment means (horizontal green lines) has
+    subset of chromosome~11. \textbf{Top:} the maximum
+    likelihood Poisson model with 5 segment means (horizontal green lines) has
     two up changes followed by two down changes (vertical green
     lines). It does not satisfy the up-down constraint (odd-numbered
     changes must be up, and even-numbered changes must be
-    down). \textbf{Right:} the up-down constrained model is less
-    likely, but each up change is followed by a down
+    down). \textbf{Bottom:} the up-down constrained model has a lower
+    log-likelihood value, but each up change is followed by a down
     change. Odd-numbered segments are interpreted as background noise,
     and even-numbered segments are interpreted as peaks.}
   \label{fig:data-models}
@@ -177,16 +177,16 @@ p-value thresholds, etc).
 
 \citet{cleynen2013segmentation} proposed an unconstrained maximum
 likelihood segmentation model for genomic data. It is defined as the
-most likely model with exactly $K$ piecewise constant segment means.
-However, it sometimes has several consecutive up changes, which makes
-it non-trivial to interpret in terms of peaks
-(Figure~\ref{fig:data-models}, left). To ensure that the segmentation
-model is interpretable in terms of peaks and background, the PeakSeg
-model of \citep{HOCKING-PeakSeg} imposes an additional constraint. Up
-changes must be followed by down changes, and vice versa
-(Figure~\ref{fig:data-models}, right). This constraint ensures that
-odd-numbered segments can be interpreted as background, and
-even-numbered segments can be interpreted as peaks. 
+model with exactly $K$ piecewise constant segment means that has
+highest likelihood value.  However, it sometimes has several
+consecutive up changes, which makes it non-trivial to interpret in
+terms of peaks (Figure~\ref{fig:data-models}, left). To ensure that
+the segmentation model is interpretable in terms of peaks and
+background, the PeakSeg model of \citep{HOCKING-PeakSeg} imposes an
+additional constraint. Up changes must be followed by down changes,
+and vice versa (Figure~\ref{fig:data-models}, right). This constraint
+ensures that odd-numbered segments can be interpreted as background,
+and even-numbered segments can be interpreted as peaks.
 %In contrast to heuristic algorithms such as MACS and HMCan, PeakSeg has only one parameter that affects peak detection accuracy (the number of segments $K$). 
 In a
 recent comparison study, \citet{HOCKING2016-chipseq} showed that
@@ -197,20 +197,19 @@ The approach taken by the PeakSeg algorithm can be formalised as follows. For an
 of segments we try to find the best segmentation. We define how good a segmentation is by fitting
 a constant mean for each segment of the chromosome, subject to the 'up-down' constraint that
 the segment means alternative between increasing and decreasing. Subject to this constraint we find the
-best choice of segment means to minimise some loss function that measures how close the mean is to each 
+best choice of segment means to minimize some loss function that measures how close the mean is to each 
 observation. The cost of a segmentation is defined to be the resulting value of this loss summed over 
 all observations. For a sequence of $n$ data points, PeakSeg attempts to search over the $O(n^{K-1})$ 
-possible segmentations to find the one that minimises this cost. In practice PeakSeg is used to find segmentations
+possible segmentations to find the one that minimizes this cost. In practice PeakSeg is used to find segmentations
 for a range of $K$, and an appropriate criteria is then used to decide on which value of $K$ gives the best 
 segmentation.
 
 Despite its state-of-the-art accuracy, PeakSeg suffers from two issues. First, for any given
-$K$, it is not guaranteed to find the optimal segmentation in terms of minimising our segment cost. Second,
+$K$, it is not guaranteed to find the optimal segmentation in terms of minimizing our segment cost. Second,
 the computational cost for PeakSeg is $O(Kn^2)$. The fact that this cost is quadratic in the number 
 of data points means that it can be  too slow
 for use on large genomic data sets. In this paper we propose a new algorithm
 that resolves both of these issues. 
-
 
 \begin{table*}[b!]
   \centering
@@ -221,7 +220,7 @@ that resolves both of these issues.
     & Optimal, $O(Kn^2)$ time & Optimal, $O(Kn\log n)$ time\\
     % & \citet{segment-neighborhood} & \\
     % & \citet{optimal-partitioning} & \\
-    & \citet{segment-neighborhood}     & \citet{pruned-dp, johnson} \\
+    & \citet{segment-neighborhood}     & \citet{pruned-dp, phd-johnson} \\
     \hline
     Up-down & Constrained DPA (CDPA) & Generalized Pruned DPA (GPDPA) \\
     & Sub-optimal, $O(Kn^2)$ time & Optimal, $O(Kn\log n)$ time\\
@@ -240,16 +239,16 @@ in our empirical tests on real ChIP-seq data sets.}
 
 The paper is structured as follows. First we define a natural class of cost functions for 
 measuring the quality of a segmentation, and consider the problem of finding the best segmentation
-via minimising this cost. The problem of minimising the cost can be split into two cases, the first
+via minimizing this cost. The problem of minimizing the cost can be split into two cases, the first
 is where there is no constraint between the segment-specific mean or parameter for different segments. The
 second is where we impose a constraint, such as our up-down constraint, between the segment-specific
 mean for neighbouring segments. Whilst there are a number of efficient dynamic programming algorithms
-that can solve the unconstrained minimisation, we are unaware of equivalent dynamic programming
-algorithms for constrained version.  Our main contribution is described in 
+that can solve the unconstrained minimization, we are unaware of equivalent dynamic programming
+algorithms for the constrained version.  Our main contribution is described in 
 Section~\ref{sec:algorithms}, where we generalize the functional pruning
-technique of \citet{pruned-dp} so that it can be applied to the constrained minimisation problem (Table~\ref{tab:contribution}). This
-results in a new algorithm, which we call Generalized
-Pruned Dynamic Progamming Algorithm (GPDPA), and which can cope not only with our up-down constraint, 
+technique of \citet{pruned-dp} so that it can be applied to the constrained minimization problem (Table~\ref{tab:contribution}). This
+results in a new algorithm which we call the Generalized
+Pruned Dynamic Progamming Algorithm (GPDPA). It can cope not only with our up-down constraint, 
 but also with isotonic contraints and more general affine constraints on the segment means for 
 neighbouring segments. In Section ~\ref{sec:results} 
 we show that the GPDPA achieves state-of-the-art speed and accuracy for genomic data with
@@ -261,13 +260,13 @@ several different labeled patterns. The paper ends with a discussion.
 Assume we have data $\mathbf y=(y_1,\ldots,y_n)$, and we want to infer
 a mean parameter vector $\mathbf m=(m_1,\ldots,m_n)$, so that marginally
 we model $y_t$ as the realisation of a random variable with mean $m_t$. 
-Let $\ell(y_t,m_t)$ be defined as minus log-likelihood for this marginal model.
+Let $\ell(y_t,m_t)$ be defined as minus the log-likelihood for this marginal model.
 We can measure how well our mean vector fits the data via the cost
-$\sum_{t=1}^n \ell(y_t,m_t)$, and estimate the mean vector through minimising this cost.
+$\sum_{t=1}^n \ell(y_t,m_t)$, and estimate the mean vector through minimizing this cost.
 For such an approach we need only define $\ell$ up to an additive and multiplicative constant. The
 most common model is a Gaussian one, for which $\ell(y_t,m_t)=(y_t-m_t)^2$, the square error loss.
 
-A common approach to detecting changes in mean is to minimise such a loss 
+A common approach to detecting changes in mean is to minimize such a loss 
 subject to the mean vector changing at most $K-1$ times. This can be written formally
 as
 \begin{align}
@@ -304,7 +303,7 @@ regression \citep{reduced-monotonic-regression}, and is defined by
   &\ \  m_t \leq m_{t+1},\, \forall t<n.
   \nonumber 
 \end{align}
-To simplify description of our approach to solving constrained minimisation problems, such as with our
+To simplify description of our approach to solving constrained minimization problems, such as with our
 up-down constraint, we will first explain how it solves (\ref{eq:reduced}).
 
 
@@ -312,7 +311,7 @@ Whilst there are many algorithms that solve the unconstrained
 minisation problem (\ref{eq:optimal_segment_neighborhood})
 \citep{segment-neighborhood,pruned-dp,phd-johnson} or related versions
 of it \citep{optimal-partitioning,pelt,fpop,flsa}, fewer algorithms
-exist for constrained minimisation problems such as (\ref{eq:reduced})
+exist for constrained minimization problems such as (\ref{eq:reduced})
 [though see \citet{hardwick2014optimal} for an approach
 for reduced isotonic regression]. Our contribution in this paper is
 proving that the functional pruning technique of \citet{pruned-dp} and
@@ -438,7 +437,12 @@ implemented as a linked list of FunctionPiece objects in C++ (for
 details see supplementary materials). Each element of the linked list
 represents a convex function piece, and implementation details depend
 on the choice of the loss function $\ell$ (for an example using the
-square loss see Section~\ref{sec:example-comparison}).
+square loss see Section~\ref{sec:example-comparison}). Whilst each
+$C_{k,t}(\mu)$ is defined for $\mu \in \RR$, it is trivial to show
+that the optimal choice of any segment mean must lie within the range
+of the data. Thus we first calculate the minimum and maximum of the
+data and then only calculate each $C_{k,t}(\mu)$ for $\mu$ that lie
+between these two values.
 
 
 \begin{figure*}[t!]
@@ -729,12 +733,19 @@ $O(K n I)$ where $I$ is the number of intervals (convex function
 pieces; candidate changepoints) that are used to represent the cost
 functions. The theoretical maximum number of intervals is $I=O(n)$,
 implying a time complexity of $O(K n^2)$
-\citep{pruned-dp-new}. However, this maximum is only achieved in
-pathological synthetic data sets, such as a monotonic increasing data
-sequence. The average number of intervals in real data sets is
-empirically $I=O(\log n)$, as we will show in
-Section~\ref{sec:results_time}. Thus the average empirical time
-complexity of the algorithm is $O(K n \log n)$.
+\citep{pruned-dp-new}. 
+% However, this maximum is only achieved in
+% pathological synthetic data sets, such as a monotonic increasing data
+% sequence. The average number of intervals in real data sets is
+% empirically $I=O(\log n)$, as we will show in
+% Section~\ref{sec:results_time}. Thus the average empirical time
+% complexity of the algorithm is $O(K n \log n)$.
+In practice we have always experienced $I\ll n$, with, for example,
+empirical results for the unconstrained case suggesting $I=O(\log
+n)$. We investigate the empirical computational cost for our up-down
+constraint in Section 4.1 and observe $I=O(\log n)$ in that case,
+which would correspond to an overall computational cost that is
+$O(Knlog n)$.
 
 % We therefore propose the following data structures and sub-routines for
 % the computation:
@@ -1460,21 +1471,17 @@ to use for very large data sets.
 % folds.
 
 \begin{figure*}[t!]
-  \centering
+  \centering 
   %\includegraphics[width=\textwidth]{figure-test-error-mean}
   \includegraphics[width=\textwidth]{figure-test-error-dots}
   \vskip -0.5cm
-  \caption{Four-fold cross-validation 
-was used to estimate peak detection accuracy. 
-    Each panel shows one of seven ChIP-seq data sets, 
-    labeled by experiment (Broad H3K36me3), 
-    labeler (AM), and cell types (immune).
-    Each black circle shows test AUC in one of four
-    cross-validation folds, the shaded grey circle is the mean, and
-    the vertical line is the maximum mean in each data set. It is
-    clear that the proposed GPDPA is
-    just as accurate as the previous state-of-the-art CDPA, and both are
-    more accurate than the other baseline methods. 
+  \caption{Four-fold cross-validation was used to estimate peak
+    detection accuracy (black lines show median and quartiles of test
+    AUC over four test folds). Each panel shows one of seven ChIP-seq data
+    sets, labeled by pattern/experiment (Broad H3K36me3), labeler
+    (AM), and cell types (immune).  It is clear that the proposed
+    GPDPA is just as accurate as the previous state-of-the-art CDPA,
+    and both are more accurate than the other baseline methods.
 % Interactive version
 %     available at
 %     \url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}
@@ -1492,7 +1499,7 @@ $K_i^\lambda=\argmin_k l_{ik} + \lambda o_{ik}$
 $o_{ik}$ is the oracle model complexity for the model with $k$
 segments for data vector $i$. 
 The problem thus simplifies to learning a scalar
-penalty constant $\lambda$,
+penalty constant $\lambda$, 
 \begin{equation}
   \label{eq:learn-lambda}
   \minimize_{\lambda}
@@ -1500,17 +1507,18 @@ penalty constant $\lambda$,
     c^{K_i^\lambda}(\mathbf y_i), 
     L_i\right].
 \end{equation}
+In this paper, we performed the minimization in
+(\ref{eq:learn-lambda}) via grid search (compute the total error $E$
+for a grid of $\lambda$ values, then choose the value which results in
+the minimum).  Multi-parameter affine penalty functions could further
+increase prediction accuracy \citep{HOCKING-penalties}, but we
+observed that learning a single penalty constant is sufficient for
+state-of-the-art accuracy in these data sets
+(Figure~\ref{fig:test-error-dots}). Another reason for using grid
+search is that we wanted to perform a fair comparison with two
+baseline methods from the bioinformatics literature, which we also
+trained using grid search.
 
-
-
-% Multi-parameter affine penalty functions could further increase prediction
-% accuracy \citep{HOCKING-penalties}, but we observed that learning a
-% single penalty constant is sufficient for state-of-the-art accuracy in
-% these data sets (Figure~\ref{fig:test-error-dots}). 
-
-% Furthermore, we wanted to perform a fair comparison with the following
-% two baselines from the bioinformatics literature, which also learn
-% only one parameter.
 To demonstrate that changepoint detection algorithms are more accurate
 than typical heuristics from the bioinformatics literature, we also
 compared with the MACS and HMCanBroad methods \citep{MACS,
@@ -1518,8 +1526,9 @@ compared with the MACS and HMCanBroad methods \citep{MACS,
 pattern such as H3K4me3, and \mbox{HMCanBroad} is a popular heuristic
 for data with a broad peak pattern such as H3K36me3. Although they are
 not designed for supervised learning, we trained them by performing
-grid search over a single significance threshold parameter (qvalue for
-MACS and finalThreshold for HMCanBroad).
+grid search over a single significance threshold parameter that
+controls the number of peaks detected (qvalue for MACS and
+finalThreshold for HMCanBroad).
 % Note that since these are not changepoint detection algorithms,
 % there is no parameter for we did not use these algorithms in the
 % speed comparison
@@ -1537,10 +1546,17 @@ enforces the up-down constraint on segment means. We expected our
 proposed GPDPA to perform just as well, since it also enforces that
 constraint. In agreement with our expectation, we observed that the
 CDPA and GPDPA yield comparable test AUC in all seven data sets
-(Figure~\ref{fig:test-error-dots}). In contrast, the unconstrained
-PDPA had much lower test AUC in several data sets, because of lower
-true positive rates. These results provide convincing evidence that
-the constraint is necessary for optimal peak detection accuracy.
+(Figure~\ref{fig:test-error-dots}). In five of the seven data sets,
+there was no significant difference in test AUC (p-value$>0.1$ in
+two-sided paired $t_3$-test). In one of the two other data sets
+(H3K4me3 TDH other), the GPDPA (mean AUC=0.97) was slightly less
+accurate than the CDPA (mean AUC=0.98, p-value=0.04); in the other
+data set (H3K4me3 TDH immune) the GPDPA (mean AUC=0.95) was slightly
+more accurate (mean AUC=0.94, p-value=0.05). In contrast, the
+unconstrained PDPA had significantly lower test AUC in four data sets
+(p-value$<0.1$), because of lower true positive rates. These results
+provide convincing evidence that the constraint is necessary for
+optimal peak detection accuracy.
 
 Since the baseline HMCanBroad algorithm was designed for data with a
 broad peak pattern, we expected it to perform well in the H3K36me3
@@ -1619,9 +1635,10 @@ it computes all models with $1,\dots,K$ segments). We have already
 started modifying the GPDPA for optimal partitioning
 \citep{optimal-partitioning}, which results in the Generalized
 Functional Prunining Optimal Partitioning (GFPOP) algorithm. It
-computes the $K$-segment model for a single penalty constant $\lambda$
+computes the best $K$-segment model for a single penalty constant $\lambda$
 (without computing models with $1,\dots,K-1$ segments) in $O(n\log n)$
 time.
+
 
 \section{Reproducible Research Statement}
 
