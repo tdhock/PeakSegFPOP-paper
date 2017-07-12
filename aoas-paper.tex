@@ -182,7 +182,7 @@ highest likelihood value.  However, it sometimes has several
 consecutive up changes, which makes it non-trivial to interpret in
 terms of peaks (Figure~\ref{fig:data-models}, left). To ensure that
 the segmentation model is interpretable in terms of peaks and
-background, the PeakSeg model of \citep{HOCKING-PeakSeg} imposes an
+background, the PeakSeg model of \citet{HOCKING-PeakSeg} imposes an
 additional constraint. Up changes must be followed by down changes,
 and vice versa (Figure~\ref{fig:data-models}, right). This constraint
 ensures that odd-numbered segments can be interpreted as background,
@@ -201,15 +201,16 @@ best choice of segment means to minimize some loss function that measures how cl
 observation. The cost of a segmentation is defined to be the resulting value of this loss summed over 
 all observations. For a sequence of $n$ data points, PeakSeg attempts to search over the $O(n^{K-1})$ 
 possible segmentations to find the one that minimizes this cost. In practice PeakSeg is used to find segmentations
-for a range of $K$, and an appropriate criteria is then used to decide on which value of $K$ gives the best 
+for a range of $K$, and an appropriate criterion is then used to decide on which value of $K$ gives the best 
 segmentation.
 
-Despite its state-of-the-art accuracy, PeakSeg suffers from two issues. First, for any given
-$K$, it is not guaranteed to find the optimal segmentation in terms of minimizing our segment cost. Second,
-the computational cost for PeakSeg is $O(Kn^2)$. The fact that this cost is quadratic in the number 
-of data points means that it can be  too slow
-for use on large genomic data sets. In this paper we propose a new algorithm
-that resolves both of these issues. 
+Despite its state-of-the-art accuracy, PeakSeg suffers from two
+issues. First, for any given $K$, the existing algorithm does not
+necessarily find the segmentation with minimal cost. Second, the
+computational cost for PeakSeg is $O(Kn^2)$. The fact that this cost
+is quadratic in the number of data points means that it can be too
+slow for use on large genomic data sets. In this paper we propose a
+new algorithm that resolves both of these issues.
 
 \begin{table*}[b!]
   \centering
