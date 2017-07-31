@@ -3,6 +3,23 @@ PeakSeg Functional Pruning Optimal Partitioning paper
 This repository contains the source code for our [[https://arxiv.org/abs/1703.03352][arXiv paper]] that
 describes a log-linear time algorithm for solving the PeakSeg
 constrained changepoint detection problem.
+
+** Figures
+
+To recompute the figures from the paper, execute the code in the
+following R scripts. 
+
+- [[file:figure-data-models.R]]
+- [[file:figure-compare-unconstrained.R]]
+- [[file:figure-2-min-envelope.R]]
+- [[file:figure-good-bad.R]]
+- [[file:figure-PDPA-intervals.R]] and [[file:figure-PDPA-timings.R]], =make
+  figure-PDPA-interals.png= and =make figure-PDPA-timings.pdf=
+- [[file:figure-test-error-dots.R]], =make figure-test-error-dots.pdf=
+
+For the last two figures, use the [[file:Makefile]] to re-make some
+intermediate RData files based on the [[http://members.cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/][ChIP-seq benchmark data]].
+
 ** 28 Mar 2017
 - [[file:PDPA.timings.small.R]] runs the PeakSegPDPA algorithm for each
   data set in the [[http://members.cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/][McGill ChIP-seq benchmark]], and only saves info for
