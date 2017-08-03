@@ -110,7 +110,7 @@
   %compute the optimal solution to constrained changepoint problems. 
   This results in a new algorithm that computes the optimal
   solution and that empirically has a log-linear computational cost. 
-  In a benchmark of several
+  In a benchmark of several 
   ChIP-seq data sets, our proposed algorithm achieves state-of-the-art
   peak detection accuracy, and is orders of magnitude faster than the
   previous quadratic time algorithm. Our implementation is available
@@ -134,15 +134,23 @@
 \section{Introduction}
 
 In recent years, high-throughput DNA sequencing technologies have been
-improving at a rapid pace, resulting in progressively bigger genomic data
-sets. For example Chromatin ImmunoPrecipitation sequencing (ChIP-seq)
-is a genome-wide assay for histone modifications or transcription
-factor binding sites \citep{chip-seq}. Another example is the Assay
-for Transposase-Accessible Chromatin, which measures open chromatin
-\citep{ATACseq}. Briefly, each assay yields a set of DNA sequence reads
-which are aligned to a reference genome, and then the number of
-aligned reads are counted at each genomic position
+improving at a rapid pace, resulting in progressively bigger genomic
+data sets. For example Chromatin ImmunoPrecipitation sequencing
+(ChIP-seq) is a genome-wide assay for histone modifications or
+transcription factor binding sites \citep{chip-seq}. Another example
+is the Assay for Transposase-Accessible Chromatin, which measures open
+chromatin \citep{ATACseq}. Briefly, each assay yields a set of DNA
+sequence reads which are aligned to a reference genome, and then the
+number of aligned reads are counted at each genomic position
 (Figure~\ref{fig:data-models}). 
+
+The size of these aligned read count data depends on the size of the
+chromosomes in the reference genome. For example, the largest
+chromosome in the human genome (hg19) is chr1, which has 249,250,621
+bases (distinct positions at which the number of aligned reads is
+measured). Analysis of such data thus requires computationally
+efficient algorithms which scale to data sets of arbitrarily large
+size.
 
 \begin{figure}[h]
   \centering
@@ -171,22 +179,25 @@ background occur in long contiguous segments across the
 genome. Typical algorithms from the bioinformatics literature such as
 MACS \citep{MACS} and HMCan \citep{HMCan} are heuristics with several
 parameters that affect peak detection accuracy (window/bin sizes,
-p-value thresholds, etc).
+p-value thresholds, etc). Although such algorithms are fast for large
+data sets, they typically yield sub-optimal peak detection accuracy
+\citep{HOCKING2016-chipseq}.
 
-%%%PF: Perhaps add some references to "Most algorithms from the bioinformatics literature %%%
-
+Recent work in statistical models based on maximum likelihood
+segmentation have shown promising results toward increasing peak
+detection accuracy in genomic data. For example,
 \citet{cleynen2013segmentation} proposed an unconstrained maximum
-likelihood segmentation model for genomic data. It is defined as the
-model with exactly $K$ piecewise constant segment means that has
-highest likelihood value.  However, it sometimes has several
-consecutive up changes, which makes it non-trivial to interpret in
-terms of peaks (Figure~\ref{fig:data-models}, left). To ensure that
-the segmentation model is interpretable in terms of peaks and
-background, the PeakSeg model of \citet{HOCKING-PeakSeg} imposes an
-additional constraint. Up changes must be followed by down changes,
-and vice versa (Figure~\ref{fig:data-models}, right). This constraint
-ensures that odd-numbered segments can be interpreted as background,
-and even-numbered segments can be interpreted as peaks.
+Poisson likelihood segmentation model for genomic data. It is defined
+as the model with exactly $K$ piecewise constant segment means that
+has highest Poisson likelihood value.  However, it sometimes has
+several consecutive up changes, which makes it non-trivial to
+interpret in terms of peaks (Figure~\ref{fig:data-models}, left). To
+ensure that the segmentation model is interpretable in terms of peaks
+and background, \citet{HOCKING-PeakSeg} introduced the PeakSeg
+constraint: up changes must be followed by down changes, and vice
+versa (Figure~\ref{fig:data-models}, right). This constraint ensures
+that odd-numbered segments can be interpreted as background, and
+even-numbered segments can be interpreted as peaks.
 %In contrast to heuristic algorithms such as MACS and HMCan, PeakSeg has only one parameter that affects peak detection accuracy (the number of segments $K$). 
 In a
 recent comparison study, \citet{HOCKING2016-chipseq} showed that
