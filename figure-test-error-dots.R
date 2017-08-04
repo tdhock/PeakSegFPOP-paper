@@ -10,6 +10,13 @@ levs <- c(
   PeakSegDP="CDPA(previous best)",
   ##coseg.inf="GPDPAinf",
   coseg="GPDPA(proposed)")
+levs <- c(
+  MACS="MACS",
+  HMCanBroad="HMCanBroad",
+  Segmentor="PDPA",
+  PeakSegDP="CDPA",
+  ##coseg.inf="GPDPAinf",
+  coseg="GPDPA")
 test.error[, algorithm := levs[algorithm] ]
 roc[, algorithm := levs[algorithm] ]
 
@@ -24,7 +31,7 @@ test.counts <- test.error[algorithm %in% levs, list(
 test.counts[, TPR := tp/possible.tp]
 test.counts[, FPR := fp/possible.fp]
 
-possible.counts <- test.counts[algo.fac==algo.fac[1] & train.type=="supervised", {
+possible.counts <- test.counts[algorithm==algorithm[1] & train.type=="supervised", {
   list(
     possible.fn=sum(possible.tp),
     possible.fp=sum(possible.fp)
@@ -102,6 +109,7 @@ auc <- roc.not.cvx[, list(
   auc=geometry::polyarea(FPR, TPR)
   ), by=.(set.name, set.i, algorithm)]
 auc.wide <- dcast(auc, set.name + set.i ~ algorithm, value.var="auc")
+if(FALSE){
 auc.wide[, {
   L <- t.test(`CDPA(previous best)`, `GPDPA(proposed)`, paired=TRUE)
   res <- L[c("statistic", "p.value")]
@@ -116,6 +124,7 @@ auc.wide[, {
   res$mean.gpdpa <- mean(`GPDPA(proposed)`)
   res
 }, by=list(set.name)][order(p.value)]
+}
 roc.cvx <- roc.not.cvx[, {
   fit <- chull(FPR, TPR)
   data.table(FPR, TPR)[fit,]

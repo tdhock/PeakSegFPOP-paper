@@ -68,9 +68,8 @@
 \begin{frontmatter}
 
 % "Title of the paper"
-\title{A log-linear time segmentation algorithm for peak detection in genomic data}
-\runtitle{Log-linear time peak detection in genomic data}
-
+\title{A log-linear segmentation algorithm for peak detection in genomic data}
+\runtitle{Log-linear peak detection in genomic data}
 
 \begin{aug}
   \author{\fnms{Toby Dylan} \snm{Hocking}\ead[label=e1]{toby.hocking@mail.mcgill.ca}},
@@ -299,7 +298,7 @@ Section~\ref{sec:algorithms}, where we generalize the functional pruning
 technique of \citet{pruned-dp} so that it can be applied to the constrained minimization problem (Table~\ref{tab:contribution}). This
 results in a new algorithm which we call the Generalized
 Pruned Dynamic Progamming Algorithm (GPDPA). In Section~\ref{sec:results} 
-we show that the GPDPA achieves state-of-the-art speed and accuracy in a benchmark of several ChIP-seq data sets. The paper ends with a discussion.
+we show that the GPDPA achieves state-of-the-art speed and peak detection accuracy in a benchmark of several ChIP-seq data sets. The paper ends with a discussion.
 
 \section{Unconstrained and Constrained Changepoint Models}
 \label{sec:models}
@@ -456,7 +455,7 @@ segment mean $u_K$.
 
 To simplify the explanation of functional pruning, we first consider
 computing $C_{2,n}(u_2)$, the optimal cost up to data point $n$ with
-second segment mean $u_2$. Computing this function means solving a
+second segment mean $u_2$. Computing this function requires solving a
 minimization with respect to the first segment mean $u_1$ and the
 changepoint variable $\tau$:
 \begin{equation}
@@ -799,8 +798,8 @@ The dynamic programming algorithm requires computing $O(Kn)$ cost
 functions $\FCC_{k,t}$. As in the original pruned dynamic programming
 algorithm \citep{pruned-dp}, the time complexity of the algorithm is
 $O(K n I)$ where $I$ is the number of intervals (convex function
-pieces; candidate changepoints) that are used to represent the cost
-functions. The theoretical maximum number of intervals is $I=O(n)$,
+pieces; candidate changepoints) that are used to represent a cost
+function. The theoretical maximum number of intervals is $I=O(n)$,
 implying a time complexity of $O(K n^2)$
 \citep{pruned-dp-new}. 
 % However, this maximum is only achieved in
@@ -813,7 +812,7 @@ In practice we have always experienced $I\ll n$, with, for example,
 empirical results for the unconstrained case suggesting $I=O(\log
 n)$ \citep{fpop}. We investigate the empirical computational cost for our up-down
 constraint in Section 4.1 and observe $I=O(\log n)$ in that case,
-which would correspond to an overall average computational cost that is
+which corresponds to an overall average computational cost that is
 $O(Kn\log n)$.
 
 % We therefore propose the following data structures and sub-routines for
@@ -1176,7 +1175,7 @@ For each experiment there are several
 samples of different cell types (e.g. the H3K36me3 AM immune data
 set consists of 15 tcell samples, 5 monocyte samples, and 1 bcell
 sample). Accurate peak detection in these data is important in order to
-accurately characterize active regions in each sample and cell type
+characterize active regions in each sample and cell type
 (e.g. H3K36me3 peak predicted at a particular genomic region in tcell
 but not in monocyte samples).
 
@@ -1210,8 +1209,9 @@ labels
 in the test set. However, the total number of incorrect labels can be
 un-informative in data sets with unbalanced labels (unequal numbers of
 possible false positives and false negatives). Because the ChIP-seq
-data sets we examined are unbalanced, we observed similar accuracy for
-some algorithms in terms of total number of incorrect labels (see
+data sets we examined are unbalanced (more possible false positives
+than false negatives), we observed similar accuracy for some
+algorithms in terms of total number of incorrect labels (see
 supplementary Figure~1). In order to see the differences between such
 algorithms, we decided to use ROC/AUC analysis for evaluation. This
 choice is also justified from an applied perspective, in which genomic
@@ -1223,7 +1223,7 @@ peaks detected. As in binary classification, Area Under the Curve
 (AUC) can be used to evaluate the overall accuracy of a particular
 model. For more details about how to compute the number of incorrect
 labels and AUC in this context, see \citep{HOCKING2016-chipseq}.
-
+ 
 Most existing algorithms can be used for accurate peak detection in
 either sharp H3K4me3 data, or broad H3K36me3 data, but not both. For
 example, the HMCanBroad algorithm of \citet{HMCan} was shown to yield
@@ -1471,7 +1471,7 @@ compute ROC/AUC),
     c^{K_i^\lambda}(\mathbf y_i), 
     L_i\right].
 \end{equation}
-In this paper, we performed the minimization in
+We performed the minimization in
 (\ref{eq:learn-lambda}) via grid search (compute the total error $E$
 for a grid of $\lambda$ values, then choose the value which results in
 the minimum). Multi-parameter affine penalty functions could further
