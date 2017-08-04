@@ -24,6 +24,13 @@ test.counts <- test.error[algorithm %in% levs, list(
 test.counts[, TPR := tp/possible.tp]
 test.counts[, FPR := fp/possible.fp]
 
+possible.counts <- test.counts[algo.fac==algo.fac[1] & train.type=="supervised", {
+  list(
+    possible.fn=sum(possible.tp),
+    possible.fp=sum(possible.fp)
+    )
+}, by=list(set.name)]
+
 test.ranges <- test.counts[, list(
   min.labels=min(labels),
   max.labels=max(labels)
@@ -159,6 +166,7 @@ auc[, algo.fac := factor(algorithm, levs)]
 mean.auc[, algo.fac := factor(algorithm, levs)]
 test.counts[, algo.fac := factor(algorithm, levs)]
 set.best <- test.mean[, list(min.percent=max(mean.percent)), by=set.name]
+setkey(possible.counts, set.name)
 dots <- ggplot()+
   geom_vline(aes(xintercept=min.percent), data=set.best)+
   geom_point(aes(mean.percent, algo.fac, color=train.type),
@@ -169,7 +177,11 @@ dots <- ggplot()+
              data=test.counts, pch=1)+
   scale_color_discrete("penalty / threshold training method")+
   facet_grid(. ~ set.name, labeller=function(df){
-    df$set.name <- gsub("_", "\n", df$set.name)
+    count.dt <- possible.counts[df$set.name]
+    df$set.name <- paste0(
+      gsub("_", "\n", df$set.name),
+      "\n", count.dt$possible.fp, " possible fp",
+      "\n", count.dt$possible.fn, " possible fn")
     df
   }, scales="free_y", space="free_y")+
   scale_y_discrete("algorithm")+
@@ -177,8 +189,12 @@ dots <- ggplot()+
   guides(color=guide_legend())+
   theme(panel.margin=grid::unit(0, "cm"),
         legend.position="top")+
-  scale_x_continuous("percent incorrect peak region labels (test accuracy)",
-                     breaks=seq(0, 60, by=20))
+  scale_x_continuous("percent correct peak region labels (test accuracy)",
+                     breaks=seq(40, 100, by=20))
+dots
+pdf("figure-test-error-dots-supp.pdf", 10, 3)
+print(dots)
+dev.off()
 
 test.counts[, testSet := paste(set.name, "split", set.i)]
 auc[, testSet := paste(set.name, "split", set.i)]
