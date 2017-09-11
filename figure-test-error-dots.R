@@ -3,13 +3,6 @@ library(animint)
 
 load("test.error.RData")
 
-algo.file <- c(
-  PeakSegDP="dp",
-  coseg="PDPA",
-  Segmentor="Segmentor",
-  MACS="macs",
-  Segmentor
-
 levs <- c(
   MACS="MACS(popular baseline)",
   HMCanBroad="HMCanBroad(popular baseline)",
@@ -17,6 +10,13 @@ levs <- c(
   PeakSegDP="CDPA(previous best)",
   ##coseg.inf="GPDPAinf",
   coseg="GPDPA(proposed)")
+levs <- c(
+  MACS="MACS",
+  HMCanBroad="HMCanBroad",
+  Segmentor="PDPA",
+  PeakSegDP="CDPA",
+  ##coseg.inf="GPDPAinf",
+  coseg="GPDPA")
 test.error[, algorithm := levs[algorithm] ]
 roc[, algorithm := levs[algorithm] ]
 
@@ -30,6 +30,13 @@ test.counts <- test.error[algorithm %in% levs, list(
   ), by=.(set.name, set.i, algorithm, train.type)]
 test.counts[, TPR := tp/possible.tp]
 test.counts[, FPR := fp/possible.fp]
+
+possible.counts <- test.counts[algorithm==algorithm[1] & train.type=="supervised", {
+  list(
+    possible.fn=sum(possible.tp),
+    possible.fp=sum(possible.fp)
+    )
+}, by=list(set.name)]
 
 test.ranges <- test.counts[, list(
   min.labels=min(labels),
@@ -101,13 +108,33 @@ roc.not.cvx <- roc.total[, list(
 auc <- roc.not.cvx[, list(
   auc=geometry::polyarea(FPR, TPR)
   ), by=.(set.name, set.i, algorithm)]
+auc.wide <- dcast(auc, set.name + set.i ~ algorithm, value.var="auc")
+if(FALSE){
+auc.wide[, {
+  L <- t.test(`CDPA(previous best)`, `GPDPA(proposed)`, paired=TRUE)
+  res <- L[c("statistic", "p.value")]
+  res$mean.cdpa <- mean(`CDPA(previous best)`)
+  res$mean.gpdpa <- mean(`GPDPA(proposed)`)
+  res
+}, by=list(set.name)][order(p.value)]
+auc.wide[, {
+  L <- t.test(`PDPA(unconstrained baseline)`, `GPDPA(proposed)`, paired=TRUE)
+  res <- L[c("statistic", "p.value")]
+  res$mean.pdpa <- mean(`PDPA(unconstrained baseline)`)
+  res$mean.gpdpa <- mean(`GPDPA(proposed)`)
+  res
+}, by=list(set.name)][order(p.value)]
+}
 roc.cvx <- roc.not.cvx[, {
   fit <- chull(FPR, TPR)
   data.table(FPR, TPR)[fit,]
 }, by=.(set.name, set.i, algorithm)]
 mean.auc <- auc[, list(
   mean.auc=mean(auc),
-  sd.auc=sd(auc)
+  sd.auc=sd(auc),
+  med.auc=median(auc),
+  q25.auc=quantile(auc, 0.25),
+  q75.auc=quantile(auc, 0.75)
   ), by=.(set.name, algorithm)]
 ## coseg is the best over all data sets, in terms of AUC.
 mean.auc[, list(mean=mean(mean.auc)), by=algorithm][order(mean),]
@@ -148,6 +175,7 @@ auc[, algo.fac := factor(algorithm, levs)]
 mean.auc[, algo.fac := factor(algorithm, levs)]
 test.counts[, algo.fac := factor(algorithm, levs)]
 set.best <- test.mean[, list(min.percent=max(mean.percent)), by=set.name]
+setkey(possible.counts, set.name)
 dots <- ggplot()+
   geom_vline(aes(xintercept=min.percent), data=set.best)+
   geom_point(aes(mean.percent, algo.fac, color=train.type),
@@ -158,7 +186,11 @@ dots <- ggplot()+
              data=test.counts, pch=1)+
   scale_color_discrete("penalty / threshold training method")+
   facet_grid(. ~ set.name, labeller=function(df){
-    df$set.name <- gsub("_", "\n", df$set.name)
+    count.dt <- possible.counts[df$set.name]
+    df$set.name <- paste0(
+      gsub("_", "\n", df$set.name),
+      "\n", count.dt$possible.fp, " possible fp",
+      "\n", count.dt$possible.fn, " possible fn")
     df
   }, scales="free_y", space="free_y")+
   scale_y_discrete("algorithm")+
@@ -166,8 +198,12 @@ dots <- ggplot()+
   guides(color=guide_legend())+
   theme(panel.margin=grid::unit(0, "cm"),
         legend.position="top")+
-  scale_x_continuous("percent incorrect peak region labels (test accuracy)",
-                     breaks=seq(0, 60, by=20))
+  scale_x_continuous("percent correct peak region labels (test accuracy)",
+                     breaks=seq(40, 100, by=20))
+dots
+pdf("figure-test-error-dots-supp.pdf", 10, 3)
+print(dots)
+dev.off()
 
 test.counts[, testSet := paste(set.name, "split", set.i)]
 auc[, testSet := paste(set.name, "split", set.i)]
@@ -324,7 +360,7 @@ dots <- ggplot()+
       "\n",
       df$set.name)
     df
-  }, scales="free_y", space="free_y")+
+  }, scales="free")+
   scale_y_discrete("algorithm")+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "cm"),
@@ -333,7 +369,33 @@ dots <- ggplot()+
     "Test AUC (larger values indicate more accurate peak detection)",
     breaks=c(0.6, 0.8, 1),
     labels=c("0.6", "0.8", "1"))
-pdf("figure-test-error-dots.pdf", h=2, w=8)
+dots <- ggplot()+
+  geom_point(aes(med.auc, algo.fac),
+             shape="|",
+             size=3,
+             data=mean.auc)+
+  geom_segment(aes(q25.auc, algo.fac,
+                   xend=q75.auc, yend=algo.fac),
+               data=mean.auc)+
+  facet_grid(. ~ set.name, labeller=function(df){
+    df$set.name <- gsub("_", "\n", df$set.name)
+    df$set.name <- paste0(
+      ifelse(
+        grepl("H3K36me3", df$set.name),
+        "Broad", "Sharp"),
+      "\n",
+      df$set.name)
+    df
+  })+
+  scale_y_discrete("algorithm")+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "cm"),
+        legend.position="top")+
+  scale_x_continuous(
+    "Test AUC (larger values indicate more accurate peak detection)",
+    breaks=c(0.6, 0.8, 1),
+    labels=c("0.6", "0.8", "1"))
+pdf("figure-test-error-dots.pdf", h=2.2, w=8)
 print(dots)
 dev.off()
 

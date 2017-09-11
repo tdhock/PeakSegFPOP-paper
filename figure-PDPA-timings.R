@@ -126,9 +126,27 @@ gg.log <- ggplot()+
     "$n$ = data points to segment",
     breaks=c(1e3, 1e4, range(all.timings$data)))
 my.method <- list("last.points", dl.trans(x=x+0.1))
-dl.log <- direct.label(gg.log, list(cex=0.5, "last.polygons"))+
-  coord_cartesian(xlim=c(min(all.timings$data), 3e6))
-tikz("figure-PDPA-timings-log-log.tex", 2.3, 1.8)
+
+space <- 0.1
+data.col <- "left"
+na.col <- "right"
+my.polygons <- list("last.points", "calc.boxes",
+       function(d,...){
+         for(xy in c("x", "y")){
+           d[[sprintf("%s.%s", data.col, xy)]] <- d[[xy]]
+           d[[sprintf("%s.%s", na.col, xy)]] <- NA
+         }
+         d$x <- d$x + space
+         d
+       },
+       dl.trans(h=h*1.2),
+       "calc.borders",
+       qp.labels("y","bottom","top", make.tiebreaker("x","y"), ylimits),
+       "calc.borders", "draw.polygons")
+dl.log <- direct.label(gg.log, list(cex=0.75, "my.polygons"))+
+  coord_cartesian(xlim=c(min(all.timings$data), 5e6))
+print(dl.log)
+tikz("figure-PDPA-timings-log-log.tex", 2.5, 1.8)
 print(dl.log)
 dev.off()
 pdf("figure-PDPA-timings-log-log.pdf", 3.3, 1.8)
@@ -150,10 +168,12 @@ gg.log <- ggplot()+
 print(gg.log)
 
 my.method <- list("last.points", dl.trans(x=x+0.1))
-dl.log <- direct.label(gg.log, "last.polygons")+
+
+dl.log <- direct.label(gg.log, "my.polygons")+
   scale_x_continuous(
     "log10(data points to segment)",
     limits=c(min(log10(all.timings$data)), 6.2))
+print(dl.log)
 
 pdf("figure-PDPA-timings.pdf", 8, 5)
 print(dl.log)

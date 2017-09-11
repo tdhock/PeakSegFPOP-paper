@@ -18,14 +18,17 @@
 \documentclass[aoas]{imsart}
 
 \usepackage{tikz}
+%\usepackage{stfloats}
 \usetikzlibrary{arrows}
 \usepackage{amsthm,amsmath,amssymb,natbib}
-\usepackage{hyperref}
+%\usepackage{hyperref}
+\newcommand{\url}[1]{#1}
 %\RequirePackage[colorlinks,citecolor=blue,urlcolor=blue]{hyperref}
 % For algorithms
 \usepackage{algorithm}
 \usepackage{algorithmic}
-
+\usepackage{fancyvrb}
+\VerbatimFootnotes
 
 % provide arXiv number if available:
 \arxiv{arXiv:1703.03352}
@@ -39,6 +42,7 @@
 \definecolor{MinMore}{HTML}{377EB8}
 \definecolor{Data}{HTML}{984EA3}
 \newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
 \newtheorem{lemma}{Lemma}
 \newtheorem{theorem}{Theorem}
 \newtheorem{definition}{Definition}
@@ -66,9 +70,8 @@
 \begin{frontmatter}
 
 % "Title of the paper"
-\title{A log-linear time segmentation algorithm for peak detection in genomic data}
-\runtitle{Log-linear time peak detection in genomic data}
-
+\title{A log-linear segmentation algorithm for peak detection in genomic data}
+\runtitle{Log-linear peak detection in genomic data}
 
 \begin{aug}
   \author{\fnms{Toby Dylan} \snm{Hocking}\ead[label=e1]{toby.hocking@mail.mcgill.ca}},
@@ -80,7 +83,28 @@
 
   \runauthor{TD Hocking et al.}
 
-  %\affiliation{Universities of McGill, Lancaster, and }
+%   \address{McGill University, Montreal, Canada\\ 
+%           \printead{e1,e4}}
+%   \address{(1)
+% Laboratoire de Math\'ematiques at Mod\'elisation d'Evry (LaMME), Universit\'e
+% d'Evry Val d'Essonne, UMR CNRS 8071, ENSIIE, USC INRA
+% and
+% (2) Institute of Plant Sciences Paris-Saclay, UMR 9213/UMR1403, CNRS, INRA,
+% Universit\'e Paris-Sud, Universit\'e d'Evry, Universit\'e Paris-Diderot, Sorbonne
+% Paris-Cit\'e
+%           \printead{e2}}
+%   \address{Lancaster University, UK\\
+%           \printead{e3}}
+  \affiliation{
+(1)
+Laboratoire de Math\'ematiques at Mod\'elisation d'Evry (LaMME), Universit\'e
+d'Evry Val d'Essonne, UMR CNRS 8071, ENSIIE, USC INRA,
+(2) Institute of Plant Sciences Paris-Saclay, UMR 9213/UMR1403, CNRS, INRA,
+Universit\'e Paris-Sud, Universit\'e d'Evry, Universit\'e Paris-Diderot, Sorbonne
+Paris-Cit\'e,
+(3) McGill University,
+(4) Lancaster University
+}
 
   \address{McGill University, Montreal, Canada\\ 
           \printead{e1,e4}}
@@ -92,23 +116,32 @@
 \end{aug}
 
 \begin{abstract}
-  Peak detection is a central problem in genomic data, which are
-  typically represented as a sequence of numbers along a chromosome. A
-  maximum likelihood changepoint detection model with an up-down
-  constraint on piecewise constant segment means has been shown to
-  achieve state-of-the-art peak detection accuracy in these
-  data. However, the only existing inference algorithm
-  has two issues: it does not necessarily compute the optimal
-  solution, and it can only be used on relatively small data sets due
-  to its quadratic time complexity. In this paper we show how a
-  recently proposed functional pruning technique can be used to
-  compute the optimal solution to constrained changepoint
-  problems. This results in a new algorithm that computes the optimal
-  solution in empirically log-linear time. In a benchmark of several
-  ChIP-seq data sets, our proposed algorithm achieves state-of-the-art
-  peak detection accuracy, and is orders of magnitude faster than the
-  previous quadratic time algorithm. Our implementation is available
-  in the PeakSegOptimal package on CRAN.
+  Peak detection is a central problem for genomic data, and involves segmenting
+  counts of DNA sequence reads that are aligned to different locations of 
+  a chromosome. 
+  The goal is to detect peaks with higher counts, 
+  and filter out background noise with lower counts. 
+  Most existing algorithms for this problem are heuristics from
+  the bioinformatics literature,
+  which are optimized for speed on these large data sets,
+  but which suffer from sub-optimal peak detection accuracy.
+  The recently proposed PeakSeg constrained maximum likelihood 
+  changepoint detection model has been shown to achieve 
+  state-of-the-art accuracy in a benchmark of genomic data.
+  However, the only existing inference algorithm is a 
+  quadratic time heuristic, 
+  which limits its application to relatively small data sets.
+  In this paper we show how a functional pruning technique can be
+  generalized to solve the PeakSeg constrained changepoint detection problem.
+  This results in a new inference algorithm which 
+  computes the exact solution
+  to the PeakSeg constrained optimization problem 
+  in log-linear time (on average in benchmark data sets).
+  In a benchmark of several ChIP-seq data sets, our proposed
+  algorithm achieves state-of-the-art peak detection accuracy, and is
+  orders of magnitude faster than the previous quadratic time
+  heuristic. Our implementation is available in the PeakSegOptimal
+  package on CRAN.
 \end{abstract}
 
 %\begin{keyword}[class=MSC]
@@ -128,30 +161,39 @@
 \section{Introduction}
 
 In recent years, high-throughput DNA sequencing technologies have been
-improving at a rapid pace, in progressively bigger genomic data
-sets. For example Chromatin ImmunoPrecipitation sequencing (ChIP-seq)
-is a genome-wide assay for histone modifications or transcription
-factor binding sites \citep{chip-seq}. Another example is the Assay
-for Transposase-Accessible Chromatin, which measures open chromatin
-\citep{ATACseq}. Briefly, each assay yields a set of DNA sequence reads
-which are aligned to a reference genome, and then the number of
-aligned reads are counted at each genomic position
+improving at a rapid pace, resulting in progressively bigger genomic
+data sets. For example Chromatin ImmunoPrecipitation sequencing
+(ChIP-seq) is a genome-wide assay for histone modifications or
+transcription factor binding sites \citep{chip-seq}. Another example
+is the Assay for Transposase-Accessible Chromatin, which measures open
+chromatin \citep{ATACseq}. Briefly, each assay yields a set of DNA
+sequence reads which are aligned to a reference genome, and then the
+number of aligned reads are counted at each genomic position
 (Figure~\ref{fig:data-models}). 
 
-\begin{figure}[h]
+The size of these aligned read count data depends on the size of the
+chromosomes in the reference genome. For example, the largest
+chromosome in the human genome (hg19) is chr1, which has 249,250,621
+bases (distinct positions at which the number of aligned reads is
+measured). Analysis of such data thus requires computationally
+efficient algorithms which scale to data sets of arbitrarily large
+size.
+
+\begin{figure}[t!]
   \centering
   \includegraphics[width=\textwidth]{figure-data-models}
   \vskip -0.5cm
   \caption{ChIP-seq read count data (grey lines) for one sample on a
-    subset of chromosome~11. \textbf{Left:} the unconstrained maximum
-    likelihood model with 5 segment means (horizontal green lines) has
+    subset of chromosome~11. \textbf{Top:} the maximum likelihood
+    Poisson model with 5 segment means (horizontal green lines) has
     two up changes followed by two down changes (vertical green
     lines). It does not satisfy the up-down constraint (odd-numbered
     changes must be up, and even-numbered changes must be
-    down). \textbf{Right:} the up-down constrained model is less
-    likely, but each up change is followed by a down
+    down). \textbf{Bottom:} the up-down constrained model has a lower
+    log-likelihood value, but each up change is followed by a down
     change. Odd-numbered segments are interpreted as background noise,
-    and even-numbered segments are interpreted as peaks.}
+    and even-numbered segments are interpreted as peaks (a short peak
+    on the left and a tall peak on the right).}
   \label{fig:data-models}
 \end{figure}
 
@@ -161,59 +203,56 @@ detection algorithms \citep{evaluation2010, rye2010manually,
   chip-seq-bench}. A peak detection algorithm is a binary classifier
 for each genomic position, where peaks are the positive class, and
 background noise is the negative class. Importantly, peaks and
-background occur in long contiguous segments across the genome. Most
-algorithms from the bioinformatics literature are heuristics with
-several parameters that affect peak detection accuracy (window/bin
-sizes, p-value thresholds, etc).
+background occur in long contiguous segments across the
+genome. Typical algorithms from the bioinformatics literature such as
+MACS \citep{MACS} and HMCan \citep{HMCan} are heuristics with several
+parameters that affect peak detection accuracy (window/bin sizes,
+p-value thresholds, etc). Although such algorithms are fast for large
+data sets, they typically yield sub-optimal peak detection accuracy
+\citep{HOCKING2016-chipseq}.
 
+Recent work in statistical models based on maximum likelihood
+segmentation have shown promising results toward increasing peak
+detection accuracy in genomic data. For example,
 \citet{cleynen2013segmentation} proposed an unconstrained maximum
-likelihood segmentation model for genomic data. It is defined as the
-most likely model with exactly $K$ piecewise constant segment means.
-However, it sometimes has several consecutive up changes, which makes
-it non-trivial to interpret in terms of peaks
-(Figure~\ref{fig:data-models}, left). To ensure that the segmentation
-model is interpretable in terms of peaks and background, the PeakSeg
-model of imposes an additional constraint \citep{HOCKING-PeakSeg}. Up
-changes must be followed by down changes, and vice versa
-(Figure~\ref{fig:data-models}, right). This constraint ensures that
-odd-numbered segments can be interpreted as background, and
-even-numbered segments can be interpreted as peaks. 
+Poisson likelihood segmentation model for genomic data. It is defined
+as the model with exactly $K$ piecewise constant segment means that
+has highest Poisson likelihood value.  However, it sometimes has
+several consecutive up changes, which makes it non-trivial to
+interpret in terms of peaks (Figure~\ref{fig:data-models}, top). To
+ensure that the segmentation model is interpretable in terms of peaks
+and background, \citet{HOCKING-PeakSeg} introduced the PeakSeg
+constraint: up changes must be followed by down changes, and vice
+versa (Figure~\ref{fig:data-models}, bottom).  The model with
+$P\in\{0,1,\dots, \}$ peaks has $K=2P+1\in\{1, 3, \dots\}$
+segments. These constraints ensure that odd-numbered segments can be
+interpreted as background, and even-numbered segments can be
+interpreted as peaks.
 %In contrast to heuristic algorithms such as MACS and HMCan, PeakSeg has only one parameter that affects peak detection accuracy (the number of segments $K$). 
 In a
 recent comparison study, \citet{HOCKING2016-chipseq} showed that
 PeakSeg achieves state-of-the-art peak detection accuracy in a
 benchmark of several ChIP-seq data sets.
 
-For a sequence of $n$ noisy data points, multiple changepoint
-algorithms attempt to optimize $K$ real-valued segment mean parameters
-and $K-1$ discrete changepoint parameters. This amounts to optimizing
-segment means over a space that contains $O(n^{K-1})$ discrete
-arrangements of changepoints. In general this problem can be solved in
-$O(Kn^2)$ time using the original dynamic programming algorithm of
-\citet{segment-neighborhood}. \citet{HOCKING-PeakSeg} used these ideas
-to derive a Constrained Dynamic Programming Algorithm (CDPA) to infer
-the PeakSeg model parameters. However, it has two issues. First, it is
-a heuristic algorithm that is not guaranteed to recover the optimal
-solution. Second, its $O(Kn^2)$ quadratic time complexity is too slow
-for use on large genomic data sets. In this paper we propose a new algorithm
-that resolves both of these issues.
+The approach taken by the PeakSeg algorithm can be formalised as follows. For any given number, $K$,
+of segments we try to find the best segmentation. We define how good a segmentation is by fitting
+a constant mean for each segment of the chromosome, subject to the up-down constraint that
+the segment means alternate between increasing and decreasing. Subject to this constraint we find the
+best choice of segment means to minimize some loss function that measures how close the mean is to each 
+observation. The cost of a segmentation is defined to be the resulting value of this loss summed over 
+all observations. For a sequence of $n$ data points, PeakSeg attempts to search over the $O(n^{K-1})$ 
+possible segmentations to find the one that minimizes this cost. 
 
-\subsection{Contributions and organization}
 
-We begin by discussing previous research into pruning techniques for
-solving unconstrained changepoint detection problems
-(Section~\ref{sec:related}), then state the constrained optimization
-problems (Section~\ref{sec:models}). Our main contribution is
-Section~\ref{sec:algorithms}, which generalizes the functional pruning
-technique of \citet{pruned-dp}, thus providing a new Generalized
-Pruned Dynamic Progamming Algorithm (GPDPA) for solving a class of
-constrained changepoint detection problems. We show that the GPDPA
-achieves state-of-the-art speed and accuracy in genomic data with
-several different labeled patterns (Section~\ref{sec:results}), then
-conclude by discussing the significance of our contributions
-(Section~\ref{sec:discussion}).
+In practice PeakSeg is used to find a sequence of models for a range
+of segments $K$, which acts as a regularization parameter. Small
+values of $K$ result in too few segments/peaks (underfitting), and
+large values of $K$ result in too many (overfitting). Model selection
+criteria such as oracle penalties \citep{cleynen2013segmentation} or
+learned penalties \citep{HOCKING-penalties} can be used to decide the
+value of $K$.
 
-\begin{table*}[b!]
+\begin{table*}[t!]
   \centering
   \begin{tabular}{r|c|c}
     Constraint & No pruning & Functional pruning \\
@@ -222,7 +261,7 @@ conclude by discussing the significance of our contributions
     & Optimal, $O(Kn^2)$ time & Optimal, $O(Kn\log n)$ time\\
     % & \citet{segment-neighborhood} & \\
     % & \citet{optimal-partitioning} & \\
-    & \citet{segment-neighborhood}     & \citet{pruned-dp, johnson} \\
+    & \citet{segment-neighborhood}     & \citet{pruned-dp, phd-johnson} \\
     \hline
     Up-down & Constrained DPA (CDPA) & Generalized Pruned DPA (GPDPA) \\
     & Sub-optimal, $O(Kn^2)$ time & Optimal, $O(Kn\log n)$ time\\
@@ -239,154 +278,75 @@ in our empirical tests on real ChIP-seq data sets.}
 \label{tab:contribution}
 \end{table*}
 
-\section{Related work}
-\label{sec:related}
+Despite its state-of-the-art accuracy, PeakSeg suffers from two
+issues. First, for any given $K$, the existing quadratic time
+Constrained Dynamic Programming Algorithm (CDPA) is a heuristic that 
+does not necessarily
+find the segmentation with minimal cost. Second, the time complexity
+of the CDPA is $O(Kn^2)$. Since this is quadratic in
+the number of data points $n$, it can be too slow for use on
+large genomic data sets. In this paper we propose a new algorithm that
+resolves both of these issues (Table~\ref{tab:contribution}).
 
-There are many efficient algorithms available for computing the
-optimal $K-1$ changepoints in $n$ data
-points. \citet{segment-neighborhood} proposed an $O(K n^2)$ algorithm
-for computing the sequence of models with $1,\dots,K$ segments.
-\citet{optimal-partitioning} consider a related approach, which
-introduces a penalty for each changepoint, rather than fixing the
-number of changepoints. Their $O(n^2)$ algorithm computes the single
-model for a given penalty constant $\lambda$. Both of these algorithms
-recover the optimal solution, and follow from using dynamic
-programming updates \citep{bellman} to recursively compute the maximum
-likelihood from 1 to $n$ data points. Alternatively there are methods
-which are computationally faster but are not guaranteed to find the
-optimal segmentation. The most popular of these is the binary
-segmentation algorithm which has $O(Kn)$ worst-case time complexity
-\citep{binary-segmentation}. An L1 relaxation of this problem is known
-as the fused lasso signal approximator, for which efficient solvers
-also exist \citep{flsa}.
+The paper is structured as follows. First in Section~\ref{sec:models} we define a natural class of cost functions for 
+measuring the quality of a segmentation, and consider the problem of finding the best segmentation
+via minimizing this cost. The problem of minimizing the cost can be split into two cases, the first
+is where there is no constraint between the segment-specific mean or parameter for different segments. The
+second is where we impose a constraint, such as our up-down constraint, between the segment-specific
+mean for neighboring segments. Whilst there are a number of efficient dynamic programming algorithms
+that can solve the unconstrained minimization, we are unaware of equivalent dynamic programming
+algorithms for exactly solving the constrained version.  Our main contribution is described in 
+Section~\ref{sec:algorithms}, where we generalize the functional pruning
+technique of \citet{pruned-dp} so that it can be applied to the constrained minimization problem (Table~\ref{tab:contribution}). This
+results in a new algorithm which we call the Generalized
+Pruned Dynamic Progamming Algorithm (GPDPA). In Section~\ref{sec:results} 
+we show that the GPDPA achieves state-of-the-art speed and peak detection accuracy in a benchmark of several ChIP-seq data sets. The paper ends with a discussion.
 
-Several pruning methods have been recently proposed in order to reduce
-time complexity, while maintaining optimality.  \citet{pruned-dp} and
-\citet{phd-johnson} independently discovered a functional pruning
-technique, which results in algorithms with $O(n\log n)$ average time
-complexity. \citet{pelt} proposed an inequality pruning technique,
-which results in an algorithm with average time complexity from $O(n)$
-to $O(n^2)$, depending on the number of changes. \citet{fpop} provides
-a clear discussion on the differences between the two pruning
-techniques.
-
-All algorithms discussed thus far are for solving problems with no
-constraints between adjacent segment mean parameters, but there are
-many examples of constrained changepoint detection models. Rather
-than searching all possible changepoints and likelihood parameters,
-the idea is to use a constraint in order to search a smaller, more
-interpretable model space. For example, \citet{haiminen2008algorithms}
-propose an $O(Kn^2)$ algorithm for unimodal regression, which enforces
-no up changes after the first down change. \citet{HOCKING-PeakSeg}
-proposed an $O(Kn^2)$ algorithm for peak detection, which enforces a
-down change after each up change, and vice versa.
-
-Isotonic regression is another example of a constrained changepoint
-detection model. There is no limit on the number of segments $K$, but
-the segment means are constrained to be non-decreasing. This problem
-can be solved in $O(n)$ time using the pool-adjacent-violators
-algorithm \citep{mair2009isotone}, or in $O(n\log n)$ time using a
-dynamic programming algorithm \citep{isotonic-dp}. An L1 relaxation of
-this problem is known as nearly-isotonic regression
-\citep{tibshirani2011nearly}. A problem known as reduced isotonic
-regression occurs by imposing an additional constraint of $K$ segments
-\citep{reduced-monotonic-regression}. The techniques for solving this
-problem lead to sub-quadratic time algorithms
-\citep{hardwick2014optimal}, but do not generalize to other kinds of
-constraints (such as unimodal regression or peak detection).
-
-Our contribution in this paper is proving that the functional pruning
-technique can be generalized to constrained changepoint models
-(Table~\ref{tab:contribution}). Our resulting Generalized Pruned
-Dynamic Programming Algorithm (GPDPA) enjoys $O(Kn\log n)$ time
-complexity (on average in our empirical tests of real ChIP-seq data
-sets), and works for any changepoint model with affine constraints
-between adjacent segment means (including isotonic regression,
-unimodal regression, and peak detection).
-
-%histogram construction\citep{halim2009fast}.
-
-\section{Isotonic regression and changepoint models}
+\section{Unconstrained and Constrained Changepoint Models}
 \label{sec:models}
 
-Although our proposed algorithm can solve many constrained changepoint
-detection problems (Section~\ref{sec:general}), we will simplify our
-discussion by emphasizing the isotonic regression model. 
+Assume we have data $\mathbf y=(y_1,\ldots,y_n)$, and we want to infer
+a mean parameter vector $\mathbf m=(m_1,\ldots,m_n)$, so that marginally
+we model $y_t$ as the realization of a random variable with mean $m_t$. 
+Let $\ell(y_t,m_t)$ be defined as minus the log-likelihood for this marginal model.
+We can measure how well our mean vector fits the data via the cost
+$\sum_{t=1}^n \ell(y_t,m_t)$, and estimate the mean vector through minimizing this cost.
+For such an approach we need only define $\ell$ up to an additive and multiplicative constant. The
+most common model is a Gaussian one, for which $\ell(y_t,m_t)=(y_t-m_t)^2$, the square error loss.
 
-\subsection{Classical isotonic regression}
-
-The classical isotonic regression model is defined as the most likely
-sequence of non-decreasing segment means. More
-precisely, assume that the data $\mathbf y\in\RR^n$ are a realization
-of a probability distribution with mean parameter $\mathbf m\in\RR^n$. For
-example, assuming $y_t \sim \mathcal N(m_t, \sigma^2)$ and performing
-maximum likelihood inference results in a convex minimization problem
-with affine constraints,
-\begin{align}
-  \label{eq:isotonic}
-  \minimize_{\mathbf m\in\RR^n} &\ \ 
-  \sum_{t=1}^n \ell(y_t, m_t)\\
-  \text{subject to} & \ \ m_t \leq m_{t+1},\, \forall t<n.
-  \nonumber
-\end{align}
-The convex loss function $\ell:\RR\times \RR\rightarrow\RR$ in the
-case of the Gaussian likelihood is the square loss
-$\ell(y, m) = (y-m)^2$. This optimization problem (\ref{eq:isotonic})
-is referred to as isotonic regression, and can be efficiently solved
-in $O(n)$ time using the Pool-Adjacent-Violators Algorithm (PAVA)
-\citep{isotonic-unifying}.
-
-Since isotonic regression imposes no limit on the number of
-changepoints ($m_t < m_{t+1}$), it tends to overfit. For example,
-consider the toy data set $\mathbf y= \left[
-\begin{array}{cccccc}
-  2 & 5 & 30 & 34 & 600 & 621
-\end{array}
-\right] \in\RR^6$. Because these data are strictly increasing, the
-isotonic regression (\ref{eq:isotonic}) solution is the trivial model
-$m_t=y_t$. However, these data contain only two large changes. To
-recover these changes, we could instead use the segment neighborhood
-model, which we discuss in the next section.
-
-
-\subsection{Segment neighborhood changepoint model}
-
-
-The segment neighborhood model of \citet{segment-neighborhood} uses
-the same cost function as isotonic regression, but a different
-constraint set. There is no constraint on the direction of changes,
-but there must be exactly $K\leq n$ distinct segments ($K-1$ changes).
+A common approach to detecting changes in mean is to minimize such a loss 
+subject to the mean vector changing at most $K-1$ times. This can be written formally
+as
 \begin{align}
   \label{eq:optimal_segment_neighborhood}
   \minimize_{\mathbf m\in\RR^n} &\ \ 
   \sum_{t=1}^n \ell(y_t, m_t)\\
-  \text{subject to} &\ \  \sum_{t=1}^{n-1} I(m_t \neq m_{t+1}) = K-1.
+  \text{subject to} &\ \  \sum_{t=1}^{n-1} I(m_t \neq m_{t+1}) = K-1,
   \nonumber
 \end{align}
-This optimization problem is non-convex since the model complexity is
+and will give the best set of $K-1$ changepoints that segment the data into $K$
+contiguous regions with a common mean.  This optimization problem is non-convex since the model complexity is
 the number of changepoints, measured via the non-convex indicator
 function $I$. Nonetheless, the optimal solution can be computed in
-$O(K n^2)$ time using the standard dynamic programming algorithm
+$O(K n^2)$ time using a dynamic programming algorithm
 \citep{segment-neighborhood}. By exploiting the structure of the
 convex loss function $\ell$, the pruned dynamic programming algorithm
-of \citet{pruned-dp} computes the same optimal solution in faster
-$O(K n \log n)$ time.
+of \citet{pruned-dp} computes the same optimal solution much faster; empirically
+having a computational cost that is
+$O(K n \log n)$.
 
-Unlike isotonic regression, the segment neighborhood model does not
-constrain the direction of the changes. Thus, for some data sets
-$\mathbf y$, the segment neighborhood model may recover a change down
-($m_t > m_{t+1}$). For applications where isotonic regression is used,
-it would be desirable to compute a model with $K$ non-decreasing
-segment means. This results in the reduced isotonic regression
-problem, which we introduce in the next section.
+The peak detection problem we are interested in can be formulated in a similar way, but with
+the addition of further constraints on the segment means. These constraints force the mean
+to alternate between increasing and decreasing at each changepoint. We will formally define the resulting
+optimization problem later.
 
-\subsection{Reduced isotonic regression}
-
-The idea of fitting a non-decreasing function with a limited number of
-changepoints has been previously described as reduced isotonic
-regression \citep{reduced-monotonic-regression}. Combining the
-constraints of the isotonic regression (\ref{eq:isotonic}) and segment
-neighborhood (\ref{eq:optimal_segment_neighborhood}) problems gives
+To simplify our discussion, we first introduce a closely related
+constrained optimization problem where we enforce the mean to increase
+at each changepoint. This is often called \emph{reduced} isotonic regression
+\citep{reduced-monotonic-regression}, to emphasize the connection with
+isotonic regression (which includes the increasing
+constraint but no constraint on the number of segments $K$). The
+reduced isotonic regression problem is defined as
 \begin{align}
   \label{eq:reduced}
   \minimize_{\mathbf m\in\RR^n} &\ \ 
@@ -396,8 +356,30 @@ neighborhood (\ref{eq:optimal_segment_neighborhood}) problems gives
   &\ \  m_t \leq m_{t+1},\, \forall t<n.
   \nonumber 
 \end{align}
-In the next section, we explain how functional pruning
-can be used for solving this and related changepoint problems.
+% To simplify description of our approach to solving the up-down constrained
+% changepoint detection problems, we will first explain how it solves
+% this special case (\ref{eq:reduced}).
+
+Whilst there are many algorithms that solve the unconstrained
+minization problem (\ref{eq:optimal_segment_neighborhood})
+\citep{segment-neighborhood,pruned-dp,phd-johnson} or related versions
+of it \citep{optimal-partitioning,pelt,fpop,flsa}, fewer algorithms
+exist for constrained minimization problems such as (\ref{eq:reduced})
+[though see \citet{hardwick2014optimal} for an approach for reduced
+isotonic regression]. Note that the well-known Pool-Adjacent-Violators
+Algorithm \citep{mair2009isotone} solves a simpler problem (isotonic
+regression), without the constraint on the number of segments $K$.
+
+Our contribution in this paper is proving
+that the functional pruning technique of \citet{pruned-dp} and
+\citet{fpop} can be generalized to constrained changepoint models such
+as reduced isotonic regression and the up-down constraint that appears
+in peak detection problems (Table~\ref{tab:contribution}). Our
+resulting Generalized Pruned Dynamic Programming Algorithm (GPDPA)
+enjoys $O(Kn\log n)$ time complexity (on average in our empirical
+tests of real ChIP-seq data sets), and works for any changepoint model
+with affine constraints between adjacent segment means (including
+reduced isotonic regression and peak detection).
 
 %%%% update rules
 %\newcommand{\FCC}{\widetilde{C}}
@@ -416,10 +398,10 @@ pruning algorithms for constrained
 % (\ref{eq:reduced}).
 
 We begin by discussing an algorithm for solving the reduced isotonic
-regression problem, then explain how the algorithm
-generalizes to other constrained changepoint problems.
+regression problem, then explain how the algorithm generalizes to
+the PeakSeg constraint.
 
-\subsection{Equivalent optimization space}
+\subsection{Reformulation in terms of changepoint variables}
 
 The reduced isotonic regression problem (\ref{eq:reduced}) has $n$
 segment mean variables $m_t$, one for each data point $t$. To derive
@@ -433,22 +415,88 @@ segment $k\in\{1,\dots, K\}$.
   increasing changepoint indices $0=t_0<t_1<\cdots<t_{K-1}<t_K=n$.
 \end{definition}
 Each segment mean $u_k$ is assigned to data points
-$\tau\in(t_{k-1},t_k]\subset\{1,\dots,n\}$, resulting in the following
-cost for each segment $k\in\{1, \dots, K\}$, 
+$\tau\in(t_{k-1},t_k]$. The first $t_0=0$ and last
+$t_K=n$ indices are fixed, and the others $t_1<\cdots<t_{K-1}$ are
+changepoint variables to optimize. We define the following cost function for each
+segment $k\in\{1, \dots, K\}$,
 \begin{equation}
   \label{eq:h}
   h_{t_{k-1}, t_k}(u_k) = \sum_{\tau=t_{k-1}+1}^{t_k} \ell(y_\tau, u_k).
 \end{equation}
-The reduced isotonic regression problem can be equivalently written as
+The reduced isotonic regression problem (\ref{eq:reduced}) can be equivalently written as
 \begin{equation}
   \label{eq:isotonic_ut}
   \minimize_{(\mathbf u, \mathbf t)\in{\mathcal I}^n_K}
   \sum_{k=1}^K
-  h_{t_{k-1}, t_k}(u_k)
+  h_{t_{k-1}, t_k}(u_k),
 \end{equation}
 Rather than explicitly summing over data points $i$ as in problem
 (\ref{eq:reduced}), this problem uses the equivalent sum over segments $k$. 
-  
+
+\subsection{Functional pruning}
+\label{sec:functional-pruning}
+
+In this section we provide a summary of the main ideas of functional
+pruning for optimal changepoint detection; for a more complete
+discussion we refer the reader to \citep{fpop}. Optimization problem
+(\ref{eq:isotonic_ut}) has $K$ segment mean variables $u_k$ and $K-1$
+changepoint index variables $t_k$. The key idea of functional pruning
+is to recursively compute the minimum cost as a function of the last
+segment mean $u_K$.
+
+\begin{definition}[Optimal cost with last segment mean $\mu$]
+\label{def:fcc}
+  Let $\FCC_{K,n}(\mu)$ be the optimal cost of the segmentation
+  with $K$ segments, up to data point $n$, with last segment mean
+  $\mu$:
+\begin{equation}
+\FCC_{K,n}(\mu) = \min_{(\mathbf u, \mathbf t)\in{\mathcal I}^n_K \ | \ u_K = \mu} \
+  \left\{ \sum_{k=1}^K
+  h_{t_{k-1}, t_k}(u_k) \right\}.
+\end{equation}
+\end{definition}
+
+To simplify the explanation of functional pruning, we first consider
+computing $C_{2,n}(u_2)$, the optimal cost up to data point $n$ with
+second segment mean $u_2$. Computing this function requires solving a
+minimization with respect to the first segment mean $u_1$ and the
+changepoint variable $\tau$:
+\begin{equation}
+  C_{2,n}(u_2) = 
+\min_{\tau\in\{1,\dots,n-1\}}
+\ 
+\underbrace{\min_{u_1\leq u_2}
+  h_{0,\tau}(u_1) +
+h_{\tau, n}(u_2)}_{\mathcal L_{2,n,\tau}(u_2)}
+\end{equation}
+Presume for the moment that we can compute
+$\mathcal L_{2,n,\tau}(u_2)$, which is the optimal cost for a given
+changepoint $\tau$. If there is a particular changepoint $\tau$ for
+which we have $C_{2,n}(u_2)<\mathcal L_{2,n,\tau}(u_2)$ for all $u_2$,
+then that changepoint can be pruned (there is no value of the segment
+mean $u_2$ for which $\tau$ would be the best choice of the most
+recent changepoint). More precisely, let
+$\mathcal T_{2,n}=\{ \tau\mid C_{2,n}(\mu)=\mathcal L_{2,n,\tau}(\mu)
+\text{ for some $\mu$} \}$ be the set of changepoints which have not
+yet been pruned.  Then the optimal cost function can also be computed
+by minimizing with respect to this reduced set of changepoints,
+\begin{equation}
+  C_{2,n}(u_2) = 
+\min_{\tau\in\{1,\dots,n-1\}}
+\mathcal L_{2,n,\tau}(u_2)
+=
+\min_{\tau\in\mathcal T_{2,n}}
+\mathcal L_{2,n,\tau}(u_2).
+\end{equation}
+This pruning results in speed improvements because typically the
+number of candidate changepoints $|\mathcal T_{2,n}|$ is much smaller
+than $n$. For example in Figure~\ref{fig:min-envelope}, pruning at
+data point $t=35$ results in only one candidate changepoint. In
+Section~\ref{sec:results_time}, we show that the empirical number of
+candidate changepoints in real ChIP-seq data sets is $O(\log n)$.
+
+\subsection{Dynamic programming update rules}
+\label{sec:dyn-prog}
 
 \begin{figure*}[t!]
   \centering
@@ -470,91 +518,33 @@ Rather than explicitly summing over data points $i$ as in problem
   \label{fig:compare-unconstrained}
 \end{figure*}
 
-% The next lemma
-% proves that it is equivalent to solve this simpler optimization problem.
-
-% \begin{lemma}[Equivalence of problem with fewer  variables]
-%   \label{lemma:fewer-variables}
-%   Let $(\mathbf u, \mathbf t)$ be the solution to problem with fewer
-%   optimization variables (\ref{eq:isotonic_ut}), and consider the
-%   following mapping from the smaller space $\bar{\mathcal I}_K^n$ to
-%   the original larger space $\mathcal I_K^n$. For each segment
-%   $k\in\{1,\dots,K\}$, we assign $m_i = u_k$ for all data points
-%   $i\in(t_{k-1},t_k]$ on that segment. For all
-%   $i\in\{t_1,\dots,t_{K-1}\}$ (data points before changepoints) we
-%   assign $c_i=1$, and $c_i=0$ for all other data points $i$. Then
-%   $(\mathbf m, \mathbf c)$ is the solution to problem
-%   (\ref{eq:isotonic}).
-% \end{lemma}
-
-% \begin{proof}
-%   It is clear that the mapping defined in
-%   Lemma~\ref{lemma:fewer-variables} is a bijection between
-%   $\bar{\mathcal I}_K^n$ and $\mathcal I_K^n$, since the constraints
-%   in Definitions~\ref{def:I} and~\ref{def:Ibar} are satisfied. Since
-%   the objective functions (\ref{eq:SNIR}) and (\ref{eq:isotonic_ut})
-%   are equivalent, the optimization problems are equivalent.
-% \end{proof}
-
-\subsection{Dynamic programming update rules}
-\label{sec:dyn-prog}
-Optimization problem (\ref{eq:isotonic_ut}) has $K$ segment mean
-variables $u_k$ and $K-1$ changepoint index variables $t_k$. Minimizing over all
-variables except the last segment mean $u_K$ results in the following
-definition of the optimal cost.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%% begin new %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%% first we define the quantity $\FCC_{K,n}(u)$
-%% this quantity is the quantity we will update in the algorithm
-%% but its definition is not independant of our algorithm
-
-\begin{definition}[Optimal cost with last segment mean $\mu$]
-\label{def:fcc}
-  Let $\FCC_{K,n}(\mu)$ be the optimal cost of the segmentation
-  with $K$ segments, up to data point $n$, with last segment mean
-  $\mu$:
-%% we take the minimum with the constraint that the last mean (u_k) is mu
-\begin{equation}
-\FCC_{K,n}(\mu) = \min_{(\mathbf u, \mathbf t)\in{\mathcal I}^n_K \ | \ u_K = \mu} \
-  \left\{ \sum_{k=1}^K
-  h_{t_{k-1}, t_k}(u_k) \right\}.
-\end{equation}
-\end{definition}
-
-As in the PDPA of \citet{pruned-dp}, our proposed dynamic programming
-algorithm uses an exact representation of the
-$C_{k,t}:\RR\rightarrow\RR$ cost functions. Each $C_{k,t}(\mu)$ is
-represented as a piecewise function on intervals of $\mu$. This is
-implemented as a linked list of FunctionPiece objects in C++ (for
-details see supplementary materials). Each element of the linked list
-represents a convex function piece, and implementation details depend
-on the choice of the loss function $\ell$ (for an example using the
-square loss see Section~\ref{sec:example-comparison}).
-
-In the original unconstrained PDPA, computing the $C_{k,t}(u_k)$
-function requires taking the minimum of $C_{k,t-1}(u_k)$ (a function
-of the last segment mean $u_k$) and
+In the original unconstrained pruned dynamic programming algorithm
+\citep{pruned-dp}, $C_{k,t}(u_k)$ is computed recursively by taking
+the pointwise minimum of $C_{k,t-1}(u_k)$ (a function of the last
+segment mean $u_k$) and
 $\hat C_{k-1,t-1} = \min_{u_{k-1}} C_{k-1,t-1}(u_{k-1})$ (the constant
 loss resulting from an unconstrained minimization with respect to the
 previous segment mean $u_{k-1}$). The main novelty of our paper is the
-discovery that this update can also be computed efficiently for
-constrained problems. For example in reduced isotonic regression the second
-term is no longer a constant, but instead a function of $u_k$,
+discovery that an analogous recursive update rule can also be
+efficiently computed for constrained problems. For example in reduced
+isotonic regression the second term is no longer a constant, but
+instead a function of $u_k$,
 $C_{k-1,t-1}^{\leq}(u_k) = \min_{u_{k-1}\leq u_k}
 C_{k-1,t-1}(u_{k-1})$, which we refer to as the min-less operator
 (Figure~\ref{fig:compare-unconstrained}, left).
 
 \begin{definition}[Min-less operator]
 \label{def:min-less}
-  Given any real-valued function $f:\RR\rightarrow\RR$, we define the min-less
-  operator of that function as $f^\leq(\mu)=\min_{x\leq \mu} f(x)$.
+  Given any real-valued function $f:\RR\rightarrow\RR$, we define its min-less
+  operator as $f^\leq(\mu)=\min_{x\leq \mu} f(x)$.
 \end{definition}
 
-The min-less operator is used in the following Theorem, which states
-the update rules used in our proposed algorithm.
+The min-less operator is used to compute $C_{k-1,t-1}^\leq(u_k)$,
+which is the optimal cost of segment $k-1$ ending at data point $t-1$,
+subject to the constraint that the previous segment mean $u_{k-1}$
+must be less than or equal to the current segment mean $u_k$. The
+min-less operator is used in the following Theorem, which states the
+update rules used in our proposed algorithm.
 
 \begin{theorem}[Generalized Pruned Dynamic Programming Algorithm
   for reduced isotonic regression]
@@ -565,21 +555,21 @@ the update rules used in our proposed algorithm.
 \item For $k=1$ we have
 $\FCC_{1,1}(\mu)=\ell(y_1,\mu)$, and for the other data
   points $t>1$ we have
-\begin{equation}
-\FCC_{1,t}(\mu)=\FCC_{1,t-1}(\mu)+\ell(y_t,\mu)
-\end{equation}
+$
+\FCC_{1,t}(\mu)=\FCC_{1,t-1}(\mu)+\ell(y_t,\mu),
+$
 \item For $k>1$ and $t=k$ we have
-\begin{equation}
-  \FCC_{k,k}(\mu)=\ell(y_k, \mu)+\FCC_{k-1,k-1}^\leq(\mu)
-\end{equation}
-\item In all other cases we have
-  \begin{equation}
+$
+  \FCC_{k,k}(\mu)=\ell(y_k, \mu)+\FCC_{k-1,k-1}^\leq(\mu),
+$
+\item In all other cases ($k>1$ and $t>k$) we have
+ $$
   \FCC_{k,t}(\mu)=\ell(y_t,\mu)+
   \min\{
   \FCC_{k-1,t-1}^\leq(\mu),\,
   \FCC_{k,t-1}(\mu)
   \}.
-  \end{equation}
+$$
 \end{enumerate}
 \end{theorem}
 
@@ -627,6 +617,36 @@ $\FCC_{1,1}(\mu)=\ell(y_1,\mu)$, and for the other data
 % by definition of $\FCC_{K-1,t}(u)$. 
 % \end{description}
 \end{proof}
+
+To implement these update rules in practice, we use an exact
+representation of the $C_{k,t}:\RR\rightarrow\RR$ cost functions. Each
+$C_{k,t}(\mu)$ is represented as a piecewise function on intervals of
+$\mu$, one interval for each candidate changepoint. This is
+implemented as a linked list of FunctionPiece objects in C++ (for
+details see supplementary materials). Each element of the linked list
+represents a convex cost function piece, and implementation details
+depend on the choice of the loss function $\ell$ (for an example using
+the square loss see Section~\ref{sec:example-comparison}). Whilst each
+$C_{k,t}(\mu)$ is defined for $\mu \in \RR$, it is trivial to show
+that the optimal choice of any segment mean must lie within the range
+of the data. Thus we first calculate the minimum and maximum of the
+data and then only calculate each $C_{k,t}(\mu)$ for $\mu$ that lie
+between these two values. 
+
+\begin{remark}
+  The functional pruning described in
+  Section~\ref{sec:functional-pruning} is accomplished by the
+  $\min\{\}$ operation in update rule~3 of Theorem~\ref{thm:gpdpa}. In
+  particular, $C_{k-1,t-1}^\leq(\mu)$ is the cost if segment $k-1$
+  ends on data point $t-1$, and $C_{k,t-1}(\mu)$ is the cost of a
+  changepoint before that. In the $\min\{\}$ operation, these two
+  functions are compared, and pruning occurs for any cost function
+  pieces (candidate changepoints) which are sub-optimal for all $\mu$.
+  For example the right panel of Figure~\ref{fig:min-envelope} shows a
+  data set for which all previous changepoints are pruned at $t=35$.
+\end{remark}
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%% end new %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -795,18 +815,28 @@ $\FCC_{1,1}(\mu)=\ell(y_1,\mu)$, and for the other data
 % optimal cost, but in this section we discuss how to store and compute
 % the optimal segment mean and changepoint parameters. 
 
-The dynamic programming algorithm requires computing $O(Kn)$ cost
-functions $\FCC_{k,t}$. As in the original pruned dynamic programming
-algorithm, the time complexity of the algorithm is $O(K n I)$ where
-$I$ is the number of intervals (convex function pieces; candidate
-changepoints) that are used to represent the cost functions. The
-theoretical maximum number of intervals is $I=O(n)$, implying a time
-complexity of $O(K n^2)$ \citep{pruned-dp-new}. However, this maximum
-is only achieved in pathological synthetic data sets, such as a
-monotonic increasing data sequence. The average number of intervals in
-real data sets is empirically $I=O(\log n)$, as we will show in
-Section~\ref{sec:results_time}. Thus the average empirical time complexity of
-the algorithm is $O(K n \log n)$.
+\subsection{Computational complexity analysis}
+
+Our Generalized Pruned Dynamic Programming Algorithm (GPDPA) requires
+computing $O(Kn)$ cost functions $\FCC_{k,t}$. As in the original
+pruned dynamic programming algorithm \citep{pruned-dp}, the time
+complexity of the GPDPA is $O(K n I)$ where $I$ is the number of
+intervals (convex function pieces; candidate changepoints) that are
+used to represent a cost function. The theoretical maximum number of
+intervals is $I=O(n)$, implying a time complexity of $O(K n^2)$
+\citep{pruned-dp-new}.
+% However, this maximum is only achieved in
+% pathological synthetic data sets, such as a monotonic increasing data
+% sequence. The average number of intervals in real data sets is
+% empirically $I=O(\log n)$, as we will show in
+% Section~\ref{sec:results_time}. Thus the average empirical time
+% complexity of the algorithm is $O(K n \log n)$.
+In practice we have always experienced $I\ll n$, with, for example,
+empirical results for the unconstrained case suggesting $I=O(\log
+n)$ \citep{fpop}. We investigate the empirical computational cost for our up-down
+constraint in Section 4.1 and observe $I=O(\log n)$ in that case,
+which corresponds to an overall average computational cost that is
+$O(Kn\log n)$.
 
 % We therefore propose the following data structures and sub-routines for
 % the computation:
@@ -946,8 +976,10 @@ the algorithm is $O(K n \log n)$.
 \subsection{Example and comparison with unconstrained case}
 \label{sec:example-comparison}
 
-To clarify the discussion, consider the 
-toy data set $\mathbf y= \left[
+In this section we show our proposed algorithm for constrained
+changepoint detection differs from the previous unconstrained
+algorithm. We show the first few steps of the GPDPA for the toy data
+set $\mathbf y= \left[
 \begin{array}{cccccc}
   2 & 1 & 0 & 4
 \end{array}
@@ -957,38 +989,42 @@ data (0,4) in order to bound the possible values of the segment
 mean $\mu$. Then the algorithm computes the optimal cost in $k=1$ segment up
 to data point $t=1$:
 \begin{equation}
-  \FCC_{1,1}(\mu) = (2-\mu)^2=4 - 4\mu + \mu^2\text{ (for $\mu\in[0,4]$)}
+  \FCC_{1,1}(u_1) = (2-u_1)^2=4 - 4u_1 + u_1^2\text{ (for $u_1\in[0,4]$)}
 \end{equation}
-This function can be stored for all values of $\mu$ via the three
+This function can be stored for all values of $u_1$ via the three
 real-valued coefficients ($\text{constant}=4$, $\text{linear}=-4$,
-$\text{quadratic}=1$). To compute the optimal cost in $K=2$ segments,
-we first compute the min-less operator (red curve on left of
+$\text{quadratic}=1$). We then compute the cost of a new segment with
+a non-decreasing mean after the first data point (red curve on left of
 Figure~\ref{fig:compare-unconstrained}),
 \begin{equation}
-  \FCC_{1,1}^\leq(\mu) =
+  \FCC_{1,1}^\leq(u_2) =
 %\min_{u'\leq u}\FCC_{1,1}(u')=
   \begin{cases}
-    4 - 4\mu + \mu^2 &\text{ if }\mu\in[0,2],\, \mu'=\mu,\\
-    0 + 0\mu + 0\mu^2 & \text{ if }\mu\in[2,4],\,  \mu'=2.
+    4 - 4 u_2 + u_2^2 &\text{ if }u_2\in[0,2],\, u_1=u_2,\\
+    0 + 0 u_2 + 0 u_2^2 & \text{ if }u_2\in[2,4],\,  u_1=2.
   \end{cases}
 \end{equation}
-This function can be stored as a list of two
-intervals of $\mu$ values, each with associated real-valued
-coefficients. In addition, to facilitate recovery of the optimal
-parameters, we store the previous segment mean $\mu'$ and endpoint
-(not shown). Note that $\mu'=\mu$ means that the equality constraint
-is active ($u_1=u_2$).
+This function can be stored as a list of two intervals of $\mu$
+values, each with associated real-valued coefficients. To facilitate
+recovery of the optimal parameters, we also store the previous segment
+mean $u_1$ and endpoint (for details see supplementary
+materials). Note that the first interval represents ths cost of an
+active equality constraint ($u_1=u_2$) and the second interval
+represents the cost of a change up ($2=u_1<u_2$). In the unconstrained
+algorithm we would have computed the constant cost of any change (up
+or down) after the first data point, $\min_{u_1} \FCC_{1,1}(u_1) =0$
+(grey curve on left of Figure~\ref{fig:compare-unconstrained}).
 
-
-By adding the first min-less function $\FCC_{1,1}^\leq(\mu)$ to the
-cost of the second data point $(\mu-1)^2$ we obtain the optimal cost in $K=2$
-segments up to data point $t=2$,
+By adding the cost of a non-decreasing change after the first data
+point $\FCC_{1,1}^\leq(u_2)$ to the cost of the second data point
+$(u_2-1)^2$ we obtain the optimal cost in $K=2$ segments up to data
+point $t=2$,
 \begin{equation}
-  \FCC_{2,2}(\mu) = 
+  \FCC_{2,2}(u_2) = 
 %\FCC_{1,1}^\leq(u)+(1-u)^2 = 
   \begin{cases}
-    5 - 6\mu + 2\mu^2 &\text{ if }\mu\in[0,2],\,  \mu'=\mu,\\
-    1 - 2\mu + 1\mu^2 &\text{ if }\mu\in[2,4],\,  \mu'=2.
+    5 - 6 u_2 + 2 u_2^2 &\text{ if }u_2\in[0,2],\,  u_1=u_2,\\
+    1 - 2 u_2 + 1 u_2^2 &\text{ if }u_2\in[2,4],\,  u_1=2.
   \end{cases}
 \end{equation}
 Note that the minimum of this function is achieved at $\mu=1.5$ which
@@ -1026,6 +1062,39 @@ stated as
 \nonumber
 \end{align}
 
+A variant of the GPDPA discussed in the previous section
+can be used to solve the PeakSeg problem. The initialization $k=1$ is
+the same as in the reduced isotonic regression solver
+(Section~\ref{sec:dyn-prog}). The dynamic programming updates for even
+$k\in\{2, 4, \dots\}$ are also the same. However, to constrain non-increasing
+changes, the updates for odd $k\in\{3, 5, \dots\}$ are
+\begin{equation}
+  \FCC_{k,t}(\mu) = \ell(y_t, \mu) + \min\{
+  \FCC_{k-1,t-1}^\geq(\mu),\, \FCC_{k,t-1}(\mu)
+  \},
+\end{equation}
+where the min-more operator is defined for any function $f:\RR\rightarrow\RR$ as
+% \begin{equation}
+%   \label{eq:min-more-def}
+%   f^\geq(\mu) = \min_{x\geq \mu} f(x).
+% \end{equation}
+$f^\geq(\mu) = \min_{x\geq \mu} f(x)$. Figure~\ref{fig:min-envelope}
+shows that the min-more operator is monotonic non-decreasing, along
+with an example of how the $\min\{\}$ operation performs pruning.
+
+We implemented this algorithm using the Poisson loss
+$\ell(y, \mu) = \mu - y\log \mu$, since our application in
+Section~\ref{sec:results-chip-seq} is on ChIP-seq non-negative count data
+$y\in\ZZ_+ = \{0, 1, 2, \dots\}$.
+% Our free/open-source implementation
+% is available as the PeakSegPDPA function in the R package coseg
+% (\url{https://github.com/tdhock/coseg}). 
+Our free/open-source C++ implementation is
+available as the PeakSegPDPA function in the PeakSegOptimal R package
+on
+CRAN.\footnote{\url{https://cran.r-project.org/package=PeakSegOptimal}}
+Implementation details can be found in the supplementary materials.
+
 \begin{figure*}[t!]
   \centering
   \input{figure-2-min-envelope}
@@ -1052,7 +1121,8 @@ stated as
     Demonstration of GPDPA for the PeakSeg model~(\ref{eq:PeakSeg})
     with $k=3$ segments. Cost functions are stored as piecewise
     functions on intervals (black dots show limits between function
-    pieces). \textbf{Left:} the min \textcolor{Min}{$M_{3,34}$} is the
+    pieces; each function piece represents a candidate changepoint). 
+    \textbf{Left:} the min \textcolor{Min}{$M_{3,34}$} is the
     minimum of two functions: \textcolor{MinMore}{$C^{\geq}_{2,34}$}
     is the cost if the second segment ends at data point $t=34$ (the
     min-more operator forces a non-increasing change after), and
@@ -1067,270 +1137,133 @@ stated as
   \label{fig:min-envelope}
 \end{figure*}
 
-Our proposed Generalized Pruned Dynamic Programming Algorithm (GPDPA)
-can be used to solve the PeakSeg problem. The initialization $k=1$ is
-the same as in the reduced isotonic regression solver
-(Section~\ref{sec:dyn-prog}). The dynamic programming updates for even
-$k\in\{2, 4, \dots\}$ are also the same. However, to constrain non-increasing
-changes, the updates for odd $k\in\{3, 5, \dots\}$ are
-\begin{equation}
-  \FCC_{k,t}(\mu) = \ell(y_t, \mu) + \min\{
-  \FCC_{k-1,t-1}^\geq(\mu),\, \FCC_{k,t-1}(\mu)
-  \},
-\end{equation}
-where the min-more operator is defined for any function $f:\RR\rightarrow\RR$ as
-% \begin{equation}
-%   \label{eq:min-more-def}
-%   f^\geq(\mu) = \min_{x\geq \mu} f(x).
-% \end{equation}
-$f^\geq(\mu) = \min_{x\geq \mu} f(x)$. Figure~\ref{fig:min-envelope}
-shows that the min-more operator is monotonic non-decreasing, along
-with an example of how the $\min\{\}$ operation performs pruning.
-
-We implemented this algorithm using the Poisson loss
-$\ell(y, \mu) = \mu - y\log \mu$, since our application in
-Section~\ref{sec:results-chip-seq} is on ChIP-seq count data
-$y\in\ZZ_+ = \{0, 1, 2, \dots\}$.
-% Our free/open-source implementation
-% is available as the PeakSegPDPA function in the R package coseg
-% (\url{https://github.com/tdhock/coseg}). 
-We implemented this algorithm in C++, and our free/open-source code is
-available as the PeakSegPDPA function in the coseg R package for
-constrained optimal segmentation
-(\url{https://github.com/tdhock/coseg}). Implementation details can be
-found in the supplementary materials.
-
-\subsection{General affine inequality constraints
-  between adjacent segment means}
-\label{sec:general}
-% A segmentation $m$ is described as a set of contiguous segments $\{s_1, ... s_{|m|} \}$, where $|m|$ is the number of segments of $m$
-% We consider the set of all segmentation up to $n$: $\M_n$ 
-% or the set of all possible segmentation in $K$ segments: $\M^K_n$.
-% We define $r_m$ as the last segment of $m$.
-
-% We aim at optimizing over all possible segmentations $m$ in $\M^K_n$ or $\M_n$
-%  the quantity
-% $\sum_{r \in m} \sum_{i \in s_{r}} \ell(y_i, \mu_{r})$ subject to
-% the following $K-1$ linear constraints. 
-
-% \begin{eqnarray*}
-% a_{1,1}.\mu_1 \ + & a_{1,2}.\mu_2  & \geq  b_1 \\
-% \cdots \ +&  \cdots & \geq \cdots \\
-% a_{k,k}.\mu_{k} + & a_{k,k+1}.\mu_{k+1}  & \geq  b_{k} \\
-% \cdots \ +&  \cdots & \geq \cdots  \\
-% a_{K-1,K-1}.\mu_{K-1} \ +& a_{K-1,K}.\mu_K & \geq  b_{K-1},
-% \end{eqnarray*}
-% with all $a_{k,k+1} \neq 0$, $a_{k,k} \in \mathbb{R}$ and
-% $b_{k} \in \bar{\mathbb{R}}.$ In other words we aim at recovering the
-% best segmentation with successive mean parameters that obey the
-% constraints.
-
-% Some examples:
-% \begin{enumerate}
-% \item If we take all $a_{k,k+1} =1$, $a_{k,k}=0$ and $b_{k} = - \infty$ we recover the standard segmentation in the mean problem.
-% \item If we take all $a_{k,k+1} =1$, $a_{k,k}=-1$ and $b_{k} = 0$ we
-%   recover the isotonic regression problem (segment means always
-%   increasing).
-% \item For the PeakSeg model we take all $b_{k} = 0$. For odd $k$ we
-%   take $a_{k,k+1} =1$, $a_{k,k}=-1$ and for even $k$ we take
-%   $a_{k,k+1} =-1$, $a_{k,k}=1$.
-% \end{enumerate}
-
-%\subsection{Functional cost representation}
-% To optimize this quantity we will consider the following functional quantity:
-
-% \begin{equation}
-% \FCC^k_t(\mu) =  \underset{m \in \M^K_n, \mu_r |  r \neq r_m}{\min} 
-% 		\{ 
-% 		   \underset{r \in m, r \neq r_m}{\sum} 
-% 		   \underset{i \in r, i \leq t  }{\sum} \ell(y_i, \mu_{r}) 
-% 		+ 
-% 		   \underset{i \in r_m, i \leq t}{\sum} \ell(y_i, \mu)
-% 		\}  
-% \end{equation}
-
-
-
-% \begin{eqnarray*}
-% \text{subject to} \\
-% a_{1,1}. \mu_1 \ + & a_{1,2}. \mu_2  & \geq  b_1 \\
-% \cdots \ + & \cdots & \geq \cdots \\
-% a_{k-1,k-1}. \mu_{k-1} \ + &a_{k-1,k}. \mu_{k}  & \geq  b_{k-1} \\
-% \end{eqnarray*}
-
-% $\FCC^k_t(\mu)$ is the best possible cost achievable in $k$ segment up to point $t$ with a $k$-th
-% segment mean of $\mu$.
-
-% %\subsection{Update rule}
-% We can then consider the following update rule
-
-% \begin{equation}
-% \FCC^{k+1}_{t+1}(\mu) = \min \{ \FCC^{k+1}_{t}(\mu)  , \underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}  \} + \ell(y_{t+1}, \mu)
-% \label{update}
-% \end{equation}
-
-% This update rule states that the best segmentation up to $t+1$ in $k+1$ segment with a last mean element of $\mu$ either has its $k$-th changepoint:
-% \begin{itemize}
-% \item before $t$ and in that case we should take the best possible segmentation up to $t$ in $k+1$
-% segments with a last mean of $\mu$ and then add  $\ell(y_{t+1}, \mu)$, that is:
-% $$\FCC^{k+1}_{t}(\mu) + \ell(y_{t+1}, \mu),$$
-
-% \item at $t$ and in that case we should take the best possible segmentation up to $t$ in $k$ segments
-% such that the last mean $\mu_k=\mu'$ validates the $k-th$ constraint with $\mu_{k+1}=\mu$ and then add  $\ell(y_{t+1}, \mu)$, that is:
-%  $$\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \} + \ell(y_{t+1}, \mu).$$
-% \end{itemize}
-
-
-% %\subsection{Constraint}
-% Assuming we have a piecewise description of $\FCC^{k}_{t}(\mu')$ on $I$ ordered intervals of $\mathbb{R}$
-% then it is straightforward to recover the function:
-% $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}.$
-
-% The update rule is a priori valid for more complex constraints, typically quadratic constraints, yet recovering
-% $\underset{\mu' | a_{k,k}. \mu' + a_{k,k}. \mu  \geq  b_{k}}{\min} \{ \FCC^{k}_{t}(\mu') \}$ from $\FCC^{k}_{t}(\mu')$ would possibly be much more difficult.
-
-
-In this section we briefly discuss how our proposed Generalized Pruned
-Dynamic Programming Algorithm (GPDPA) can be used to solve any
-optimization problem with affine inequality constraints
-between adjacent segment means. For each change $k\in\{1,\dots,K-1\}$,
-let $a_k,b_k,c_k\in\RR$ be arbitrary coefficients that define affine
-functions $g_k(u_k, u_{k+1})=a_k u_k + b_k u_{k+1} + c_k$. The
-changepoint detection problem with general affine constraints is
-\begin{align}
-  \label{eq:min_general_affine_inequality}
-  \minimize_{
-    \substack{
-    \mathbf u\in\RR^K\\
-0=t_0<t_1<\cdots<t_{K-1}<t_K=n
-}
-  %\mathbf t\in\{1,\dots,n\}^{K+1}
-    } &\ \ 
-  \sum_{k=1}^K h_{t_{k-1}, t_k}(u_k)\\
-  \text{subject to \hskip 0.9cm} &\ \  \forall k\in\{1,\dots,K-1\},
-  \nonumber\\
-&\ \ g_k(u_k, u_{k+1})\leq 0.\nonumber                        
-  %\\&&& 0=t_0<t_1<\cdots<t_{K-1}<t_K=n.
-\nonumber
-\end{align}
-
-
-% \begin{definition}[General affine inequality constraints]
-% \label{def:affine-inequality-constraints}
-%   Let $a_k,b_k,c_k\in\RR$ for $k\in\{1,\dots,K-1\}$ be arbitrary
-%   coefficients that define affine functions
-%   $g_k(u_k, u_{k+1})=a_k u_k + b_k u_{k+1} + c_k$. Then we define
-%   $(\mathbf u, \mathbf t)\in\mathcal M^n_K$ as the set of all
-%   increasing changepoint indices $0=t_0<t_1<\cdots<t_{K-1}<t_K=n$ and
-%   segment means $\mathbf u\in\RR^K$ that satisfy
-%   $g_k(u_k, u_{k+1}) \leq 0$ for all $k\in\{1,\dots, K-1\}$.
-% \end{definition}
-% The general optimization problem uses this constraint set with the
-% standard objective function:
-% \begin{equation}
-%   \label{eq:min_general_affine_inequality}
-%     \minimize_{
-%         (\mathbf u, \mathbf t)\in\mathcal M^n_K
-%       } \ 
-% \sum_{k=1}^K h_{t_{k-1}, t_k}(u_k).
-% \end{equation}
-
-Some examples of models that are special cases:
-\begin{enumerate}
-\item If we take all $a_k,b_k,c_k=0$ then the constraints are
-  trivially satisfied, we
-  recover the unconstrained segment neighborhood problem
-  (\ref{eq:optimal_segment_neighborhood}).
-\item If we take all $a_{k} =1$, $b_{k}=-1$ and $c_{k} = 0$ we recover
-  the reduced isotonic regression problem
-  (\ref{eq:isotonic_ut}).
-\item For the PeakSeg problem (\ref{eq:PeakSeg}),
-  we take all $c_{k} = 0$. For odd $k\in\{1,3,\dots\}$ we take
-  $a_{k} =1$, $b_{k}=-1$ and for even $k\in\{2,4,\dots\}$ we take
-  $a_{k} =-1$, $b_{k}=1$.
-\end{enumerate}
-To solve these problems, we need to compute the analog of the
-min-less/more operator, which we call the constrained minimization
-operator. For any cost function $f:\RR\rightarrow\RR$ and constraint
-function $g:\RR\times\RR\rightarrow\RR$, we define the constrained
-minimization operator $f^g:\RR\rightarrow\RR$ as
-\begin{equation}
-  \label{eq:constrained-min-operator}
-  f^g(u_{k}) = \min_{u_{k-1} : g(u_{k-1}, u_{k})\leq 0} f(u_{k-1}).
-\end{equation}
-%When $g$ is affine, the constrained minimization operator can be computed using a simple TODO
-When $g$ is affine, the constrained minimization operator is either
-non-decreasing or non-increasing. In this case it can be computed
-using a simple algorithm that scans the piecewise function $f$ either
-from left to right or right to left. When a local minimum is found,
-its value is recorded, and a constant function piece is added (for
-details see pseudocode for the MinLess algorithm in
-the supplementary materials). The constrained minimization operator is
-used in the following general dynamic programming update rule which
-can be used to compute the solution to
-(\ref{eq:min_general_affine_inequality})
-\begin{equation}
-  \label{eq:general_dp}
-  \FCC_{k,t}(\mu) = \ell(y_t,\mu) + \min\{
-  \FCC_{k,t-1}(\mu),\,
-  \FCC_{k-1,t-1}^{g_{k-1}}(\mu)
-  \}.
-\end{equation}
-We note that this update rule is valid for constraint functions $g$
-more general than affine functions. However, the
-closed-form computation of the constrained minimization operator
-(\ref{eq:constrained-min-operator}) would possibly be much more
-difficult for these more general constraint functions (e.g. quadratic
-constraint functions).
-
 \section{Results on peak detection in ChIP-seq data}
 \label{sec:results-chip-seq}
 \label{sec:results}
 
+\definecolor{good}{HTML}{6A3D9A}
+\definecolor{bad}{HTML}{1F78B4}
+\definecolor{noPeaks}{HTML}{F6F4BF}
+\definecolor{peakStart}{HTML}{FFAFAF}
+\definecolor{peakEnd}{HTML}{FF4C4C}
+\definecolor{peaks}{HTML}{A445EE}
+
 
 The real data analysis problem that motivates this work is the
-detection of peaks in ChIP-seq data \citep{practical}, which are
-typically represented as a vector of non-negative counts
-$\mathbf y\in\ZZ_+^n$ of aligned sequence reads for $n$ continguous
-bases in a genome. Data sizes are between $n=10^5$ (maximum of the
-benchmark we consider) and $n=10^8$ (largest region with no gaps in
-the human genome hg19). A peak detector can be represented
-as a function $c(\mathbf y)\in\{0,1\}^n$ for binary classification at
-every base position. The positive class is peaks (genomic regions with
-large values, representing protein binding or modification) and the
-negative class is background noise (small values).
+detection of peaks in ChIP-seq data \citep{practical}. These
+experiments have been used to characterize the epigenome of samples in
+large-scale mapping projects such as ENCODE \citep{ENCODE}. ChIP-seq
+data measure histone modification or transcription factor binding
+throughout a genome, and are typically represented as a vector of
+non-negative counts $\mathbf y\in\ZZ_+^n$ of aligned sequence reads
+for $n$ continguous bases in a genome. Data sizes are between $n=10^5$
+(maximum of the benchmark we consider) and $n=10^8$ (largest region
+with no gaps in the human genome hg19). Algorithms with sub-quadratic
+time complexity are thus essential for the analysis of such large data
+sets.
 
+The main challenge in ChIP-seq data analysis is peak detection, which
+is essentially partitioning a noisy data vector $\mathbf y$ into peaks and
+background. Thus a peak detector can be represented as a function
+$c(\mathbf y)\in\{0,1\}^n$ for binary classification at every base
+position. The positive class is peaks (genomic regions with large
+values, representing protein binding or modification) and the negative
+class is background noise (small values).
 
-In the supervised learning framework of \citet{HOCKING2016-chipseq}, a
-data set consists of $m$ count data vectors
+The ChIP-seq data sets that we consider in this paper were originally
+described by \citet{HOCKING2016-chipseq}, and are freely available on
+the
+web.\footnote{\verb|http://members.cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/|}
+Data set names (e.g. Broad H3K36me3 AM immune) indicate
+experiment/pattern type (Broad H3K36me3), labeler (AM), and cell types
+(immune). The data consist of two different experiment types, H3K4me3
+and H3K36me3. H3K4me3 is a histone modification which typically has a
+sharp peak pattern (10--20kb peaks). H3K36me3 is a different histone
+modification which typically has a broad peak pattern with longer
+peaks (see Figure~\ref{fig:good-bad}). Both types of peaks are of
+biological interest because they indicate genomic regions with active
+genes \citep{histone-review}. For each experiment there are several samples of different
+cell types (e.g. the H3K36me3 AM immune data set consists of 15 tcell
+samples, 5 monocyte samples, and 1 bcell sample). Accurate peak
+detection in these data is important in order to characterize active
+regions in each sample and cell type (e.g. H3K36me3 peak predicted at
+a particular genomic region in tcell but not in monocyte samples).
+
+\begin{figure*}[t!]
+  \centering
+  \includegraphics[width=\textwidth]{figure-good-bad}
+\vskip -0.5cm
+  \caption{
+    Examples of \textcolor{good}{good} and \textcolor{bad}{bad} 
+    peak models for two ChIP-seq 
+    count data vectors (grey). Labels (colored rectangles) indicate genomic 
+    regions where a biologist desires presence (peakStart/peakEnd) 
+    or absence (noPeaks) of peaks. Peak detection accuracy is quantified by 
+    counting the number of incorrect labels
+    (too many peaks causes a false positive, 
+     too few peaks causes a false negative).
+    % \textbf{Left:} the \textcolor{bad}{bad} model has one large peak, 
+    % which causes two false negatives and one false positive.
+    % \textbf{Right:} the \textcolor{bad}{bad} model has 
+}
+  \label{fig:good-bad}
+\end{figure*}
+
+The ChIP-seq data sets that we consider in this paper are significant
+because they contain manually determined labels that can be used to
+compute error rates of peak detection algorithms. In this context, a
+ChIP-seq data set consists of $m$ count data vectors
 $\mathbf y_1,\dots,\mathbf y_m$ along with labels $L_1,\dots, L_m$
-that identify regions with and without peaks. Briefly, the number of
-errors $E[c(\mathbf y_i), L_i]$ is the total of false positives
-(negative labels with a predicted peak) plus false negatives (positive
-labels with no predicted peak). The benchmark consists of seven
-histone ChIP-seq data sets, each with a different peak pattern
-(experiment type, labeler, cell types). The goal in each data set is
-to learn the pattern encoded in the labels, and find a classifier $c$
-that minimizes the total number of incorrectly predicted labels in a
-held-out test set:
-\begin{equation}
-  \label{eq:learn}
-  \minimize_c
-  \sum_{i=1}^m 
-  %\sum_{i\in\text{test}}
-  E\left[
-    c(\mathbf y_i), L_i
-  \right].
-\end{equation}
+that identify genomic regions with and without peaks
+(Figure~\ref{fig:good-bad}). Labels were determined by an expert
+biologist, who used visual inspection of the data to determine
+presence or absence of significant peaks in particular genomic
+regions. These labels can be used to compute an error rate
+$E[c(\mathbf y_i), L_i]$ which is the total of false positives (labels
+with too many predicted peaks) plus false negatives (labels with not
+enough predicted peaks) for a given labeled data vector $i$.
 
-\citet{HOCKING-PeakSeg} proposed a constrained dynamic programming
-algorithm (CDPA) to approximately compute the optimal changepoints,
-subject to the PeakSeg up-down constraint
-(Section~\ref{sec:PeakSeg}). The CDPA has been shown to achieve
-state-of-the-art peak detection accuracy, by classifying even-numbered
-segments $k$ as peaks, and odd-numbered segments $k$ as background
-noise. However, its quadratic $O(Kn^2)$ time complexity makes it too
-slow to run on large ChIP-seq data sets.
+The benchmark consists of seven histone ChIP-seq data sets, each with
+a different peak pattern. For each data set, we use four-fold
+cross-validation on labeled count data vectors to estimate peak
+detection accuracy. For each train/test split, we learn peak detection
+parameters using the training data, then use the learned parameters to
+predict peaks and compute the total number of incorrectly predicted
+labels
+% $
+%   \sum_{i\in\text{test}}
+%   E\left[
+%     c(\mathbf y_i), L_i
+%   \right]
+% $
+in the test set. However, the total number of incorrect labels can be
+un-informative in data sets with unbalanced labels (unequal numbers of
+possible false positives and false negatives). Because the ChIP-seq
+data sets we examined are unbalanced (more possible false positives
+than false negatives), we observed similar accuracy for some
+algorithms in terms of total number of incorrect labels (see
+supplementary Figure~1). In order to see the differences between such
+algorithms, we decided to use ROC/AUC analysis for evaluation. This
+choice is also justified from an applied perspective, in which genomic
+data analysts frequently vary the significance threshold or penalty
+parameter in order to evaluate models with different numbers of
+peaks. We compute Receiver Operating Characteristic (ROC) curves by
+varying a significance/penalty parameter that controls the number of
+peaks detected. As in binary classification, Area Under the Curve
+(AUC) can be used to evaluate the overall accuracy of a particular
+model. For more details about how to compute the number of incorrect
+labels and AUC in this context, see \citep{HOCKING2016-chipseq}.
+ 
+Most existing algorithms can be used for accurate peak detection in
+either sharp H3K4me3 data, or broad H3K36me3 data, but not both. For
+example, the HMCanBroad algorithm of \citet{HMCan} was shown to yield
+accurate peak detection in broad H3K36me3 data, but not sharp H3K4me3
+data \citep{HOCKING2016-chipseq}. In contrast, \citet{HOCKING-PeakSeg}
+showed that a Constrained Dynamic Programming Algorithm (CDPA) for
+approximately computing the PeakSeg model achieves state-of-the-art
+peak detection accuracy in both sharp and broad data. However, the
+quadratic $O(Kn^2)$ time complexity of the CDPA makes it too slow to
+run on large ChIP-seq data sets.
 
 \begin{figure*}[t!]
   \centering
@@ -1363,9 +1296,9 @@ accuracy. To show the importance of enforcing the up-down constraint,
 we consider the unconstrained Pruned Dynamic Programming Algorithm
 (PDPA) of \citet{pruned-dp} as a baseline
 (Table~\ref{tab:contribution}). We also compare against two popular
-heuristics from the bioinformatics literature, in order to demonstrate
-that constrained optimization algorithms such as the CDPA and GPDPA
-are more accurate.
+heuristics from the bioinformatics literature (MACS, \citet{MACS};
+HMCanBroad, \citet{HMCan}), in order to demonstrate that constrained
+optimization algorithms such as the CDPA and GPDPA are more accurate.
 
 % \begin{description}
 % \item[Segmentor3IsBack::Segmentor] is an implementation of a
@@ -1414,7 +1347,7 @@ are more accurate.
 The ChIP-seq benchmark consists of seven labeled histone data
 sets.
 % \citep{HOCKING2016-chipseq}. 
-Overall there are 2752 count data vectors $\mathbf y_i$ to segment,
+Overall there are 2752 labeled count data vectors $\mathbf y_i$ to segment,
 varying in size from $n=87$ to $n=263169$ data. For each count data
 vector $\mathbf y_i$, we ran each algorithm (CDPA, PDPA, GDPDA) with a
 maximum of $K=19$ segments. This implies a maximum of 9 peaks (one for
@@ -1516,7 +1449,7 @@ to use for very large data sets.
 % the previous state-of-the-art PeakSegDP method.
 
 
-\subsection{Test accuracy in ChIP-seq data}
+\subsection{Peak detection accuracy in ChIP-seq data}
 
 % To compare the accuracy of the algorithms in the benchmark data sets,
 % we computed false negative and false positive rates using labels
@@ -1532,21 +1465,17 @@ to use for very large data sets.
 % folds.
 
 \begin{figure*}[t!]
-  \centering
+  \centering 
   %\includegraphics[width=\textwidth]{figure-test-error-mean}
   \includegraphics[width=\textwidth]{figure-test-error-dots}
   \vskip -0.5cm
-  \caption{Four-fold cross-validation 
-was used to estimate peak detection accuracy. 
-    Each panel shows one of seven ChIP-seq data sets, 
-    labeled by experiment (Broad H3K36me3), 
-    labeler (AM), and cell types (immune).
-    Each black circle shows test AUC in one of four
-    cross-validation folds, the shaded grey circle is the mean, and
-    the vertical line is the maximum mean in each data set. It is
-    clear that the proposed GPDPA is
-    just as accurate as the previous state-of-the-art CDPA, and both are
-    more accurate than the other baseline methods. 
+  \caption{Four-fold cross-validation was used to estimate peak
+    detection accuracy (black lines show median and quartiles of test
+    AUC over four test folds). Each panel shows one of seven ChIP-seq data
+    sets, labeled by pattern/experiment (Broad H3K36me3), labeler
+    (AM), and cell types (immune).  It is clear that the proposed
+    GPDPA is just as accurate as the previous state-of-the-art CDPA,
+    and both are more accurate than the other baseline methods.
 % Interactive version
 %     available at
 %     \url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}
@@ -1557,14 +1486,14 @@ was used to estimate peak detection accuracy.
 For the optimal changepoint detection algorithms (CDPA, PDPA, GPDPA),
 the prediction problem simplifies to selecting the number of segments
 $K_i\in \{1, 3,\dots, 19\}$ for each data vector $i$, resulting in a
-predicted peak vector $c^{K_i}(\mathbf y_i)\in\{0,1\}^n$. We select the
-number of segments using an oracle penalty
+predicted peak vector $c^{K_i}(\mathbf y_i)\in\{0,1\}^n$. We select
+the number of segments using an oracle penalty
 $K_i^\lambda=\argmin_k l_{ik} + \lambda o_{ik}$
-\citep{cleynen2013segmentation}, where $l_{ik}$ is the Poisson loss and
-$o_{ik}$ is the oracle model complexity for the model with $k$
-segments for data vector $i$. 
-The problem thus simplifies to learning a scalar
-penalty constant $\lambda$,
+\citep{cleynen2013segmentation}, where $l_{ik}$ is the Poisson loss
+and $o_{ik}$ is the oracle model complexity for the model with $k$
+segments for data vector $i$.  The problem thus simplifies to learning
+a scalar penalty constant $\lambda$ (which is varied in order to
+compute ROC/AUC),
 \begin{equation}
   \label{eq:learn-lambda}
   \minimize_{\lambda}
@@ -1572,17 +1501,18 @@ penalty constant $\lambda$,
     c^{K_i^\lambda}(\mathbf y_i), 
     L_i\right].
 \end{equation}
+We performed the minimization in
+(\ref{eq:learn-lambda}) via grid search (compute the total error $E$
+for a grid of $\lambda$ values, then choose the value which results in
+the minimum). Multi-parameter affine penalty functions could further
+increase prediction accuracy \citep{HOCKING-penalties}, but we
+observed that learning a single penalty constant is sufficient for
+state-of-the-art accuracy in these data sets
+(Figure~\ref{fig:test-error-dots}). Another reason for using grid
+search is that we wanted to perform a fair comparison with two
+baseline methods from the bioinformatics literature, which we also
+trained using grid search.
 
-
-
-% Multi-parameter affine penalty functions could further increase prediction
-% accuracy \citep{HOCKING-penalties}, but we observed that learning a
-% single penalty constant is sufficient for state-of-the-art accuracy in
-% these data sets (Figure~\ref{fig:test-error-dots}). 
-
-% Furthermore, we wanted to perform a fair comparison with the following
-% two baselines from the bioinformatics literature, which also learn
-% only one parameter.
 To demonstrate that changepoint detection algorithms are more accurate
 than typical heuristics from the bioinformatics literature, we also
 compared with the MACS and HMCanBroad methods \citep{MACS,
@@ -1590,8 +1520,10 @@ compared with the MACS and HMCanBroad methods \citep{MACS,
 pattern such as H3K4me3, and \mbox{HMCanBroad} is a popular heuristic
 for data with a broad peak pattern such as H3K36me3. Although they are
 not designed for supervised learning, we trained them by performing
-grid search over a single significance threshold parameter (qvalue for
-MACS and finalThreshold for HMCanBroad).
+grid search over a single significance threshold parameter that
+controls the number of peaks detected (qvalue for MACS and
+finalThreshold for HMCanBroad). We computed ROC/AUC by varying these
+parameters.
 % Note that since these are not changepoint detection algorithms,
 % there is no parameter for we did not use these algorithms in the
 % speed comparison
@@ -1609,10 +1541,17 @@ enforces the up-down constraint on segment means. We expected our
 proposed GPDPA to perform just as well, since it also enforces that
 constraint. In agreement with our expectation, we observed that the
 CDPA and GPDPA yield comparable test AUC in all seven data sets
-(Figure~\ref{fig:test-error-dots}). In contrast, the unconstrained
-PDPA had much lower test AUC in several data sets, because of lower
-true positive rates. These results provide convincing evidence that
-the constraint is necessary for optimal peak detection accuracy.
+(Figure~\ref{fig:test-error-dots}). In five of the seven data sets,
+there was no significant difference in test AUC (p-value$>0.1$ in
+two-sided paired $t_3$-test). In one of the two other data sets
+(H3K4me3 TDH other), the GPDPA (mean AUC=0.97) was slightly less
+accurate than the CDPA (mean AUC=0.98, p-value=0.04); in the other
+data set (H3K4me3 TDH immune) the GPDPA (mean AUC=0.95) was slightly
+more accurate than the CDPA (mean AUC=0.94, p-value=0.05). In contrast, the
+unconstrained PDPA had significantly lower test AUC in four data sets
+(p-value$<0.1$), because of lower true positive rates. These results
+provide convincing evidence that the constraint is necessary for
+optimal peak detection accuracy.
 
 Since the baseline HMCanBroad algorithm was designed for data with a
 broad peak pattern, we expected it to perform well in the H3K36me3
@@ -1655,8 +1594,8 @@ time complexity, optimality, constraints, and pruning techniques
 (Table~1). In this paper, we investigated generalizing the functional
 pruning technique originally discovered by \citet{pruned-dp} and
 \citet{phd-johnson}. We showed that the functional pruning technique can
-be used to compute optimal changepoints subject to affine constraints
-on adjacent segment mean parameters.
+be used to compute optimal changepoints subject to constraints
+on the directions of changes.
 
 We showed that our proposed Generalized Pruned Dynamic Programming
 Algorithm (GPDPA) enjoys the same log-linear $O(Kn\log n)$ time
@@ -1670,7 +1609,6 @@ observed that the GPDPA enjoys the same state-of-the-art accuracy as
 the previous best, the relatively slow quadratic $O(Kn^2)$ time
 CDPA.
 
-
 We observed that the heuristic algorithms which are popular in the
 bioinformatics literature (MACS, HMCanBroad) are much less accurate
 than the optimal changepoint detection algorithms (CDPA, PDPA,
@@ -1683,22 +1621,26 @@ accurate models in an amount of time that is comparable to heuristic
 algorithms. Our proposed GPDPA can now be used as an optimal
 alternative to heuristic algorithms, even for large data sets.
 
-For future work we will be interested in exploring pruning techniques
-for other constrained changepoint models. When the number of expected
-changepoints grows with the number of data points, then $K=O(n)$ and
-our proposed GPDPA has $O(n^2 \log n)$ average time complexity (since
-it computes all models with $1,\dots,K$ segments). We have already
-started modifying the GPDPA for optimal partitioning
-\citep{optimal-partitioning}, which results in the Generalized
-Functional Prunining Optimal Partitioning (GFPOP) algorithm. It
-computes the $K$-segment model for a single penalty constant $\lambda$
-(without computing models with $1,\dots,K-1$ segments) in $O(n\log n)$
-time.
+In future work we will be interested to explore pruning techniques for
+other constrained changepoint models. For example, our proposed GPDPA can be
+applied to solve changepoint problems with general affine constraints
+on adjacent segment mean parameters
+\citep{Hocking-constrained-changepoint-detection}. However, when the number of
+expected changepoints grows with the number of data points, then
+$K=O(n)$ and the GPDPA has $O(n^2 \log n)$ average time
+complexity (since it computes all models with $1,\dots,K$
+segments). We have already started modifying the GPDPA for optimal
+partitioning \citep{optimal-partitioning}, which results in a
+Generalized Functional Pruning Optimal Partitioning (GFPOP)
+algorithm. It computes the best $K$-segment model for a single penalty
+constant $\lambda$ (without computing models with $1,\dots,K-1$
+segments) in $O(n\log n)$ time.
+
 
 \section{Reproducible Research Statement}
 
 The source code and data used to create this manuscript (including all
-figures) is available at
+figures) is available at\\
 \url{https://github.com/tdhock/PeakSegFPOP-paper}
 
 \section{Acknowledgements}
@@ -1709,14 +1651,15 @@ sponsored by the Natural Sciences and Engineering Research Council
 (NSERC), Genome Canada (GC), the Canadian Institutes of Health
 Research (CIHR) and the Canada Foundation for Innovation (CFI). Paul
 Fearnhead acknowledges EPSRC grant EP/N031938/1 (StatScale).
+Guillem Rigaill acknowledges an ATIGE grant from G\'enopole.
 
-\begin{supplement}[id=suppA]
-  \sname{Supplement A}
-  \stitle{Title}
-  \slink[doi]{COMPLETED BY THE TYPESETTER}
-  \sdatatype{.pdf}
-  \sdescription{Some text}
-\end{supplement}
+% \begin{supplement}[id=suppA]
+%   \sname{Supplement A}
+%   \stitle{Title}
+%   \slink[doi]{COMPLETED BY THE TYPESETTER}
+%   \sdatatype{.pdf}
+%   \sdescription{Some text}
+% \end{supplement}
 
 
 \bibliographystyle{abbrvnat}
