@@ -155,6 +155,38 @@ dev.off()
 
 
 gg.log <- ggplot()+
+  theme_bw()+
+  geom_hline(aes(yintercept=seconds),
+             data=lab.df,
+             color="grey")+
+  geom_ribbon(aes(max.data, ymin=min, ymax=max,
+                  fill=algo.tex),
+              data=window.seconds,
+              alpha=0.5)+
+  geom_line(aes(max.data, median,
+                color=algo.tex),
+            data=window.seconds)+
+  geom_text(aes(10^2.5, seconds, label=label),
+            data=lab.df,
+            size=3,
+            color="grey",
+            vjust=-0.5)+
+  scale_y_log10("seconds")+
+  scale_color_manual(values=algo.colors)+
+  scale_fill_manual(values=algo.colors)+
+  guides(color="none", fill="none")+
+  scale_x_log10(
+    "$n$ = data points to segment",
+    breaks=c(1e3, 1e4, range(all.timings$data)))
+dl.log <- direct.label(gg.log, list(cex=0.75, "my.polygons"))+
+  coord_cartesian(xlim=c(min(all.timings$data), 5e6))
+print(dl.log)
+tikz("figure-PDPA-timings-wide-labels.tex", 5, 1.8)
+print(dl.log)
+dev.off()
+
+
+gg.log <- ggplot()+
   geom_hline(aes(yintercept=log10(seconds)),
              data=lab.df,
              color="grey")+
