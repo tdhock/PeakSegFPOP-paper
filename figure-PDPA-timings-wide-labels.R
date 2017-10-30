@@ -20,13 +20,13 @@ algo <- function(algorithm, ...){
   data.table(algorithm, ...)
 }
 CDPA.name <- "CDPA = Constrained Dynamic Programming Algo
-Up-down constrained, approximate solution, $O(n^2)$
+Up-down constrained, approximate solution, $O(d^2)$
 H {\\it et al.} 2015, R pkg PeakSegDP"
 PDPA.name <- "PDPA = Pruned Dynamic Programming Algorithm
-Unconstrained, optimal solution, $O(n \\log n)$
+Unconstrained, optimal solution, $O(d \\log d)$
 Cleynen {\\it et al.} 2014, R pkg Segmentor3IsBack"
 GPDPA.name <- "GPDPA = Generalized PDPA
-Up-down constrained, optimal solution, $O(n \\log n)$
+Up-down constrained, optimal solution, $O(d \\log d)$
 Proposed, R pkg PeakSegOptimal"
 all.timings <- rbind(
   algo(CDPA.name, dp.timings),
@@ -38,14 +38,6 @@ totex <- function(a){
   a
 }
 all.timings[, algo.tex := totex(algorithm)]
-
-gg.quad <- ggplot()+
-  ylab("hours of computation time")+
-  xlab("data points to segment N")+
-  geom_point(aes(data, seconds/60/60),
-             shape=1,
-             data=dp.timings)
-
 
 totals <- all.timings[, list(seconds=sum(seconds)), by=algorithm]
 totals[, minutes := seconds/60]
@@ -103,7 +95,7 @@ gg.log <- ggplot()+
   scale_fill_manual(values=algo.colors)+
   guides(color="none", fill="none")+
   scale_x_log10(
-    "$n$ = data points to segment",
+    "$d$ = data points to segment",
     breaks=c(1e3, 1e4, range(all.timings$data)))
 my.method <- list("last.points", dl.trans(x=x+0.1))
 
