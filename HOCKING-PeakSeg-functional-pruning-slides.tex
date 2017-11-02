@@ -6,6 +6,7 @@
 \usepackage{hyperref}
 \usepackage{graphicx}
 \usepackage{algorithmic}
+\usepackage{multirow}
 
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\Lik}{Lik}
@@ -35,7 +36,8 @@
 \begin{document}
 
 \title{A log-linear time algorithm for constrained 
-changepoint detection}
+changepoint detection
+}
 
 \author{
   Toby Dylan Hocking\\
@@ -43,7 +45,7 @@ changepoint detection}
   joint work with Guillem Rigaill, Paul Fearnhead, 
   Guillaume Bourque}
 
-%\date{11 Nov 2016}
+\date{13 Nov 2017}
 
 \maketitle
 
@@ -72,58 +74,58 @@ changepoint detection}
   \end{itemize}
 \end{frame}
 
-\begin{frame}
-  \frametitle{Previous work in genomic peak detection}
-  \begin{itemize}
-  \item Model-based analysis of ChIP-Seq (MACS), Zhang et al, 2008.
-  \item SICER, Zang et al, 2009.
-  \item HOMER, Heinz et al, 2010.
-  \item CCAT, Xu et al, 2010.
-  \item RSEG, Song et al, 2011.
-  \item Triform, Kornacker et al, 2012.
-  \item Histone modifications in cancer (HMCan), Ashoor et al, 2013.
-  \item PeakSeg, Hocking, Rigaill, Bourque, ICML 2015.
-  %\item PeakSegJoint Hocking and Bourque, arXiv:1506.01286.
-  \item ... dozens of others.
-  \end{itemize}
-  Two big questions: how to choose the best...
-  \begin{itemize}
-  \item ...algorithm? (testing)
-  \item \alert<1>{...parameters? (training)}
-  \end{itemize}
-\end{frame}
+% \begin{frame}
+%   \frametitle{Previous work in genomic peak detection}
+%   \begin{itemize}
+%   \item Model-based analysis of ChIP-Seq (MACS), Zhang et al, 2008.
+%   \item SICER, Zang et al, 2009.
+%   \item HOMER, Heinz et al, 2010.
+%   \item CCAT, Xu et al, 2010.
+%   \item RSEG, Song et al, 2011.
+%   \item Triform, Kornacker et al, 2012.
+%   \item Histone modifications in cancer (HMCan), Ashoor et al, 2013.
+%   \item PeakSeg, Hocking, Rigaill, Bourque, ICML 2015.
+%   %\item PeakSegJoint Hocking and Bourque, arXiv:1506.01286.
+%   \item ... dozens of others.
+%   \end{itemize}
+%   Two big questions: how to choose the best...
+%   \begin{itemize}
+%   \item ...algorithm? (testing)
+%   \item \alert<1>{...parameters? (training)}
+%   \end{itemize}
+% \end{frame}
 
-\begin{frame}[fragile]
-  \frametitle{How to choose parameters of unsupervised peak
-    detectors?}
-\scriptsize
-19 parameters for Model-based analysis of ChIP-Seq (MACS), Zhang et al, 2008.
-\begin{verbatim}
-  [-g GSIZE]
-  [-s TSIZE] [--bw BW] [-m MFOLD MFOLD] [--fix-bimodal]
-  [--nomodel] [--extsize EXTSIZE | --shiftsize SHIFTSIZE]
-  [-q QVALUE | -p PVALUE | -F FOLDENRICHMENT] [--to-large]
-  [--down-sample] [--seed SEED] [--nolambda]
-  [--slocal SMALLLOCAL] [--llocal LARGELOCAL]
-  [--shift-control] [--half-ext] [--broad]
-  [--broad-cutoff BROADCUTOFF] [--call-summits]
-\end{verbatim}
-10 parameters for Histone modifications in cancer (HMCan),
-Ashoor et al, 2013.
-\begin{verbatim}
-minLength 145
-medLength 150
-maxLength 155
-smallBinLength 50
-largeBinLength 100000
-pvalueThreshold 0.01
-mergeDistance 200
-iterationThreshold 5
-finalThreshold 0
-maxIter 20
-\end{verbatim}
-\end{frame}
-
+% \begin{frame}[fragile]
+%   \frametitle{How to choose parameters of unsupervised peak
+%     detectors?}
+% \scriptsize
+% 19 parameters for Model-based analysis of ChIP-Seq (MACS), Zhang et al, 2008.
+% \begin{verbatim}
+%   [-g GSIZE]
+%   [-s TSIZE] [--bw BW] [-m MFOLD MFOLD] [--fix-bimodal]
+%   [--nomodel] [--extsize EXTSIZE | --shiftsize SHIFTSIZE]
+%   [-q QVALUE | -p PVALUE | -F FOLDENRICHMENT] [--to-large]
+%   [--down-sample] [--seed SEED] [--nolambda]
+%   [--slocal SMALLLOCAL] [--llocal LARGELOCAL]
+%   [--shift-control] [--half-ext] [--broad]
+%   [--broad-cutoff BROADCUTOFF] [--call-summits]
+% \end{verbatim}
+% 10 parameters for Histone modifications in cancer (HMCan),
+% Ashoor et al, 2013.
+% \begin{verbatim}
+% minLength 145
+% medLength 150
+% maxLength 155
+% smallBinLength 50
+% largeBinLength 100000
+% pvalueThreshold 0.01
+% mergeDistance 200
+% iterationThreshold 5
+% finalThreshold 0
+% maxIter 20
+% \end{verbatim}
+% \end{frame}
+ 
 \begin{frame}
   \frametitle{Which macs parameter is best for these data?}
   \includegraphics[width=1\textwidth]{figure-macs-problem.png}
@@ -152,54 +154,88 @@ maxIter 20
   %  ...)\\or learned penalties based on visual labels (more on this later).
 \end{frame}
 
-\begin{frame}
-  \frametitle{Maximum likelihood Poisson segmentation models}
-  \includegraphics[width=1\textwidth]{figure-Segmentor-PeakSeg}
+% \begin{frame}
+%   \frametitle{Maximum likelihood Poisson segmentation models}
+%   \includegraphics[width=1\textwidth]{figure-Segmentor-PeakSeg}
 
-  \begin{itemize}
-  \item Previous work: unconstrained maximum likelihood mean\\
-    for $s$ segments ($s-1$ changes), Cleynen et al 2014.
-  \item Hocking et al, ICML 2015: PeakSeg constraint enforces up, down, up,
-    down changes (and not up, up, down). 
-  \item Odd-numbered segments are background noise,\\
-    even-numbered segments are peaks.
-  \item Constrained Dynamic Programming Algorithm, $O(N^2)$ time for $N$ data points.
-  \end{itemize}
-\end{frame}
+%   \begin{itemize}
+%   \item Previous work: unconstrained maximum likelihood mean\\
+%     for $s$ segments ($s-1$ changes), Cleynen et al 2014.
+%   \item Hocking et al, ICML 2015: PeakSeg constraint enforces up, down, up,
+%     down changes (and not up, up, down). 
+%   \item Odd-numbered segments are background noise,\\
+%     even-numbered segments are peaks.
+%   \item Constrained Dynamic Programming Algorithm, $O(N^2)$ time for $N$ data points.
+%   \end{itemize}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{But quadratic time is not fast enough for genomic data!}
+%   \includegraphics[width=\textwidth]{figure-PDPA-timings-dp}
+%   \begin{itemize}
+%   \item Genomic data is large, $N \geq 10^6$.
+%   \item Split into subsets? What if we split a peak in half?
+%   \item Need linear time algorithm for analyzing whole data set.
+%   \end{itemize}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{Statistical model is Poisson with change constraints}
+%   \begin{itemize}
+%   \item We have $N$ count data $z_1, \dots, z_N\in\ZZ_+$.
+%   \item Fix the number of segments $S\in\{1, 2, \dots, N\}$.
+%   \item PeakSeg Model: $z_t \sim \text{Poisson}(m_t)$ such that $m_t$
+%     has $S-1$ up-down changes.
+%   \item Want to find means $m_t$ which maximize the Poisson likelihood:
+%     $P(Z = z_t|m_t) = m_t^{z_t} e^{-m_t} / (z_t!)$.
+%   \item Equivalent to finding means $m_t$ which minimize the Poisson
+%     loss: $\ell(m_t, z_t) = m_t - z_t\log m_t$.
+%   \item Naive computation is $O(N^S)$, since there are $O(N^{S-1})$ possible
+%     positions for $S-1$ change-points, and it takes $O(N)$ operations to
+%     compute the mean and loss for each.
+%   % \item Comparison to Hidden Markov Model:
+%   %   \begin{description}
+%   %   \item[Likelihood] Same emission terms, no transition terms.
+%   %   \item[Constraint] Number of changes rather than values.
+%   %   \end{description}
+%   \end{itemize}
+% \end{frame}
 
 \begin{frame}
-  \frametitle{But quadratic time is not fast enough for genomic data!}
-  \includegraphics[width=\textwidth]{figure-PDPA-timings-dp}
-  \begin{itemize}
-  \item Genomic data is large, $N \geq 10^6$.
-  \item Split into subsets? What if we split a peak in half?
-  \item Need linear time algorithm for analyzing whole data set.
-  \end{itemize}
-\end{frame}
+  \frametitle{Maximum likelihood changepoint detection with up-down constraints on adjacent segment means (PeakSeg)}
+H {\it et al.}, {\it ICML} 2015. 
+    
+\only<1>{\input{figure-PeakSeg}}      
+\only<2>{\input{figure-PeakSeg-unconstrained}}
+\only<3>{\input{figure-PeakSeg-constrained}}
+\vskip -1.5cm
+\begin{align*}
+    \minimize_{\substack{
+  \mathbf u\in\RR^{S}
+\\
+   0=t_0<t_1<\cdots<t_{S-1}<t_S=n
+  }} &\ \ 
+    \sum_{s=1}^S\  \sum_{i=t_{s-1}+1}^{t_s} \ell( u_s,  x_i) 
+  \label{PeakSegPDPA}
+\\
+      \text{subject to \hskip 0.75cm} &\ \ \alert<3>{u_{s-1} \leq u_s\ \forall s\in\{2,4,\dots\},}
+  \nonumber\\
+  &\ \ \alert<3>{u_{s-1} \geq u_s\ \forall s\in\{3,5,\dots\}.}
+  \nonumber 
+\end{align*}
+\vskip -0.4cm
+\begin{itemize}  
+\item Simple: 1 parameter = number of segments $S\in\{1,3,\dots\}$.
+\item Hard optimization problem, naively $O(n^S)$ time.
+\item \alert<2>{Previous unconstrained model: not always up-down changes.}
+\item \alert<3>{Interpretable: $P=(S-1)/2$ peaks (segments 2, 4, ...).}
+\item New $O(Kn^2)$ time approximate algorithm based on classic
+  dynamic programming (R package PeakSegDP).
+\end{itemize}
+\end{frame} 
 
 \section{New functional pruning algorithm}
 
-\begin{frame}
-  \frametitle{Statistical model is Poisson with change constraints}
-  \begin{itemize}
-  \item We have $N$ count data $z_1, \dots, z_N\in\ZZ_+$.
-  \item Fix the number of segments $S\in\{1, 2, \dots, N\}$.
-  \item PeakSeg Model: $z_t \sim \text{Poisson}(m_t)$ such that $m_t$
-    has $S-1$ up-down changes.
-  \item Want to find means $m_t$ which maximize the Poisson likelihood:
-    $P(Z = z_t|m_t) = m_t^{z_t} e^{-m_t} / (z_t!)$.
-  \item Equivalent to finding means $m_t$ which minimize the Poisson
-    loss: $\ell(m_t, z_t) = m_t - z_t\log m_t$.
-  \item Naive computation is $O(N^S)$, since there are $O(N^{S-1})$ possible
-    positions for $S-1$ change-points, and it takes $O(N)$ operations to
-    compute the mean and loss for each.
-  \item Comparison to Hidden Markov Model:
-    \begin{description}
-    \item[Likelihood] Same emission terms, no transition terms.
-    \item[Constraint] Number of changes rather than values.
-    \end{description}
-  \end{itemize}
-\end{frame}
 
 \begin{frame}
   \frametitle{Relation to previous work}
@@ -301,7 +337,8 @@ functional pruning technique to the up-down constrained model.
   &=&  \gamma_2(\mu_2)+\min_{\mu_1 \leq \mu_2} L_{1,1}(\mu_1)\\
   &=& \gamma_2(\mu_2)+L_{1,1}^{\leq}(\mu_2)
 \end{eqnarray*}
-\item Min-less operator is $L^\leq(\mu) = \min_{x\leq\mu} L(x),$
+\item Min-less operator $L^\leq(\mu) = \min_{x\leq\mu} L(x)$ can be
+  computed and stored exactly for every possible $\mu$!
     \begin{center}
       \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minlessmore-2segments-2data}
     \end{center}
@@ -373,16 +410,23 @@ functional pruning technique to the up-down constrained model.
   \frametitle{Second segment, up to data point t}
   \begin{itemize}
   \item The updates continue for every data point $t\in\{3, ..., N\}$
-    \begin{equation*}
-      L_{2,t}(\mu) =  \gamma_t(\mu) + \min
+    \begin{eqnarray*}
+      L_{2,t}(\mu) &=&  \gamma_t(\mu) + \min
       \begin{cases}
         L_{1,t-1}^{\leq}(\mu), & \text{change up after $t-1$,}\\
         L_{2,t-1}(\mu), & \text{change up before $t-1$.}
       \end{cases}
-    \end{equation*}
+% \\
+%       &=& \min_{\tau\in\{1,2,\dots,t-1\}} c_{2,t,\tau}(\mu)
+%           = \min_{\tau\in T_{2,t}} c_{2,t,\tau}(\mu)
+    \end{eqnarray*}
   \item For example for $z = 2, 1, 0, 4$, at data point $t=4$
     we only need to consider changes after 2 and 3 (1 has been
     pruned).
+% $$
+% L_{2,4}(\mu) &=& \min_{\tau\in\{1,2,3\}} c_{2,t,\tau} = 
+% \min_{\tau\in\{2,3\}} c_{2,t,\tau} 
+% $$
     \begin{center}
       \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minenv-2segments-4data}
     \end{center}
@@ -423,96 +467,83 @@ functional pruning technique to the up-down constrained model.
   \end{minipage}
 \end{frame}
 
-\begin{frame}
-  \frametitle{Implementation details}
-  Implemented using C++ Standard Template Library (linked list),
-  \url{https://cran.r-project.org/package=PeakSegOptimal}
-\begin{description}
-\item[Weights] for data sequences that contain repeats:
-  5,1,1,1,0,0,5,5 is encoded as $n=4$ counts $y_t$ 5,1,0,5 with
-  corresponding weights $w_t$ 1,3,2,2.
-\item[Mean cost rather than total cost] more complicated update rule,
-  but more numerically stable.
-\item[Intervals in log(mean) space] For example rather than storing
-  $\mu\in[0,1]$ we store $x=\log\mu\in[-\infty, 0]$ -- Poisson model,
-  negative mean impossible.
-\item[Newton root finding] For the larger root we solve
-  $a\log\mu + b\mu + c = 0$ (linear as $\mu\rightarrow\infty$) and for
-  the smaller root we solve $a x + be^x + c = 0$ ($x=\log \mu$, linear
-  as $x\rightarrow -\infty$ and $\mu\rightarrow 0$). 
-\end{description}
-  
-\end{frame}
 
-\section{Results on heartbeat audio time series}
+% \section{Results on heartbeat audio time series}
 
-\begin{frame}
-  \frametitle{Heartbeat mp3}
-  \includegraphics[width=\textwidth]{figure-heartbeat-data-only}
+% \begin{frame}
+%   \frametitle{Heartbeat mp3}
+%   \includegraphics[width=\textwidth]{figure-heartbeat-data-only}
 
-  \scriptsize
-  \url{https://github.com/tdhock/heartbeat/blob/master/heartbeat.mp3}
-\end{frame}
+%   \scriptsize
+%   \url{https://github.com/tdhock/heartbeat/blob/master/heartbeat.mp3}
+% \end{frame}
 
-\begin{frame}
-  \frametitle{Unconstrained 
-model does not satisfy up-down constraint}
-  \includegraphics[width=\textwidth]{figure-heartbeat-unconstrained}
-\end{frame}
+% \begin{frame}
+%   \frametitle{Unconstrained 
+% model does not satisfy up-down constraint}
+%   \includegraphics[width=\textwidth]{figure-heartbeat-unconstrained}
+% \end{frame}
 
-\begin{frame}
-  \frametitle{Up-down
-model interpretable in terms of heartbeats}
-  \includegraphics[width=\textwidth]{figure-heartbeat-PeakSeg}
-\end{frame}
+% \begin{frame}
+%   \frametitle{Up-down
+% model interpretable in terms of heartbeats}
+%   \includegraphics[width=\textwidth]{figure-heartbeat-PeakSeg}
+% \end{frame}
 
-\begin{frame}
-  \frametitle{Can measure heartbeat duration}
-  \includegraphics[width=\textwidth]{figure-heartbeat}
-\end{frame}
+% \begin{frame}
+%   \frametitle{Can measure heartbeat duration}
+%   \includegraphics[width=\textwidth]{figure-heartbeat}
+% \end{frame}
 
 \section{Results on ChIP-seq benchmark}
 
 \begin{frame}
-  \frametitle{Benchmark data sets, algorithms}
+  \frametitle{New labeling method for peak detection in ChIP-seq data}
 
- \url{http://cbio.ensmp.fr/~thocking/chip-seq-chunk-db/}
+  H {\it et al.}, {\it Bioinformatics} 2017: choose peak model/parameters
+  which minimize the number of incorrectly predicted labels.
+
+  \includegraphics[width=\textwidth]{figure-PeakError.pdf}
   \begin{itemize}
-  \item Hocking \emph{et al} Bioinformatics (2016). Optimizing
-    ChIP-seq peak detectors using visual labels and supervised machine
-    learning.
-  \item 37 labeled H3K4me3 samples (sharp peak pattern).
-  \item 29 labeled H3K36me3 samples (broad peak pattern).
-  \item 12,826 labeled regions with and without peaks.
-  \item 2,752 separate segmentation problems.
+  \item \textbf{peakStart}: exactly one peak start (0=FN, more=FP).
+  \item \textbf{peakEnd}: exactly one peak end (0=FN, more=FP).
+  \item \textbf{noPeaks}: no overlapping peaks (otherwise FP).
+  \item \textbf{peaks}: at least one overlapping peak (otherwise FN).
+  \item R package PeakError.
   \end{itemize}
-
-  Algorithms for $S$ optimal segmentations in $N$ data points:
-  \begin{center}
-  \begin{tabular}{ccccc}
-    algorithm & constraint & exact? & complexity \\
-    \hline
-    CDPA & $\mu_1 < \mu_2 > \mu_3 \dots$ & no & $O(S N^2)$\\
-    \textbf{GPDPA} &
- $\mu_1 \leq \mu_2 \geq \mu_3 \dots$ & yes & $O(S N\log N)$ \\
-    PDPA & none & yes & $O(S N\log N)$
-  \end{tabular}
-
-  \vskip 0.5cm
-
-  PDPA loss $\leq$ GPDPA loss $\leq$ CDPA loss.
-  \end{center}
 \end{frame}
 
-\begin{frame}
-  \frametitle{0 errors for GPDPA/CDPA, 6 errors for PDPA}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem2-best.png}
+% \begin{frame}
+%   \frametitle{Benchmark data sets, algorithms}
 
+%  \url{http://cbio.ensmp.fr/~thocking/chip-seq-chunk-db/}
+%   \begin{itemize}
+%   \item Hocking \emph{et al} Bioinformatics (2016). Optimizing
+%     ChIP-seq peak detectors using visual labels and supervised machine
+%     learning.
+%   \item 37 labeled H3K4me3 samples (sharp peak pattern).
+%   \item 29 labeled H3K36me3 samples (broad peak pattern).
+%   \item 12,826 labeled regions with and without peaks.
+%   \item 2,752 separate segmentation problems.
+%   \end{itemize}
 
-  Run each algo with $0,\dots,9$ peaks. Discard models which do not
-  satisfy peak constraint. Model with min train label error shown.
-\end{frame}
+%   Algorithms for $S$ optimal segmentations in $N$ data points:
+%   \begin{center}
+%   \begin{tabular}{ccccc}
+%     algorithm & constraint & exact? & complexity \\
+%     \hline
+%     CDPA & $\mu_1 < \mu_2 > \mu_3 \dots$ & no & $O(S N^2)$\\
+%     \textbf{GPDPA} &
+%  $\mu_1 \leq \mu_2 \geq \mu_3 \dots$ & yes & $O(S N\log N)$ \\
+%     PDPA & none & yes & $O(S N\log N)$
+%   \end{tabular}
 
+%   \vskip 0.5cm
+
+%   PDPA loss $\leq$ GPDPA loss $\leq$ CDPA loss.
+%   \end{center}
+% \end{frame}
+ 
 \begin{frame}
   \frametitle{Test AUC on 7 benchmark data sets}
   \includegraphics[width=\textwidth]{figure-test-error-dots}
@@ -531,7 +562,8 @@ model interpretable in terms of heartbeats}
 
 \begin{frame}
   \frametitle{Functional pruning algorithms faster for larger data sets}
-  \includegraphics[width=1\textwidth]{figure-PDPA-timings.pdf}
+  %\includegraphics[width=1\textwidth]{figure-PDPA-timings.pdf}
+  \input{figure-PDPA-timings-wide-labels}
 
   Total time to compute 10 models (0, ..., 9 peaks) for all problems:
   \begin{itemize}
@@ -540,48 +572,8 @@ model interpretable in terms of heartbeats}
   \end{itemize}
 \end{frame}
 
-\section{Conclusions and future work}
-
-\begin{frame}[fragile]
-  \frametitle{How to choose parameters of unsupervised peak
-    detectors?}
-\scriptsize
-19 parameters for Model-based analysis of ChIP-Seq (MACS), Zhang et al, 2008.
-\begin{verbatim}
-  [-g GSIZE]
-  [-s TSIZE] [--bw BW] [-m MFOLD MFOLD] [--fix-bimodal]
-  [--nomodel] [--extsize EXTSIZE | --shiftsize SHIFTSIZE]
-  [-q QVALUE | -p PVALUE | -F FOLDENRICHMENT] [--to-large]
-  [--down-sample] [--seed SEED] [--nolambda]
-  [--slocal SMALLLOCAL] [--llocal LARGELOCAL]
-  [--shift-control] [--half-ext] [--broad]
-  [--broad-cutoff BROADCUTOFF] [--call-summits]
-\end{verbatim}
-10 parameters for Histone modifications in cancer (HMCan),
-Ashoor et al, 2013.
-\begin{verbatim}
-minLength 145
-medLength 150
-maxLength 155
-smallBinLength 50
-largeBinLength 100000
-pvalueThreshold 0.01
-mergeDistance 200
-iterationThreshold 5
-finalThreshold 0
-maxIter 20
-\end{verbatim}
-\end{frame}
-
 \begin{frame}
-  \frametitle{PeakSeg: search for the peaks with lowest loss}
-  \includegraphics[width=1\textwidth]{figure-macs-problem-PeakSeg.png}
-  
-  Simple model with only one parameter (number of peaks).
-\end{frame}
-
-\begin{frame}
-  \frametitle{Conclusions}
+  \frametitle{Contribution: new fast and exact constrained algorithm}
   \begin{tabular}{r|c|c}
     & no pruning & functional pruning \\
     \hline
@@ -605,6 +597,210 @@ maxIter 20
   \end{itemize}
   Future work: other constraints and loss functions.
 \end{frame}
+
+\section{Other projects and future work}
+
+\begin{frame}
+  \frametitle{New labeling and training methods for breakpoint detection}
+
+  H {\it et al.}, {\it BMC Bioinformatics} 2013.
+  \begin{itemize}
+  \item Create positive/breakpoint and negative/normal labels.
+  \item Quantify/optimize error rate (number of incorrect labels).
+  \item Benchmark data set of 3418 chromosomes,
+    labeled via visual inspection (R package neuroblastoma).
+  \item Results: most accurate model is maximum Gaussian likelihood 
+    changepoint detection (cross-validation experiments).
+  \end{itemize}
+
+  \includegraphics[width=\textwidth]{neuroblastoma-ok-relapse-supervised}
+
+\end{frame} 
+
+% \begin{frame}
+%   \frametitle{Fast FPOP algorithm for computing the maximum likelihood
+%     changepoint model}
+
+%   Maidstone, Hocking, Rigaill, Fearnhead, {\it Stat. and
+%     Comp.} 2017.
+
+%   \begin{itemize}
+%   \item Naively exponential $O(p^K)$ time to compute best model with
+%     $K$ segments ($K-1$ changes) for a sequence of $p$ data.
+%   \item Previous work: other algorithms for computing the model
+%     (\algo{PELT} and \algo{pDPA}).
+%   \item Contribution: new log-linear $O(p\log p)$ \algo{FPOP}
+%     algorithm for computing the same model (R package fpop).
+%   \end{itemize}
+%   \begin{center}
+%     \includegraphics[width=0.5\textwidth]{figure-systemtime-arrays-bins}
+%   \end{center}
+% \end{frame}
+
+\begin{frame}
+  \frametitle{Supervised interactive DNA copy number analysis}
+  H {\it et al.}, {\it Bioinformatics} 2014.
+
+  \begin{itemize}
+  \item Previous work: non-interactive command line programs
+    -- collaborators can not correct obvious
+    errors.
+  \item Interactive system: when you edit the labels, the system
+    learns and updates the model. (SegAnnDB python module)
+  \item Result below: only a few labels required to learn a highly accurate
+    breakpoint detection model.
+  \end{itemize}
+  \begin{minipage}{0.5\linewidth}
+    \includegraphics[width=\textwidth]{SegAnnDB-test-error-decreases}
+  \end{minipage}
+  \begin{minipage}[0.5\linewidth]{0.48\linewidth}
+SegAnnDB demo:\\interactively label chr1/chrX
+  \url{http://bioviz.rocq.inria.fr/profile/GSM313887/}
+  \end{minipage}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Cancer biology applications}
+  Aichi cancer center, Nagoya, Japan.
+  \begin{itemize}
+  \item Suguro {\it et al.}, {\it Cancer Sci} 2014, Clonal
+    heterogeneity of lymphoid malignancies correlates with poor
+    prognosis.
+  \item Shimada {\it et al.}, {\it Leukemia} 2016, Development and
+    analysis of patient-derived xenograft mouse models in
+    intravascular large B-cell lymphoma.
+  \end{itemize}
+  Institut Curie, Paris, France.
+  \begin{itemize}
+  \item Chicard {\it et al.}, {\it Clinical Cancer Research} 2016,
+    Genomic copy number profiling using circulating free tumor DNA
+    highlights heterogeneity in neuroblastoma.
+  \item Ongoing work, characterizing alterations in neuroblastoma.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Other research projects}
+  \begin{tabular}{ll}
+Unsupervised convex & \multirow{4}{*}{
+\includegraphics[height=0.2\textheight]{screenshot-clusterpath}
+}\\
+hierarchical clustering.\\
+H {\it et al.}, {\it ICML} 2011\\
+%91 citations. 
+R package clusterpath. \\
+\hline
+Predicting the  & \multirow{4}{*}{
+\includegraphics[height=0.25\textheight]{Screenshot-max-margin}
+}\\
+number of changepoints.\\
+H {\it et al.}, {\it ICML} 2013. \\
+R package penaltyLearning.\\
+useR2017 tutorial.\\
+\hline
+Support vector machines & \multirow{4}{*}{ 
+    \includegraphics[height=0.2\textheight]{screenshot-ranksvmcompare}
+}\\
+for ranking and comparison. \\
+H {\it et al.}, arXiv:1401.8008. \\
+R package rankSVMcompare.\\
+\hline
+New interactive keywords& \multirow{5}{*}{
+\includegraphics[height=0.2\textheight]{figure-design}
+}\\
+for the grammar of graphics,\\
+under review at \emph{Journal}\\
+\emph{of Computational and Graphical}\\
+\emph{Statistics}, R package animint.\\
+%useR2016 tutorial.\\
+  \end{tabular}
+  % \begin{minipage}{0.3\linewidth}
+  %   Clusterpath for convex hierarchical clustering (H {\it et
+  %     al.}, {\it ICML} 2011, 91 citations). R package clusterpath.
+  %   \includegraphics[width=\linewidth]{screenshot-clusterpath}
+  % \end{minipage}
+  % \begin{minipage}{0.3\linewidth}
+  %   Support vector machines for ranking and comparison. H {\it et
+  %     al.}, arXiv:1401.8008. R package rankSVMcompare.
+  %   \includegraphics[width=\linewidth]{screenshot-ranksvmcompare}
+  % \end{minipage}
+  % \begin{minipage}{0.3\linewidth}
+  %   New interactive keywords for the grammar of graphics, under review
+  %   at \emph{Journal of Computational and Graphical Statistics}, R
+  %   package animint.
+  % \end{minipage}
+
+  % Collaborations at the McGill Genome Center:
+  % \begin{itemize}
+  % \item Predicting which people will respond to the flu vaccine based
+  %   on SNP data. (with Maiko Narahara)
+  % \item Predicting which people have asthma based on SNP
+  %   data. (with Audrey Grant)
+  % \item Predicting which genetic variants are pathogenic based on
+  %   biochemistry, evolutionary conservation, etc. (with
+  %   Najmeh Alirezaie)
+  % % \item Predicting genomic regions with peaks based on ChIP-seq
+  % %   data. (with Guillaume Bourque)
+  % \end{itemize}
+\end{frame}
+ 
+\begin{frame}
+  \frametitle{Future projects for my research lab}
+  \begin{itemize}
+  %\item Collaborations with experts from other scientific domains.
+  % \item Supervising graduate students who want to work on algorithms
+  %   for solving important big data analysis problems.
+  \item Multi-task learning for predicting the number of changepoints
+    (multiple scientists provide breakpoint or peak labels).
+  % \item Survival models for predicting the number of changepoints: R
+  %   package iregnet.
+  \item Fast algorithms for other constrained changepoint models
+    (neuro spike train data, segmented regression, etc).
+  \item Deep learning for nonparametric changepoint detection.
+  \item GenomicLearner platform for collaborations: interactive
+    labeling and machine learning analysis.
+  \end{itemize}
+\end{frame}
+
+
+% \begin{frame}[fragile]
+%   \frametitle{How to choose parameters of unsupervised peak
+%     detectors?}
+% \scriptsize
+% 19 parameters for Model-based analysis of ChIP-Seq (MACS), Zhang et al, 2008.
+% \begin{verbatim}
+%   [-g GSIZE]
+%   [-s TSIZE] [--bw BW] [-m MFOLD MFOLD] [--fix-bimodal]
+%   [--nomodel] [--extsize EXTSIZE | --shiftsize SHIFTSIZE]
+%   [-q QVALUE | -p PVALUE | -F FOLDENRICHMENT] [--to-large]
+%   [--down-sample] [--seed SEED] [--nolambda]
+%   [--slocal SMALLLOCAL] [--llocal LARGELOCAL]
+%   [--shift-control] [--half-ext] [--broad]
+%   [--broad-cutoff BROADCUTOFF] [--call-summits]
+% \end{verbatim}
+% 10 parameters for Histone modifications in cancer (HMCan),
+% Ashoor et al, 2013.
+% \begin{verbatim}
+% minLength 145
+% medLength 150
+% maxLength 155
+% smallBinLength 50
+% largeBinLength 100000
+% pvalueThreshold 0.01
+% mergeDistance 200
+% iterationThreshold 5
+% finalThreshold 0
+% maxIter 20
+% \end{verbatim}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{PeakSeg: search for the peaks with lowest loss}
+%   \includegraphics[width=1\textwidth]{figure-macs-problem-PeakSeg.png}
+  
+%   Simple model with only one parameter (number of peaks).\\
+%   But computationally difficult!
+% \end{frame}
 
 \begin{frame}
   \frametitle{Thanks for your attention!}
@@ -642,49 +838,49 @@ maxIter 20
 \begin{frame}
   \frametitle{Max-margin penalty learning algortihm}
   \includegraphics[width=\textwidth]{figure-large-margin}
-
+ 
 \scriptsize \url{http://bl.ocks.org/tdhock/raw/9311ca39d643d127e04a088814c81ee1/}
 
 \end{frame}
 
-\begin{frame}
-  \frametitle{Segmenting whole chromosomes?}
-  \includegraphics[width=\textwidth]{screenshot-gap-peaks}
-  \begin{itemize}
-  \item 365 regions with no gaps in hg19.
-  \item 272 regions with no gaps on chr1-22, X, Y.
-  \item Smallest: 31,833 bases (chr6:157,609,467-157,641,300).
-  \item Largest: 115,591,997 bases (chr4:75,452,279-191,044,276).
-  \end{itemize}
-\end{frame}
+% \begin{frame}
+%   \frametitle{Segmenting whole chromosomes?}
+%   \includegraphics[width=\textwidth]{screenshot-gap-peaks}
+%   \begin{itemize}
+%   \item 365 regions with no gaps in hg19.
+%   \item 272 regions with no gaps on chr1-22, X, Y.
+%   \item Smallest: 31,833 bases (chr6:157,609,467-157,641,300).
+%   \item Largest: 115,591,997 bases (chr4:75,452,279-191,044,276).
+%   \end{itemize}
+% \end{frame}
 
 
-\begin{frame}
-  \frametitle{Reasonable time to segment biggest region on chr1}
-  \includegraphics[width=\textwidth]{figure-cosegData-timings.pdf}
-  \begin{itemize}
-  \item R package in memory: $O(N \log N)$ time.
-  \item Command line program on disk: $O(N \log N)$ time.
-  \end{itemize}
-\end{frame}
+% \begin{frame}
+%   \frametitle{Reasonable time to segment biggest region on chr1}
+%   \includegraphics[width=\textwidth]{figure-cosegData-timings.pdf}
+%   \begin{itemize}
+%   \item R package in memory: $O(N \log N)$ time.
+%   \item Command line program on disk: $O(N \log N)$ time.
+%   \end{itemize}
+% \end{frame}
 
-\begin{frame}
-  \frametitle{Memory requirements reasonable for on-disk version}
-  \includegraphics[width=\textwidth]{figure-cosegData-timings-memory-disk.pdf}
-  \begin{itemize}
-  \item R package in memory: $O(N \log N)$ memory.
-  \item Command line program on disk: $O(\log N)$ memory.
-  \end{itemize}
-\end{frame}
+% \begin{frame}
+%   \frametitle{Memory requirements reasonable for on-disk version}
+%   \includegraphics[width=\textwidth]{figure-cosegData-timings-memory-disk.pdf}
+%   \begin{itemize}
+%   \item R package in memory: $O(N \log N)$ memory.
+%   \item Command line program on disk: $O(\log N)$ memory.
+%   \end{itemize}
+% \end{frame}
 
-\begin{frame}
-  \frametitle{Disk usage reasonable}
-  \includegraphics[width=\textwidth]{figure-cosegData-timings-disk.pdf}
-  \begin{itemize}
-  \item R package in memory: no disk usage.
-  \item Command line program: $O(N \log N)$ disk space (temporary).
-  \end{itemize}
-\end{frame}
+% \begin{frame}
+%   \frametitle{Disk usage reasonable}
+%   \includegraphics[width=\textwidth]{figure-cosegData-timings-disk.pdf}
+%   \begin{itemize}
+%   \item R package in memory: no disk usage.
+%   \item Command line program: $O(N \log N)$ disk space (temporary).
+%   \end{itemize}
+% \end{frame}
 
 \begin{frame}
   \frametitle{Two annotators provide consistent labels, but different
@@ -830,7 +1026,7 @@ maxIter 20
   \frametitle{Best model is not feasible}
   \includegraphics[width=\textwidth]{figure-min-undefined}
 \end{frame}
-
+ 
 \section*{Segmentation problem definitions}
 
 \begin{frame}
@@ -937,143 +1133,164 @@ constraints}.
 \end{frame}
 
 
-\section*{Review of constrained dynamic programming algorithm}
+% \section*{Review of constrained dynamic programming algorithm}
 
-\input{figure-dp-first}
+% \input{figure-dp-first}
 
-\input{figure-dp-short}
+% \input{figure-dp-short}
 
-\input{figure-dp}
+% \input{figure-dp}
+
+% \begin{frame}
+%   \frametitle{Dynamic programming is faster than grid search for $s>
+%     2$ segments}
+
+%   Computation time in number of data points $N$:
+
+%   \vskip 1cm
+
+%   \begin{tabular}{ccc}
+%     segments $s$ & grid search & dynamic programming \\
+%     \hline
+%     1 & $O(N)$ & $O(N)$ \\
+%     2 & $O(N^2)$ & $O(N^2)$ \\
+%     3 & $O(N^3)$ & $O(N^2)$ \\
+%     4 & $O(N^4)$ & $O(N^2)$ \\
+%     $\vdots$ &     $\vdots$ &     $\vdots$ 
+%   \end{tabular}
+
+%   \vskip 1cm
+
+%   For example $N = 5735$ data points to segment.\\
+%   $N^2 = 32890225$\\
+%   $N^3 = 188625440375$\\
+%   $\vdots$
+% \end{frame}
+
+% \input{figure-dp-third}
+
+% \begin{frame}
+%   \frametitle{5 errors for coseg/Segmentor, only 1 error for PeakSegDP}
+%   \includegraphics[width=\textwidth]{figure-min-train-error-problem1}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{5 errors for coseg/Segmentor, only 1 error for PeakSegDP}
+%   \includegraphics[width=\textwidth]{figure-min-train-error-problem1-best.png}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{Constrained optimization worse than macs}
+%   \includegraphics[width=\textwidth]{figure-min-train-error-problem4}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{Constrained optimization worse than macs}
+%   \includegraphics[width=\textwidth]{figure-min-train-error-problem4-best}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{Constrained optimization worse than macs}
+%   \includegraphics[width=\textwidth]{figure-min-train-error-problem4-best-zoom}
+% \end{frame}
+
+
+% \begin{frame}
+%   \frametitle{Functional pruning complete example}
+% %\includegraphics[width=\textwidth]{screenshot-PDPA-demo}
+%     \input{figure-2-min-envelope}
+
+%   \url{https://github.com/tdhock/PeakSegFPOP-paper}
+%   %\url{http://bl.ocks.org/tdhock/raw/8c5dd0af533e24a893e7c5232f9bc94c/}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{New coseg algorithm more accurate than unconstrained
+%     maximum likelihood Poisson model (Segmentor)}
+%   \includegraphics[width=\textwidth]{figure-min-train-error-Segmentor}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{New coseg algorithm mostly agrees with slower inexact DP}
+%   \includegraphics[width=\textwidth]{figure-min-train-error-PeakSegDP}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{New coseg algorithm sometimes disagrees with macs}
+%   \includegraphics[width=\textwidth]{figure-min-train-error-macs}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{Constrained optimization better than macs}
+%   \includegraphics[width=\textwidth]{figure-min-train-error-problem5}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{0 errors for coseg/PeakSegDP, 6 errors for Segmentor}
+%   \includegraphics[width=\textwidth]{figure-min-train-error-problem2}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{8 false negative labels for models with 0 peaks}
+%   \includegraphics[width=\textwidth]{figure-min-train-error-problem5-0peaks}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{Models with 1 peak are better (6 FN)}
+%   \includegraphics[width=\textwidth]{figure-min-train-error-problem5-1peaks}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{Models with 2 peaks are better still (4 FN)}
+%   \includegraphics[width=\textwidth]{figure-min-train-error-problem5-2peaks}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{Models with 3 peaks are the same (4 FN)}
+%   \includegraphics[width=\textwidth]{figure-min-train-error-problem5-3peaks}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{Models with 4 peaks are better (2 FN)}
+%   \includegraphics[width=\textwidth]{figure-min-train-error-problem5-4peaks}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{Models with 5 peaks have no incorrect labels}
+%   \includegraphics[width=\textwidth]{figure-min-train-error-problem5-5peaks}
+% \end{frame}
+
+
+% \begin{frame}
+%   \frametitle{Models with 6 peaks are worse (1 false positive)}
+%   \includegraphics[width=\textwidth]{figure-min-train-error-problem5-6peaks}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{Constrained optimization better than macs}
+%   \includegraphics[width=\textwidth]{figure-min-train-error-problem5-best}
+% \end{frame}
+
 
 \begin{frame}
-  \frametitle{Dynamic programming is faster than grid search for $s>
-    2$ segments}
-
-  Computation time in number of data points $N$:
-
-  \vskip 1cm
-
-  \begin{tabular}{ccc}
-    segments $s$ & grid search & dynamic programming \\
-    \hline
-    1 & $O(N)$ & $O(N)$ \\
-    2 & $O(N^2)$ & $O(N^2)$ \\
-    3 & $O(N^3)$ & $O(N^2)$ \\
-    4 & $O(N^4)$ & $O(N^2)$ \\
-    $\vdots$ &     $\vdots$ &     $\vdots$ 
-  \end{tabular}
-
-  \vskip 1cm
-
-  For example $N = 5735$ data points to segment.\\
-  $N^2 = 32890225$\\
-  $N^3 = 188625440375$\\
-  $\vdots$
+  \frametitle{Implementation details}
+  Implemented using C++ Standard Template Library (linked list),
+  \url{https://cran.r-project.org/package=PeakSegOptimal}
+\begin{description}
+\item[Weights] for data sequences that contain repeats:
+  5,1,1,1,0,0,5,5 is encoded as $n=4$ counts $y_t$ 5,1,0,5 with
+  corresponding weights $w_t$ 1,3,2,2.
+\item[Mean cost rather than total cost] more complicated update rule,
+  but more numerically stable.
+\item[Intervals in log(mean) space] For example rather than storing
+  $\mu\in[0,1]$ we store $x=\log\mu\in[-\infty, 0]$ -- Poisson model,
+  negative mean impossible.
+\item[Newton root finding] For the larger root we solve
+  $a\log\mu + b\mu + c = 0$ (linear as $\mu\rightarrow\infty$) and for
+  the smaller root we solve $a x + be^x + c = 0$ ($x=\log \mu$, linear
+  as $x\rightarrow -\infty$ and $\mu\rightarrow 0$). 
+\end{description}
+  
 \end{frame}
-
-\input{figure-dp-third}
-
-\begin{frame}
-  \frametitle{5 errors for coseg/Segmentor, only 1 error for PeakSegDP}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem1}
-\end{frame}
-
-\begin{frame}
-  \frametitle{5 errors for coseg/Segmentor, only 1 error for PeakSegDP}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem1-best.png}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Constrained optimization worse than macs}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem4}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Constrained optimization worse than macs}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem4-best}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Constrained optimization worse than macs}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem4-best-zoom}
-\end{frame}
-
-
-\begin{frame}
-  \frametitle{Functional pruning complete example}
-%\includegraphics[width=\textwidth]{screenshot-PDPA-demo}
-    \input{figure-2-min-envelope}
-
-  \url{https://github.com/tdhock/PeakSegFPOP-paper}
-  %\url{http://bl.ocks.org/tdhock/raw/8c5dd0af533e24a893e7c5232f9bc94c/}
-\end{frame}
-
-\begin{frame}
-  \frametitle{New coseg algorithm more accurate than unconstrained
-    maximum likelihood Poisson model (Segmentor)}
-  \includegraphics[width=\textwidth]{figure-min-train-error-Segmentor}
-\end{frame}
-
-\begin{frame}
-  \frametitle{New coseg algorithm mostly agrees with slower inexact DP}
-  \includegraphics[width=\textwidth]{figure-min-train-error-PeakSegDP}
-\end{frame}
-
-\begin{frame}
-  \frametitle{New coseg algorithm sometimes disagrees with macs}
-  \includegraphics[width=\textwidth]{figure-min-train-error-macs}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Constrained optimization better than macs}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem5}
-\end{frame}
-
-\begin{frame}
-  \frametitle{0 errors for coseg/PeakSegDP, 6 errors for Segmentor}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem2}
-\end{frame}
-
-\begin{frame}
-  \frametitle{8 false negative labels for models with 0 peaks}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-0peaks}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Models with 1 peak are better (6 FN)}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-1peaks}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Models with 2 peaks are better still (4 FN)}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-2peaks}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Models with 3 peaks are the same (4 FN)}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-3peaks}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Models with 4 peaks are better (2 FN)}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-4peaks}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Models with 5 peaks have no incorrect labels}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-5peaks}
-\end{frame}
-
-
-\begin{frame}
-  \frametitle{Models with 6 peaks are worse (1 false positive)}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-6peaks}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Constrained optimization better than macs}
-  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-best}
-\end{frame}
-
 
 \end{document}

@@ -36,6 +36,8 @@ figure-unconstrained-FPOP-normal.pdf: figure-unconstrained-FPOP-normal.R
 figure-NA-timings.pdf: figure-NA-timings.R dp.peaks.NA.RData
 	R --no-save < $<
 ## Copied from PeakSeg paper.
+figure-Segmentor-PeakSeg.png: figure-Segmentor-PeakSeg.R
+	R --no-save < $<
 dp.peaks.NA.RData: dp.peaks.NA.R dp.peaks.matrices.RData
 	R --no-save < $<
 dp.peaks.matrices.RData: dp.peaks.matrices.R dp.peaks.error.RData PDPA.peaks.error.RData Segmentor.peaks.error.RData PDPA.infeasible.error.RData

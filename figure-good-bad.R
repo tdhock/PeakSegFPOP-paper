@@ -5,8 +5,6 @@ load("dp.peaks.error.RData")
 load("dp.peaks.RData")
 
 library(dplyr)
-groups <- dp.peaks.train %>%
-  mutate(group=paste(chunk.name, cell.type))
 good.group.df <- groups %>%
   group_by(group) %>%
   summarise(region.values=length(unique(regions))) %>%
