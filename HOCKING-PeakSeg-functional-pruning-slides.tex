@@ -20,6 +20,7 @@
 \newcommand{\RR}{\mathbb R}
 \newcommand{\ZZ}{\mathbb Z}
 \newcommand{\NN}{\mathbb N}
+\newcommand{\z}{$z = 2, 4, 3, 5, 1$} 
 
 % Set transparency of non-highlighted sections in the table of
 % contents slide.
@@ -165,7 +166,7 @@ changepoint detection
 %     down changes (and not up, up, down). 
 %   \item Odd-numbered segments are background noise,\\
 %     even-numbered segments are peaks.
-%   \item Constrained Dynamic Programming Algorithm, $O(N^2)$ time for $N$ data points.
+%   \item Constrained Dynamic Programming Algorithm, $O(n^2)$ time for $n$ data points.
 %   \end{itemize}
 % \end{frame}
 
@@ -173,33 +174,40 @@ changepoint detection
 %   \frametitle{But quadratic time is not fast enough for genomic data!}
 %   \includegraphics[width=\textwidth]{figure-PDPA-timings-dp}
 %   \begin{itemize}
-%   \item Genomic data is large, $N \geq 10^6$.
+%   \item Genomic data is large, $n \geq 10^6$.
 %   \item Split into subsets? What if we split a peak in half?
 %   \item Need linear time algorithm for analyzing whole data set.
 %   \end{itemize}
 % \end{frame}
 
-% \begin{frame}
-%   \frametitle{Statistical model is Poisson with change constraints}
-%   \begin{itemize}
-%   \item We have $N$ count data $z_1, \dots, z_N\in\ZZ_+$.
-%   \item Fix the number of segments $S\in\{1, 2, \dots, N\}$.
-%   \item PeakSeg Model: $z_t \sim \text{Poisson}(m_t)$ such that $m_t$
-%     has $S-1$ up-down changes.
-%   \item Want to find means $m_t$ which maximize the Poisson likelihood:
-%     $P(Z = z_t|m_t) = m_t^{z_t} e^{-m_t} / (z_t!)$.
-%   \item Equivalent to finding means $m_t$ which minimize the Poisson
-%     loss: $\ell(m_t, z_t) = m_t - z_t\log m_t$.
-%   \item Naive computation is $O(N^S)$, since there are $O(N^{S-1})$ possible
-%     positions for $S-1$ change-points, and it takes $O(N)$ operations to
-%     compute the mean and loss for each.
-%   % \item Comparison to Hidden Markov Model:
-%   %   \begin{description}
-%   %   \item[Likelihood] Same emission terms, no transition terms.
-%   %   \item[Constraint] Number of changes rather than values.
-%   %   \end{description}
-%   \end{itemize}
-% \end{frame}
+\begin{frame}
+  \frametitle{Statistical model is a piecewise constant Poisson mean}
+  H {\it et al.}, {\it ICML} 2015. 
+
+  \input{figure-PeakSeg}
+  \vskip -0.8cm    
+  \begin{itemize}
+  \item We have $n$ count data $z_1, \dots, z_n\in\ZZ_+$.
+  \item Fix the number of segments $S\in\{1, 2, \dots, n\}$.
+  \item Optimization variables: $S-1$ changepoints
+    $t_1 < \cdots < t_{S-1}$ and $S$ segment means $u_1,\dots,u_S\in\RR_+$.
+  \item Let $0=t_0<t_1 < \cdots < t_{S-1}<t_S=n$ be the segment
+    limits.
+  \item Statistical model: for every segment $s\in\{1,\dots,S\}$,
+    $z_i \stackrel{\text{iid}}{\sim} \text{Poisson}(u_s)$ for every data
+    point $i\in(t_{s-1},t_s]$.
+  \item PeakSeg up-down constraint: $u_1\leq u_2 \geq u_3 \leq u_4 \geq \cdots$
+  \item Want to find means $u_s$ which maximize the Poisson likelihood:
+    $P(Z = z_i|u_s) = u_s^{z_i} e^{-u_s} / (z_i!)$.
+  \item Equivalent to finding means $u_s$ which minimize the Poisson
+    loss: $\ell(u_s, z_i) = u_s - z_i\log u_s$.
+  % \item Comparison to Hidden Markov Model:
+  %   \begin{description}
+  %   \item[Likelihood] Same emission terms, no transition terms.
+  %   \item[Constraint] Number of changes rather than values.
+  %   \end{description}
+  \end{itemize}
+\end{frame}
 
 \begin{frame}
   \frametitle{Maximum likelihood changepoint detection with up-down constraints on adjacent segment means (PeakSeg)}
@@ -208,14 +216,14 @@ H {\it et al.}, {\it ICML} 2015.
 \only<1>{\input{figure-PeakSeg}}      
 \only<2>{\input{figure-PeakSeg-unconstrained}}
 \only<3>{\input{figure-PeakSeg-constrained}}
-\vskip -1.5cm
+\vskip -1.4cm
 \begin{align*}
     \minimize_{\substack{
   \mathbf u\in\RR^{S}
 \\
    0=t_0<t_1<\cdots<t_{S-1}<t_S=n
   }} &\ \ 
-    \sum_{s=1}^S\  \sum_{i=t_{s-1}+1}^{t_s} \ell( u_s,  x_i) 
+    \sum_{s=1}^S\  \sum_{i=t_{s-1}+1}^{t_s} \ell( u_s,  z_i) 
   \label{PeakSegPDPA}
 \\
       \text{subject to \hskip 0.75cm} &\ \ \alert<3>{u_{s-1} \leq u_s\ \forall s\in\{2,4,\dots\},}
@@ -229,7 +237,7 @@ H {\it et al.}, {\it ICML} 2015.
 \item Hard optimization problem, naively $O(n^S)$ time.
 \item \alert<2>{Previous unconstrained model: not always up-down changes.}
 \item \alert<3>{Interpretable: $P=(S-1)/2$ peaks (segments 2, 4, ...).}
-\item New $O(Kn^2)$ time approximate algorithm based on classic
+\item New $O(Sn^2)$ time approximate algorithm based on classic
   dynamic programming (R package PeakSegDP).
 \end{itemize}
 \end{frame} 
@@ -243,11 +251,11 @@ H {\it et al.}, {\it ICML} 2015.
     & no pruning & functional pruning \\
     \hline
     unconstrained & \alert<1>{Dynamic Prog. Algo.} & \alert<2>{Pruned DPA} \\
-     & \alert<1>{exact $O(SN^2)$} & \alert<2>{exact $O(SN\log N)$}\\
+     & \alert<1>{exact $O(Sn^2)$} & \alert<2>{exact $O(Sn\log n)$}\\
     R pkgs: & \alert<1>{changepoint} & \alert<2>{cghseg, Segmentor}\\
     \hline
     up-down constrained & \alert<3>{Constrained DPA} & \alert<4>{\textbf{GPDPA}} \\
-     & \alert<3>{inexact $O(SN^2)$} & \alert<4>{exact $O(SN\log N)$}\\
+     & \alert<3>{inexact $O(Sn^2)$} & \alert<4>{exact $O(Sn\log n)$}\\
     R pkgs: & \alert<3>{PeakSegDP} & \alert<4>{PeakSegOptimal}\\
     \hline
   \end{tabular}
@@ -257,32 +265,32 @@ H {\it et al.}, {\it ICML} 2015.
   \item \alert<3>{Hocking, Rigaill, Bourque 2015}.
   \item \alert<4>{\textbf{Contribution:} Generalized Pruned Dynamic
         Programming Algorithm (GPDPA) that \textbf{exactly} computes the
-      \textbf{constrained} model for $N$ data points and up to $S$ segments in
-       $O(SN\log N)$ time}.
+      \textbf{constrained} model for $n$ data points and up to $S$ segments in
+       $O(Sn\log n)$ time}.
   \end{itemize}
 \end{frame}
 
 \begin{frame}
   \frametitle{Dynamic programming and functional pruning}
   \textbf{Classical dynamic programming} (Auger and Lawrence 1989)
-  computes the matrix of optimal loss values in $S$ segments up to $N$
-  data points, $O(S N^2)$
+  computes the matrix of optimal loss values in $S$ segments up to $n$
+  data points, $O(S n^2)$
 $$
 \begin{array}{ccc}
-  \mathcal L_{1,1} & \cdots &   \mathcal L_{1,N}\\
+  \mathcal L_{1,1} & \cdots &   \mathcal L_{1,n}\\
   \vdots &  & \vdots\\
-  \mathcal L_{S,1} & \cdots & \mathcal L_{S,N}\\
+  \mathcal L_{S,1} & \cdots & \mathcal L_{S,n}\\
 \end{array}
 $$
 \textbf{Dynamic programming with functional pruning} (Rigaill 2010,
 Johnson 2013) computes a matrix of loss \textbf{functions}, the
-optimal loss up to $N$ data points if segment $S$ has mean $\mu_S$,
-$O(S N\log N)$
+optimal loss up to $n$ data points if segment $S$ has mean $u_S$,
+$O(S n\log n)$
 $$
 \begin{array}{ccc}
-   L_{1,1}(\mu_1) & \cdots & L_{1,N}(\mu_1)\\
+   L_{1,1}(u_1) & \cdots & L_{1,n}(u_1)\\
   \vdots &  & \vdots\\
-   L_{S,1}(\mu_S) & \cdots & L_{S,N}(\mu_S),\\
+   L_{S,1}(u_S) & \cdots & L_{S,n}(u_S),\\
 \end{array}
 $$
 \textbf{Contribution of this work}: a new algorithm that applies the
@@ -292,17 +300,18 @@ functional pruning technique to the up-down constrained model.
 \begin{frame}
   \frametitle{First segment, first data point}
   \begin{itemize}
-  \item For data $z_1, \dots, z_N\in\ZZ_+$ let
+  \item For data $z_1, \dots, z_n\in\ZZ_+$ let
   \begin{equation*}
     \gamma_t(\mu) = \ell(\mu, z_t) = \mu - z_t \log \mu
   \end{equation*}
-  be the Poisson loss for each $t\in\{1, \dots, N\}$.
-\item For example $z = 2, 1, 0, 4$.
+  be the Poisson loss for each $t\in\{1, \dots, n\}$.
+\item For example \z.
 \item Then $\gamma_1(\mu)=L_{1,1}(\mu)= \alert{1}\mu - \alert{2}\log \mu + \alert{0}$.
 \item Need to store 3 coefficients (\alert{linear}, \alert{log}, \alert{constant}).
   \end{itemize}
-  \begin{center}
-    \includegraphics[width=0.7\textwidth]{figure-PeakSegPDPA-demo-cost-1segments-1data}
+  \begin{center} 
+    %\includegraphics[width=0.7\textwidth]{figure-PeakSegPDPA-demo-cost-1segments-1data.pdf}
+\input{figure-PeakSegPDPA-demo-cost-1segments-1data.tex}
   \end{center}
 \end{frame}
 
@@ -315,16 +324,16 @@ functional pruning technique to the up-down constrained model.
     \label{eq:C1b}
     L_{1,t}(\mu) = \sum_{i=1}^t \gamma_i(\mu).
   \end{equation*}
-\item For example $z = 2, 1, 0, 4$.
-% \item $L_{1,2}(\mu) = (2\mu - 3\log\mu + 0)/2 = 1\mu - 1.5\log\mu + 0$.
-% \item $L_{1,3}(\mu) = (3\mu - 13\log\mu + 0)/3 = 1\mu - 4.333\log\mu + 0$.
-\item $L_{1,2}(\mu) = 2\mu - 3\log\mu + 0$.
-\item $L_{1,3}(\mu) = 3\mu - 12\log\mu + 0$.
+\item For example \z.
+\item $L_{1,2}(\mu) = 2\mu - 6\log\mu + 0$. 
+\item $L_{1,3}(\mu) = 3\mu - 9\log\mu + 0$.
 \item ...
   \end{itemize}
   \begin{center}
-    \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-cost-1segments-2data}
-    \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-cost-1segments-3data}
+    % \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-cost-1segments-2data}
+    % \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-cost-1segments-3data}
+    \input{figure-PeakSegPDPA-demo-cost-1segments-2data.tex}
+    \input{figure-PeakSegPDPA-demo-cost-1segments-3data.tex}
   \end{center}
 \end{frame}
 
@@ -333,14 +342,16 @@ functional pruning technique to the up-down constrained model.
   \begin{itemize}
   \item The cost in 2 segments up to data point 2 is
 \begin{eqnarray*}
-  L_{2,2}(\mu_2) 
-  &=&  \gamma_2(\mu_2)+\min_{\mu_1 \leq \mu_2} L_{1,1}(\mu_1)\\
-  &=& \gamma_2(\mu_2)+L_{1,1}^{\leq}(\mu_2)
-\end{eqnarray*}
-\item Min-less operator $L^\leq(\mu) = \min_{x\leq\mu} L(x)$ can be
-  computed and stored exactly for every possible $\mu$!
+  L_{2,2}(u_2) 
+  &=&  \gamma_2(u_2)+\min_{u_1 \leq u_2} L_{1,1}(u_1)\\
+  &=& \gamma_2(u_2)+L_{1,1}^{\leq}(u_2)
+\end{eqnarray*} 
+\item Main novelty/contribution: The min-less operator
+  $L^\leq(\mu) = \min_{x\leq\mu} L(x)$ can be computed and stored
+  exactly for every possible mean $\mu$!
     \begin{center}
-      \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minlessmore-2segments-2data}
+      %\includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minlessmore-2segments-2data}
+      \input{figure-PeakSegPDPA-demo-minlessmore-2segments-2data.tex}
     \end{center}
 \end{itemize}
 \end{frame}
@@ -348,39 +359,39 @@ functional pruning technique to the up-down constrained model.
 \begin{frame}
   \frametitle{Comparison with unconstrained Pruned DPA}
   \begin{itemize}
-  \item For our constrained algorithm, the first segment mean must be
-    less than the second, and the first segment cost is a function:
+  \item For our constrained algorithm ($u_1\leq u_2$), the cost of the first
+    segment is a function of the second segment mean $u_2$:
     \begin{equation*}
-      L_{2,2}(\mu_2) = \gamma_2(\mu_2)+
-      \underbrace{\min_{\mu_1 \leq \mu_2} L_{1,1}(\mu_1)}_{L^\leq_{1,1}(\mu_2)}.
+      L_{2,2}(u_2) = \gamma_2(u_2)+
+      \underbrace{\min_{u_1 \leq u_2} L_{1,1}(u_1)}_{L^\leq_{1,1}(u_2)}.
     \end{equation*}
   \item For the unconstrained algorithm, it is \alert<1>{constant}:
     \begin{equation*}
-      \widehat{L}_{2,2}(\mu_2) = \gamma_2(\mu_2)+
-      \alert<1>{\underbrace{\min_{\mu_1} L_{1,1}(\mu_1)}_{\mathcal L_{1,1}}}.
+      \widehat{L}_{2,2}(u_2) = \gamma_2(u_2)+
+      \alert<1>{\underbrace{\min_{u_1} L_{1,1}(u_1)}_{\mathcal L_{1,1}}}.
     \end{equation*}
-  \item For example $z = 2, 1, 0, 4$.
-    \begin{center}
-      \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-mincompare-2segments-2data}
-    \end{center}
   \end{itemize}
+  \vskip -1cm
+  \hskip -1cm 
+  \input{figure-PeakSegPDPA-demo-mincompare-2segments-2data.tex}
 \end{frame}
 
 \begin{frame}
   \frametitle{Storage as a piecewise function on intervals}
   \begin{itemize}
-  \item For example $z = 2, 1, 0, 4$.
+  \item For example \z.
     \begin{center}
-      \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minlessmore-2segments-2data}
-    \end{center}
+      %\includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minlessmore-2segments-2data}
+      \input{figure-PeakSegPDPA-demo-minlessmore-2segments-2data.tex}
+    \end{center} 
   \item Storage: coefficients, intervals, previous segment mean,
-    $L_{2,2}(\mu) = \gamma_2(\mu) +$
+    $L_{2,2}(u_2) = \gamma_2(u_2) +$
     \begin{equation*}
       \begin{cases}
         %L_{1,1}(\mu) = 
-        1\mu - 2\log \mu + 0 & \text{ if } \mu\in[0, 2],\, \mu'=\mu\\
+        1u_2 - 2\log u_2 + 0 & \text{ if } u_2\in[1, 2],\, u_1=u_2\\
         %\mathcal L_{1,1} = 
-        0\mu -0\log\mu + 0.6137 & \text{ if } \mu\in[2, 4],\, \mu'=2.
+        0u_2 -0\log u_2 + 0.6137 & \text{ if } u_2\in[2, 5],\, u_1=2.
       \end{cases}
     \end{equation*}
   \end{itemize}
@@ -397,39 +408,37 @@ functional pruning technique to the up-down constrained model.
         L_{1,2}^{\leq}(\mu), & \text{ change up after data point 2},\\
         L_{2,2}(\mu), & \text{ change up after data point 1}. 
       \end{cases}
-    \end{equation*}
-  \item For $z = 2, 1, 0, 4$ the min operation prunes a
-    change after data point 1.
+    \end{equation*}  
+  \item For \z\ the min operation prunes changepoint
+    $t_1=2$:
+$$
+L_{2,3}(\mu)=\min_{t_1\in\{1,2\}} c_{2,3,t_1}(\mu) = c_{2,3,1}(\mu)
+$$
     \begin{center}
-      \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minenv-2segments-3data}
+      %\includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minenv-2segments-3data.pdf}
+      \input{figure-PeakSegPDPA-demo-minenv-2segments-3data.tex}
     \end{center}
   \end{itemize}
 \end{frame}
 
 \begin{frame}
-  \frametitle{Second segment, up to data point t}
-  \begin{itemize}
-  \item The updates continue for every data point $t\in\{3, ..., N\}$
+  \frametitle{Second segment, up to data point $i$}
+  \begin{itemize} 
+  \item The updates continue for every data point $i\in\{3, ..., n\}$
     \begin{eqnarray*}
-      L_{2,t}(\mu) &=&  \gamma_t(\mu) + \min
+      L_{2,i}(\mu) &=&  \gamma_i(\mu) + \min
       \begin{cases}
-        L_{1,t-1}^{\leq}(\mu), & \text{change up after $t-1$,}\\
-        L_{2,t-1}(\mu), & \text{change up before $t-1$.}
+        L_{1,i-1}^{\leq}(\mu), & \text{change up after $i-1$,}\\
+        L_{2,i-1}(\mu), & \text{change up before $i-1$.}
       \end{cases}
-% \\
-%       &=& \min_{\tau\in\{1,2,\dots,t-1\}} c_{2,t,\tau}(\mu)
-%           = \min_{\tau\in T_{2,t}} c_{2,t,\tau}(\mu)
     \end{eqnarray*}
-  \item For example for $z = 2, 1, 0, 4$, at data point $t=4$
-    we only need to consider changes after 2 and 3 (1 has been
-    pruned).
-% $$
-% L_{2,4}(\mu) &=& \min_{\tau\in\{1,2,3\}} c_{2,t,\tau} = 
-% \min_{\tau\in\{2,3\}} c_{2,t,\tau} 
-% $$
-    \begin{center}
-      \includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minenv-2segments-4data}
-    \end{center}
+  \item At data point $i=4$ we only need to consider changes $t_1\in\{1,3\}$, since $t_1=2$ has already been pruned. 
+$$
+L_{2,4}(\mu) = \min_{t_1\in\{1,2,3\}} c_{1,3}(\mu) = 
+\min_{t_1\in\{1,3\}} c_{2,4,t_1}(\mu)
+$$
+      %\includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minenv-2segments-4data}
+      \input{figure-PeakSegPDPA-demo-minenv-2segments-4data.tex}
   \end{itemize}
 \end{frame}
 
@@ -437,22 +446,22 @@ functional pruning technique to the up-down constrained model.
 \begin{frame}
   \frametitle{Generalized pruned dynamic programming algorithm (GPDPA)}
   Dynamic programming update rule: the constrained cost of a
-  mean $\mu$ for the segment $s$, up to data point $t$.
+  mean $\mu$ for the segment $s$, up to data point $i$.
   \begin{itemize}
   \item For $s=2, 4, \dots$
     \begin{equation*}
-      L_{s,t}(\mu) = \gamma_t(\mu) + \min
+      L_{s,i}(\mu) = \gamma_i(\mu) + \min
       \begin{cases}
-        L_{s,t-1}(\mu),\\
-        L_{s-1,t-1}^{\alert{\leq}}(\mu),
+        L_{s,i-1}(\mu),\\
+        L_{s-1,i-1}^{\alert{\leq}}(\mu),
       \end{cases}
     \end{equation*}
   \item For $s=3, 5, \dots$
     \begin{equation*}
-      L_{s,t}(\mu) = \gamma_t(\mu) + \min
+      L_{s,i}(\mu) = \gamma_i(\mu) + \min
       \begin{cases}
-        L_{s,t-1}(\mu),\\
-        L_{s-1,t-1}^{\alert{\geq}}(\mu),
+        L_{s,i-1}(\mu),\\
+        L_{s-1,i-1}^{\alert{\geq}}(\mu),
       \end{cases}
     \end{equation*}
   \end{itemize}
@@ -460,7 +469,8 @@ functional pruning technique to the up-down constrained model.
 
 \begin{frame}
   \frametitle{More complex $\min\{\}$ computation}
-  Time/space complexity linear in number of intervals (candidate changepoints).
+  Computation of each update rule is linear in number of
+  intervals/pieces/candidates -- empirically $O(\log n)$.
   \begin{minipage}[t]{\linewidth}
   \hskip -1cm
   \input{figure-2-min-envelope} 
@@ -527,15 +537,15 @@ functional pruning technique to the up-down constrained model.
 %   \item 2,752 separate segmentation problems.
 %   \end{itemize}
 
-%   Algorithms for $S$ optimal segmentations in $N$ data points:
+%   Algorithms for $S$ optimal segmentations in $n$ data points:
 %   \begin{center}
 %   \begin{tabular}{ccccc}
 %     algorithm & constraint & exact? & complexity \\
 %     \hline
-%     CDPA & $\mu_1 < \mu_2 > \mu_3 \dots$ & no & $O(S N^2)$\\
+%     CDPA & $\mu_1 < \mu_2 > \mu_3 \dots$ & no & $O(S n^2)$\\
 %     \textbf{GPDPA} &
-%  $\mu_1 \leq \mu_2 \geq \mu_3 \dots$ & yes & $O(S N\log N)$ \\
-%     PDPA & none & yes & $O(S N\log N)$
+%  $\mu_1 \leq \mu_2 \geq \mu_3 \dots$ & yes & $O(S n\log n)$ \\
+%     PDPA & none & yes & $O(S n\log n)$
 %   \end{tabular}
 
 %   \vskip 0.5cm
@@ -545,7 +555,7 @@ functional pruning technique to the up-down constrained model.
 % \end{frame}
  
 \begin{frame}
-  \frametitle{Test AUC on 7 benchmark data sets}
+  \frametitle{TODO LABELS Test AUC on 7 benchmark data sets}
   \includegraphics[width=\textwidth]{figure-test-error-dots}
   \begin{itemize}
   \item 4-fold cross-validation: train on 3/4 of labels, test on 1/4.
@@ -578,19 +588,19 @@ functional pruning technique to the up-down constrained model.
     & no pruning & functional pruning \\
     \hline
     unconstrained & Dynamic Programming & Pruned DP \\
-     & exact $O(S N^2)$ & exact $O(SN\log N)$\\
+     & exact $O(S n^2)$ & exact $O(Sn\log n)$\\
     R pkgs: & changepoint & cghseg, Segmentor\\
     \hline
     up-down constrained & constrained DP & \textbf{GPDPA} \\
-     & inexact $O(SN^2)$ & exact $O(SN\log N)$\\
+     & inexact $O(Sn^2)$ & exact $O(Sn\log n)$\\
     R pkgs: & PeakSegDP & \textbf{PeakSegOptimal}\\
-    \hline
+    \hline 
   \end{tabular}
   \begin{itemize}
   \item New GPDPA that computes optimal changepoints 
     using the Poisson loss and the up-down constraint.
   \item State-of-the-art peak detection accuracy in ChIP-seq data.
-  \item Empirically $O(S N \log N)$ time and memory for $N$ data
+  \item Empirically $O(S n \log n)$ time and memory for $n$ data
     points and $S$ segments.
   \item C++ code in PeakSegOptimal R package, 
     \url{https://cran.r-project.org/package=PeakSegOptimal}
@@ -859,8 +869,8 @@ under review at \emph{Journal}\\
 %   \frametitle{Reasonable time to segment biggest region on chr1}
 %   \includegraphics[width=\textwidth]{figure-cosegData-timings.pdf}
 %   \begin{itemize}
-%   \item R package in memory: $O(N \log N)$ time.
-%   \item Command line program on disk: $O(N \log N)$ time.
+%   \item R package in memory: $O(n \log n)$ time.
+%   \item Command line program on disk: $O(n \log n)$ time.
 %   \end{itemize}
 % \end{frame}
 
@@ -868,8 +878,8 @@ under review at \emph{Journal}\\
 %   \frametitle{Memory requirements reasonable for on-disk version}
 %   \includegraphics[width=\textwidth]{figure-cosegData-timings-memory-disk.pdf}
 %   \begin{itemize}
-%   \item R package in memory: $O(N \log N)$ memory.
-%   \item Command line program on disk: $O(\log N)$ memory.
+%   \item R package in memory: $O(n \log n)$ memory.
+%   \item Command line program on disk: $O(\log n)$ memory.
 %   \end{itemize}
 % \end{frame}
 
@@ -878,7 +888,7 @@ under review at \emph{Journal}\\
 %   \includegraphics[width=\textwidth]{figure-cosegData-timings-disk.pdf}
 %   \begin{itemize}
 %   \item R package in memory: no disk usage.
-%   \item Command line program: $O(N \log N)$ disk space (temporary).
+%   \item Command line program: $O(n \log n)$ disk space (temporary).
 %   \end{itemize}
 % \end{frame}
 
@@ -965,16 +975,16 @@ under review at \emph{Journal}\\
   \begin{itemize}
   \item Our algo exactly solves a problem with \textbf{non-strict
       inequality} constraints.
-  \item For example, $N=3$ data points and $S=3$ segments,
+  \item For example, $n=3$ data points and $S=3$ segments,
     \begin{equation*}
       \min_{m_1\leq m_2\geq m_3}
-      \sum_{t=1}^N m_t - z_t\log m_t.
+      \sum_{t=1}^n m_t - z_t\log m_t.
     \end{equation*}
   \item But the PeakSeg problem has \textbf{strict inequality}
     constraints:
     \begin{equation*}
       \min_{m_1<m_2 >m_3}
-      \sum_{t=1}^N m_t - z_t\log m_t.
+      \sum_{t=1}^n m_t - z_t\log m_t.
     \end{equation*}
   \end{itemize}
   When our algo returns equal values for adjacent segment means,
@@ -1145,25 +1155,25 @@ constraints}.
 %   \frametitle{Dynamic programming is faster than grid search for $s>
 %     2$ segments}
 
-%   Computation time in number of data points $N$:
+%   Computation time in number of data points $n$:
 
 %   \vskip 1cm
 
 %   \begin{tabular}{ccc}
 %     segments $s$ & grid search & dynamic programming \\
 %     \hline
-%     1 & $O(N)$ & $O(N)$ \\
-%     2 & $O(N^2)$ & $O(N^2)$ \\
-%     3 & $O(N^3)$ & $O(N^2)$ \\
-%     4 & $O(N^4)$ & $O(N^2)$ \\
+%     1 & $O(n)$ & $O(n)$ \\
+%     2 & $O(n^2)$ & $O(n^2)$ \\
+%     3 & $O(n^3)$ & $O(n^2)$ \\
+%     4 & $O(n^4)$ & $O(n^2)$ \\
 %     $\vdots$ &     $\vdots$ &     $\vdots$ 
 %   \end{tabular}
 
 %   \vskip 1cm
 
-%   For example $N = 5735$ data points to segment.\\
-%   $N^2 = 32890225$\\
-%   $N^3 = 188625440375$\\
+%   For example $n = 5735$ data points to segment.\\
+%   $n^2 = 32890225$\\
+%   $n^3 = 188625440375$\\
 %   $\vdots$
 % \end{frame}
 
@@ -1291,6 +1301,12 @@ constraints}.
   as $x\rightarrow -\infty$ and $\mu\rightarrow 0$). 
 \end{description}
   
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Analysis of intervals}
+  \input{figure-PDPA-intervals-log-log.tex}
 \end{frame}
 
 \end{document}

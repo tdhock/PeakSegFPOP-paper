@@ -1,6 +1,8 @@
 source("packages.R")
 data(chr11ChIPseq, package="PeakSegDP")
 
+theme_set(theme_bw())
+
 count.dt <- data.table(chr11ChIPseq$coverage)
 sid <- "McGill0322"
 one.sample <- count.dt[sample.id==sid,]
@@ -533,7 +535,7 @@ Multiply <- function(dt, x){
 }
 
 input.dt <- data.table(count=c(10, 1, 14, 13), weight=1)
-input.dt <- data.table(count=c(2, 1, 0, 4), weight=1)
+input.dt <- data.table(count=c(2, 4, 3, 5, 1), weight=1)
 library(animint)
 
 cost.lines.list <- list()
@@ -569,6 +571,14 @@ for(data.i in 1:nrow(C1.dt)){
   cost.models.list[[paste(1, data.i)]] <- C1.dt[data.i,]
 }
 max.segments <- 3
+pdftikz <- function(pre, g, w=3){
+  pdf(paste0(pre, ".pdf"), 5, 3)
+  print(g)
+  dev.off()
+  tikz(paste0(pre, ".tex"), w, 1.5)
+  print(g)
+  dev.off()
+}
 for(total.segments in 2:max.segments){
   prev.cost.model <-
     cost.models.list[[paste(total.segments-1, total.segments-1)]]
@@ -581,7 +591,7 @@ for(total.segments in 2:max.segments){
   first.min.average <- min.fun(prev.cost.model)
   gg.prev <- ggplot()+
     ggtitle(paste(total.segments, "segments,", total.segments, "data points"))+
-    scale_x_continuous(breaks=c(range(input.dt$count), 5, 10))+
+    scale_x_continuous()+
     scale_color_manual("prev seg end", values=data.colors)+
     geom_line(aes(mean, cost),
               getLines(first.min.average),
@@ -595,12 +605,10 @@ for(total.segments in 2:max.segments){
   if(length(i)==1 && i==0){
     gg.prev <- gg.prev+guides(color="none")
   }
-  pdf(sprintf("figure-PeakSegPDPA-demo-minlessmore-%dsegments-%ddata.pdf", total.segments, total.segments), 5, 3)
-  print(gg.prev)
-  dev.off()
+  pdftikz(sprintf("figure-PeakSegPDPA-demo-minlessmore-%dsegments-%ddata", total.segments, total.segments), gg.prev)
   gg.prev <- ggplot()+
     ggtitle(paste(total.segments, "segments,", total.segments, "data points"))+
-    scale_x_continuous(breaks=c(range(input.dt$count), 5, 10))+
+    scale_x_continuous()+
     scale_color_manual(values=c(
       "prev cost"="black",
       "constrained min"="grey",
@@ -623,21 +631,22 @@ for(total.segments in 2:max.segments){
                  fun.type="unconstrained min",
                  first.min))
   }
-  pdf(sprintf("figure-PeakSegPDPA-demo-mincompare-%dsegments-%ddata.pdf", total.segments, total.segments), 5, 3)
-  print(gg.prev)
-  dev.off()
+  pdftikz(sprintf("figure-PeakSegPDPA-demo-mincompare-%dsegments-%ddata", total.segments, total.segments), gg.prev)
   first.data <- gamma.dt[total.segments,]
   first.data$data.i <- total.segments-1
   first.min.total <- Multiply(first.min.average, cum.weight[total.segments-1])
   cost.model.total <- AddFuns(first.data, first.min.total)
   cost.model.average <- Multiply(cost.model.total, 1/cum.weight[total.segments])
   cost.models.list[[paste(total.segments, total.segments)]] <- cost.model.average
+  changepoint <- paste0(
+    "change\npoint $t_", total.segments-1, "$")
   for(timestep in (total.segments+1):length(input.dt$count)){
-    if(!paste(total.segments, timestep) %in% names(cost.models.list)){
+    ##if(!paste(total.segments, timestep) %in% names(cost.models.list)){#cache
+    if(TRUE){
       prev.cost.model <- cost.models.list[[paste(total.segments-1, timestep-1)]]
       gg.prev <- ggplot()+
         ggtitle(paste(total.segments, "segments,", timestep, "data points"))+
-        scale_color_manual("prev seg end", values=data.colors)+
+        scale_color_manual(changepoint, values=data.colors)+
           geom_line(aes(mean, cost,
                         color=factor(data.i),
                         group=piece.i),
@@ -654,8 +663,8 @@ for(total.segments in 2:max.segments){
       cost.minima <- Minimize(cost.model)
       compare.minima <- Minimize(compare.cost)
       gg <- ggplot()+
-        scale_x_continuous(breaks=c(range(input.dt$count), 5, 10))+
-        scale_color_manual("prev seg end", values=data.colors)+
+        scale_x_continuous()+
+        scale_color_manual(changepoint, values=data.colors)+
         ggtitle(paste(total.segments, "segments,", timestep, "data points"))
       if(nrow(compare.cost)){
         cost.lines.list[[
@@ -670,8 +679,8 @@ for(total.segments in 2:max.segments){
                     compare.cost.lines)
         gg.prev <- ggplot()+
           ggtitle(paste(total.segments, "segments,", timestep, "data points"))+
-          scale_x_continuous(breaks=c(range(input.dt$count), 5, 10))+
-          scale_color_manual("prev seg end", values=data.colors)+
+          scale_x_continuous()+
+          scale_color_manual(changepoint, values=data.colors)+
           geom_line(aes(mean, cost),
                     compare.cost.lines,
                     color="grey",
@@ -684,12 +693,10 @@ for(total.segments in 2:max.segments){
         if(length(i)==1 && i==0){
           gg.prev <- gg.prev+guides(color="none")
         }
-        pdf(sprintf("figure-PeakSegPDPA-demo-minlessmore-%dsegments-%ddata.pdf", total.segments, timestep), 5, 3)
-        print(gg.prev)
-        dev.off()
+        pdftikz(sprintf("figure-PeakSegPDPA-demo-minlessmore-%dsegments-%ddata", total.segments, timestep), gg.prev)
         gg.prev <- ggplot()+
           ggtitle(paste(total.segments, "segments,", timestep, "data points"))+
-          scale_x_continuous(breaks=c(range(input.dt$count), 5, 10))+
+          scale_x_continuous()+
           scale_color_manual(values=c(
             "prev cost"="black",
             "constrained min"="grey",
@@ -711,9 +718,7 @@ for(total.segments in 2:max.segments){
                        fun.type="unconstrained min",
                        compare.minima))
         }
-        pdf(sprintf("figure-PeakSegPDPA-demo-mincompare-%dsegments-%ddata.pdf", total.segments, timestep), 5, 3)
-        print(gg.prev)
-        dev.off()
+        pdftikz(sprintf("figure-PeakSegPDPA-demo-mincompare-%dsegments-%ddata", total.segments, timestep), gg.prev)
       }
       if(nrow(cost.model)){ # may be Inf over entire interval.
         cost.lines.list[[paste(total.segments, timestep)]] <-
@@ -726,7 +731,7 @@ for(total.segments in 2:max.segments){
                         color=factor(data.i)),
                     cost.model.lines)
       }
-      one.env <- MinEnvelope(compare.cost, cost.model)
+      one.env <- MinEnvelope(cost.model, compare.cost)
       one.env.total <- Multiply(one.env, cum.weight[timestep-1])
       stopifnot(one.env[, min.mean < max.mean])
       if(nrow(one.env)){
@@ -752,12 +757,10 @@ for(total.segments in 2:max.segments){
                       group=piece.i,
                       color=factor(data.i)),
                   cost.model.lines)+
-        scale_x_continuous(breaks=c(range(input.dt$count), 5, 10))+
-        scale_color_manual("prev seg end", values=data.colors)+
+        scale_x_continuous()+
+        scale_color_manual(changepoint, values=data.colors)+
         ggtitle(paste(total.segments, "segments,", timestep, "data points"))
-      pdf(sprintf("figure-PeakSegPDPA-demo-minenv-%dsegments-%ddata.pdf", total.segments, timestep), 5, 3)
-      print(gg)
-      dev.off()
+      pdftikz(sprintf("figure-PeakSegPDPA-demo-minenv-%dsegments-%ddata", total.segments, timestep), gg)
       if(nrow(cost.minima)){
         minima.list[[paste(total.segments, timestep)]] <-
           data.table(total.segments, timestep, rbind(
@@ -780,10 +783,9 @@ for(total.segments in 1:max.segments){
       ggtitle(paste0(
         total.segments, " segment",
         ifelse(total.segments==1, "", "s"),
-        ", ", timestep, " data point",
-        ifelse(timestep==1, "", "s")))+
+        ", ", timestep, " data"))+
       scale_x_continuous(breaks=0:4)+
-      scale_color_manual("prev seg end", values=data.colors)+
+      scale_color_manual(values=data.colors)+
       geom_line(aes(mean, cost,
                     color=factor(data.i),
                     group=piece.i),
@@ -792,9 +794,7 @@ for(total.segments in 1:max.segments){
     if(length(i)==1 && i==0){
       gg.cost <- gg.cost+guides(color="none")
     }
-    pdf(print(sprintf("figure-PeakSegPDPA-demo-cost-%dsegments-%ddata.pdf", total.segments, timestep)), 5, 3)
-    print(gg.cost)
-    dev.off()
+    pdftikz(sprintf("figure-PeakSegPDPA-demo-cost-%dsegments-%ddata", total.segments, timestep), gg.cost, 2)
   }
 }
 

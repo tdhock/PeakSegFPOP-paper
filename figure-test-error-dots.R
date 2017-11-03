@@ -4,19 +4,19 @@ library(animint)
 load("test.error.RData")
 
 levs <- c(
-  MACS="MACS(popular baseline)",
-  HMCanBroad="HMCanBroad(popular baseline)",
-  Segmentor="PDPA(unconstrained baseline)",
-  PeakSegDP="CDPA(previous best)",
-  ##coseg.inf="GPDPAinf",
-  coseg="GPDPA(proposed)")
-levs <- c(
   MACS="MACS",
   HMCanBroad="HMCanBroad",
   Segmentor="PDPA",
   PeakSegDP="CDPA",
   ##coseg.inf="GPDPAinf",
   coseg="GPDPA")
+levs <- c(
+  MACS="MACS(popular baseline)",
+  HMCanBroad="HMCanBroad(popular baseline)",
+  Segmentor="PDPA(unconstrained baseline)",
+  PeakSegDP="CDPA(previous best)",
+  ##coseg.inf="GPDPAinf",
+  coseg="GPDPA(proposed)")
 test.error[, algorithm := levs[algorithm] ]
 roc[, algorithm := levs[algorithm] ]
 
