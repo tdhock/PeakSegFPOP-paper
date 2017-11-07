@@ -875,41 +875,79 @@ Output: matrices of peak predictions/height, samples x peaks.
 \begin{frame}[fragile,fragile]
   \frametitle{Step 1 -- Convert labels}
   \verb|PeakSegPipeline::convert_labels("projectDir")|
-\begin{verbatim}
-chr10:33,061,897-33,162,814 noPeaks
-chr10:33,456,000-33,484,755 peakStart kidney
-chr10:33,597,317-33,635,209 peakEnd kidney
-chr10:33,662,034-33,974,942 noPeaks
-
-chr10:35,182,820-35,261,001 noPeaks
-chr10:35,261,418-35,314,654 peakStart bcell kidney
-\end{verbatim}
   \begin{itemize}
-  \item Convert project/labels/*.txt files (such as above) to
-    project/samples/*/*/labels.bed files (such as below).
-  \end{itemize}
+  \item Input: projectDir/labels/*.txt files -- these are human-editable
+    files that describe in which groups of samples presence/absence of
+    peaks has been observed.
 \begin{verbatim}
-chr10	33061897	33162814	noPeaks
-chr10	33456000	33484755	peakStart
+chr10:33,597,317-33,635,209 peakEnd kidney
+chr10:35,261,418-35,314,654 peakStart kidney bcell
+\end{verbatim}
+  \item Output: projectDir/samples/kidney/*/labels.bed
+\begin{verbatim}
 chr10	33597317	33635209	peakEnd
-chr10	33662034	33974942	noPeaks
-chr10	35182820	35261001	noPeaks
 chr10	35261418	35314654	peakStart
 \end{verbatim}
+  \item Output: projectDir/samples/bcell/*/labels.bed
+\begin{verbatim}
+chr10	33597317	33635209	noPeaks
+chr10	35261418	35314654	peakStart
+\end{verbatim}
+\end{itemize}
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile,fragile]
   \frametitle{Step 1 -- convert data}
   \verb|PeakSegPipeline::create_problems_all("projectDir")|
   \begin{itemize}
   \item Create projectDir/samples/*/*/problems/* directories with
     labels.bed files.
   \end{itemize}
+\small
+\begin{verbatim}
+[thocking@lg-1r17-n04 project]$ cd
+ ~/PeakSegFPOP/labels/ATAC_JV_adipose/samples/AD1/MSC80/problems/
+[thocking@lg-1r17-n04 problems]$ ls -1 */labels.bed
+chr10:18024675-38818835/labels.bed
+chr11:69774695-87688378/labels.bed
+chr1:206482221-223747846/labels.bed
+chr12:145739-7189876/labels.bed
+chr14:19050000-107289540/labels.bed
+chr16:46510000-88389383/labels.bed
+chr3:60000-66170270/labels.bed
+chr4:75452279-190000000/labels.bed
+chrX:37148256-49242997/labels.bed
+\end{verbatim}
 \end{frame}
 
 \begin{frame}
   \frametitle{One hg19 sample: 373 segmentation problems (9 labeled)}
   \includegraphics[width=\textwidth]{figure-target-interval/genome} 
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Step 2: target interval computation}
+  The PeakSegFPOP algorithm (Hocking, Rigaill, Fearnhead, Bourque,
+  arXiv:1703.03352) finds the most likely peaks:
+  \begin{itemize}
+  \item in a single sample, 
+  \item on a single contiguous genome subset,
+  \item for a given penalty parameter $\lambda\geq 0$.
+  \item Larger penalty $\lambda$ yields fewer peaks.
+  \item Smaller penalty $\lambda$ yields more peaks.
+  \end{itemize}
+  How to choose the penalty $\lambda$? Machine learning!
+  \begin{itemize}
+  \item Use the penalty $\lambda$ that results in the minimum
+    number of errors with respect to the labels.
+  \item The \textbf{target interval} is the largest interval of
+    $\log\lambda$ values which achieves minimum label errors.
+  \end{itemize}
+\begin{verbatim}
+> PeakSegPipeline::problem.target("H3K36me3_TDH_other/
+samples/skeletalMuscleMD/McGill0016/problems/
+chr21:43005559-44632664/labels.bed")
+\end{verbatim}
 \end{frame}
 
 \begin{frame}
@@ -986,13 +1024,139 @@ chr10	35261418	35314654	peakStart
 \end{frame}
 
 \begin{frame}
-  \frametitle{Only need 10--25 runs to find optimal penalty interval}
+  \frametitle{Only need 10--25 runs to find target interval}
   \includegraphics[width=0.8\textwidth]{figure-timing-data-penalties}
 \end{frame}
 
 \begin{frame}
   \frametitle{Target interval computation time}
   \includegraphics[width=\textwidth]{figure-target-interval-time}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Step 3: train model for predicting penalty}
+
+\verb|problem.train("projectDir")|
+  
+  \includegraphics[width=\textwidth]{Screenshot-interval-regression}
+
+  \url{http://bl.ocks.org/tdhock/raw/9311ca39d643d127e04a088814c81ee1/}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Step 4: predict peaks for each sample}
+\small
+\begin{verbatim}
+> PeakSegPipeline::problem.predict.allSamples(
+ "labels/H3K4me3_TDH_immune/problems/chr4:9324642-31820917")
+
+ Predicting penalty=505.031803291994 
+  log(penalty)=6.22462140410823 based on 5 features.
+ Writing /gs/project/mugqic/projects/thocking/blueprint/
+  PeakSegFPOP-labels/H3K4me3_TDH_immune/samples/bcell/
+  McGill0091/problems/chrY:10000-44821/peaks.bed 
+  with 4 peaks.
+
+ Predicting penalty=1991.40543302548 
+  log(penalty)=7.59659591619445 based on 5 features.
+ Writing /gs/project/mugqic/projects/thocking/blueprint/
+  PeakSegFPOP-labels/H3K4me3_TDH_immune/samples/kidney/
+  McGill0023/problems/chrY:10000-44821/peaks.bed 
+  with 0 peaks.
+\end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Step 4: greedy peak clustering}
+\small
+\begin{verbatim}
+> PeakSegPipeline::create_problems_joint(
+ "labels/H3K4me3_TDH_immune/problems/chr4:9324642-31820917")
+\end{verbatim}
+  \includegraphics[width=0.9\textwidth]{figure-peak-clustering}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Step 4: joint target interval computation}
+  \includegraphics[width=0.4\textwidth]{Screenshot-joint-interval-coverage}
+  \includegraphics[width=0.4\textwidth]{Screenshot-joint-interval-penalty}
+
+\url{http://bl.ocks.org/tdhock/raw/cfc5d67636ee76d42be0/}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Step 4: joint target interval computation}
+\small
+\begin{verbatim}
+> PeakSegPipeline::problem.joint.target(
+  "labels/H3K36me3_TDH_immune/problems/chr12:7239876-34856694/
+   jointProblems/chr12:15652592-15760834")
+ Train error:
+    min.log.lambda max.log.lambda peaks errors
+ 1            -Inf       2.684843    23     30
+ 2        2.684843       3.004829    22     28
+...
+ 15       4.156437       4.212353     9      6
+ 16       4.212353       4.258229     8      4
+ 17       4.258229       4.422378     7      2
+ 18       4.422378       5.772348     6      0
+ 19       5.772348       6.006001     5      2
+ 20       6.006001       6.103757     4      4
+ 21       6.103757       6.120696     3      6
+ 22       6.120696       6.233862     2      8
+ 23       6.233862       6.739779     1     10
+ 24       6.739779            Inf     0     12
+ Writing target interval (4.42237830825042, 5.77234828160415) to labels/H3K36me3_TDH_immune/problems/chr12:7239876-34856694/jointProblems/chr12:15652592-15760834/target.tsv
+\end{verbatim}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Step 5: train model for predicting joint penalty}
+  
+  \verb|problem.joint.train("projectDir")|
+
+  \includegraphics[width=\textwidth]{Screenshot-interval-regression}
+
+  \url{http://bl.ocks.org/tdhock/raw/9311ca39d643d127e04a088814c81ee1/}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Step 6: joint peak prediction}
+  
+  TODO output
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Step 7: combine results}
+
+  TODO screenshot
+
+\end{frame}
+
+\section{Results}
+
+\begin{frame}
+  \frametitle{qualitative results}
+
+  all samples of one type down/up
+
+  \includegraphics[width=\textwidth]{PeakSegJoint-monocytes-up}
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Peak size comparison}
+  
+  \includegraphics[width=\textwidth]{figure-PeakSeg-macs-peak-size-comparison}
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Test error comparison}
+
+TODO
+  
 \end{frame}
 
 \section{Conclusions and future work}
