@@ -4,6 +4,12 @@ This repository contains the source code for our [[https://arxiv.org/abs/1703.03
 describes a log-linear time algorithm for solving the PeakSeg
 constrained changepoint detection problem.
 
+** TODOs
+
+- new slides showing better peak detection specific examples
+  [[file:figure-min-train-error.R]]
+- big model labels in [[file:figure-test-error-dots.R]]
+
 ** Figures
 
 To recompute the figures from the paper, execute the code in the
