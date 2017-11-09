@@ -20,13 +20,13 @@ algo <- function(algorithm, ...){
   data.table(algorithm, ...)
 }
 CDPA.name <- "CDPA = Constrained Dynamic Programming Algo
-Up-down constrained, approximate solution, $O(d^2)$
+Up-down constrained, approximate solution, $O(n^2)$
 H {\\it et al.} 2015, R pkg PeakSegDP"
 PDPA.name <- "PDPA = Pruned Dynamic Programming Algorithm
-Unconstrained, optimal solution, $O(d \\log d)$
+Unconstrained, optimal solution, $O(n \\log n)$
 Cleynen {\\it et al.} 2014, R pkg Segmentor3IsBack"
 GPDPA.name <- "GPDPA = Generalized PDPA
-Up-down constrained, optimal solution, $O(d \\log d)$
+Up-down constrained, optimal solution, $O(n \\log n)$
 Proposed, R pkg PeakSegOptimal"
 all.timings <- rbind(
   algo(CDPA.name, dp.timings),

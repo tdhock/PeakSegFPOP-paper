@@ -22,6 +22,11 @@
 \newcommand{\NN}{\mathbb N}
 \newcommand{\z}{$z = 2, 4, 3, 5, 1$} 
 
+\newcommand{\algo}[1]{\textcolor{#1}{#1}}
+\definecolor{PDPA}{HTML}{66C2A5}
+\definecolor{CDPA}{HTML}{FC8D62}
+\definecolor{GPDPA}{HTML}{4D4D4D}
+
 % Set transparency of non-highlighted sections in the table of
 % contents slide.
 \setbeamertemplate{section in toc shaded}[default][100]
@@ -553,9 +558,19 @@ $$
 %   PDPA loss $\leq$ GPDPA loss $\leq$ CDPA loss.
 %   \end{center}
 % \end{frame}
+
+\begin{frame}
+  \frametitle{GPDPA highly accurate in broad H3K36me3 data}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem5-best}
+\end{frame}
+
+\begin{frame}
+  \frametitle{GPDPA highly accurate in sharp H3K4me3 data}
+  \includegraphics[width=\textwidth]{figure-min-train-error-problem2-best}
+\end{frame} 
  
 \begin{frame}
-  \frametitle{TODO LABELS Test AUC on 7 benchmark data sets}
+  \frametitle{Test AUC on 7 benchmark data sets}
   \includegraphics[width=\textwidth]{figure-test-error-dots}
   \begin{itemize}
   \item 4-fold cross-validation: train on 3/4 of labels, test on 1/4.
@@ -567,7 +582,7 @@ $$
     constrained algorithms (CDPA, \textbf{proposed GPDPA}).
   \end{itemize}
   \scriptsize
-\url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}
+  %\url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/} 
 \end{frame}
 
 \begin{frame}
@@ -575,11 +590,14 @@ $$
   %\includegraphics[width=1\textwidth]{figure-PDPA-timings.pdf}
   \input{figure-PDPA-timings-wide-labels}
 
-  Total time to compute 10 models (0, ..., 9 peaks) for all problems:
-  \begin{itemize}
-  \item CDPA: 156 hours, inexact.
-  \item GPDPA: 6 hours, exact.
-  \end{itemize}
+Time to compute 10 models (0, ..., 9 peaks) for 2752 data
+    sequences down to \textcolor{GPDPA}{6 hours (GPDPA)} from
+    \textcolor{CDPA}{156 hours (CDPA)}.
+  % Total time to compute 10 models (0, ..., 9 peaks) for all problems:
+  % \begin{itemize}
+  % \item CDPA: 156 hours, inexact.
+  % \item GPDPA: 6 hours, exact.
+  % \end{itemize}
 \end{frame}
 
 \begin{frame}
@@ -667,7 +685,7 @@ $$
 SegAnnDB demo:\\interactively label chr1/chrX
   \url{http://bioviz.rocq.inria.fr/profile/GSM313887/}
   \end{minipage}
-\end{frame}
+\end{frame} 
 
 \begin{frame}
   \frametitle{Cancer biology applications}
@@ -717,7 +735,7 @@ R package rankSVMcompare.\\
 \hline
 New interactive keywords& \multirow{5}{*}{
 \includegraphics[height=0.2\textheight]{figure-design}
-}\\
+}\\ 
 for the grammar of graphics,\\
 under review at \emph{Journal}\\
 \emph{of Computational and Graphical}\\
