@@ -34,7 +34,9 @@
 
 \begin{document}
 
-\title{Genome-wide supervised ChIP-seq peak detection}
+\title{Genome-wide supervised ChIP-seq peak detection\\
+using the
+  PeakSegPipeline R package}
 
 \author{
   Toby Dylan Hocking\\
@@ -845,7 +847,7 @@ maxIter 20
 
 % 35 samples, 465 labeled problem-samples.
 \begin{frame}
-  \frametitle{Pipeline}
+  \frametitle{Pipeline steps}
 Input:
 \begin{itemize}
 \item $S$ bigWig coverage data files, 
@@ -943,11 +945,12 @@ chrX:37148256-49242997/labels.bed
   \item The \textbf{target interval} is the largest interval of
     $\log\lambda$ values which achieves minimum label errors.
   \end{itemize}
+\small
 \begin{verbatim}
-> PeakSegPipeline::problem.target("H3K36me3_TDH_other/
-samples/skeletalMuscleMD/McGill0016/problems/
-chr21:43005559-44632664/labels.bed")
+> PeakSegPipeline::problem.target("H3K36me3_TDH_other/samples/
+skeletalMuscleMD/McGill0016/problems/chr21:43005559-44632664")
 \end{verbatim}
+Saves \verb|problems/chr21:43005559-44632664/target.tsv|
 \end{frame}
 
 \begin{frame}
@@ -1041,6 +1044,8 @@ chr21:43005559-44632664/labels.bed")
   \includegraphics[width=\textwidth]{Screenshot-interval-regression}
 
   \url{http://bl.ocks.org/tdhock/raw/9311ca39d643d127e04a088814c81ee1/}
+
+  Saves \verb|projectDir/model.RData|
 \end{frame}
 
 \begin{frame}[fragile]
@@ -1073,7 +1078,9 @@ chr21:43005559-44632664/labels.bed")
 > PeakSegPipeline::create_problems_joint(
  "labels/H3K4me3_TDH_immune/problems/chr4:9324642-31820917")
 \end{verbatim}
-  \includegraphics[width=0.9\textwidth]{figure-peak-clustering}
+  \includegraphics[width=0.8\textwidth]{figure-peak-clustering}
+
+Saves \verb|problems/chr4:9324642-31820917/jointProblems.bed|
 \end{frame}
 
 \begin{frame}
@@ -1088,16 +1095,13 @@ chr21:43005559-44632664/labels.bed")
   \frametitle{Step 4: joint target interval computation}
 \small
 \begin{verbatim}
-> PeakSegPipeline::problem.joint.target(
-  "labels/H3K36me3_TDH_immune/problems/chr12:7239876-34856694/
-   jointProblems/chr12:15652592-15760834")
+> PeakSegPipeline::problem.joint.targets(
+  "labels/H3K36me3_TDH_immune/problems/chr12:7239876-34856694")
  Train error:
     min.log.lambda max.log.lambda peaks errors
  1            -Inf       2.684843    23     30
  2        2.684843       3.004829    22     28
 ...
- 15       4.156437       4.212353     9      6
- 16       4.212353       4.258229     8      4
  17       4.258229       4.422378     7      2
  18       4.422378       5.772348     6      0
  19       5.772348       6.006001     5      2
@@ -1106,64 +1110,123 @@ chr21:43005559-44632664/labels.bed")
  22       6.120696       6.233862     2      8
  23       6.233862       6.739779     1     10
  24       6.739779            Inf     0     12
- Writing target interval (4.42237830825042, 5.77234828160415) to labels/H3K36me3_TDH_immune/problems/chr12:7239876-34856694/jointProblems/chr12:15652592-15760834/target.tsv
+ Writing target interval (4.42237830825042, 5.77234828160415)
 \end{verbatim}
+
+Saves \verb|problems/chr12:7239876-34856694/jointTargets.rds|
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
   \frametitle{Step 5: train model for predicting joint penalty}
   
-  \verb|problem.joint.train("projectDir")|
+  \verb|PeakSegPipeline::problem.joint.train("projectDir")|
 
   \includegraphics[width=\textwidth]{Screenshot-interval-regression}
 
   \url{http://bl.ocks.org/tdhock/raw/9311ca39d643d127e04a088814c81ee1/}
+
+  Saves \verb|projectDir/joint.model.RData|
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile,fragile]
   \frametitle{Step 6: joint peak prediction}
-  
-  TODO output
+\small
+\begin{verbatim}
+> PeakSegPipeline::problem.joint.predict.job(
+   "ATAC_JV_adipose/jobs/1")
+  1 /  792 joint prediction problems
+Found 35 samples to jointly segment.
+Writing 0 peaks to ATAC_JV_adipose/
+problems/chrY:2068238-8914955/
+jointProblems/chrY:6607280-6607652/peaks.bed
+...
+ 792 /  792 joint prediction problems
+Found 35 samples to jointly segment.
+Writing 1 peaks to ATAC_JV_adipose/
+problems/chrY:23951428-28819361/
+jointProblems/chrY:28694059-28694518/peaks.bed
+\end{verbatim}
+
+Saves \verb|ATAC_JV_adipose/jobs/1/jobPeaks.RData|
 
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
   \frametitle{Step 7: combine results}
 
-  TODO screenshot
+\begin{verbatim}
+> PeakSegPipeline::plot_all("ATAC_JV_adipose")
+Reading predicted peaks in 373 jobPeaks.RData files.
+Writing peak height matrix to 
+ATAC_JV_adipose/peaks_matrix_height.tsv
+ ( 200301 peaks x 35 samples )
+...
+\end{verbatim}
+
+  Also creates a summary web page with plots and links to the genome
+  browser,
+  \url{http://hubs.hpc.mcgill.ca/~thocking/PeakSegFPOP-labels/ATAC_JV_adipose/}
 
 \end{frame}
 
-\section{Results}
+\section{Some results}
 
 \begin{frame}
-  \frametitle{qualitative results}
-
-  all samples of one type down/up
+  \frametitle{Joint model identifies peaks specific to a given sample or group}
 
   \includegraphics[width=\textwidth]{PeakSegJoint-monocytes-up}
 
+  The pipeline outputs a track hub -- each track/sample is a multiWig
+  container with two bigWig files (coverage, peaks).
+
 \end{frame}
 
 \begin{frame}
-  \frametitle{Peak size comparison}
+  \frametitle{Supervised PeakSeg algorithm adapts to different
+    patterns/experiments}
+
+\includegraphics[width=\textwidth]{figure-test-error-decreases-mean}
+  
+  \begin{itemize}
+  \item Cross-validation: hold out a set of test labels, then train
+    models using variable number of labels.
+  \item Three different ChIP-seq experiments, each with a separate
+    labeled pattern (broad/sharp/etc).
+  \item Test accuracy quickly increases to max after 2--6
+    genomic windows (containing several labeled regions and samples).
+  \item PeakSeg highly accurate in all three patterns.
+  \item Other models only accurate for only one or two patterns.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Peak size adapts to different experiments/patterns
+    better than macs}
   
   \includegraphics[width=\textwidth]{figure-PeakSeg-macs-peak-size-comparison}
 
 \end{frame}
 
-\begin{frame}
-  \frametitle{Test error comparison}
+\begin{frame}[fragile]
+  \frametitle{Peak height varies across the genome}
 
-TODO
+By up to an order of magnitude...
   
+\begin{verbatim}
+    chrom chromStart  chromEnd status     mean
+ 1: chr10  128590788 128591057   peak 194.6880
+ 2: chr10  128555987 128556609   peak 639.0320
+ 3: chr10  128258267 128259664   peak  74.4273
+ 4: chr10  128148001 128149092   peak 159.2830
+ 5: chr10  128110279 128110825   peak 555.5110
+\end{verbatim}
+
 \end{frame}
 
 \section{Conclusions and future work}
 
 \begin{frame}[fragile]
-  \frametitle{How to choose parameters of unsupervised peak
-    detectors?}
+  \frametitle{Unsupervised pipelines: how to choose parameters?}
 \scriptsize
 19 parameters for Model-based analysis of ChIP-Seq (MACS), Zhang et al, 2008.
 \begin{verbatim}
@@ -1192,54 +1255,42 @@ maxIter 20
 \end{verbatim}
 \end{frame}
 
-% \begin{frame}
-%   \frametitle{PeakSeg: search for the peaks with lowest loss}
-%   \includegraphics[width=1\textwidth]{figure-macs-problem-PeakSeg.png}
-  
-%   Simple model with only one parameter to train (maxPeaks).
-% \end{frame}
+\begin{frame}[fragile]
+  \frametitle{Supervised pipeline: 
+provide labels file, automatically optimize parameters}
+  Input: data + labels.
+  \begin{verbatim}
+chr10:33,597,317-33,635,209 peakEnd kidney
+chr10:35,261,418-35,314,654 peakStart kidney bcell
+\end{verbatim}
+
+  \includegraphics[width=\textwidth]{figure-PeakError.pdf}
+
+  Advantage: automatically optimize peak detection parameters to
+  maximize agreement with labels.
+
+\end{frame}
 
 \begin{frame}
-  \frametitle{Conclusions}
-  \begin{tabular}{r|c|c}
-    & no pruning & functional pruning \\
-    \hline
-    unconstrained & Dynamic Programming & PDPA, FPOP \\
-     & exact $O(N^2)$ & exact $O(N\log N)$\\
-    R packages: & changepoint & cghseg, Segmentor\\
-    \hline
-    up-down constrained & constrained DP & \textbf{this work} \\
-     & inexact $O(N^2)$ & exact $O(N\log N)$\\
-    R packages: & PeakSegDP & \textbf{coseg}\\
-    \hline
-  \end{tabular}
+  \frametitle{Conclusions/future work}
   \begin{itemize}
-  \item New algorithm that \textbf{exactly} computes the
-    \textbf{constrained} optimal change-points/peaks for $N$ data points.
-  \item C++ code in coseg R package, $O(N \log N)$ memory
-    \url{https://github.com/tdhock/coseg}
-  \item PeakSegFPOP program for big $N > 10^6$ data,
-    $O(\log N)$ memory and $O(N\log N)$ disk space.
-  \item TODO: ICML paper.
+  \item New PeakSegPipeline R package based on supervised learning,
+    \url{https://github.com/tdhock/PeakSegPipeline}
+  \item Supervised learning: more computationally demanding than
+    unsupervised learning (search for optimal parameters takes time),
+    but more accurate.
+  \item TODO: paper in progress.
   \item TODO: C3G-GSOC pipeline project.
   \item TODO: web app for interactive labeling and model learning.
   \end{itemize}
+
+  Questions? toby.hocking@mail.mcgill.ca
 \end{frame}
 
 \begin{frame}
   \frametitle{Thanks for your attention!}
 
-  Questions? toby.hocking@mail.mcgill.ca
-  \begin{itemize}
-  \item 
-  \textbf{coseg} R package, \\
-  \url{https://github.com/tdhock/coseg}
-  \item 
-    \textbf{PeakSegFPOP} command line program, 
-  \url{https://github.com/tdhock/PeakSegFPOP}
-  \item source code for these slides:
-  \url{https://github.com/tdhock/PeakSegFPOP-paper}
-  \end{itemize}
+
 \end{frame}
 
 \begin{frame}
