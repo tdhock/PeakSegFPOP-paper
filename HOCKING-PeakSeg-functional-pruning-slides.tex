@@ -435,11 +435,11 @@ $$
       \begin{cases}
         L_{1,i-1}^{\leq}(\mu), & \text{change up after $i-1$,}\\
         L_{2,i-1}(\mu), & \text{change up before $i-1$.}
-      \end{cases}
+      \end{cases}  
     \end{eqnarray*}
   \item At data point $i=4$ we only need to consider changes $t_1\in\{1,3\}$, since $t_1=2$ has already been pruned. 
 $$
-L_{2,4}(\mu) = \min_{t_1\in\{1,2,3\}} c_{1,3}(\mu) = 
+L_{2,4}(\mu) = \min_{t_1\in\{1,2,3\}} c_{2,4,t_1}(\mu) =  
 \min_{t_1\in\{1,3\}} c_{2,4,t_1}(\mu)
 $$
       %\includegraphics[width=0.5\textwidth]{figure-PeakSegPDPA-demo-minenv-2segments-4data}
@@ -453,7 +453,7 @@ $$
   Dynamic programming update rule: the constrained cost of a
   mean $\mu$ for the segment $s$, up to data point $i$.
   \begin{itemize}
-  \item For $s=2, 4, \dots$
+  \item For even $s=2, 4, \dots$ we enforce a non-decreasing change via the \alert{min-less operator},
     \begin{equation*}
       L_{s,i}(\mu) = \gamma_i(\mu) + \min
       \begin{cases}
@@ -461,7 +461,8 @@ $$
         L_{s-1,i-1}^{\alert{\leq}}(\mu),
       \end{cases}
     \end{equation*}
-  \item For $s=3, 5, \dots$
+  \item For odd $s=3, 5, \dots$ we enforce a non-increasing change via the
+    \alert{min-more operator},
     \begin{equation*}
       L_{s,i}(\mu) = \gamma_i(\mu) + \min
       \begin{cases}
@@ -513,6 +514,24 @@ $$
 \section{Results on ChIP-seq benchmark}
 
 \begin{frame}
+  \frametitle{Functional pruning algorithms faster for larger data sets}
+
+Benchmark data set: \url{http://members.cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/}
+
+  %\includegraphics[width=1\textwidth]{figure-PDPA-timings.pdf}
+  \input{figure-PDPA-timings-wide-labels}
+
+Time to compute 10 models (0, ..., 9 peaks) for 2752 data
+    sequences down to \textcolor{GPDPA}{6 hours (GPDPA)} from
+    \textcolor{CDPA}{156 hours (CDPA)}.
+  % Total time to compute 10 models (0, ..., 9 peaks) for all problems:
+  % \begin{itemize}
+  % \item CDPA: 156 hours, inexact.
+  % \item GPDPA: 6 hours, exact.
+  % \end{itemize}
+\end{frame}
+
+\begin{frame}
   \frametitle{New labeling method for peak detection in ChIP-seq data}
 
   H {\it et al.}, {\it Bioinformatics} 2017: choose peak model/parameters
@@ -560,17 +579,17 @@ $$
 % \end{frame}
 
 \begin{frame}
-  \frametitle{GPDPA highly accurate in broad H3K36me3 data}
+  \frametitle{New GPDPA highly accurate in broad H3K36me3 data}
   \includegraphics[width=\textwidth]{figure-min-train-error-problem5-best}
 \end{frame}
 
 \begin{frame}
-  \frametitle{GPDPA highly accurate in sharp H3K4me3 data}
+  \frametitle{New GPDPA highly accurate in sharp H3K4me3 data}
   \includegraphics[width=\textwidth]{figure-min-train-error-problem2-best}
 \end{frame} 
  
 \begin{frame}
-  \frametitle{Test AUC on 7 benchmark data sets}
+  \frametitle{New GPDPA highly accurate in cross-validation experiments}
   \includegraphics[width=\textwidth]{figure-test-error-dots}
   \begin{itemize}
   \item 4-fold cross-validation: train on 3/4 of labels, test on 1/4.
@@ -583,21 +602,6 @@ $$
   \end{itemize}
   \scriptsize
   %\url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/} 
-\end{frame}
-
-\begin{frame}
-  \frametitle{Functional pruning algorithms faster for larger data sets}
-  %\includegraphics[width=1\textwidth]{figure-PDPA-timings.pdf}
-  \input{figure-PDPA-timings-wide-labels}
-
-Time to compute 10 models (0, ..., 9 peaks) for 2752 data
-    sequences down to \textcolor{GPDPA}{6 hours (GPDPA)} from
-    \textcolor{CDPA}{156 hours (CDPA)}.
-  % Total time to compute 10 models (0, ..., 9 peaks) for all problems:
-  % \begin{itemize}
-  % \item CDPA: 156 hours, inexact.
-  % \item GPDPA: 6 hours, exact.
-  % \end{itemize}
 \end{frame}
 
 \begin{frame}
@@ -774,6 +778,8 @@ under review at \emph{Journal}\\
  
 \begin{frame}
   \frametitle{Future projects for my research lab}
+  New statistical models and efficient algorithms for interactive
+  analysis of large data, especially in genomics.
   \begin{itemize}
   %\item Collaborations with experts from other scientific domains.
   % \item Supervising graduate students who want to work on algorithms
@@ -848,20 +854,20 @@ under review at \emph{Journal}\\
 
 \section*{Results on comparing several samples}
 
-\begin{frame}
-  \frametitle{Target interval computation time}
-  \includegraphics[width=\textwidth]{figure-target-interval-time}
-\end{frame}
+% \begin{frame}
+%   \frametitle{Target interval computation time}
+%   \includegraphics[width=\textwidth]{figure-target-interval-time}
+% \end{frame}
 
-\begin{frame}
-  \frametitle{More peaks in sharp H3K4me3 than in broad H3K36me3}
-  \includegraphics[width=0.7\textwidth]{figure-min-err-peaks-compare}
-\end{frame}
+% \begin{frame}
+%   \frametitle{More peaks in sharp H3K4me3 than in broad H3K36me3}
+%   \includegraphics[width=0.7\textwidth]{figure-min-err-peaks-compare}
+% \end{frame}
 
-\begin{frame}
-  \frametitle{More peaks in sharp H3K4me3 than in broad H3K36me3}
-  \includegraphics[width=0.7\textwidth]{figure-peak-size-model}
-\end{frame}
+% \begin{frame}
+%   \frametitle{More peaks in sharp H3K4me3 than in broad H3K36me3}
+%   \includegraphics[width=0.7\textwidth]{figure-peak-size-model}
+% \end{frame}
 
 \begin{frame}
   \frametitle{Max-margin penalty learning algortihm}
@@ -958,33 +964,33 @@ under review at \emph{Journal}\\
 \end{frame}
 
 
-\begin{frame}
-  \frametitle{PeakSeg with 2 peaks more likely than default macs}
-  \includegraphics[width=1\textwidth]{figure-macs-problem-1-30103.png}
-\end{frame}
+% \begin{frame}
+%   \frametitle{PeakSeg with 2 peaks more likely than default macs}
+%   \includegraphics[width=1\textwidth]{figure-macs-problem-1-30103.png}
+% \end{frame}
 
-\begin{frame}
-  \frametitle{Unconstrained model can have any changes}
-  \includegraphics[width=1\textwidth]{Seg_SansC.png}
-  \vskip -1cm
-  \begin{itemize}
-  \item The model above does NOT verify the PeakSeg up-down constraint
-    (second change is up, should be down).
-  \item Not directly interpretable as background and peaks.
-  \end{itemize}
-\end{frame}
+% \begin{frame}
+%   \frametitle{Unconstrained model can have any changes}
+%   \includegraphics[width=1\textwidth]{Seg_SansC.png}
+%   \vskip -1cm
+%   \begin{itemize}
+%   \item The model above does NOT verify the PeakSeg up-down constraint
+%     (second change is up, should be down).
+%   \item Not directly interpretable as background and peaks.
+%   \end{itemize}
+% \end{frame}
 
-\begin{frame}
-  \frametitle{PeakSeg constraint forces up then down changes}
-  \includegraphics[width=1\textwidth]{Seg_AvecC1.png}
-  \vskip -1cm
-  \begin{itemize}
-  \item Novelty of PeakSeg model with respect to previous optimal
-    segmentation models: the up-down constraint.
-  \item Interpretable as background (S1, S3, ...)\\
-    and peaks (S2, S4, ...).
-  \end{itemize}
-\end{frame}
+% \begin{frame}
+%   \frametitle{PeakSeg constraint forces up then down changes}
+%   \includegraphics[width=1\textwidth]{Seg_AvecC1.png}
+%   \vskip -1cm
+%   \begin{itemize}
+%   \item Novelty of PeakSeg model with respect to previous optimal
+%     segmentation models: the up-down constraint.
+%   \item Interpretable as background (S1, S3, ...)\\
+%     and peaks (S2, S4, ...).
+%   \end{itemize}
+% \end{frame}
 
 \section*{Interpretation of equal segment means}
 

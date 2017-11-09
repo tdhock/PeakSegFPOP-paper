@@ -247,7 +247,12 @@ for(show.row.i in 1:nrow(show.dt)){
   max.coverage <- max(sample.counts$coverage)
   first.chromStart <- min(sample.regions$chromStart)
   last.chromEnd <- max(sample.regions$chromEnd)
-  y.key <- c(GPDPA=1, PDPA=2, CDPA=3, macs=4)*max.coverage*-0.15
+  y.key <- c(
+    GPDPA=1,
+    CDPA=2,
+    PDPA=3,
+    hmcan.broad=4,
+    macs=5)*max.coverage*-0.15
   h <- abs(diff(y.key)[1]/3)
 
   for(peaks.str in paste(0:6)){
@@ -308,13 +313,17 @@ for(show.row.i in 1:nrow(show.dt)){
   sample.error.min <- sample.error[, .SD[which.min(errors),], by=.(algorithm)]
   setkey(sample.error.min, algorithm, param.name)
   macs.one.param <- peaks[[paste(sample.error.min["macs"]$param.name)]]
+  load(sub("counts", "peaks/hmcan.broad.trained", counts.file))
+  hmcan.one.param <- peaks[[paste(sample.error.min["hmcan.broad"]$param.name)]]
   macs.one.sample <- subset(macs.one.param, paste(show.row$sample.id)==sample.id)
+  hmcan.one.sample <- subset(hmcan.one.param, paste(show.row$sample.id)==sample.id)
   sample.peaks[, param.name := peaks]
   setkey(sample.peaks, algorithm, param.name)
-  not.macs <- sample.error.min[algorithm!="macs",]
+  dpa.algos <- sample.error.min[grepl("DPA", algorithm)]
   best.peaks <- rbind(
     data.table(algorithm="macs", macs.one.sample[, c("chromStart", "chromEnd")]),
-    sample.peaks[not.macs, .(algorithm, chromStart, chromEnd)])
+    data.table(algorithm="hmcan.broad", hmcan.one.sample[, c("chromStart", "chromEnd")]),
+    sample.peaks[dpa.algos, .(algorithm, chromStart, chromEnd)])
   setkey(sample.regions, algorithm, param.name)
   best.regions <- sample.regions[sample.error.min]
 
@@ -351,13 +360,16 @@ for(show.row.i in 1:nrow(show.dt)){
                    color="deepskyblue",
                    data=best.peaks)
   }
+  param.key <- c(
+    macs="log(q)", CDPA="peaks", PDPA="peaks", GPDPA="peaks",
+    hmcan.broad="thresh")
   sample.gg <- sample.gg+
     geom_text(aes(
       first.chromStart/1e3, y.key[algorithm],
       label=sprintf(
         "%s\n%s=%s",
         algorithm,
-        ifelse(algorithm=="macs", "log(q)", "peaks"),
+        param.key[paste(algorithm)],
         paste(param.name)
         )),
               hjust=1,
