@@ -1193,15 +1193,15 @@ a particular genomic region in tcell but not in monocyte samples).
   \centering
   \includegraphics[width=\textwidth]{figure-good-bad}
 \vskip -0.5cm
-  \caption{
-    Examples of \textcolor{good}{good} and \textcolor{bad}{bad} 
-    peak models for two ChIP-seq 
-    count data vectors (grey). Labels (colored rectangles) indicate genomic 
-    regions where a biologist desires presence (peakStart/peakEnd) 
-    or absence (noPeaks) of peaks. Peak detection accuracy is quantified by 
-    counting the number of incorrect labels
-    (too many peaks causes a false positive, 
-     too few peaks causes a false negative).
+\caption{ Examples of \textcolor{good}{good} and \textcolor{bad}{bad}
+  peak models for two ChIP-seq count data vectors (grey). Labels
+  (colored rectangles) indicate genomic regions where a biologist
+  desires presence (peakStart/peakEnd) or absence (noPeaks) of
+  peaks. Peak detection accuracy is quantified by counting the number
+  of incorrect labels (each noPeaks label with an overlapping peak is
+  a false positive; each peakStart/End label requires exactly one peak
+  start/end in that region, zero starts/ends is a false negative, and
+  two or more starts/ends is a false positive).
     % \textbf{Left:} the \textcolor{bad}{bad} model has one large peak, 
     % which causes two false negatives and one false positive.
     % \textbf{Right:} the \textcolor{bad}{bad} model has 
@@ -1223,36 +1223,33 @@ $E[c(\mathbf y_i), L_i]$ which is the total of false positives (labels
 with too many predicted peaks) plus false negatives (labels with not
 enough predicted peaks) for a given labeled data vector $i$.
 
+\subsection{Peak detection accuracy evaluation method}
+
 The benchmark consists of seven histone ChIP-seq data sets, each with
 a different peak pattern. For each data set, we use four-fold
 cross-validation on labeled count data vectors to estimate peak
-detection accuracy. For each train/test split, we learn peak detection
-parameters using the training data, then use the learned parameters to
-predict peaks and compute the total number of incorrectly predicted
-labels
-% $
-%   \sum_{i\in\text{test}}
-%   E\left[
-%     c(\mathbf y_i), L_i
-%   \right]
-% $
-in the test set. However, the total number of incorrect labels can be
-un-informative in data sets with unbalanced labels (unequal numbers of
-possible false positives and false negatives). Because the ChIP-seq
-data sets we examined are unbalanced (more possible false positives
-than false negatives), we observed similar accuracy for some
-algorithms in terms of total number of incorrect labels (see
-supplementary Figure~1). In order to see the differences between such
-algorithms, we decided to use ROC/AUC analysis for evaluation. This
-choice is also justified from an applied perspective, in which genomic
-data analysts frequently vary the significance threshold or penalty
-parameter in order to evaluate models with different numbers of
-peaks. We compute Receiver Operating Characteristic (ROC) curves by
-varying a significance/penalty parameter that controls the number of
-peaks detected. As in binary classification, Area Under the Curve
-(AUC) can be used to evaluate the overall accuracy of a particular
-model. For more details about how to compute the number of incorrect
-labels and AUC in this context, see \citep{HOCKING2016-chipseq}.
+detection accuracy. Each labeled count data vector was randomly assigned a fold
+ID from 1 to 4, then test error is computed for each fold as follows.
+For a given fold ID, models are trained using labeled data with all
+other fold IDs, then the models are used to predict peaks and compute
+test error on labeled data with that fold ID. However, the total
+number of incorrect labels can be un-informative in data sets with
+unbalanced labels (unequal numbers of possible false positives and
+false negatives). Because the ChIP-seq data sets we examined are
+unbalanced (more possible false positives than false negatives), we
+observed similar accuracy for some algorithms in terms of total number
+of incorrect labels (see supplementary Figure~1). In order to see the
+differences between such algorithms, we decided to use ROC/AUC
+analysis for evaluation. This choice is also justified from an applied
+perspective, in which genomic data analysts frequently vary the
+significance threshold or penalty parameter in order to evaluate
+models with different numbers of peaks. We compute Receiver Operating
+Characteristic (ROC) curves by varying a significance/penalty
+parameter that controls the number of peaks detected. As in binary
+classification, Area Under the Curve (AUC) can be used to evaluate the
+overall accuracy of a particular model. For more details about how to
+compute the number of incorrect labels and AUC in this context, see
+\citep{HOCKING2016-chipseq}.
  
 Most existing algorithms can be used for accurate peak detection in
 either sharp H3K4me3 data, or broad H3K36me3 data, but not both. For
@@ -1399,35 +1396,35 @@ to use for very large data sets.
 
 
 
-% \subsection{Feasibility and optimality in ChIP-seq data}
+\subsection{Feasibility and optimality in ChIP-seq data}
 
-% For each of 2752 segmentation problems, we attempt to compute models
-% with 0, ..., 9 peaks, so there are a total of 27520 possible models
-% for each optimization-based algorithm (Segmentor, PeakSegDP,
-% coseg). However, none of the algorithms is theoretically guaranteed to
-% return a model which is feasible for the up-down constraint (PeakSegDP
-% either recovers an up-down model or no model at all; when coseg and
-% Segmentor recovered models that did not obey the PeakSeg up-down
-% constraints, we discarded those infeasible models). In this section,
-% we compare the algorithms in terms of how frequently they recover
-% models which are feasible and optimal.
+For each of 2752 segmentation problems, we attempt to compute models
+with 0, ..., 9 peaks, so there are a total of 27520 possible models
+for each optimization-based algorithm (Segmentor, PeakSegDP,
+coseg). However, none of the algorithms is theoretically guaranteed to
+return a model which is feasible for the up-down constraint (PeakSegDP
+either recovers an up-down model or no model at all; when coseg and
+Segmentor recovered models that did not obey the PeakSeg up-down
+constraints, we discarded those infeasible models). In this section,
+we compare the algorithms in terms of how frequently they recover
+models which are feasible and optimal.
 
-% % We show the number of models which are feasible for the PeakSeg
-% % up-down constraint in Table~\ref{tab:min-train-error}. 
-% The PeakSegDP package computed the most feasible models
-% (27469/27520=99.8\%), followed by the coseg package
-% (21278/27520=77.3\%), and the Segmentor package computed the fewest
-% (8106/27520=29.4\%). In terms of optimality, the cDPA (PeakSegDP R
-% pkg) computes a sub-optimal model for 7246/27520 = 26.3\% of
-% models. For 1032/7246 of these, the PeakSeg solution exists and is
-% recovered by our new algo (coseg R pkg) but not the unconstrained algo
-% (Segmentor R pkg). These results suggest that in ChIP-seq data sets,
-% the new coseg algorithm is more accurate than PeakSegDP, in terms of
-% the Poisson likelihood. Furthermore, these results suggest that coseg
-% is more useful than Segmentor, since there are many cases for which
-% Segmentor does not recover a model that verifies the up-down
-% constraint on the segment means.
-% Numbers come from figure-PDPA-cDPA-compare.R
+% We show the number of models which are feasible for the PeakSeg
+% up-down constraint in Table~\ref{tab:min-train-error}. 
+The PeakSegDP package computed the most feasible models
+(27469/27520=99.8\%), followed by the coseg package
+(21278/27520=77.3\%), and the Segmentor package computed the fewest
+(8106/27520=29.4\%). In terms of optimality, the cDPA (PeakSegDP R
+pkg) computes a sub-optimal model for 7246/27520 = 26.3\% of
+models. For 1032/7246 of these, the PeakSeg solution exists and is
+recovered by our new algo (coseg R pkg) but not the unconstrained algo
+(Segmentor R pkg). These results suggest that in ChIP-seq data sets,
+the new coseg algorithm is more accurate than PeakSegDP, in terms of
+the Poisson likelihood. Furthermore, these results suggest that coseg
+is more useful than Segmentor, since there are many cases for which
+Segmentor does not recover a model that verifies the up-down
+constraint on the segment means.
+%Numbers come from figure-PDPA-cDPA-compare.R
 
 % \subsection{Minimum train error in ChIP-seq data}
 
@@ -1642,6 +1639,7 @@ segments) in $O(n\log n)$ time.
 The source code and data used to create this manuscript (including all
 figures) is available at\\
 \url{https://github.com/tdhock/PeakSegFPOP-paper}
+
 
 \section{Acknowledgements}
 

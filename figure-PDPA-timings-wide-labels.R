@@ -95,7 +95,7 @@ gg.log <- ggplot()+
   scale_fill_manual(values=algo.colors)+
   guides(color="none", fill="none")+
   scale_x_log10(
-    "$d$ = data points to segment",
+    "$n$ = data points to segment",
     breaks=c(1e3, 1e4, range(all.timings$data)))
 my.method <- list("last.points", dl.trans(x=x+0.1))
 
@@ -129,7 +129,7 @@ my.polygons <- list("last.points", "calc.boxes",
 dl.log <- direct.label(gg.log, list(cex=0.6, "my.polygons"))+
   coord_cartesian(xlim=c(min(all.timings$data), 1e10))
 print(dl.log)
-tikz("figure-PDPA-timings-wide-labels.tex", 5, 2.2)
+tikz("figure-PDPA-timings-wide-labels-n.tex", 5, 2.2)
 print(dl.log)
 dev.off()
 ##system("pdflatex figure-PDPA-timings-wide-labels")

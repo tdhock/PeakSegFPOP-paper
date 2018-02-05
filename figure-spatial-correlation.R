@@ -1,0 +1,131 @@
+library(data.table)
+library(ggplot2)
+
+files.dt <- rbind(
+  data.table(sample.id="McGill0004", experiment="H3K36me3", chrom="chr9", chunk="H3K36me3_AM_immune/8"),
+  data.table(sample.id="McGill0002", experiment="H3K4me3", chrom="chr2", chunk="H3K4me3_PGP_immune/7"))
+
+peaks.dt.list <- list()
+cov.dt.list <- list()
+for(file.i in 1:nrow(files.dt)){
+  f <- files.dt[file.i]
+  bed.gz <- f[, paste0(sample.id, "_", experiment, ".bed.gz")]
+  if(!file.exists(bed.gz)){
+    suffix <- f[, paste0(sample.id, "/", experiment)]
+    u <- paste0("http://hubs.hpc.mcgill.ca/~thocking/bed/", suffix)
+    download.file(u, bed.gz)
+  }
+  reads.dt <- fread(paste0("zcat ", bed.gz, "|grep ^", f$chrom), select=2:3)
+  setnames(reads.dt, c("chromStart", "chromEnd"))
+  load(paste0("data/", f$chunk, "/counts.RData"))
+  sample.dt <- data.table(counts)[sample.id==f$sample.id]
+  first <- sample.dt$chromStart[1]
+  last <- sample.dt[, chromEnd[.N] ]
+  some.reads <- reads.dt[!(chromEnd < first | last < chromStart)]
+  end.counts <- some.reads[, list(count=.N), by=list(chromEnd)]
+  end.counts[, chromStart := chromEnd-1L]
+
+  ggplot()+
+    theme_bw()+
+    geom_rect(aes(
+      xmin=chromStart/1e3, xmax=chromEnd/1e3,
+      ymin=0, ymax=coverage),
+              data=sample.dt)+
+    geom_point(aes(
+      chromEnd/1e3, count),
+               shape=1,
+               data=end.counts)
+
+  ## Create rle/compressed data for PeakSegPDPA.
+  u.pos <- end.counts[, sort(unique(c(chromStart, chromEnd, first, last)))]
+  zero.cov <- data.table(
+    chromStart = u.pos[-length(u.pos)], 
+    chromEnd = u.pos[-1], count = 0L)
+  setkey(zero.cov, chromEnd)
+  zero.cov[J(end.counts$chromEnd), `:=`(count, end.counts$count)]
+  dup.cov <- zero.cov[first <= chromStart & chromEnd <= last]
+  out.cov <- dup.cov[c(diff(count), Inf)!=0]
+  out.cov[, chromStart := c(first, chromEnd[-.N])]
+  out.cov[, stopifnot(chromEnd[-.N] == chromStart[-1])]
+  out.cov[, stopifnot(all(diff(count)!=0))]
+
+  count.list <- list(
+    coverage=sample.dt[, list(chromStart, chromEnd, count=coverage)],
+    last=out.cov)
+
+  for(count.method in names(count.list)){
+    count.dt <- count.list[[count.method]]
+    count.dt[, stopifnot(
+      chromEnd[-.N] == chromStart[-1],
+      all(diff(count)!=0),
+      first==chromStart[1],
+      last==chromEnd[.N])]
+    fit <- PeakSegOptimal::PeakSegPDPAchrom(count.dt, 2L)
+    cov.dt.list[[paste(count.method, file.i)]] <- data.table(count.method, f, count.dt)
+    peaks.dt.list[[paste(count.method, file.i)]] <- data.table(count.method, f, subset(fit$segments, status=="peak" & peaks==2))
+  }
+}
+
+cov.dt <- do.call(rbind, cov.dt.list)
+peaks.dt <- do.call(rbind, peaks.dt.list)
+
+scale.dt <- data.table(
+  y=15, count.method="last",
+  start=c(111750, 175440),
+  end=c(111800, 175490),
+  experiment=c("H3K36me3", "H3K4me3"))
+just.diff <- 0.3
+size <- 3
+gg <- ggplot()+
+  theme_bw()+
+  geom_segment(aes(
+    start, y,
+    xend=end, yend=y),
+               color="grey",
+               size=2,
+               data=scale.dt)+
+  geom_text(aes(
+    (start+end)/2, y, label=paste(end-start, "kb")),
+               color="grey",
+             vjust=-0.5,
+               data=scale.dt)+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  facet_grid(count.method ~ experiment, scales="free", labeller=function(df){
+    if("count.method" %in% names(df)){
+      df$count.method <- c(
+        coverage="each read counted at 100 positions, one for each aligned base: spatial correlation present",
+        last="each read counted at one position, the last aligned base: spatial correlation absent"
+        )[df$count.method]
+    }
+    df
+  })+
+  geom_step(aes(
+    chromStart/1e3, count),
+            data=cov.dt)+
+  geom_segment(aes(
+    chromStart/1e3, mean,
+    xend=chromEnd/1e3, yend=mean),
+               color="deepskyblue",
+               size=1,
+               data=peaks.dt)+
+  geom_text(aes(
+    chromStart/1e3, 0, label=as.integer(chromStart/1e3)),
+            color="deepskyblue",
+            vjust=1.5,
+            size=size,
+            hjust=1-just.diff,
+               data=peaks.dt)+
+  geom_text(aes(
+    chromEnd/1e3, 0, label=as.integer(chromEnd/1e3)),
+            color="deepskyblue",
+            vjust=1.5,
+            size=size,
+            hjust=just.diff,
+               data=peaks.dt)+
+  xlab("position on chromosome (kb = kilo bases)")+
+  ylab("align read counts")
+print(gg)
+
+png("figure-spatial-correlation.png", 1800, 1200, res=100)
+print(gg)
+dev.off()

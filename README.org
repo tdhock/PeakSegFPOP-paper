@@ -4,6 +4,15 @@ This repository contains the source code for our [[https://arxiv.org/abs/1703.03
 describes a log-linear time algorithm for solving the PeakSeg
 constrained changepoint detection problem.
 
+** Reproducibility info
+
+The labeled data we used to compute peak detection accuracy are
+http://members.cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/
+
+The fold IDs that we used in our four-fold cross-validation experiment
+to evaluate accuate are listed in
+http://members.cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/4foldcv-test-folds.csv
+
 ** TODOs
 
 - new slides showing better peak detection specific examples

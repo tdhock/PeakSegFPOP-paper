@@ -7,7 +7,7 @@ PDPA.RData.vec <- Sys.glob("data/H3K*/*/PDPA.model/*")
 "H3K4me3_PGP_immune/10/"
 "H3K4me3_PGP_immune/2/"
 "H3K4me3_XJ_immune/1/"
-PDPA.RData.vec <- grep("H3K4me3_XJ_immune/1/|H3K4me3_PGP_immune/2/|H3K4me3_PGP_immune/10/", PDPA.RData.vec, value=TRUE)
+##PDPA.RData.vec <- grep("H3K4me3_XJ_immune/1/|H3K4me3_PGP_immune/2/|H3K4me3_PGP_immune/10/", PDPA.RData.vec, value=TRUE)
 
 algo <- function(x){
   factor(x, c("PDPA intervals", "PDPA", "cDPA.forward", "cDPA.reverse"))
