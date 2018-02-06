@@ -75,6 +75,10 @@ scale.dt <- data.table(
   end=c(111800, 175490),
   experiment=c("H3K36me3", "H3K4me3"))
 just.diff <- 0.3
+max.dt <- cov.dt[, list(
+  max.count=max(count)
+  ), by=count.method]
+blank.dt <- cov.dt[, list(min.chromStart=min(chromStart)), by=list(count.method, experiment)][max.dt, on=list(count.method)]
 size <- 3
 gg <- ggplot()+
   theme_bw()+
@@ -93,9 +97,17 @@ gg <- ggplot()+
   facet_grid(count.method ~ experiment, scales="free", labeller=function(df){
     if("count.method" %in% names(df)){
       df$count.method <- c(
-        coverage="each read counted at 100 positions, one for each aligned base: spatial correlation present",
-        last="each read counted at one position, the last aligned base: spatial correlation absent"
+        ## coverage="each read counted at 100 positions, one for each aligned base: spatial correlation present",
+        ## last="each read counted at one position, the last aligned base: spatial correlation absent"
+        coverage="Some spatial correlation",
+        last="No spatial correlation"
         )[df$count.method]
+    }
+    if("experiment" %in% names(df)){
+      df$experiment <- c(
+        H3K36me3="Broad histone mark H3K36me3",
+        H3K4me3="Sharp histone mark H3K4me3"
+        )[df$experiment]
     }
     df
   })+
@@ -118,14 +130,17 @@ gg <- ggplot()+
   geom_text(aes(
     chromEnd/1e3, 0, label=as.integer(chromEnd/1e3)),
             color="deepskyblue",
-            vjust=1.5,
+            vjust=2.7,
             size=size,
             hjust=just.diff,
-               data=peaks.dt)+
+            data=peaks.dt)+
+  geom_blank(aes(
+    min.chromStart/1e3, -max.count/10),
+             data=blank.dt)+
   xlab("position on chromosome (kb = kilo bases)")+
-  ylab("align read counts")
+  scale_y_continuous("aligned read counts")
 print(gg)
 
-png("figure-spatial-correlation.png", 1800, 1200, res=100)
+png("figure-spatial-correlation.png", 1800, 1200, res=200)
 print(gg)
 dev.off()

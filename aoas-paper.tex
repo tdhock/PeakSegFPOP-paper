@@ -125,22 +125,20 @@ Paris-Cit\'e,
   the bioinformatics literature,
   which are optimized for speed on these large data sets,
   but which suffer from sub-optimal peak detection accuracy.
-  The recently proposed PeakSeg constrained maximum likelihood 
-  changepoint detection model has been shown to achieve 
-  state-of-the-art accuracy in a benchmark of genomic data.
-  However, the only existing inference algorithm is a 
-  quadratic time heuristic, 
-  which limits its application to relatively small data sets.
+  A recently proposed 
+  constrained changepoint detection algorithm
+  has been shown to increase peak detection accuracy,
+  but its quadratic time complexity limits its application 
+  to relatively small data sets. 
   In this paper we show how a functional pruning technique can be
-  generalized to solve the PeakSeg constrained changepoint detection problem.
-  This results in a new inference algorithm which 
-  computes the exact solution
-  to the PeakSeg constrained optimization problem 
-  in log-linear time (on average in benchmark data sets).
-  In a benchmark of several ChIP-seq data sets, our proposed
-  algorithm achieves state-of-the-art peak detection accuracy, and is
-  orders of magnitude faster than the previous quadratic time
-  heuristic. Our implementation is available in the PeakSegOptimal
+  generalized to solve the constrained changepoint detection problem.
+  This technique results in a new
+  inference algorithm which computes the exact solution 
+  to the constrained optimization problem in 
+  log-linear time (on average in ChIP-seq data), achieves state-of-the-art 
+  peak detection accuracy, and is orders of magnitude 
+  faster than the previous quadratic time heuristic.
+  Our implementation is available in the PeakSegOptimal
   package on CRAN.
 \end{abstract}
 
@@ -162,14 +160,13 @@ Paris-Cit\'e,
 
 In recent years, high-throughput DNA sequencing technologies have been
 improving at a rapid pace, resulting in progressively bigger genomic
-data sets. For example Chromatin ImmunoPrecipitation sequencing
-(ChIP-seq) is a genome-wide assay for histone modifications or
-transcription factor binding sites \citep{chip-seq}. Another example
-is the Assay for Transposase-Accessible Chromatin, which measures open
-chromatin \citep{ATACseq}. Briefly, each assay yields a set of DNA
-sequence reads which are aligned to a reference genome, and then the
-number of aligned reads are counted at each genomic position
-(Figure~\ref{fig:data-models}). 
+data sets. Two common genome-wide assays are ChIP-seq, a genome-wide
+assay for histone modifications or transcription factor binding sites
+\citep{chip-seq}; and ATAC-seq, an Assay for Transposase-Accessible
+Chromatin which measures open chromatin \citep{ATACseq}. Briefly, each
+assay yields a set of DNA sequence reads which are aligned to a
+reference genome, and then the number of aligned reads are counted at
+each genomic position (Figure~\ref{fig:data-models}).
 
 The size of these aligned read count data depends on the size of the
 chromosomes in the reference genome. For example, the largest
