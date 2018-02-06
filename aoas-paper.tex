@@ -279,7 +279,7 @@ Despite its state-of-the-art accuracy, PeakSeg suffers from two
 issues. First, for any given $K$, the existing quadratic time
 Constrained Dynamic Programming Algorithm (CDPA) is a heuristic that 
 does not necessarily
-find the segmentation with minimal cost. Second, the time complexity
+find the segmentation with minimal cost \citep{HOCKING-PeakSeg}. Second, the time complexity
 of the CDPA is $O(Kn^2)$. Since this is quadratic in
 the number of data points $n$, it can be too slow for use on
 large genomic data sets. In this paper we propose a new algorithm that
@@ -1133,6 +1133,21 @@ Implementation details can be found in the supplementary materials.
     (\textcolor{MinMore}{$C^{\geq}_{2,35}$}).  }
   \label{fig:min-envelope}
 \end{figure*}
+
+In the paper describing the CDPA \citep{HOCKING-PeakSeg}, the data set
+$\left[\begin{array}{cccc} 1 & 10 & 14 & 13
+\end{array}\right]$ is given as an example of a data set for which the CDPA fails to
+recover the optimal solution for $K=3$ segments. Indeed, the CDPA
+returns no model when run in the forward direction on this data set,
+and a sub-optimal model
+$\left[\begin{array}{cccc} 5.5 & 5.5 & 14 & 13 \end{array}\right]$
+with Poisson loss of $\approx -51.04$ when run in the backward
+direction. In contrast, our proposed GPDPA returns the optimal model
+$\left[\begin{array}{cccc} 1 & 37/3 & 37/3 & 37/3 \end{array}\right]$
+which has Poisson loss of $\approx -54.96$. Note that the equality
+constraint $u_2=u_3$ is active between the second and third segment
+means. This implies that the optimal model with strict inequality
+constraints $u_2>u_3$ is undefined; 
 
 \section{Results on peak detection in ChIP-seq data}
 \label{sec:results-chip-seq}
