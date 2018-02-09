@@ -154,6 +154,101 @@ by definition of $\FCC_{K-1,t}(u)$.
 We have thus proved that the dynamic programming update rules can be
 used for computing the optimal cost functions $C_{k,t}$.
 
+\section{Details of example where CDPA fails}
+
+Consider computing the 5 segment up-down constrained model for the set
+of 6 data points [3, 9, 18, 15, 20, 2] using the Poisson loss
+$\ell(y_i, u)=u-y_i\log u$. 
+\begin{itemize}
+\item The unconstrained PDPA computes the model [3, 9, 16.5, 16.5, 20,
+  2] which has a total Poisson loss of $\approx -109.8827$. Its two increasing
+  changes followed by two decreasing changes are not feasible for the
+  up-down constrained problem.
+\item The up-down constrained GPDPA computes the model [6, 6, 18, 15,
+  20, 2] which has a total Poisson Loss of $\approx -108.4495$. Each
+  up change is followed by a down change, so it is feasible for the
+  up-down constrained problem.
+\item The CDPA returns no feasible model with 5 segments.
+\end{itemize}
+
+To see why the CDPA fails, we give the detailed calculations of the
+GPDPA and CDPA below. The first cost function computed by the GPDPA is
+the Poisson loss of the first data point:
+\begin{equation}
+  C_{1,1}(u_1)=\ell(3, u_1) = u_1 -3\log u_1
+\end{equation}
+The minimum of $C_{1,1}$ is at 3, so its min-less operator is
+convex for $u_2\leq 3$, and constant for $u_2\geq 3$:
+\begin{equation}
+    C^\leq_{1,1}(u_2) =
+  \begin{cases}
+    C_{1,1}(u_2) = u_2 -3\log u_2 & \text{ if } u_2 \in [2,3],\  u_1=u_2\\
+    C_{1,1}(3) = -0.296 & \text{ if } u_2 \in [3,20],\  u_1=3\\
+  \end{cases}
+\end{equation}
+The second cost function is the total Poisson loss of the first two
+data points:
+\begin{equation}
+    C_{1,2}(u_1)=\ell(9, u_1)+C_{1,1}(u_1)=2u_1 -12\log u_1
+\end{equation}
+The minimum of $C_{1,2}$ is at 6, so its min-less operator is
+convex for $u_2\leq 6$, and constant for $u_2\geq 6$:
+\begin{equation}
+    C^\leq_{1,2}(u_2)=
+                     \begin{cases}
+                       C_{1,2}(u_2)=2u_2 -12\log u_2 & \text{ if } u_2 \in[2, 6],\ u_1=u_2\\
+                       C_{1,2}(6)=-9.501 &\text{ if } u_2\in [6,20],\ u_1=6
+                     \end{cases}
+\end{equation}
+The best cost in 2 segments up to data point 2 is:
+\begin{equation}
+    C_{2,2}(u_2)=\ell(9, u_2) + C^\leq_{1,1}(u_2)   =
+  \begin{cases}
+    2u_2 -12\log u_2 & \text{ if } u_2 \in [2,3],\ u_1=u_2\\
+    u_2 - 9\log u_2 -0.296 & \text{ if } u_2 \in [3, 20],\ u_1=3
+  \end{cases}
+\end{equation}
+Note in the equation above that a non-decreasing change between data points 1 and 2 is enforced by the min-less operator $C_{1,1}^\leq$.
+
+The best cost in 2 segments up to data point 3 is defined as:
+\begin{equation}
+    C_{2,3}(u_2)=\ell(18, u_2) + \min
+                \begin{cases}
+                  C_{2,2}(u_2) & \text{ if } t_1=1\\
+                  C^\leq_{1,2}(u_2) & \text{ if } t_1=2
+                \end{cases}
+\end{equation}
+The GPDPA computes the roots of $C_{2,2}(u_2)-C^\leq_{1,2}(u_2)$ in
+order to find their intersection at $u_2\approx15.41$, so the best
+cost in 2 segments up to data point 3 simplifies to:
+\begin{eqnarray}
+C_{2,3}(u_2)  &=&\ell(18, u_2) + 
+                \begin{cases}
+                  C_{2,2}(u_2) & \text{ if }u_2\in[2, 15.41],\ t_1=1\\
+                  C^\leq_{1,2}(u_2)& \text{ if }u_2\in[15.41, 20],\ t_1=2
+                \end{cases}\\
+            &=&
+                \begin{cases}
+                  3u_2 -30 \log u_2 & \text{ if } u_2\in[2,3],\ u_1=u_2,\ t_1=1\\
+                  2u_2 -27 \log u_2 -0.296 & \text{ if } u_2\in[3, 15.41],\ u_1=3,\ t_1=1\\\
+                  u_2 -18 \log u_2 -9.501  & \text{ if } u_2\in[15.41, 20],\ u_1=6,\ t_1=2\\
+                \end{cases}
+\end{eqnarray}
+This cost function is shown as the black curve in the figure
+below. The part on the left ($u_2\leq 15.41$) in blue is the cost of a
+non-decreasing change after the first data point ($t_1=1$). The part
+on the right in violet ($u_2\geq 15.41$) is the cost of a
+non-decreasing change after the second data point ($t_2=2$). Since the
+GPDPA stores the functional min cost for all possible values of the
+mean parameter, and both possible changepoints, it is able to compute
+the optimal solution. In contrast, the CDPA computes a scalar min cost
+of a non-decreasing change after the first data point (red circle),
+and discards the possibility of a non-decreasing change after the
+second data point (which ends up being optimal).
+
+\input{figure-CDPA-fails}
+
+
 \section{Algorithm pseudocode}
 
 \subsection{GPDPA for reduced isotonic regression}

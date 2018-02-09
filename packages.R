@@ -57,7 +57,7 @@ works_with_R <- function(Rvers,...){
 }
 suppressPackageStartupMessages({
   works_with_R(
-    "3.3.3",
+    "3.4.3",
     tikzDevice="0.10.1",
     LambertW="0.6.4",
     microbenchmark="1.4.2.1",

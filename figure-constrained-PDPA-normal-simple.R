@@ -979,6 +979,7 @@ cost.lines.list <- list()
 minima.list <- list()
 envelope.list <- list()
 data.vec <- c(1, 10, 14, 13)
+data.vec <- c(3, 9, 18, 15, 20, 2)
 ## TODO: increase the number of data points and see where the bug is
 ## coming from.
 ##data.vec <- data.vec[1:60]
@@ -1094,18 +1095,12 @@ gg.pruning <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
   facet_grid(. ~ total.segments + timestep, scales="free",
-             labeller=function(var, val){
-               if(var %in% c("total.segments", "timestep")){
-                 paste(sub("total.", "", var), "=", val)
-               }else{
-                 paste(val)
-               }
-             })+
-  geom_line(aes(mean, cost, group=data.i.fac),
+             labeller=label_both)+
+  geom_line(aes(mean, cost, group=paste(piece.i, data.i.fac)),
             color="grey",
             size=2,
             data=envelope)+
-  geom_line(aes(mean, cost, color=data.i.fac),
+  geom_line(aes(mean, cost, color=data.i.fac, group=paste(piece.i, cost.type)),
             data=cost.lines)+
   geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
              data=minima)

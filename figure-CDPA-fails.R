@@ -1,30 +1,4 @@
 source("packages.R")
-data(chr11ChIPseq, package="PeakSegDP")
-
-theme_set(theme_bw())
-
-count.dt <- data.table(chr11ChIPseq$coverage)
-sid <- "McGill0322"
-one.sample <- count.dt[sample.id==sid,]
-one.bins <- binSum(
-  one.sample,
-  bin.chromStart=one.sample$chromStart[1],
-  bin.size=500L,
-  n.bins=100L)
-one.bins$sample.id <- sid
-ggplot()+
-  theme_bw()+
-  theme(panel.margin=grid::unit(0, "lines"))+
-  facet_grid(sample.id ~ ., scales="free")+
-  geom_line(aes(chromStart/1e3, count),
-            color="grey50",
-            data=count.dt)+
-  geom_segment(aes(chromStart/1e3, mean,
-                   xend=chromEnd/1e3, yend=mean),
-               data=one.bins)
-
-##options(warn=2)
-
 
 ploss <- function(dt, x){
   ## need to make a new data table, otherwise ifelse may only get one
@@ -534,8 +508,6 @@ Multiply <- function(dt, x){
   new.dt
 }
 
-input.dt <- data.table(count=c(10, 1, 14, 13), weight=1)
-input.dt <- data.table(count=c(2, 4, 3, 5, 1), weight=1)
 input.dt <- data.table(count=c(3, 9, 18, 15, 20, 2), weight=1)
 library(animint)
 
@@ -606,7 +578,7 @@ for(total.segments in 2:max.segments){
   if(length(i)==1 && i==0){
     gg.prev <- gg.prev+guides(color="none")
   }
-  pdftikz(sprintf("figure-PeakSegPDPA-demo-minlessmore-%dsegments-%ddata", total.segments, total.segments), gg.prev)
+  ##pdftikz(sprintf("figure-PeakSegPDPA-demo-minlessmore-%dsegments-%ddata", total.segments, total.segments), gg.prev)
   gg.prev <- ggplot()+
     ggtitle(paste(total.segments, "segments,", total.segments, "data points"))+
     scale_x_continuous()+
@@ -632,7 +604,7 @@ for(total.segments in 2:max.segments){
                  fun.type="unconstrained min",
                  first.min))
   }
-  pdftikz(sprintf("figure-PeakSegPDPA-demo-mincompare-%dsegments-%ddata", total.segments, total.segments), gg.prev)
+  ##pdftikz(sprintf("figure-PeakSegPDPA-demo-mincompare-%dsegments-%ddata", total.segments, total.segments), gg.prev)
   first.data <- gamma.dt[total.segments,]
   first.data$data.i <- total.segments-1
   first.min.total <- Multiply(first.min.average, cum.weight[total.segments-1])
@@ -694,7 +666,7 @@ for(total.segments in 2:max.segments){
         if(length(i)==1 && i==0){
           gg.prev <- gg.prev+guides(color="none")
         }
-        pdftikz(sprintf("figure-PeakSegPDPA-demo-minlessmore-%dsegments-%ddata", total.segments, timestep), gg.prev)
+        ##pdftikz(sprintf("figure-PeakSegPDPA-demo-minlessmore-%dsegments-%ddata", total.segments, timestep), gg.prev)
         gg.prev <- ggplot()+
           ggtitle(paste(total.segments, "segments,", timestep, "data points"))+
           scale_x_continuous()+
@@ -719,7 +691,7 @@ for(total.segments in 2:max.segments){
                        fun.type="unconstrained min",
                        compare.minima))
         }
-        pdftikz(sprintf("figure-PeakSegPDPA-demo-mincompare-%dsegments-%ddata", total.segments, timestep), gg.prev)
+        ##pdftikz(sprintf("figure-PeakSegPDPA-demo-mincompare-%dsegments-%ddata", total.segments, timestep), gg.prev)
       }
       if(nrow(cost.model)){ # may be Inf over entire interval.
         cost.lines.list[[paste(total.segments, timestep)]] <-
@@ -761,7 +733,7 @@ for(total.segments in 2:max.segments){
         scale_x_continuous()+
         scale_color_manual(changepoint, values=data.colors)+
         ggtitle(paste(total.segments, "segments,", timestep, "data points"))
-      pdftikz(sprintf("figure-PeakSegPDPA-demo-minenv-%dsegments-%ddata", total.segments, timestep), gg)
+      ##pdftikz(sprintf("figure-PeakSegPDPA-demo-minenv-%dsegments-%ddata", total.segments, timestep), gg)
       if(nrow(cost.minima)){
         minima.list[[paste(total.segments, timestep)]] <-
           data.table(total.segments, timestep, rbind(
@@ -782,27 +754,6 @@ for(total.segments in 2:max.segments){
   }#for(timestep
 }#for(total.segments
 
-for(total.segments in 1:max.segments){
-  for(timestep in total.segments:length(input.dt$count)){
-    cost.model <- cost.models.list[[paste(total.segments, timestep)]]
-    gg.cost <- ggplot()+
-      ggtitle(paste0(
-        total.segments, " segment",
-        ifelse(total.segments==1, "", "s"),
-        ", ", timestep, " data"))+
-      scale_x_continuous(breaks=0:4)+
-      scale_color_manual(values=data.colors)+
-      geom_line(aes(mean, cost,
-                    color=factor(data.i),
-                    group=piece.i),
-                data=getLines(cost.model))
-    i <- unique(cost.model$data.i)
-    if(length(i)==1 && i==0){
-      gg.cost <- gg.cost+guides(color="none")
-    }
-    pdftikz(sprintf("figure-PeakSegPDPA-demo-cost-%dsegments-%ddata", total.segments, timestep), gg.cost, 2)
-  }
-}
 
 cost.lines <- do.call(rbind, cost.lines.list)
 cost.lines[, minimization := paste(
@@ -815,41 +766,7 @@ minima[, data.i.fac := factor(data.i)]
 envelope <- do.call(rbind, envelope.list)
 envelope[, data.i.fac := factor(data.i)]
 envelope[, minimization := paste(
-  total.segments, "segments up to data point", timestep)]
-gg.pruning <- ggplot()+
-  theme_bw()+
-  theme(panel.margin=grid::unit(0, "lines"))+
-  facet_grid(timestep ~ total.segments, scales="free")+
-  geom_line(aes(mean, cost, group=piece.i),
-            color="grey90",
-            size=3,
-            data=envelope)+
-  geom_line(aes(mean, cost, color=data.i.fac, group=paste(cost.type, piece.i), linetype=cost.type),
-            size=1,
-            data=cost.lines)+
-  geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
-             data=minima)
-print(gg.pruning)
-
-tsegs <- 3
-ti <- 4
-gg.pruning <- ggplot()+
-  ggtitle(paste0("Pruning at ", tsegs, " segments up to timestep ", ti))+
-  theme_bw()+
-  theme(panel.margin=grid::unit(0, "lines"))+
-  facet_grid(timestep ~ total.segments, scales="free")+
-  geom_line(aes(mean, cost, group=piece.i),
-            color="grey90",
-            size=3,
-            data=envelope[timestep==ti & tsegs==total.segments,])+
-  geom_line(aes(mean, cost, group=paste(cost.type, piece.i), linetype=cost.type,
-                color=data.i.fac),
-            size=1,
-            data=cost.lines[timestep==ti & tsegs==total.segments,])+
-  geom_point(aes(min.cost.mean, min.cost, color=data.i.fac),
-             data=minima[timestep==ti & tsegs==total.segments,])+
-  coord_cartesian(ylim=c(-14.51, -13))
-print(gg.pruning)
+                          total.segments, "segments up to data point", timestep)]
 
 tsegs <- 3
 ti <- 4
@@ -872,7 +789,7 @@ gg.pruning <- ggplot()+
     mean, cost, label=label),
             color="red",
             data=data.table(
-              mean=7, cost=-14.48*3),
+              mean=7, cost=-43.4),
               label=c(
                 "CDPA discards possibility
 of non-decreasing change after $t_1=2$"))+
@@ -900,292 +817,38 @@ non-decreasing change after $t_1=1$"))+
   geom_text(aes(
     mean, cost, label=label),
             color="grey50",
+            ##vjust=1,
             data=data.table(
-              mean=17, cost=-14.52*3,
+              mean=11, cost=-43.6,
               label=c(
-                "GPDPA considers both
-possible changes $t_1\\in\\{1,2\\}$
-by computing $C^\\geq_{2,3}(u_3)$,
-the functional min cost of a
-non-increasing change after $t_2=3$")))+
+                "GPDPA considers both possible changes $t_1\\in\\{1,2\\}$ by computing $C^\\geq_{2,3}(u_3)$,
+the functional min cost of a non-increasing change after $t_2=3$")))+
   geom_line(aes(mean, total.cost),
+            size=1.25,
             data=cost.lines[timestep==ti & tsegs==total.segments & cost.type == "result"])+
   geom_line(aes(mean, total.cost, group=paste(cost.type, piece.i), linetype=cost.type,
                 color=data.i.fac),
             size=1,
             data=cost.lines[timestep==ti & tsegs==total.segments & cost.type == "result"])+
   geom_point(aes(min.cost.mean, total.min.cost),
+             size=3,
+             shape=1,
+             color="red",
              data=minima[timestep==ti & tsegs==total.segments,])+
-  coord_cartesian(ylim=c(-14.525, -14.4)*3)+
-  scale_color_discrete("previous\nsegment\nend", guide="none")+
+  coord_cartesian(ylim=c(-43.625, -43.2))+
+  scale_color_manual(values=c("1"="deepskyblue", "2"="violet"), guide="none")+
   scale_linetype_discrete(labels=c(result="$C_{2,3}$", compare="C^\\geq{2,3}"), guide="none")+
   geom_text(aes(
     mean, cost, color=data.i.fac, label=label),
             data=data.table(
-              mean=c(10, 18), cost=-14.46*3, data.i.fac=factor(c(1, 2)),
+              mean=c(9, 18), cost=c(-43.25,-43.35), data.i.fac=factor(c(1, 2)),
               label=c(
-                "cost of non-decreasing\nchange after $t_1=1$\n$\\ell(y_3, u_2)+$C_{2,2}(u_2)$",
-                "cost of non-decreasing\nchange after $t_1=2$\n$\\ell(y_3, u_2)+$C^\\leq_{1,2}(u_2)")))+
+                "cost of non-decreasing\nchange after $t_1=1$\n$\\ell(y_3, u_2)+C_{2,2}(u_2)$",
+                "cost of non-decreasing\nchange after $t_1=2$\n$\\ell(y_3, u_2)+C^\\leq_{1,2}(u_2)$")))+
   ylab("cost")+
   xlab("segment mean")
 print(gg.pruning)
-tikz("figure-PeakSegPDPA-demo-CDPA-fails.tex", 4, 3)
+tikz("figure-CDPA-fails.tex", 6, 4)
 print(gg.pruning)
 dev.off()
-
-data.lines.list <- list()
-data.minima.list <- list()
-data.infeasible.list <- list()
-data.cost.list <- list()
-data.intervals.list <- list()
-## for animint:
-for(total.segments in 1:max.segments){
-  for(timestep in total.segments:length(input.dt$count)){
-    cat(sprintf("decoding %4d / %4d segments %4d / %4d data points\n",
-                total.segments, max.segments, timestep, length(input.dt$count)))
-    data.i <- timestep
-    seg.i <- total.segments
-    no.constraint <- data.table(
-      min.mean,
-      max.mean,
-      data.i=NA)
-    constraint <- no.constraint
-    segment.end <- timestep
-    while(0 < seg.i && length(data.i)==1){
-      unconstrained.fun <- cost.models.list[[paste(seg.i, data.i)]]
-      if(seg.i==total.segments){
-        data.intervals.list[[paste(total.segments, timestep)]] <- data.table(
-          total.segments, timestep, intervals=nrow(unconstrained.fun))
-      }
-      if(nrow(unconstrained.fun)){
-        show.lines <- getLines(unconstrained.fun)
-        ##if(seg.i>1)show.lines$data.i <- show.lines$data.i+1L
-        if(seg.i==1)show.lines$data.i <- 0
-        data.lines.list[[paste(total.segments, timestep, seg.i)]] <-
-          data.table(total.segments, timestep, seg.i,
-                     show.lines)
-      }
-      min.dt <- Minimize(
-        unconstrained.fun,
-        constraint$min.mean,
-        constraint$max.mean)
-      if(seg.i==total.segments){
-        data.cost.list[[paste(total.segments, timestep)]] <-
-          data.table(total.segments, timestep,
-                     optimal.cost=min.dt$min.cost,
-                     constraint="inactive")
-      }
-      ggplot()+
-        geom_point(aes(min.cost.mean, min.cost),
-                   data=min.dt)+
-        geom_line(aes(mean, cost, color=factor(data.i)),
-                  data=getLines(unconstrained.fun))
-      min.dt$segment.end <- segment.end
-      min.dt[, segment.start := ifelse(seg.i==1, 1, 1+data.i)]
-      segment.end <- min.dt$data.i
-      if(min.mean < constraint$min.mean){
-        data.infeasible.list[[paste(
-          total.segments, timestep, seg.i)]] <-
-          data.table(total.segments, timestep, seg.i,
-                     min.mean,
-                     max.mean=constraint$min.mean)
-      }
-      if(constraint$max.mean < max.mean){
-        data.infeasible.list[[paste(
-          total.segments, timestep, seg.i)]] <-
-          data.table(total.segments, timestep, seg.i,
-                     min.mean=constraint$max.mean,
-                     max.mean)
-      }
-      min.dt$constraint <- if(min.dt[, fun.min.mean == min.cost.mean]){
-        "inactive"
-      }else{
-        data.cost.list[[paste(
-          total.segments, timestep)]]$constraint <- "active"
-        "active"
-      }
-      show.min <- data.table(
-        total.segments, timestep, seg.i,
-        min.dt)
-      if(seg.i==1)show.min$data.i <- 0
-      data.minima.list[[paste(total.segments, timestep, seg.i)]] <-
-        show.min
-      constraint <- no.constraint
-      constraint.side <- if(seg.i %% 2){
-        constraint$min.mean <- min.dt$min.cost.mean
-      }else{
-        constraint$max.mean <- min.dt$min.cost.mean
-      }
-      data.i <- min.dt$data.i
-      seg.i <- seg.i-1
-    }#while(...
-  }#for(timestep
-}#for(total.segments
-
-data.intervals <- do.call(rbind, data.intervals.list)
-data.dt <- data.table(
-  count=input.dt$count,
-  position=seq_along(input.dt$count),
-  data.i.fac=factor(seq_along(input.dt$count)))
-data.lines <- do.call(rbind, data.lines.list)
-data.lines[, data.i.fac := factor(data.i)]
-data.lines[, minimization := paste(
-  total.segments, "segments up to data point", timestep)]
-left.of.intervals <-
-  data.lines[, .SD[1,],
-             by=.(total.segments, timestep, minimization, seg.i, piece.i)]
-between.intervals <- left.of.intervals[min.mean != min(input.dt$count),]
-data.minima <- do.call(rbind, data.minima.list)
-data.minima[, data.i.fac := factor(data.i)]
-data.minima[, minimization := paste(
-  total.segments, "segments up to data point", timestep)]
-data.infeasible <- do.call(rbind, data.infeasible.list)
-data.infeasible[, minimization := paste(
-  total.segments, "segments up to data point", timestep)]
-data.cost <- do.call(rbind, data.cost.list)
-data.cost[, minimization := paste(
-  total.segments, "segments up to data point", timestep)]
-addY <- function(dt, y){
-  data.table(dt, y=factor(y, c("data value", "intervals", "segments")))
-}
-largest.constant <- envelope[Linear==0, max(Constant)]
-viz <- list(
-  title=paste(
-    "Constrained Pruned Dynamic Programming Algorithm"),
-  funModels=ggplot()+
-    scale_color_manual("prev seg end", values=data.colors)+
-    theme_bw()+
-    theme(panel.margin=grid::unit(0, "lines"))+
-    theme_animint(width=800, height=300)+
-    ##coord_cartesian(ylim=c(0, max(between.intervals$cost)))+
-    geom_line(aes(mean, cost,
-                  key=paste(timestep, total.segments),
-                  showSelected=total.segments, showSelected2=timestep),
-              color="grey",
-              size=8,
-              data=data.table(envelope, seg.i="pruning"))+
-    geom_line(aes(mean, cost, color=data.i.fac,
-                  group=paste(piece.i, data.i),
-                  key=paste(cost.type, min.mean, max.mean),
-                  showSelected=total.segments, showSelected2=timestep),
-              data=data.table(cost.lines, seg.i="pruning"))+
-    ## geom_point(aes(min.cost.mean, min.cost, color=data.i.fac,
-    ##                showSelected=total.segments, showSelected2=timestep),
-    ##            size=5,
-    ##            data=data.table(minima, seg.i="pruning"))+    
-    facet_grid(. ~ seg.i, scales="free", labeller=as_labeller(function(x){
-      paste(ifelse(x != "pruning", "segment", ""), x)
-    }))+
-    geom_tallrect(aes(xmin=min.mean, xmax=max.mean,
-                      key=timestep,
-                      showSelected=total.segments,
-                      showSelected2=timestep),
-                  fill="grey",
-                  alpha=0.5,
-                  color=NA,
-                  data=data.infeasible)+
-    geom_line(aes(mean, cost, color=data.i.fac,
-                  group=piece.i,
-                  key=paste(min.mean, max.mean),
-                  showSelected=total.segments,
-                  showSelected2=timestep),
-              data=data.lines),
-  data=ggplot()+
-    theme_bw()+
-    theme(panel.margin=grid::unit(0, "lines"))+
-    theme_animint(width=800, height=300)+
-    facet_grid(y ~ ., scales="free")+
-    scale_color_manual(values=data.colors)+
-    guides(color="none")+
-    geom_segment(aes(segment.start-0.45, min.cost.mean,
-                     showSelected=total.segments,
-                     showSelected2=timestep,
-                     key=seg.i,
-                     xend=segment.end+0.45, yend=min.cost.mean),
-                 data=addY(data.minima, "data value"),
-                 color="green")+
-    geom_point(aes(position, count),
-               size=5,
-               data=addY(data.dt, "data value"))+
-    geom_point(aes(position, count, color=data.i.fac),
-               size=4,
-               data=addY(data.dt, "data value"))+
-    geom_vline(aes(xintercept=segment.start-0.5,
-                   key=seg.i,
-                   showSelected=total.segments,
-                   showSelected2=timestep),
-               data=addY(data.minima[1<segment.start,], "data value"),
-               color="green",
-               linetype="dashed")+
-    guides(color="none")+
-    geom_tallrect(aes(xmin=timestep-0.5, xmax=timestep+0.5,
-                      clickSelects=timestep),
-                  data=data.table(timestep=seq_along(input.dt$count)),
-                  alpha=0.5)+
-    ## geom_line(aes(timestep, intervals, group=total.segments,
-    ##               clickSelects=total.segments),
-    ##            data=addY(data.intervals, "intervals"))+
-    geom_tile(aes(timestep, total.segments, fill=optimal.cost),
-              data=addY(data.cost, "segments"))+
-    geom_widerect(aes(ymin=total.segments-0.5, ymax=total.segments+0.5,
-                      clickSelects=total.segments),
-                  alpha=0.5,
-                  fill=NA,
-                  color="black",
-                  data=addY(
-                    data.table(total.segments=1:max.segments), "segments"))+
-    ylab("")+
-    scale_x_continuous(
-      "data point",
-      breaks=unique(c(seq(1, length(input.dt$count), by=10), length(input.dt$count)))),
-  time=list(variable="timestep", ms=2000),
-  duration=list(timestep=2000)
-)
-minima.active <- data.minima[constraint=="active",]
-if(nrow(minima.active)){
-  viz$funModels <- viz$funModels+
-    geom_point(aes(min.cost.mean, min.cost,
-                   key=data.i,
-                   showSelected=total.segments, showSelected2=timestep),
-               size=6,
-               shape=21,
-               fill="white",
-               color="black",
-               data=minima.active)
-}
-viz$funModels <- viz$funModels+
-  geom_point(aes(min.cost.mean, min.cost, color=data.i.fac,
-                 tooltip=paste(
-                   "minimum cost =",
-                   round(min.cost, 4),
-                   "with",
-                   constraint,
-                   "constraint at mean =",
-                   round(min.cost.mean, 4),
-                   "for",
-                   seg.i,
-                   "segment model up to data point",
-                   segment.end,
-                   "previous segment end =",
-                   data.i
-                 ),
-                 key=data.i,
-                 showSelected=total.segments, showSelected2=timestep),
-             size=5,
-             data=data.minima)+
-  geom_point(aes(mean, cost,
-                 key=mean,
-                 showSelected=total.segments, showSelected2=timestep),
-             data=between.intervals)  
-cost.active <- data.cost[constraint=="active",]
-if(nrow(cost.active)){
-  viz$data <- viz$data+
-    geom_point(aes(timestep, total.segments),
-               shape=21,
-               size=4,
-               color="black",
-               fill="white",
-               data=addY(cost.active, "segments"))
-}
-animint2dir(viz, "figure-PeakSegPDPA-demo")
-
+##system("pdflatex aoas-supplementary")
