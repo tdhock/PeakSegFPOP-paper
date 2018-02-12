@@ -125,19 +125,22 @@ Paris-Cit\'e,
   the bioinformatics literature,
   which are optimized for speed on these large data sets,
   but which suffer from sub-optimal peak detection accuracy.
-  A recently proposed 
-  constrained changepoint detection algorithm
-  has been shown to increase peak detection accuracy,
-  but its quadratic time complexity limits its application 
-  to relatively small data sets. 
-  In this paper we show how a functional pruning technique can be
-  generalized to solve the constrained changepoint detection problem.
-  This technique results in a new
-  inference algorithm which computes the exact solution 
-  to the constrained optimization problem in 
-  log-linear time (on average in ChIP-seq data), achieves state-of-the-art 
-  peak detection accuracy, and is orders of magnitude 
-  faster than the previous quadratic time heuristic.
+  In this paper we propose a new peak detection method based on a 
+  maximum likelihood segmentation model with non-strict
+  inequality constraints between adjacent segment means.
+  Previous dynamic programming algorithms for solving the unconstrained problem
+  are based on the assumption that the mean of each segment is independent, 
+  so can not be used to solve the constrained problem.
+  In this paper we propose the first dynamic programming algorithm
+  that is guaranteed compute the optimal solution to such constrained problems,
+  despite the dependence between mean parameters in neighboring segments.
+  We compared our algorithm to several others in an
+  analysis of benchmark ChIP-seq data sets, for which computation time and
+  peak detection accuracy are primary concerns.
+  Our algorithm showed state-of-the-art peak detection accuracy, 
+  and log-linear timings
+  (orders of magnitude faster than a previous quadratic time heuristic) 
+  that make it possible to use on the large genomic data sets that are now common.
   Our implementation is available in the PeakSegOptimal
   package on CRAN.
 \end{abstract}
@@ -207,46 +210,47 @@ p-value thresholds, etc). Although such algorithms are fast for large
 data sets, they typically yield sub-optimal peak detection accuracy
 \citep{HOCKING2016-chipseq}.
 
-Recent work in statistical models based on maximum likelihood
-segmentation have shown promising results toward increasing peak
-detection accuracy in genomic data. For example,
-\citet{cleynen2013segmentation} proposed an unconstrained maximum
-Poisson likelihood segmentation model for genomic data. It is defined
-as the model with exactly $K$ piecewise constant segment means that
-has highest Poisson likelihood value.  However, it sometimes has
-several consecutive up changes, which makes it non-trivial to
-interpret in terms of peaks (Figure~\ref{fig:data-models}, top). To
-ensure that the segmentation model is interpretable in terms of peaks
-and background, \citet{HOCKING-PeakSeg} introduced the PeakSeg
-constraint: up changes must be followed by down changes, and vice
-versa (Figure~\ref{fig:data-models}, bottom).  The model with
+Recent work on maximum likelihood segmentation models for genomic data
+includes \citet{cleynen2013segmentation}, who proposed an
+unconstrained Poisson model for $n$ count data. It is defined as the
+model with exactly $K$ piecewise constant segment means that has
+highest Poisson likelihood value. However, because it sometimes has
+several consecutive up changes, it is non-trivial to interpret in
+terms of peaks and background (Figure~\ref{fig:data-models}, top).
+
+To ensure that the segmentation model is interpretable in terms of
+peaks and background, \citet{HOCKING-PeakSeg} introduced the 
+constraint that up changes must be followed by down changes, and vice
+versa (Figure~\ref{fig:data-models}, bottom). The model with
 $P\in\{0,1,\dots, \}$ peaks has $K=2P+1\in\{1, 3, \dots\}$
 segments. These constraints ensure that odd-numbered segments can be
 interpreted as background, and even-numbered segments can be
-interpreted as peaks.
+interpreted as peaks. 
 %In contrast to heuristic algorithms such as MACS and HMCan, PeakSeg has only one parameter that affects peak detection accuracy (the number of segments $K$). 
-In a
-recent comparison study, \citet{HOCKING2016-chipseq} showed that
-PeakSeg achieves state-of-the-art peak detection accuracy in a
-benchmark of several ChIP-seq data sets.
+In a recent comparison study, \citet{HOCKING2016-chipseq} showed that
+a heuristic algorithm for computing this constrained model achieves
+state-of-the-art peak detection accuracy in a benchmark of several
+ChIP-seq data sets. This constrained model is further justified by the
+statistical arguments of \citet{minimax-changepoint}, who showed that the minimax
+risk bounds for detecting changes in mean under such constraints is
+$O(\log \log n)$ rather than $O(\log n)$ without the constraints.
 
-The approach taken by the PeakSeg algorithm can be formalised as follows. For any given number, $K$,
-of segments we try to find the best segmentation. We define how good a segmentation is by fitting
-a constant mean for each segment of the chromosome, subject to the up-down constraint that
-the segment means alternate between increasing and decreasing. Subject to this constraint we find the
-best choice of segment means to minimize some loss function that measures how close the mean is to each 
-observation. The cost of a segmentation is defined to be the resulting value of this loss summed over 
-all observations. For a sequence of $n$ data points, PeakSeg attempts to search over the $O(n^{K-1})$ 
-possible segmentations to find the one that minimizes this cost. 
+% The approach taken by the PeakSeg algorithm can be formalised as follows. For any given number, $K$,
+% of segments we try to find the best segmentation. We define how good a segmentation is by fitting
+% a constant mean for each segment of the chromosome, subject to the up-down constraint that
+% the segment means alternate between increasing and decreasing. Subject to this constraint we find the
+% best choice of segment means to minimize some loss function that measures how close the mean is to each 
+% observation. The cost of a segmentation is defined to be the resulting value of this loss summed over 
+% all observations. For a sequence of $n$ data points, PeakSeg attempts to search over the $O(n^{K-1})$ 
+% possible segmentations to find the one that minimizes this cost. 
 
-
-In practice PeakSeg is used to find a sequence of models for a range
+In practice we compute a sequence of models for a range
 of segments $K$, which acts as a regularization parameter. Small
 values of $K$ result in too few segments/peaks (underfitting), and
-large values of $K$ result in too many (overfitting). Model selection
-criteria such as oracle penalties \citep{cleynen2013segmentation} or
-learned penalties \citep{HOCKING-penalties} can be used to decide the
-value of $K$.
+large values of $K$ result in too many (overfitting). Oracle penalties
+\citep{cleynen2013segmentation} or learned penalties
+\citep{HOCKING-penalties} can be used to select the number of segments
+$K$.
 
 \begin{table*}[t!]
   \centering
@@ -274,15 +278,17 @@ in our empirical tests on real ChIP-seq data sets.}
 \label{tab:contribution}
 \end{table*}
 
-Despite its state-of-the-art accuracy, PeakSeg suffers from two
-issues. First, for any given $K$, the existing quadratic time
-Constrained Dynamic Programming Algorithm (CDPA) is a heuristic that 
-does not necessarily
-find the segmentation with minimal cost \citep{HOCKING-PeakSeg}. Second, the time complexity
-of the CDPA is $O(Kn^2)$. Since this is quadratic in
-the number of data points $n$, it can be too slow for use on
-large genomic data sets. In this paper we propose a new algorithm that
-resolves both of these issues (Table~\ref{tab:contribution}).
+The previous constrained maximum likelihood approach suffers from two
+major issues, which we fix in this paper using a rigorous
+mathematical analysis of the maximum likelhood optimization
+problem. First, the for any given $K$, the existing quadratic time
+Constrained Dynamic Programming Algorithm (CDPA) is a heuristic that
+does not necessarily find the segmentation with minimal cost
+\citep{HOCKING-PeakSeg}. Second, the time complexity of the CDPA is
+$O(Kn^2)$. Since this is quadratic in the number of data points $n$,
+it can be too slow for use on large genomic data sets. In this paper
+we propose a new algorithm that resolves both of these issues
+(Table~\ref{tab:contribution}).
 
 The paper is structured as follows. First in Section~\ref{sec:models} we define a natural class of cost functions for 
 measuring the quality of a segmentation, and consider the problem of finding the best segmentation
@@ -1167,10 +1173,14 @@ large-scale mapping projects such as ENCODE \citep{ENCODE}. ChIP-seq
 data measure histone modification or transcription factor binding
 throughout a genome, and are typically represented as a vector of
 non-negative counts $\mathbf y\in\ZZ_+^n$ of aligned sequence reads
-for $n$ continguous bases in a genome. Data sizes are between $n=10^5$
-(maximum of the benchmark we consider) and $n=10^8$ (largest region
-with no gaps in the human genome hg19). Algorithms with sub-quadratic
-time complexity are thus essential for the analysis of such large data
+for $n$ continguous bases in a genome. Because the typical
+``coverage'' profile counts a sequence read at each genomic position
+where it aligns, the data usually have spatial correlation, but
+this does not significantly affect the peaks detected by our method
+(see Supplementary Figure 3). Data sizes are between $n=10^5$ (maximum
+of the benchmark we consider) and $n=10^8$ (largest region with no
+gaps in the human genome hg19). Algorithms with sub-quadratic time
+complexity are thus essential for the analysis of such large data
 sets.
 
 The main challenge in ChIP-seq data analysis is peak detection, which
@@ -1204,25 +1214,27 @@ a particular genomic region in tcell but not in monocyte samples).
   \centering
   \includegraphics[width=\textwidth]{figure-good-bad}
 \vskip -0.5cm
-\caption{ Examples of \textcolor{good}{good} and \textcolor{bad}{bad}
-  peak models for two ChIP-seq count data vectors (grey). Labels
-  (colored rectangles) indicate genomic regions where a biologist
-  desires presence (peakStart/peakEnd) or absence (noPeaks) of
-  peaks. Peak detection accuracy is quantified by counting the number
-  of incorrect labels (each noPeaks label with an overlapping peak is
-  a false positive; each peakStart/End label requires exactly one peak
-  start/end in that region, zero starts/ends is a false negative, and
-  two or more starts/ends is a false positive).
-    % \textbf{Left:} the \textcolor{bad}{bad} model has one large peak, 
-    % which causes two false negatives and one false positive.
-    % \textbf{Right:} the \textcolor{bad}{bad} model has 
+\caption{Labels from a biologist (colored rectangles) are used to 
+  quantify peak detection error rate, by counting the
+  number of incorrectly predicted labels
+  (each noPeaks label with an overlapping
+  peak is a false positive; each peakStart/End label requires exactly
+  one peak start/end in that region, zero starts/ends is a false
+  negative, and two or more starts/ends is a false positive).
+  \textbf{Left}: a \textcolor{good}{good} model with two peaks results in 0 errors; a
+  \textcolor{bad}{bad} model with one large peak results in three errors (two false negatives and one false positive).
+  \textbf{Right}: a \textcolor{good}{good} model with two peaks results in 0 errors; a
+  \textcolor{bad}{bad} model with three peaks results in five errors (three false negatives and two false positives).
 }
   \label{fig:good-bad}
 \end{figure*}
 
+
+\subsection{Peak detection accuracy evaluation method}
+
 The ChIP-seq data sets that we consider in this paper are significant
 because they contain manually determined labels that can be used to
-compute error rates of peak detection algorithms. In this context, a
+compute error rates of peak detection algorithms, as described by \citet{HOCKING2016-chipseq}. In this context, a
 ChIP-seq data set consists of $m$ count data vectors
 $\mathbf y_1,\dots,\mathbf y_m$ along with labels $L_1,\dots, L_m$
 that identify genomic regions with and without peaks
@@ -1233,8 +1245,6 @@ regions. These labels can be used to compute an error rate
 $E[c(\mathbf y_i), L_i]$ which is the total of false positives (labels
 with too many predicted peaks) plus false negatives (labels with not
 enough predicted peaks) for a given labeled data vector $i$.
-
-\subsection{Peak detection accuracy evaluation method}
 
 The benchmark consists of seven histone ChIP-seq data sets, each with
 a different peak pattern. For each data set, we use four-fold
@@ -1672,8 +1682,8 @@ Guillem Rigaill acknowledges an ATIGE grant from G\'enopole.
 
 
 \bibliographystyle{abbrvnat}
-\bibliography{refs}
-
+\bibliography{refs-abbrev}
+ 
 
 
 % AOS,AOAS: If there are supplements please fill:

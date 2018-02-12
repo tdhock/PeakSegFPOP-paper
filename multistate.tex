@@ -1,0 +1,178 @@
+\documentclass{article}
+
+% use Times
+\usepackage{times}
+% For figures
+\usepackage{graphicx} % more modern
+%\usepackage{epsfig} % less modern
+\usepackage{subfigure} 
+
+% For citations
+\usepackage{natbib}
+
+% For algorithms
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+% As of 2011, we use the hyperref package to produce hyperlinks in the
+% resulting PDF.  If this breaks your system, please commend out the
+% following usepackage line and replace \usepackage{icml2016} with
+% \usepackage[nohyperref]{icml2016} above.
+\usepackage{hyperref}
+\usepackage{xcolor}
+\definecolor{Ckt}{HTML}{E41A1C}
+\definecolor{Min}{HTML}{4D4D4D}%grey30
+%{B3B3B3}%grey70
+\definecolor{MinMore}{HTML}{377EB8}
+\definecolor{Data}{HTML}{984EA3}
+
+% Packages hyperref and algorithmic misbehave sometimes.  We can fix
+% this with the following command.
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% Employ the following version of the ``usepackage'' statement for
+% submitting the draft version of the paper for review.  This will set
+% the note in the first column to ``Under review.  Do not distribute.''
+%\usepackage{icml2016} 
+\usepackage{fullpage}
+
+% Employ this version of the ``usepackage'' statement after the paper has
+% been accepted, when creating the final version.  This will set the
+% note in the first column to ``Proceedings of the...''
+%\usepackage[accepted]{icml2016}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows}
+\usepackage{amssymb,amsmath}
+\usepackage{natbib}
+\usepackage{amsthm}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\sign}{sign}
+\DeclareMathOperator*{\Lik}{Lik}
+\DeclareMathOperator*{\Peaks}{Peaks}
+\DeclareMathOperator*{\HotSpots}{HotSpots}
+\newcommand{\Cost}{\text{Cost}}
+\usepackage{stfloats}
+\DeclareMathOperator*{\Diag}{Diag}
+\DeclareMathOperator*{\TPR}{TPR}
+\DeclareMathOperator*{\Segments}{Segments}
+\DeclareMathOperator*{\Changes}{Changes}
+\DeclareMathOperator*{\FPR}{FPR}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\maximize}{maximize}
+\DeclareMathOperator*{\minimize}{minimize}
+\newcommand{\ZZ}{\mathbb Z}
+\newcommand{\NN}{\mathbb N}
+\newcommand{\RR}{\mathbb R}
+
+
+
+\begin{document}
+
+\title{A constrained changepoint model for neuro data}
+\author{
+Toby Dylan Hocking (toby.hocking@r-project.org)
+}
+\maketitle
+
+\begin{abstract}
+We propose a three-state model for neuro data.
+\end{abstract}
+
+A functional pruning algorithm can solve the following problem. Let
+$G=(V,E)$ be a directed graph that represents the model constraints
+(note that some edges have penalty 0, so that we only penalize a change if it
+ends up in the dec state, resulting in a new spike).
+\begin{center}
+  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+                    thick,main node/.style={circle,draw}]
+
+  \node[main node] (inc) {inc};
+  \node[main node] (flat) [below left of=inc] {flat};
+  \node[main node] (dec) [below right of=inc] {dec};
+
+  \path[every node/.style={font=\sffamily\small}]
+  (flat) edge [bend left] node {$g_\uparrow, 0$} (inc)
+  (inc) edge [bend left] node {$g_\downarrow, \lambda$} (dec)
+  (dec) edge [] node {$g_\uparrow, 0$} (inc)
+  (flat) edge [] node {$g_\uparrow,\lambda$} (dec)
+  (dec) edge [bend left] node {$g_\uparrow,0$} (flat)
+  (dec) edge [loop right] node {$g_\uparrow, \lambda$} (dec)
+;
+\end{tikzpicture}
+\end{center}
+The vertices $V=\{1,\dots,|V|\}$ can be represented as integers, one
+for every distinct state (here $|V|=3$). Each state $s\in V$ has a
+function $f_s$ that determines how the mean evolves
+$f_s(m_t) = m_{t+1}$ in that state:
+\begin{center}
+  \begin{tabular}{ccc}
+state $s$ &  function $f_s(m)$ & interpretation \\
+  \hline
+  flat & $m$ & constant after a long time with no spikes\\
+dec & $\gamma m$ & decreasing after a spike\\
+inc & $m+b$ & increasing before a spike
+\end{tabular}
+\end{center}
+The edges $E=\{1,\dots,|E|\}$ is another set of integers, each of
+which represents one of the possible changes between states. Each
+edge/change $c\in E$ has corresponding data
+$(\underline v_c, \overline v_c, \lambda_c, \bar g_c)$ which specifies
+a transition from state $\underline v_c$ to state $\overline v_c$,
+with a penalty of $\lambda_c\in\RR_+$, and a constraint function
+$\bar g_c:\RR\times\RR\rightarrow\RR$. We enforce the constraint
+$\bar g_c[f_{\underline v_c}(m_t), m_{t+1}]= g_c(m_t, m_{t+1})\leq
+0$. Note that there are two equivalent ways to write the constraint:
+using $\bar g_c$ is more convenient for defining the model (we can use
+$g_\downarrow(m_t,m_{t+1})=m_{t+1}-m_t$ for a non-increasing change, and
+$g_\uparrow(m_t,m_{t+1})=m_t-m_{t+1}$ for a non-decreasing change), and using
+$g_c$ is more convenient for implementing the solver. For our model we
+have
+\begin{center}
+  \begin{tabular}{ccccccc}
+  from $\underline v_c$ & to $\overline v_c$ & penalty $\lambda_c$ &
+  $\bar g_c$ & $g_c(m_t, m_{t+1})$ & interpretation\\
+  \hline
+  flat & inc & 0 & $g_\uparrow$ & $m_t-m_{t+1}$ & gradual increase to a spike\\
+  flat & dec & $\lambda$ & $g_\uparrow$ & $m_t-m_{t+1}$ & instantaneous spike\\
+  dec & dec & $\lambda$ & $g_\uparrow$ & $\gamma m_t-m_{t+1}$ & instantaneous spike\\
+  dec & flat & 0 & $g_\uparrow$ & $\gamma m_t-m_{t+1}$ & no activity long after a spike\\
+  dec & inc & 0 & $g_\uparrow$ & $\gamma m_t-m_{t+1}$ & gradual increase to a spike\\
+  inc & dec & $\lambda$ & $g_\downarrow$ & $m_{t+1}-m_t-b$ & peak of spike
+\end{tabular}
+\end{center}
+In the optimization problem below we
+also allow $c=0$, which implies no penalty $\lambda_0=0$, and means no
+change:
+\begin{align}
+  \label{eq:GFPOP_problem}
+  \minimize_{
+    \substack{
+    \mathbf m\in\RR^n,\ \mathbf s\in V^n\\
+\mathbf c\in \{0,1,\dots,|E|\}^{n-1}
+}
+    } &\ \ 
+  \sum_{t=1}^n \ell(y_t, m_t) + \sum_{t=1}^{n-1} \lambda_{c_t} \\
+  \text{subject to \hskip 0.9cm} &\ \ c_t = 0 \Rightarrow f_{s_t}(m_t) = m_{t+1}
+\text{ and } s_t= s_{t+1}
+  \nonumber\\
+&\ \ c_t \neq 0 \Rightarrow g_{c_t}(m_t, m_{t+1})\leq 0\text{ and }
+(s_t,s_{t+1})=(\underline v_{c_t}, \overline v_{c_t}).
+\nonumber
+\end{align}
+If some states are desired at the start or end, then those constraints
+$s_1\in \underline S, s_n\in\overline S$ can also be enforced.  To
+compute the solution to this optimization problem, we propose the
+following dynamic programming algorithm.
+
+Let $C_{s,t}(u)$ be the optimal cost with mean $u$ and state $s$ at
+data point $t$. This quantity can be recursively computed using
+dynamic programming. The initialization for the first data point is
+$ C_{s,1}(u) = \ell(y_1, u)$ for all states $s$. The dynamic
+programming update rule for all data points $t>1$ is TODO.
+
+\end{document} 

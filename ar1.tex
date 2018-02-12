@@ -1,0 +1,443 @@
+\documentclass{article}
+
+% use Times
+\usepackage{times}
+% For figures
+\usepackage{graphicx} % more modern
+%\usepackage{epsfig} % less modern
+\usepackage{subfigure} 
+
+% For citations
+\usepackage{natbib}
+
+% For algorithms
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+% As of 2011, we use the hyperref package to produce hyperlinks in the
+% resulting PDF.  If this breaks your system, please commend out the
+% following usepackage line and replace \usepackage{icml2016} with
+% \usepackage[nohyperref]{icml2016} above.
+\usepackage{hyperref}
+\usepackage{xcolor}
+\definecolor{Ckt}{HTML}{E41A1C}
+\definecolor{Min}{HTML}{4D4D4D}%grey30
+%{B3B3B3}%grey70
+\definecolor{MinMore}{HTML}{377EB8}
+\definecolor{Data}{HTML}{984EA3}
+
+% Packages hyperref and algorithmic misbehave sometimes.  We can fix
+% this with the following command.
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% Employ the following version of the ``usepackage'' statement for
+% submitting the draft version of the paper for review.  This will set
+% the note in the first column to ``Under review.  Do not distribute.''
+%\usepackage{icml2016} 
+\usepackage{fullpage}
+
+% Employ this version of the ``usepackage'' statement after the paper has
+% been accepted, when creating the final version.  This will set the
+% note in the first column to ``Proceedings of the...''
+%\usepackage[accepted]{icml2016}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows}
+\usepackage{amssymb,amsmath}
+\usepackage{natbib}
+\usepackage{amsthm}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\sign}{sign}
+\DeclareMathOperator*{\Lik}{Lik}
+\DeclareMathOperator*{\Peaks}{Peaks}
+\DeclareMathOperator*{\HotSpots}{HotSpots}
+\newcommand{\Cost}{\text{Cost}}
+\usepackage{stfloats}
+\DeclareMathOperator*{\Diag}{Diag}
+\DeclareMathOperator*{\TPR}{TPR}
+\DeclareMathOperator*{\Segments}{Segments}
+\DeclareMathOperator*{\Changes}{Changes}
+\DeclareMathOperator*{\FPR}{FPR}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\maximize}{maximize}
+\DeclareMathOperator*{\minimize}{minimize}
+\DeclareMathOperator*{\subjectto}{subject\ to}
+\newcommand{\ZZ}{\mathbb Z}
+\newcommand{\NN}{\mathbb N}
+\newcommand{\RR}{\mathbb R}
+
+
+
+\begin{document}
+
+\title{A functional pruning algorithm for an AR(1) changepoint model}
+\author{
+Toby Dylan Hocking (toby.hocking@r-project.org)
+}
+\maketitle
+
+\begin{abstract}
+  We propose a functional pruning dynamic programming algorithm to
+  solve a changepoint problem in which each segment is modeled using
+  an exponential decay (rather than a constant).
+\end{abstract}
+
+\section{Data and problems}
+
+We are given a sequence of $n$ data points, $y_1,\dots,y_n\in\RR_+$
+and a rate of exponential decay $0<\gamma<1$.
+
+\subsection{Segment neighborhood}
+
+We are also given the maximum number of segments
+$K_{\text{max}}\in\{2,3, \dots\}$. The segment neighborhood problem is
+to find the most likely model with $K\in\{1,\dots, K_{\text{max}}\}$
+segments ($K-1$ changepoints):
+\begin{align}
+  \label{eq:segment-neighborhood}
+  \minimize_{
+%\mathbf m\in\RR^n, \mathbf c\in\{0,1\}^{n-1}
+    \substack{
+    \mathbf m\in\RR^n\\
+\mathbf c\in\{0,1\}^{n-1}
+}
+} &\ \ 
+  \sum_{t=1}^n \ell(y_t, m_t)\\
+%  \text{subject to
+%%\hskip 0.5cm
+%}
+\subjectto
+ &\ \  \sum_{t=1}^{n-1} c_t = K-1,
+  \nonumber\\
+  &\ \  c_t=0 \Rightarrow \gamma m_t = m_{t+1},
+  \nonumber\\
+  &\ \  c_t=1 \Rightarrow \gamma m_t \leq m_{t+1}.
+  \nonumber 
+\end{align}
+
+\subsection{Optimal partitioning}
+
+In this version of the problem we are given a penalty constant
+$\lambda\geq 0$ instead of the maximum number of segments
+$K_{\text{max}}$. In the optimal partitioning problem we remove the
+constraint on the number of segments and add a penalty to the
+objective function:
+\begin{align}
+  \label{eq:optimal-partitioning}
+  \minimize_{
+    \substack{
+    \mathbf m\in\RR^n\\
+\mathbf c\in\{0,1\}^{n-1}
+}
+  %\mathbf t\in\{1,\dots,n\}^{K+1}
+    } &\ \ 
+  \sum_{t=1}^n \ell(y_t, m_t) + \lambda \sum_{t=1}^{n-1} c_t \\
+  %\text{subject to\,}
+\subjectto
+ &\ \ c_t = 0 \Rightarrow \gamma m_t = m_{t+1}
+  \nonumber\\
+&\ \ c_t = 1 \Rightarrow \gamma m_t \leq m_{t+1}.
+\nonumber
+\nonumber
+\end{align}
+
+\subsection{Choice of problem to solve}
+
+Which problem do we want to solve: segment neighborhood
+($K_{\text{max}}$ models from 1 to $K_{\text{max}}$ segments) or
+optimal partitioning (1 model with $K$ segments, without computing
+models with $1,\dots,K-1$ segments)?
+
+The segment neighborhood model may be computationally advantageous if
+there are relatively few changepoints in the data and we want several
+models. Do we need several models for the proposed CV model selection
+procedure? 
+
+Otherwise if models with few changepoints are un-necessary (because
+there are many changepoints in the data), then optimal partitioning
+should be faster, because it avoids computing the models with few
+changepoints.
+
+\section{Algorithm}
+The functional pruning technique can be used to create a dynamic
+programming solver for these problems. Below I just discuss the optimal
+partitioning problem, but we can derive a similar update rule for the
+segment neighborhood problem.
+
+\subsection{Dynamic programming update rules}
+
+Recall that the following
+definition of the min-less operator.
+\begin{definition}[Min-less operator]
+\label{def:min-less}
+  Given any real-valued function $f:\RR\rightarrow\RR$, we define the min-less
+  operator of that function as $f^\leq(\mu)=\min_{x\leq \mu} f(x)$.
+\end{definition}
+We also need the new exponential decay operator.
+\begin{definition}[Exponential decay operator]
+\label{def:exp-decay}
+Given any real-valued function $f:\RR\rightarrow\RR$, and a constant
+$\gamma\in\RR$ such that $0<\gamma<1$, we define the exponential decay
+operator as $f^\gamma(\mu)=f(\mu/\gamma)$.
+\end{definition}
+
+Let $L_{t}(\mu)$ be the penalized cost of the most likely segmentation
+from 1 to $t$ data points, with a mean $\mu$ at data point~$t$. 
+\begin{theorem}[Dynamic programming update rules]
+The
+initialization for the first data point is
+$L_{1}(\mu) = \ell(y_1, \mu)$. The dynamic programming update rules for
+all data points $t>1$ are $S_{t}(\mu) = L^\gamma_{t-1}(\mu)$ and
+\begin{equation}
+  L_{t}(\mu) = \ell(y_t, \mu) + \min\{
+   S_t(\mu),\,  
+   S_t^\leq(\mu) + \lambda
+  \}.
+\end{equation}
+\end{theorem}
+\begin{proof}
+  The cost of the best segmentation up to data point $t-1$ is
+  $L_{t-1}(m_{t-1})$. There are two cases to minimize over:\\
+  \textbf{No changepoint.} If there is no changepoint ($c_t=0$) then
+  we know that $m_t = \gamma m_{t-1}$, meaning $m_{t-1}=m_t/\gamma$
+  and thus the cost can be written as a function of $m_{t}$:
+  $L_{t-1}(m_t/\gamma)=L_{t-1}^\gamma(m_t)=S_t(m_t)$.\\
+  \textbf{Changepoint.} If there is a changepoint ($c_t=1$) then we
+  know that $\gamma m_{t-1}\leq m_t$ and the optimal cost before
+  adding the penalty is
+  \begin{equation}
+    \min_{m_{t-1}\leq m_t/\gamma} L_{t-1}(m_{t-1})=L_{t-1}^\leq(m_t/\gamma)=S_{t}^\leq(m_t).
+  \end{equation}
+  The last equality holds because the min-less operator and the
+  exp-decay operator are commutative (if you apply them both to a
+  function, the order does not matter).
+\end{proof}
+
+\subsection{Pseudocode}
+
+The same MinLess sub-routine described in our constrained changepoint
+detection paper can be used to implement the algorithm below. 
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE Input: 
+data set $\mathbf y\in\RR_+^n$, 
+penalty constant $\lambda\geq 0$, 
+exponential decay $\gamma\in(0,1)$.
+\STATE $ L_{1}\gets \text{OnePiece}(y_1, -\infty, \infty)$
+\label{line:init}
+\STATE for data points $t$ from 2 to $n$: // dynamic programming
+\label{line:for-dp-t}
+\begin{ALC@g}
+  \STATE $\text{scaled\_prev}\gets\text{ExpDecay}(\gamma, L_{t-1})$.
+  \label{line:op-ExpDecay}
+  \STATE $\text{min\_prev}\gets \lambda + 
+  \text{MinLess}(t-1, \text{scaled\_prev})$
+  \label{line:op-MinLess}
+  \STATE $\text{min\_new}\gets
+ \text{MinOfTwo}(\text{min\_prev},  \text{scaled\_prev})$
+  \label{line:op-MinOfTwo}
+  \STATE $L_{t}\gets \text{min\_new} + \text{OnePiece}(y_t, -\infty, \infty)$
+  \label{line:op-AddNew}
+\end{ALC@g}
+\STATE $\mathbf m,\mathbf c\gets\text{DPDecode}(L,\gamma)$
+\label{line:DPDecode}
+\STATE Output: 
+vectors of optimal segment means $\mathbf m\in\RR^{n}$ 
+and changepoints $\mathbf c\in\{0,1,2\}^{n-1}$
+\label{line:output}
+\caption{\label{algo:dp}
+Dynamic programming for autoregressive changepoint model}
+\end{algorithmic}
+\end{algorithm}
+
+The main storage of the algorithm is $ L_{t}$, which should be
+initialized as an array of $n$ empty FunctionPieceList objects
+(actually, a C++ STL vector).  The dynamic programming recursion is
+implemented via a for loop over data points $t$
+(line~\ref{line:for-dp-t}). The new first step of the DP involves the
+ExpDecay sub-routine (line~\ref{line:op-ExpDecay}). The penalty
+constant $\lambda$ is added to all of the function pieces that result
+from MinLess (line~\ref{line:op-MinLess}), before computing MinOfTwo
+(line~\ref{line:op-MinOfTwo}). The last step of each dynamic
+programming update is to add the cost of the new data point
+(line~\ref{line:op-AddNew}).  The algorithm outputs a segment mean
+vector $\mathbf m\in\RR^n$ and a changepoint indicator vector
+$\mathbf c\in\{0,1,2\}^{n-1}$ (0=no change, 1=changepoint with strict
+inequality constraint active, 2=changepoint with equality constraint
+active). Note that the changepoint=2 values actually imply $c_t=1$ in
+terms of the optimization problem (\ref{eq:optimal-partitioning}). The
+pseudocode for the DPDecode sub-routine (line~\ref{line:DPDecode}) is
+shown below:
+
+\begin{algorithm}
+  \begin{algorithmic}[1]
+\STATE Input: vector of $n$ cost functions $L$, 
+exponential decay constant $\gamma\in(0,1)$.
+\STATE for $t$ from 1 to $n-1$: $c_t\gets 0$ 
+\label{line:init-c-0}
+// initialize all changepoints to 0
+\STATE $\text{end}\gets n$
+\STATE while $\text{end} > 0$:
+\label{line:while}
+\begin{ALC@g}
+  \STATE if $\text{end} == n$:
+ $\text{mean},\text{prev\_end},\text{prev\_mean} 
+\gets \text{ArgMin}(L_{\text{end}})$ // last segment
+  \label{line:op-ArgMin}
+  \STATE else:
+ $\text{prev\_end},\text{prev\_mean}
+\gets\text{FindMean}(\text{mean}, L_{\text{end}})$ // other segments
+  \label{line:op-FindMean}
+  \STATE for $t$ from $\text{end}$ to $\text{prev\_end}+1$: 
+  \label{line:for-store-means}
+  \begin{ALC@g}
+    \STATE $m_t\gets \text{mean}$ // store means for this segment
+    \STATE $\text{mean}$ /= $\gamma$
+    \label{line:divide-mean}
+  \end{ALC@g}
+  \STATE $\text{end}\gets\text{prev\_end}$
+  \STATE if $\text{end}>0$:
+  \begin{ALC@g}
+    \STATE if $\text{prev\_mean} < \infty$: 
+    \label{line:check-inf}
+    \begin{ALC@g}
+      \STATE $\text{mean}\gets \text{prev\_mean}$ 
+      \STATE $c_{\text{end}}\gets 1$
+      \label{line:c-1}
+      // strict inequality constraint active,
+$\text{mean}=m_{\text{end}}<m_{\text{end}+1}/\gamma $
+    \end{ALC@g}
+    \STATE else:
+    \begin{ALC@g}
+      \STATE $c_{\text{end}}\gets 2$
+      \label{line:c-2}
+      // equality constraint active,
+ $\text{mean}=m_{\text{end}}=m_{\text{end}+1}/\gamma $
+    \end{ALC@g}
+  \end{ALC@g}
+\label{line:op-i+1}
+\end{ALC@g}
+\STATE Output: 
+vectors of optimal segment means $\mathbf m\in\RR^{n}$ 
+and changepoints $\mathbf c\in\{0,1,2\}^{n-1}$
+    \caption{\label{algo:decode}Parameter decoding sub-routine
+ (DPDecode)}
+  \end{algorithmic}
+\end{algorithm}
+
+The decoding process begins by initializing all changepoints to 0
+(\ref{line:init-c-0}). The while loop on line \ref{line:while} is
+executed once for each segment. In the first iteration
+(line~\ref{line:op-ArgMin}), $\text{end}=n$ and so the ArgMin
+sub-routine returns:
+\begin{itemize}
+\item mean, the optimal mean at the last data point.
+\item $\text{prev\_end}\in\{0,\dots,n-1\}$ which is 0 if there is no
+  previous changepoint, and otherwise it indicates the last data point
+  of the previous segment.
+\item prev\_mean is the previous segment mean (or $\infty$ if equality
+  constraint is active). This is computed and stored for each function
+  piece during the MinLess sub-routine.
+\end{itemize}
+In subsequent iterations (line~\ref{line:op-FindMean}), the mean is
+already known (it has been computed and stored during the MinLess
+sub-routine). So the FindMean sub-routine is used to find that mean
+value in $L_{\text{end}}$, and return the previous segment end and
+mean which are stored in the corresponding function piece. The for
+loop on lines \ref{line:for-store-means}--\ref{line:divide-mean}
+stores the mean values for the current segment. At the end of the
+while loop, we check for an infinite prev\_mean value
+(line~\ref{line:check-inf}), which indicates an active equality
+constraint. When the strict inequality constraint is active we store
+$c_{\text{end}}=1$ (line~\ref{line:c-1}) and when the equality
+constraint is active we store $c_{\text{end}}=2$
+(line~\ref{line:c-2}).
+
+\subsection{Implementation details}
+
+Note the
+following differences with our previous C++ implementation
+(PeakSegFPOP in the coseg R package):
+\begin{itemize}
+\item The PeakSegFPOP function implements the Poisson loss, but for
+  neuro data we probably want to start with the square loss. This
+  involves replacing the PoissonLossPieceLog class with a new
+  SquareLossPiece class with corresponding methods (argmin,
+  argmin\_mean, get\_smaller\_root, get\_larger\_root,
+  has\_two\_roots). Note that getCost/getDeriv are functions of
+  log(mean) whereas PoissonLoss/PoissonDeriv are functions of mean --
+  for the square loss we can delete PoissonLoss/PoissonDeriv and just
+  change getCost/getDeriv to be a function of mean. Even better, we
+  could implement it using inheritance and/or templates so that we can
+  support several loss functions (square, Huber, etc). See
+  Segmentor3IsBack R package on CRAN for an example.
+\item The OnePiece sub-routine in the PeakSegFPOP code initializes
+  each function piece on the interval $(\min_i y_i,\max_i y_i)$ which
+  allows us to prune some changepoints that would only be possible
+  outside the limit of feasible mean values in the data. However in
+  the new version we need to use the interval $(-\infty,\infty)$ to
+  avoid intervals of undefined cost after applying the ExpDecay
+  sub-routine.
+\item We need to implement the new ExpDecay sub-routine, which will be
+  specific for each loss function. I would recommend adding a
+  set\_to\_exp\_decay\_of method to the PiecewisePoissonLossLog class
+  (this is where the MinLess sub-routine is currently defined, as the
+  set\_to\_min\_less\_of method). The pseudocode for the square loss
+  is below
+\end{itemize}
+
+\begin{algorithm}
+  \begin{algorithmic}[1]
+\STATE Input: 
+exponential decay constant $\gamma\in(0,1)$,
+a FunctionPieceList $f$.
+\STATE Initialize an empty FunctionPieceList $g$.
+\STATE for each FunctionPiece $p\in f$:
+\begin{ALC@g}
+  \STATE $g.\text{push\_piece}(
+  p.\text{quadratic}/\gamma^2,
+  p.\text{linear}/\gamma,
+  p.\text{constant},
+  p.\text{lower}\times\gamma,
+  p.\text{upper}\times\gamma
+  )$
+\end{ALC@g}
+\STATE Output: new FunctionPieceList $g$.
+\caption{\label{algo:ExpDecay}Exponential decay sub-routine (ExpDecay)}
+\end{algorithmic}
+\end{algorithm}
+Note that the update rule for the interval
+$(\underline \mu, \overline \mu)$ is always
+$(\gamma\underline\mu, \gamma\overline\mu)$. However the update rules
+for the coefficients depend on the cost function:
+\begin{center}
+  \begin{tabular}{ccc}
+  loss& old function piece $f(\mu)$ & new function piece $f^\gamma(\mu)$  \\
+  \hline
+  square & $a\mu^2 + b\mu + c$ & $(a/\gamma^2)\mu^2 + (b/\gamma)\mu + c$\\
+  Poisson & $a\mu + b\log \mu + c$ & $(a/\gamma)\mu + b\log\mu + (c-\log\gamma)$
+\end{tabular}
+\end{center}
+
+\subsection{Complexity analysis}
+
+The time complexity of Algorithm~\ref{algo:dp} is $O(n I)$, where $I$
+is the time complexity of the ExpDecay, MinLess, and \text{MinOfTwo}
+sub-routines. As in the GPDPA \citep{HockingConstrained}, the time
+complexity of these sub-routines is linear in the number of intervals
+that are used to represent the $L_{ t}$ cost functions. Since the
+number of intervals in real data is typically $I=O(\log n)$, the
+overall time complexity of Algorithm~\ref{algo:dp} should be on
+average $O(n \log n)$. TODO: compute number of intervals and timings
+in the neuro data.
+
+
+\bibliographystyle{abbrvnat}
+\bibliography{refs}
+
+\end{document} 
+
