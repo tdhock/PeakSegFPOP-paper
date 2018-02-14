@@ -499,14 +499,6 @@ MinEnvelope <- function(dt1, dt2){
   do.call(rbind, new.dt.list)
 }
 
-Multiply <- function(dt, x){
-  new.dt <- data.table(dt)
-  new.dt[, `:=`(
-    Linear=Linear*x,
-    Log=Log*x,
-    Constant=Constant*x)]
-  new.dt
-}
 
 input.dt <- data.table(count=c(3, 9, 18, 15, 20, 2), weight=1)
 library(animint)
@@ -525,7 +517,7 @@ gamma.dt <- input.dt[, data.table(
   Constant=0
   )]
 cum.weight <- input.dt[, cumsum(weight)]
-C1.dt <- cumsum(gamma.dt)/cum.weight
+C1.dt <- cumsum(gamma.dt)
 gamma.dt$min.mean <- C1.dt$min.mean <- min.mean
 gamma.dt$max.mean <- C1.dt$max.mean <- max.mean
 gamma.dt$data.i <- C1.dt$data.i <- 0
@@ -552,6 +544,7 @@ pdftikz <- function(pre, g, w=3){
   print(g)
   dev.off()
 }
+compare.cost.list <- list()
 for(total.segments in 2:max.segments){
   prev.cost.model <-
     cost.models.list[[paste(total.segments-1, total.segments-1)]]
@@ -561,13 +554,13 @@ for(total.segments in 2:max.segments){
     min.fun.name <- "less"
   }
   min.fun <- less.more.min.list[[min.fun.name]]
-  first.min.average <- min.fun(prev.cost.model)
+  first.min.total <- min.fun(prev.cost.model)
   gg.prev <- ggplot()+
     ggtitle(paste(total.segments, "segments,", total.segments, "data points"))+
     scale_x_continuous()+
     scale_color_manual("prev seg end", values=data.colors)+
     geom_line(aes(mean, cost),
-              getLines(first.min.average),
+              getLines(first.min.total),
               color="grey",
               size=3)+
     geom_line(aes(mean, cost,
@@ -589,7 +582,7 @@ for(total.segments in 2:max.segments){
     geom_line(aes(mean, cost, color=fun.type),
               data=data.table(
                 fun.type="constrained min",
-                getLines(first.min.average)),
+                getLines(first.min.total)),
               size=3)+
     geom_line(aes(mean, cost,
                   color=fun.type,
@@ -607,150 +600,144 @@ for(total.segments in 2:max.segments){
   ##pdftikz(sprintf("figure-PeakSegPDPA-demo-mincompare-%dsegments-%ddata", total.segments, total.segments), gg.prev)
   first.data <- gamma.dt[total.segments,]
   first.data$data.i <- total.segments-1
-  first.min.total <- Multiply(first.min.average, cum.weight[total.segments-1])
   cost.model.total <- AddFuns(first.data, first.min.total)
-  cost.model.average <- Multiply(cost.model.total, 1/cum.weight[total.segments])
-  cost.models.list[[paste(total.segments, total.segments)]] <- cost.model.average
+  cost.models.list[[paste(total.segments, total.segments)]] <- cost.model.total
   changepoint <- paste0(
     "change\npoint $t_", total.segments-1, "$")
   for(timestep in (total.segments+1):length(input.dt$count)){
-    ##if(!paste(total.segments, timestep) %in% names(cost.models.list)){#cache
-    if(TRUE){
-      prev.cost.model <- cost.models.list[[paste(total.segments-1, timestep-1)]]
+    prev.cost.model <- cost.models.list[[paste(total.segments-1, timestep-1)]]
+    gg.prev <- ggplot()+
+      ggtitle(paste(total.segments, "segments,", timestep, "data points"))+
+      scale_color_manual(changepoint, values=data.colors)+
+      geom_line(aes(mean, cost,
+                    color=factor(data.i),
+                    group=piece.i),
+                data=getLines(prev.cost.model))
+    ## pdf(sprintf("figure-PeakSegPDPA-demo-cost-%dsegments-%ddata.pdf", total.segments, timestep), 5, 3)
+    ## print(gg.prev)
+    ## dev.off()
+    compare.cost <- min.fun(prev.cost.model)
+    compare.cost$data.i <- timestep-1
+    cost.model <- cost.models.list[[paste(total.segments, timestep-1)]]
+    cat(sprintf("%4d / %4d segments %4d / %4d data points %d intervals\n",
+                total.segments, max.segments, timestep, length(input.dt$count),
+                nrow(cost.model)))
+    cost.minima <- Minimize(cost.model)
+    compare.minima <- Minimize(compare.cost)
+    gg <- ggplot()+
+      scale_x_continuous()+
+      scale_color_manual(changepoint, values=data.colors)+
+      ggtitle(paste(total.segments, "segments,", timestep, "data points"))
+    if(nrow(compare.cost)){
+      compare.cost.list[[paste(total.segments, timestep)]] <- compare.cost
+      cost.lines.list[[
+                       paste(total.segments, timestep, "compare")]] <-
+                         data.table(total.segments, timestep,
+                                    cost.type="compare",
+                                    compare.cost.lines <- getLines(compare.cost))
+      gg <- gg+
+        geom_line(aes(mean, cost,
+                      color=factor(data.i),
+                      group=piece.i),
+                  compare.cost.lines)
       gg.prev <- ggplot()+
         ggtitle(paste(total.segments, "segments,", timestep, "data points"))+
-        scale_color_manual(changepoint, values=data.colors)+
-          geom_line(aes(mean, cost,
-                        color=factor(data.i),
-                        group=piece.i),
-                    data=getLines(prev.cost.model))
-      ## pdf(sprintf("figure-PeakSegPDPA-demo-cost-%dsegments-%ddata.pdf", total.segments, timestep), 5, 3)
-      ## print(gg.prev)
-      ## dev.off()
-      compare.cost <- min.fun(prev.cost.model)
-      compare.cost$data.i <- timestep-1
-      cost.model <- cost.models.list[[paste(total.segments, timestep-1)]]
-      cat(sprintf("%4d / %4d segments %4d / %4d data points %d intervals\n",
-                  total.segments, max.segments, timestep, length(input.dt$count),
-                  nrow(cost.model)))
-      cost.minima <- Minimize(cost.model)
-      compare.minima <- Minimize(compare.cost)
-      gg <- ggplot()+
         scale_x_continuous()+
         scale_color_manual(changepoint, values=data.colors)+
-        ggtitle(paste(total.segments, "segments,", timestep, "data points"))
-      if(nrow(compare.cost)){
-        cost.lines.list[[
-          paste(total.segments, timestep, "compare")]] <-
-          data.table(total.segments, timestep,
-                     cost.type="compare",
-                     compare.cost.lines <- getLines(compare.cost))
-        gg <- gg+
-          geom_line(aes(mean, cost,
-                        color=factor(data.i),
-                        group=piece.i),
-                    compare.cost.lines)
-        gg.prev <- ggplot()+
-          ggtitle(paste(total.segments, "segments,", timestep, "data points"))+
-          scale_x_continuous()+
-          scale_color_manual(changepoint, values=data.colors)+
-          geom_line(aes(mean, cost),
-                    compare.cost.lines,
-                    color="grey",
-                    size=3)+
-          geom_line(aes(mean, cost,
-                        color=factor(data.i),
-                        group=piece.i),
-                    data=getLines(prev.cost.model))
-        i <- unique(prev.cost.model$data.i)
-        if(length(i)==1 && i==0){
-          gg.prev <- gg.prev+guides(color="none")
-        }
-        ##pdftikz(sprintf("figure-PeakSegPDPA-demo-minlessmore-%dsegments-%ddata", total.segments, timestep), gg.prev)
-        gg.prev <- ggplot()+
-          ggtitle(paste(total.segments, "segments,", timestep, "data points"))+
-          scale_x_continuous()+
-          scale_color_manual(values=c(
-            "prev cost"="black",
-            "constrained min"="grey",
-            "unconstrained min"="red"))+
-          geom_line(aes(mean, cost, color=fun.type),
-                    data=data.table(
-                      fun.type="constrained min",
-                      compare.cost.lines),
-                    size=3)+
-          geom_line(aes(mean, cost,
-                        color=fun.type,
-                        group=piece.i),
-                    data=data.table(
-                      fun.type="prev cost",
-                      getLines(prev.cost.model)))
-        if(nrow(compare.minima)){
-          gg.prev <- gg.prev+          geom_hline(aes(yintercept=min.cost, color=fun.type),
-                     data=data.table(
-                       fun.type="unconstrained min",
-                       compare.minima))
-        }
-        ##pdftikz(sprintf("figure-PeakSegPDPA-demo-mincompare-%dsegments-%ddata", total.segments, timestep), gg.prev)
-      }
-      if(nrow(cost.model)){ # may be Inf over entire interval.
-        cost.lines.list[[paste(total.segments, timestep)]] <-
-          data.table(total.segments, timestep,
-                     cost.type="model",
-                     cost.model.lines <- getLines(cost.model))
-        gg <- gg+
-          geom_line(aes(mean, cost,
-                        group=piece.i,
-                        color=factor(data.i)),
-                    cost.model.lines)
-      }
-      one.env <- MinEnvelope(cost.model, compare.cost)
-      one.env.total <- Multiply(one.env, cum.weight[timestep-1])
-      stopifnot(one.env[, min.mean < max.mean])
-      if(nrow(one.env)){
-        envelope.list[[paste(total.segments, timestep)]] <-
-          data.table(total.segments, timestep,
-                     env.lines <- getLines(one.env))
-        gg <- gg+
-          geom_line(aes(mean, cost),
-                    env.lines,
-                    color="grey",
-                    size=3)
-      }
-      gg <- ggplot()+
         geom_line(aes(mean, cost),
-                  env.lines,
+                  compare.cost.lines,
                   color="grey",
                   size=3)+
         geom_line(aes(mean, cost,
                       color=factor(data.i),
                       group=piece.i),
-                  compare.cost.lines)+
+                  data=getLines(prev.cost.model))
+      i <- unique(prev.cost.model$data.i)
+      if(length(i)==1 && i==0){
+        gg.prev <- gg.prev+guides(color="none")
+      }
+      ##pdftikz(sprintf("figure-PeakSegPDPA-demo-minlessmore-%dsegments-%ddata", total.segments, timestep), gg.prev)
+      gg.prev <- ggplot()+
+        ggtitle(paste(total.segments, "segments,", timestep, "data points"))+
+        scale_x_continuous()+
+        scale_color_manual(values=c(
+                             "prev cost"="black",
+                             "constrained min"="grey",
+                             "unconstrained min"="red"))+
+        geom_line(aes(mean, cost, color=fun.type),
+                  data=data.table(
+                    fun.type="constrained min",
+                    compare.cost.lines),
+                  size=3)+
+        geom_line(aes(mean, cost,
+                      color=fun.type,
+                      group=piece.i),
+                  data=data.table(
+                    fun.type="prev cost",
+                    getLines(prev.cost.model)))
+      if(nrow(compare.minima)){
+        gg.prev <- gg.prev+          geom_hline(aes(yintercept=min.cost, color=fun.type),
+                                                data=data.table(
+                                                  fun.type="unconstrained min",
+                                                  compare.minima))
+      }
+      ##pdftikz(sprintf("figure-PeakSegPDPA-demo-mincompare-%dsegments-%ddata", total.segments, timestep), gg.prev)
+    }
+    if(nrow(cost.model)){ # may be Inf over entire interval.
+      cost.lines.list[[paste(total.segments, timestep)]] <-
+        data.table(total.segments, timestep,
+                   cost.type="model",
+                   cost.model.lines <- getLines(cost.model))
+      gg <- gg+
         geom_line(aes(mean, cost,
                       group=piece.i,
                       color=factor(data.i)),
-                  cost.model.lines)+
-        scale_x_continuous()+
-        scale_color_manual(changepoint, values=data.colors)+
-        ggtitle(paste(total.segments, "segments,", timestep, "data points"))
-      ##pdftikz(sprintf("figure-PeakSegPDPA-demo-minenv-%dsegments-%ddata", total.segments, timestep), gg)
-      if(nrow(cost.minima)){
-        minima.list[[paste(total.segments, timestep)]] <-
-          data.table(total.segments, timestep, rbind(
-            cost.minima, compare.minima))
-      }
-      ## Now that we are done with this step, we can perform the
-      ## recursion by setting the new model of the cost to the min
-      ## envelope, plus a new data point.
-      cost.model.total <- AddFuns(one.env.total, gamma.dt[timestep,])
-      cost.model.average <- Multiply(cost.model.total, 1/cum.weight[timestep])
-      cost.lines.list[[paste(
-        total.segments, timestep, "result")]] <- data.table(
-          total.segments=total.segments+1, timestep=timestep+1,
-          cost.type="result",
-          getLines(cost.model.average))
-      cost.models.list[[paste(total.segments, timestep)]] <- cost.model.average
+                  cost.model.lines)
     }
+    one.env <- MinEnvelope(cost.model, compare.cost)
+    stopifnot(one.env[, min.mean < max.mean])
+    if(nrow(one.env)){
+      envelope.list[[paste(total.segments, timestep)]] <-
+        data.table(total.segments, timestep,
+                   env.lines <- getLines(one.env))
+      gg <- gg+
+        geom_line(aes(mean, cost),
+                  env.lines,
+                  color="grey",
+                  size=3)
+    }
+    gg <- ggplot()+
+      geom_line(aes(mean, cost),
+                env.lines,
+                color="grey",
+                size=3)+
+      geom_line(aes(mean, cost,
+                    color=factor(data.i),
+                    group=piece.i),
+                compare.cost.lines)+
+      geom_line(aes(mean, cost,
+                    group=piece.i,
+                    color=factor(data.i)),
+                cost.model.lines)+
+      scale_x_continuous()+
+      scale_color_manual(changepoint, values=data.colors)+
+      ggtitle(paste(total.segments, "segments,", timestep, "data points"))
+    ##pdftikz(sprintf("figure-PeakSegPDPA-demo-minenv-%dsegments-%ddata", total.segments, timestep), gg)
+    if(nrow(cost.minima)){
+      minima.list[[paste(total.segments, timestep)]] <-
+        data.table(total.segments, timestep, rbind(
+          cost.minima, compare.minima))
+    }
+    ## Now that we are done with this step, we can perform the
+    ## recursion by setting the new model of the cost to the min
+    ## envelope, plus a new data point.
+    cost.model.total <- AddFuns(one.env, gamma.dt[timestep,])
+    cost.lines.list[[paste(
+      total.segments, timestep, "result")]] <- data.table(
+        total.segments=total.segments+1, timestep=timestep+1,
+        cost.type="result",
+        getLines(cost.model.total))
+    cost.models.list[[paste(total.segments, timestep)]] <- cost.model.total
   }#for(timestep
 }#for(total.segments
 
@@ -768,10 +755,13 @@ envelope[, data.i.fac := factor(data.i)]
 envelope[, minimization := paste(
                           total.segments, "segments up to data point", timestep)]
 
+PeakSegDP::cDPA(input.dt$count, maxSegments=5L)
+
 tsegs <- 3
 ti <- 4
-cost.lines[, total.cost := cost*3]
-minima[, total.min.cost := min.cost*3]
+print(compare.cost.list[[paste(tsegs, ti)]])#this is the grey C^\geq_{2,3} in the figure.
+cost.lines[, total.cost := cost]
+minima[, total.min.cost := min.cost]
 gg.pruning <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+

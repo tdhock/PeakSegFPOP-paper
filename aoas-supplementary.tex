@@ -36,6 +36,7 @@ possibly have a false positive, etc); possible fp is always greater
 than possible fn, indicating that all data sets are unbalanced in the
 same direction (more negative labels than positive labels).
 
+\newpage
 \section*{Supplementary Figure 2: details of example where CDPA fails}
 
 Consider computing the 5 segment up-down constrained model for the set
@@ -120,18 +121,33 @@ This cost function is shown as the black curve in the figure
 below. The part on the left ($u_2\leq 15.41$) in blue is the cost of a
 non-decreasing change after the first data point ($t_1=1$). The part
 on the right in violet ($u_2\geq 15.41$) is the cost of a
-non-decreasing change after the second data point ($t_2=2$). Since the
-GPDPA stores the functional min cost for all possible values of the
-mean parameter, and both possible changepoints, it is able to compute
-the optimal solution (which occurs at $u_2=18, u_1=6, t_1=2$, but is
-unknown until the end of the algorithm). In contrast, the CDPA
-computes a scalar min cost of a non-decreasing change after the first
-data point (red circle, $u_2=13.5, u_1=3, t_1=1$), and discards the
-possibility of a non-decreasing change after the second data point
-(which ends up being optimal).
+non-decreasing change after the second data point ($t_2=2$). 
 
 \input{figure-CDPA-fails}
 
+The GPDPA then computes the functional min cost $C^\geq_{2,3}(u_3)$ for all
+possible values of the mean parameter $u_3$ (shown as grey function in plot
+above):
+\begin{equation}
+C^\geq_{2,3}(u_3)  =
+\begin{cases}
+  -43.57 & \text{ if } u_3\in[2, 13.5],\ u_2=13.5,\ t_1=1\\
+  2u_2 -27 \log u_2 -0.296 & \text{ if } u_3\in[13.5, 14.25],\ u_2=u_3,\ t_1=1\\
+  -43.53 & \text{ if } u_3\in[14.25, 18],\ u_2=18,\, t_1=2\\
+  u_2 -18 \log u_2 -9.501  & \text{ if } u_3\in[18, 20],\ u_2=u_3,\ t_1=2\\
+\end{cases}
+\end{equation}
+Since the optimal cost is computed for both possible changepoints, and
+all possible mean values, the GPDPA is able to compute the optimal
+solution (which occurs at $u_3=15, u_2=18, u_1=6, t_1=2$, but is
+unknown until the algorithm computes the total cost of all the data
+points $C_{5,6}$). In contrast, the CDPA computes a scalar min cost of
+a non-decreasing change after the first data point (red circle in the
+plot above, $u_2=13.5, u_1=3, t_1=1$), and discards the possibility of
+a non-decreasing change after the second data point (which ends up
+being optimal).
+
+\newpage
 \section*{Supplementary Figure 3: constrained changepoint detection is insensitive to spatial correlation}
 
 There is spatial correlation in typical ChIP-seq data, due to the
@@ -158,6 +174,33 @@ consistent between the top and bottom plots. This illustrates that
 the proposed method is highly insensitive to spatial correlation.
 
 \includegraphics[width=\textwidth]{figure-spatial-correlation}
+
+\section*{Supplementary Figure 4: background level varies across a sample}
+
+\parbox{0.55\textwidth}{
+\includegraphics[width=\linewidth]{figure-background}
+}\parbox{0.4\textwidth}{
+\includegraphics[width=\linewidth]{figure-background-peak-mean-density-scatter}
+}
+
+A reviewer suggested a model with a uniform background/noise mean
+level, rather than a new segment mean for every background segment (as
+in the model we proposed). We have observed different mean levels in
+different background/noise regions in the same ChIP-seq sample, which
+suggests that the uniform background/noise mean model would not be
+appropriate in these data.  \textbf{Left}: we computed mean coverage
+in each sample and genomic region with the noPeaks label (which means
+a biologist has observed that there are no peaks in that region, so it
+must only contain background noise), and observed that the mean is
+highly variable between regions of the genome. For example in sample
+McGill0028, the mean coverage in background/noise regions ranges from
+1.78 to 6.76, which suggests that a uniform/constant mean would not be
+a good model of these data. \textbf{Right}: for one sample, we
+computed peaks throughout the genome, then computed mean coverage in
+each peak and mean coverage in nearby background. We observed that the
+mean of the nearby background increases as the mean of the peak
+increases, which suggests that a uniform/constant mean would not be a
+good model of these data.
 
 \section{Proof of optimality of dynamic programming algorithm}
 
