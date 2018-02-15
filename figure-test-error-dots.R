@@ -101,10 +101,14 @@ ggplot()+
              stroke=1,
              data=test.counts)
 
-roc.not.cvx <- roc.total[, list(
-  FPR=c(1, FPR, 0, 1, 1),
-  TPR=c(1, TPR, 0, 0, 1)
-  ), by=.(set.name, set.i, algorithm)]
+roc.not.cvx <- roc.total[, {
+  tpr <- TPR[which.max(FPR)]
+  tpr <- 1
+  list(
+    FPR=c(1, FPR, 0, 1, 1),
+    TPR=c(tpr, TPR, 0, 0, tpr)
+    )
+}, by=.(set.name, set.i, algorithm)]
 auc <- roc.not.cvx[, list(
   auc=geometry::polyarea(FPR, TPR)
   ), by=.(set.name, set.i, algorithm)]
@@ -140,7 +144,7 @@ mean.auc <- auc[, list(
 mean.auc[, list(mean=mean(mean.auc)), by=algorithm][order(mean),]
 best.auc <- mean.auc[, list(min.auc=max(mean.auc)), by=set.name]
 
-some.algos <- function(dt)dt[algorithm %in% c("MACS"),]
+some.algos <- function(dt)dt
 ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "cm"),
@@ -160,7 +164,7 @@ ggplot()+
   geom_polygon(aes(FPR, TPR, color=algorithm),
                data=some.algos(roc.not.cvx),
                fill="grey")+
-  scale_color_manual(values=algo.colors)+
+  ##scale_color_manual(values=algo.colors)+
   scale_fill_manual(values=c(unsupervised="white", supervised="black"))+
   geom_path(aes(FPR, TPR, color=algorithm, group=paste(set.i, algorithm)),
             data=some.algos(roc.total))+
@@ -169,6 +173,60 @@ ggplot()+
              shape=21,
              stroke=1,
              data=some.algos(test.counts))
+
+roc.show <- data.table(roc.not.cvx)
+roc.show[FPR==1 & TPR==0, FPR := NA]
+only <- function(dt)dt[set.name=="H3K4me3_TDH_immune" & set.i==2]
+linetype.vec <- c(
+  "error rate of predicted peaks\nat various pruning thresholds"="solid",
+  "extrapolation to compute AUC"="dotted")
+N.vec <- names(linetype.vec)
+cfac <- function(i){
+  factor(N.vec[i], N.vec)
+}
+both.roc <- rbind(
+  data.table(curve=cfac(2), roc.show),
+  data.table(curve=cfac(1), roc.total[, names(roc.show), with=FALSE]))
+leg <- ggplot()+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "cm"),
+        legend.position=c(0.8, 0.3))+
+  coord_equal(xlim=c(0,1.2))+
+  scale_x_continuous("FPR = False Positive Rate of predicted peaks relative to gold standard labels from biologist", breaks=seq(0, 1, by=0.2))+
+  scale_y_continuous("TPR = True Positive Rate of predicted peaks relative to gold standard labels from biologist", breaks=seq(0, 1, by=0.2))+
+  geom_path(aes(
+    FPR, TPR,
+    color=algorithm,
+    linetype=curve,
+    group=paste(curve, algorithm)),
+            size=0.7,
+            data=only(both.roc))+
+  scale_linetype_manual(values=linetype.vec, guide=guide_legend(keyheight=2))+
+  ## geom_path(aes(FPR, TPR, color=algorithm, group=paste(set.i, algorithm)),
+  ##           data=only(roc.show))+
+  ## geom_path(aes(FPR, TPR, color=algorithm, group=paste(set.i, algorithm)),
+  ##           size=3,
+  ##           data=only(roc.total))+
+  geom_text(aes(FPR, TPR, label=label), data={
+    rbind(
+      data.table(FPR=1, TPR=0.6, label="Extrapolation to FPR=TPR=1\nto compute AUC"),
+      data.table(FPR=0.3, TPR=0.6, label="No peak pruning\nmost predicted peaks"),
+      data.table(FPR=0.4, TPR=0.4, label="All peaks pruned\nno peaks predicted\nFPR=TPR=0"))
+  })+
+  geom_segment(aes(x, y, xend=xend, yend=yend), arrow=grid::arrow(type="closed"), data={
+    rbind(
+      data.table(x=1, xend=1, y=0.7, yend=0.9),
+      data.table(x=0.3, xend=0.3, y=0.7, yend=0.8),
+      data.table(x=0.3, xend=0.1, y=0.3, yend=0.1))
+  })
+pdf("figure-test-error-dots-ROC-supp.pdf",8,8)
+print(leg)
+dev.off()
+png("figure-test-error-dots-ROC-supp.png",800,800,res=100)
+print(leg)
+dev.off()
+##direct.label(leg, "smart.grid")
+
 
 test.mean[, algo.fac := factor(algorithm, levs)]
 auc[, algo.fac := factor(algorithm, levs)]

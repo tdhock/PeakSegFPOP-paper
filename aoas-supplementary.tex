@@ -202,6 +202,39 @@ mean of the nearby background increases as the mean of the peak
 increases, which suggests that a uniform/constant mean would not be a
 good model of these data.
 
+\section*{Supplementary Figure 5: ROC curves for peak detection accuracy}
+
+We wanted to compare the peak detection accuracy of our proposed
+algorithm with others from the bioinformatics literature, which
+typically report many false positive peaks using default parameter
+settings. Therefore in a typical analysis, to control
+the false positive rate, the default peak list is pruned by only
+considering the top $p$ peaks, according to some likelihood or
+significance threshold. For example, the MACS algorithm of
+\citet{MACS} uses a q-value threshold parameter, and the HMCanBroad
+algorithm of \citet{HMCan} uses a finalThreshold parameter (higher
+thresholds result in more false positives). 
+
+To account for this pruning step is our evaluation, we used Receiver
+Operating Characteristic (ROC) curve analysis. For each threshold
+parameter, we computed the false positive rate and true positive rate
+using the labels, which results in one point on the ROC curve. The
+area under the curve (AUC) is computed by varying the threshold
+parameter over its entire range (from a complete list of peaks with
+many false and true positives, to a completely pruned/empty list of
+peaks with FPR=TPR=0, see Supplementary Figure 5 for an illustration).
+Because the largest peak list does not necessarily predict peaks in
+all positive labels, we linearly extrapolate each ROC curve to
+TPR=FPR=1 in order to compute AUC (dotted lines in plot below). 
+
+\includegraphics[width=\textwidth]{figure-test-error-dots-ROC-supp.pdf}
+
+Also note that the ROC curves are not necessarily monotonic, because
+the peak pruning is not necessarily hierarchical. For example the
+GPDPA computes optimal models from 0 to 9 peaks for each count data
+vector; the peak present in the optimal model with 1 peak may not be
+present in the optimal model with 2 or more peaks.
+
 \section{Proof of optimality of dynamic programming algorithm}
 
 \subsection{Reminder of relevant definitions}

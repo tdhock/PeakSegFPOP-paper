@@ -15,7 +15,6 @@ http://members.cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/4foldcv-test-
 
 ** TODOs
 
-- add figure-test-error-dots-supp.pdf, imsart*
 - new slides showing better peak detection specific examples
   [[file:figure-min-train-error.R]]
 - big model labels in [[file:figure-test-error-dots.R]]

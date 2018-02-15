@@ -1153,35 +1153,35 @@ Implementation details can be found in the supplementary materials.
   \label{fig:min-envelope}
 \end{figure*}
 
-\subsection{Comparison to previous heuristic quadratic time algorithm}
+\subsection{Simple data for which GPDPA computes the optimal solution
+  but CDPA does not}
 
-The CDPA is a heuristic in the sense that 
+The CDPA proposed by \citep{HOCKING-PeakSeg} is a heuristic for
+solving (\ref{eq:PeakSeg-non-strict}) in the sense that it is not
+guaranteed to compute the optimal solution. In this section we discuss
+two illustrative examples for which the CDPA does not compute the optimal
+solution, but our proposed GPDPA does.
 
-In the paper describing the CDPA \citep{HOCKING-PeakSeg}, the data set
-$\left[\begin{array}{cccc} 1 & 10 & 14 & 13
-\end{array}\right]$ is given as an example of a data set for which the CDPA fails to
-recover the optimal solution for $K=3$ segments. Indeed, the CDPA
-returns no model when run in the forward direction on this data set,
-and a sub-optimal model
-$\left[\begin{array}{cccc} 5.5 & 5.5 & 14 & 13 \end{array}\right]$
-with Poisson loss of $\approx -51.04$ when run in the backward
-direction. In contrast, our proposed GPDPA returns the optimal model
-$\left[\begin{array}{cccc} 1 & 37/3 & 37/3 & 37/3 \end{array}\right]$
-which has Poisson loss of $\approx -54.96$. Note that the equality
+For the data set [1, 10, 14, 13] the CDPA fails to recover
+the optimal solution for $K=3$ segments. In fact, the CDPA returns no
+model when run in the forward direction on this data set, and a
+sub-optimal model [5.5, 5.5, 14, 13] with Poisson loss of
+$\approx -51.04$ when run in the backward direction. In contrast, our
+proposed GPDPA returns the optimal model [1, 37/3, 37/3, 37/3 ] which
+has Poisson loss of $\approx -54.96$. Note that the equality
 constraint $u_2=u_3$ is active between the second and third segment
 means. This implies that the optimal model with strict inequality
-constraints $u_2>u_3$ is undefined, i.e.
-$\left[\begin{array}{cccc} 1 & 37/3 + \epsilon & 37/3 + \epsilon &
-    37/3 - \epsilon \end{array}\right]$ is not optimal because
-$\left[\begin{array}{cccc} 1 & 37/3 + \epsilon/2 & 37/3 + \epsilon/2 &
-    37/3 - \epsilon/2 \end{array}\right]$ has a lower cost. 
+constraints $u_2>u_3$ is undefined, i.e. $\forall \epsilon>0,\, [1, 37/3
++ \epsilon, 37/3 + \epsilon, 37/3 - \epsilon]$ is not optimal because
+$[1, 37/3 + \epsilon/2, 37/3 +\epsilon/2, 37/3 - \epsilon/2]$ has a
+lower cost.
 
 There are also data sets for which an optimum that satisfies the
 strict inequality constraints exists, but the CDPA does not recover
 it. See Supplementary Figure 2 for a detailed discussion of the data
 set [3, 9, 18, 15, 20, 2], for which the CDPA returns no model with
-$K=5$ segments. For these data, the optimal model [6, 6, 18, 15, 20,
-2] satisfies the strict equality constraints, and is computed by our
+$K=5$ segments (because it discards the optimal changepoint after the . For these data, the optimal model [6, 6, 18, 15, 20,
+2] satisfies the strict inequality constraints, and is computed by our
 proposed GPDPA.
 
 \section{Results on peak detection in ChIP-seq data}
@@ -1241,7 +1241,7 @@ class is background noise (small values).
 \end{figure*}
 
 
-\subsection{Evaluating peak detecting using labeled data sets}
+\subsection{Evaluating peak detection using labeled data sets}
 
 The seven labeled ChIP-seq data sets that we consider in this paper were originally
 described by \citet{HOCKING2016-chipseq}, and are freely available on
@@ -1262,10 +1262,10 @@ detection in these data is important in order to characterize active
 regions in each sample and cell type (e.g. H3K36me3 peak predicted at
 a particular genomic region in tcell but not in monocyte samples).
 
-These ChIP-seq data sets are significant
-because they contain manually determined labels that can be used to
-compute error rates of peak detection algorithms, as described by \citet{HOCKING2016-chipseq}. In this context, a
-ChIP-seq data set consists of $m$ count data vectors
+These ChIP-seq data sets are significant because they contain manually
+determined labels that can be used to compute error rates of peak
+detection algorithms, as described by \citet{HOCKING2016-chipseq}. In
+this context, a ChIP-seq data set consists of $m$ count data vectors
 $\mathbf y_1,\dots,\mathbf y_m$ along with labels $L_1,\dots, L_m$
 that identify genomic regions with and without peaks
 (Figure~\ref{fig:good-bad}). Labels were determined by an expert
@@ -1274,36 +1274,57 @@ presence or absence of significant peaks in particular genomic
 regions. These labels can be used to compute an error rate
 $E[c(\mathbf y_i), L_i]$ which is the total of false positives (labels
 with too many predicted peaks) plus false negatives (labels with not
-enough predicted peaks) for a given labeled data vector $i$.
+enough predicted peaks) for a given labeled data vector $i$. Ideal
+peak predictions would yield zero incorrect labels.
 
-For each data set, we use four-fold
-cross-validation on labeled count data vectors to estimate peak
-detection accuracy. Each labeled count data vector was randomly assigned a fold
-ID from 1 to 4, then test error is computed for each fold as follows.
-For a given fold ID, models are trained using labeled data with all
-other fold IDs, then the models are used to predict peaks and compute
-test error on labeled data with that fold ID.
+\subsection{Choice of evaluation metric: area under ROC curve}
 
-\subsection{Choice of evaluation metric}
+We wanted to compare the peak detection accuracy of our proposed
+algorithm with others from the bioinformatics literature, which
+typically report many false positive peaks using default parameter
+settings. Therefore in a typical analysis, to control
+the false positive rate, the default peak list is pruned by only
+considering the top $p$ peaks, according to some likelihood or
+significance threshold. For example, the MACS algorithm of
+\citet{MACS} uses a q-value threshold parameter, and the HMCanBroad
+algorithm of \citet{HMCan} uses a finalThreshold parameter (higher
+thresholds result in more false positives).
 
-The total
-number of incorrect labels can be un-informative in data sets with
-unbalanced labels (unequal numbers of possible false positives and
-false negatives). Because the ChIP-seq data sets we examined are
-unbalanced (more possible false positives than false negatives), we
-observed similar accuracy for some algorithms in terms of total number
-of incorrect labels (see supplementary Figure~1). In order to see the
-differences between such algorithms, we decided to use ROC/AUC
-analysis for evaluation. This choice is also justified from an applied
-perspective, in which genomic data analysts frequently vary the
-significance threshold or penalty parameter in order to evaluate
-models with different numbers of peaks. We compute Receiver Operating
-Characteristic (ROC) curves by varying a significance/penalty
-parameter that controls the number of peaks detected. As in binary
-classification, Area Under the Curve (AUC) can be used to evaluate the
-overall accuracy of a particular model. For more details about how to
-compute the number of incorrect labels and AUC in this context, see
-\citep{HOCKING2016-chipseq}.
+To account for this pruning step is our evaluation, we used Receiver
+Operating Characteristic (ROC) curve analysis. For each threshold
+parameter, we computed the false positive rate and true positive rate
+using the labels, which results in one point on the ROC curve. The
+area under the curve (AUC) is computed by varying the threshold
+parameter over its entire range (from a complete list of peaks with
+many false and true positives, to a completely pruned/empty list of
+peaks with FPR=TPR=0, see Supplementary Figure 5 for an illustration).
+Because the largest peak list does not necessarily predict peaks in
+all positive labels, we linearly extrapolate each ROC curve to
+TPR=FPR=1 in order to compute AUC (see Supplementary Figure 5 for an
+illustration of how the ROC/AUC is computed). To estimate the variance
+of AUC on each data set, we use four-fold cross-validation. Each
+labeled count data vector was randomly assigned a fold ID from 1 to 4
+and then TPR, FPR, and AUC were computed for each fold ID.
+
+% The total
+% number of incorrect labels can be un-informative in data sets with
+% unbalanced labels (unequal numbers of possible false positives and
+% false negatives). Because the ChIP-seq data sets we examined are
+% unbalanced (more possible false positives than false negatives), we
+% observed similar accuracy for some algorithms in terms of total number
+% of incorrect labels (see supplementary Figure~1). In order to see the
+% differences between such algorithms, we decided to use ROC/AUC
+% analysis for evaluation. This choice is also justified from an applied
+% perspective, in which genomic data analysts frequently vary the
+% significance threshold or penalty parameter in order to evaluate
+% models with different numbers of peaks. We compute Receiver Operating
+% Characteristic (ROC) curves by varying a significance/penalty
+% parameter that controls the number of peaks detected. As in binary
+% classification, Area Under the Curve (AUC) can be used to evaluate the
+% overall accuracy of a particular model. For more details about how to
+% compute the number of incorrect labels and AUC in this context, see
+% \citep{HOCKING2016-chipseq}.
+
 
 \subsection{Other algorithms to compare against}
  
@@ -1541,7 +1562,11 @@ the prediction problem simplifies to selecting the number of segments
 $K_i\in \{1, 3,\dots, 19\}$ for each data vector $i$, resulting in a
 predicted peak vector $c^{K_i}(\mathbf y_i)\in\{0,1\}^n$. We select
 the number of segments using an oracle penalty
-$K_i^\lambda=\argmin_k l_{ik} + \lambda o_{ik}$
+\begin{equation}
+  K_i^\lambda=\argmin_{k\in \mathcal K_i} \ell(\mathbf y_i, \mathbf{\hat y}^k_i) + \lambda k\left(
+1 + 4\sqrt{1.1 + \log( n_i/k)}
+\right)^2
+\end{equation}
 \citep{cleynen2013segmentation}, where $l_{ik}$ is the Poisson loss
 and $o_{ik}$ is the oracle model complexity for the model with $k$
 segments for data vector $i$.  The problem thus simplifies to learning
