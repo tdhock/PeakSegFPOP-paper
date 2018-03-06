@@ -1,5 +1,6 @@
 \documentclass{article}
 \usepackage{tikz}
+\usepackage{natbib}
 \usepackage{amssymb,amsmath,amsthm}
 \usepackage{fullpage}
 \usepackage{algorithm}
@@ -40,15 +41,15 @@ same direction (more negative labels than positive labels).
 \section*{Supplementary Figure 2: details of example where CDPA fails}
 
 Consider computing the 5 segment up-down constrained model for the set
-of 6 data points [3, 9, 18, 15, 20, 2] using the Poisson loss
-$\ell(y_i, u)=u-y_i\log u$. 
+of 6 data points $\mathbf y = [3, 9, 18, 15, 20, 2]$ using the Poisson loss
+$\ell(y_i, m)=m-y_i\log m$. 
 \begin{itemize}
-\item The unconstrained PDPA computes the model [3, 9, 16.5, 16.5, 20,
-  2] which has a total Poisson loss of $\approx -109.8827$. Its two increasing
+\item The unconstrained PDPA computes the model $\mathbf m = [3, 9, 16.5, 16.5, 20,
+  2]$ which has a total Poisson loss of $\approx -109.8827$. Its two increasing
   changes followed by two decreasing changes are not feasible for the
   up-down constrained problem.
-\item The up-down constrained GPDPA computes the model [6, 6, 18, 15,
-  20, 2] which has a total Poisson Loss of $\approx -108.4495$. Each
+\item The up-down constrained GPDPA computes the model $\mathbf m = [6, 6, 18, 15,
+  20, 2]$ which has a total Poisson Loss of $\approx -108.4495$. Each
   up change is followed by a down change, so it is feasible for the
   up-down constrained problem.
 \item The CDPA returns no feasible model with 5 segments.
@@ -203,7 +204,7 @@ increases, which suggests that a uniform/constant mean would not be a
 good model of these data.
 
 \section*{Supplementary Figure 5: ROC curves for peak detection accuracy}
-
+  
 We wanted to compare the peak detection accuracy of our proposed
 algorithm with others from the bioinformatics literature, which
 typically report many false positive peaks using default parameter
@@ -222,10 +223,13 @@ using the labels, which results in one point on the ROC curve. The
 area under the curve (AUC) is computed by varying the threshold
 parameter over its entire range (from a complete list of peaks with
 many false and true positives, to a completely pruned/empty list of
-peaks with FPR=TPR=0, see Supplementary Figure 5 for an illustration).
+peaks with FPR=TPR=0).
 Because the largest peak list does not necessarily predict peaks in
 all positive labels, we linearly extrapolate each ROC curve to
 TPR=FPR=1 in order to compute AUC (dotted lines in plot below). 
+In particular note that the unconstrained PDPA finds about 80\% of the true positive peaks
+without making any false positives, but because it lacks the up-down constraint, 
+it is unable to find the remaining $\approx 20\%$ true positive peaks.
 
 \includegraphics[width=\textwidth]{figure-test-error-dots-ROC-supp.pdf}
 
@@ -661,5 +665,8 @@ W_{t-1}
   the Berkeley DB Standard Template Library to store all the $C_{k,t}$
   as a vector of FunctionPieceList objects.
 \end{description}
+
+\bibliographystyle{abbrvnat}
+\bibliography{refs}
 
 \end{document}

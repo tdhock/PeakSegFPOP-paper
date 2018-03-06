@@ -121,15 +121,17 @@ Paris-Cit\'e,
   different locations of a chromosome.  The goal is to detect peaks
   with higher counts, and filter out background noise with lower
   counts.  Most existing algorithms for this problem are heuristics
-  from the bioinformatics literature, which are optimized for speed on
+  which are optimized for speed on
   these large data sets, but which suffer from sub-optimal peak
   detection accuracy.  In this paper we propose a new peak detection
   method for large data, based on a maximum likelihood segmentation model with
-  non-strict inequality constraints between adjacent segment means.
-  Previous dynamic programming algorithms for solving the
-  unconstrained problem are based on the assumption that the mean of
-  each segment is independent, so can not be used to solve the
-  constrained problem.  In this paper we propose the first dynamic
+  %non-strict 
+  inequality constraints between adjacent segment means.
+  % Previous dynamic programming algorithms for solving the
+  % unconstrained problem are based on the assumption that the mean of
+  % each segment is independent, so can not be used to solve the
+  % constrained problem.  
+  We propose the first dynamic
   programming algorithm that is guaranteed compute the optimal
   solution to such constrained problems, despite the dependence
   between mean parameters in neighboring segments.  We compared our
@@ -218,12 +220,13 @@ mean parameters would not be a good fit. Second, inference algorithms
 for HMMs are only guaranteed to find a local maximum of the
 likelihood; we are more interested in changepoint detection models
 with dynamic programming algorithms that can provably compute the
-global maximum of the likelihood.
+global maximum of the corresponding likelihood.
 
 Recently \citet{cleynen2013segmentation} proposed a Pruned Dynamic
 Programming Algorithm (PDPA) for computing the most likely $K$ segment
-means (and $K-1$ changepoints) using a Poisson model for $n$ non-negative count
-data. In practice we compute a sequence of models for a range
+means (and $K-1$ changepoints) using a Poisson model for 
+%$n$ non-negative count
+data. This is computed for a range
 of segments $K$, which acts as a regularization parameter. Small
 values of $K$ result in too few segments/peaks (false negative peak detections, underfitting), and
 large values of $K$ result in too many (false positive peak detections, overfitting). Oracle penalties
@@ -244,13 +247,13 @@ interpreted as background, and even-numbered segments can be
 interpreted as peaks.
 %In contrast to heuristic algorithms such as MACS and HMCan, PeakSeg has only one parameter that affects peak detection accuracy (the number of segments $K$). 
 In a recent comparison study, \citet{HOCKING2016-chipseq} showed that
-this heuristic algorithm achieves
-state-of-the-art peak detection accuracy in a benchmark of several
-ChIP-seq data sets. This constrained model is further justified by the
-statistical arguments of \citet{minimax-changepoint}, who showed that
-the minimax risk bounds for detecting changes in mean under such
-constraints is $O(\log \log n)$ rather than $O(\log n)$ without the
-constraints. 
+this heuristic algorithm achieves state-of-the-art peak detection
+accuracy in a benchmark of several ChIP-seq data sets. This
+constrained model is further justified by the statistical arguments of
+\citet{minimax-changepoint}, who show that using shape constraints can
+reduce the minimal risk bounds; with these being $O(\log \log n)$ for
+estimating changes in mean under a monotone constraint as compared to
+$O(\log n)$ without the constraint.
 
 % The approach taken by the PeakSeg algorithm can be formalised as follows. For any given number, $K$,
 % of segments we try to find the best segmentation. We define how good a segmentation is by fitting
@@ -293,8 +296,8 @@ maximum likelihood changepoint detection problem. First, the CDPA does
 not necessarily compute the globally optimal model, because it does
 not accurately account for the constraints (for a detailed
 explanation, see Supplementary Figure~2). Second, the time complexity
-of the CDPA is $O(Kn^2)$. Since this is quadratic in the number of
-data points $n$, it can be too slow for use on large genomic data sets
+of analyzing $n$ data points with the CDPA is $O(Kn^2)$. Since this is quadratic in the number of
+data points, it can be too slow for use on large genomic data sets
 which are now common. In this paper we propose a new algorithm that
 resolves both of these issues (Table~\ref{tab:contribution}).
 
@@ -317,8 +320,9 @@ we show that the GPDPA achieves state-of-the-art speed and peak detection accura
 Assume our data consist of $n$ observations denoted by the random
 vector $\mathbf y = (y_1, \dots, y_n)$ with unknown mean
 $\mathbf m = (m_1,\dots, m_n)$ which is piecewise constant with $K-1$
-changes ($K$ distinct values). For real-valued data $y_i\in\RR$ we can
-assume $y_t\stackrel{\text{iid}}{\sim}N(m_t,\sigma^2)$. Maximizing the
+changes ($K$ distinct values). For concreteness, further assume
+real-valued data $y_t\in\RR$ with
+$y_t\stackrel{\text{iid}}{\sim}N(m_t,\sigma^2)$. Maximizing the
 likelihood is equivalent to minimizing the square loss
 $\ell(y_t,m_t)=(y_t-m_t)^2$,
 \begin{align}
@@ -419,8 +423,8 @@ segment $k\in\{1,\dots, K\}$.
   increasing changepoint indices $0=t_0<t_1<\cdots<t_{K-1}<t_K=n$.
 \end{definition}
 Each segment mean $u_k$ is assigned to data points
-$\tau\in(t_{k-1},t_k]$. The first $t_0=0$ and last
-$t_K=n$ indices are fixed, and the others $t_1<\cdots<t_{K-1}$ are
+$\tau\in(t_{k-1},t_k]$. The first index, $t_0=0$, and last index,
+$t_K=n$, are fixed; the others, $t_1<\cdots<t_{K-1}$, are
 changepoint variables to optimize. We define the following cost function for each
 segment $k\in\{1, \dots, K\}$,
 \begin{equation}
@@ -434,8 +438,8 @@ The reduced isotonic regression problem (\ref{eq:reduced}) can be equivalently w
   \sum_{k=1}^K
   h_{t_{k-1}, t_k}(u_k),
 \end{equation}
-Rather than explicitly summing over data points $i$ as in problem
-(\ref{eq:reduced}), this problem uses the equivalent sum over segments $k$. 
+Rather than explicitly summing over data points as in problem
+(\ref{eq:reduced}), this problem uses the equivalent sum over segments. 
 
 \subsection{Functional pruning}
 \label{sec:functional-pruning}
@@ -547,7 +551,7 @@ The min-less operator is used to compute $C_{k-1,t-1}^\leq(u_k)$,
 which is the optimal cost of segment $k-1$ ending at data point $t-1$,
 subject to the constraint that the previous segment mean $u_{k-1}$
 must be less than or equal to the current segment mean $u_k$. The
-min-less operator is used in the following Theorem, which states the
+min-less operator is used in the following theorem, which states the
 update rules used in our proposed algorithm.
 
 \begin{theorem}[Generalized Pruned Dynamic Programming Algorithm
@@ -823,8 +827,8 @@ between these two values.
 
 Our Generalized Pruned Dynamic Programming Algorithm (GPDPA) requires
 computing $O(Kn)$ cost functions $\FCC_{k,t}$. As in the original
-pruned dynamic programming algorithm \citep{pruned-dp}, the time
-complexity of the GPDPA is $O(K n I)$ where $I$ is the number of
+pruned dynamic programming algorithm \citep{pruned-dp}, the average time
+complexity of the GPDPA is $O(K n I)$ where $I$ is the average number of
 intervals (convex function pieces; candidate changepoints) that are
 used to represent a cost function. The theoretical maximum number of
 intervals is $I=O(n)$, implying a time complexity of $O(K n^2)$
@@ -1012,7 +1016,7 @@ This function can be stored as a list of two intervals of $\mu$
 values, each with associated real-valued coefficients. To facilitate
 recovery of the optimal parameters, we also store the previous segment
 mean $u_1$ and endpoint (for details see supplementary
-materials). Note that the first interval represents ths cost of an
+materials). Note that the first interval represents the cost of an
 active equality constraint ($u_1=u_2$) and the second interval
 represents the cost of a change up ($2=u_1<u_2$). In the unconstrained
 algorithm we would have computed the constant cost of any change (up
@@ -1063,7 +1067,7 @@ non-increasing change after each non-decreasing change:
 \nonumber
 \end{align}
 The PeakSeg model described by \citet{HOCKING-PeakSeg} was defined in
-terms of strict inequality constraints ($u_{k-1}<u_k$) so is slightly
+terms of strict inequality constraints ($u_{k-1}<u_k$) so is 
 different from the non-strict inequality constrained formulation we
 propose here. Because the non-strict inequality constraints allow a
 rigorous mathematical derivation of the optimal cost functions
@@ -1170,7 +1174,7 @@ There are also data sets for which an optimum that satisfies the
 strict inequality constraints exists, but the CDPA does not recover
 it. See Supplementary Figure 2 for a detailed discussion of the data
 set [3, 9, 18, 15, 20, 2], for which the CDPA returns no model with
-$K=5$ segments (because it discards the optimal changepoint after the . For these data, the optimal model [6, 6, 18, 15, 20,
+$K=5$ segments. For these data, the optimal model [6, 6, 18, 15, 20,
 2] satisfies the strict inequality constraints, and is computed by our
 proposed GPDPA.
 
@@ -1199,7 +1203,8 @@ where it aligns, the data usually have spatial correlation, but this
 does not significantly affect the peaks detected by our method (see
 Supplementary Figure 3). This is consistent with theoretical results
 of \citet{Lavielle-Moulines} which suggest that correlated noise does
-not have a large effect on changepoint model estimates. Data sizes are
+not have a large effect on changepoint model estimates (a larger
+penalty compensates for the spatial correlation). Data sizes are
 between $n=10^5$ (maximum of the benchmark we consider) and $n=10^8$
 (largest region with no gaps in the human genome hg19). Algorithms
 with sub-quadratic time complexity are thus essential for the analysis
@@ -1263,26 +1268,33 @@ that identify genomic regions with and without peaks
 (Figure~\ref{fig:good-bad}). Labels were determined by an expert
 biologist, who used visual inspection of the data to determine
 presence or absence of significant peaks in particular genomic
-regions. These labels can be used to compute an error rate
-$E[c(\mathbf y_i), L_i]$ which is the total of false positives (labels
-with too many predicted peaks) plus false negatives (labels with not
-enough predicted peaks) for a given labeled data vector $i$. Ideal
-peak predictions would yield zero incorrect labels (for example see Figure~\ref{fig:good-bad}).
+regions. It has been shown that these types of labels are quite
+stable, and do not change much, even if we change the expert who
+determines the labels \citep{HOCKING2016-chipseq}. These labels can
+be used to compute an error rate $E[c(\mathbf y_i), L_i]$ which is the
+total of false positives (labels with too many predicted peaks) plus
+false negatives (labels with not enough predicted peaks) for a given
+labeled data vector $i$. Ideal peak predictions would yield zero
+incorrect labels (for example see Figure~\ref{fig:good-bad}).
 
 \subsection{Choice of evaluation metric: area under ROC curve}
 
 We wanted to compare the peak detection accuracy of our proposed
 algorithm with others from the bioinformatics literature, which
 typically report many false positive peaks using default parameter
-settings. Therefore in a typical analysis, to control
-the false positive rate, the default peak list is pruned by only
-considering the top $p$ peaks, according to some likelihood or
-significance threshold. For example, the MACS algorithm of
-\citet{MACS} uses a q-value threshold parameter, and the HMCanBroad
-algorithm of \citet{HMCan} uses a finalThreshold parameter (higher
-thresholds result in more false positives).
+settings. 
+% Therefore, using the total number of incorrectly predicted
+% labels as the evaluation metric would not show all relevant differences between methods (see
+% Supplementary Figure 1). 
+In a typical analysis, to control the false
+positive rate, the default peak list is pruned by only considering the
+top $p$ peaks, according to some likelihood or significance
+threshold. For example, the MACS algorithm of \citet{MACS} uses a
+q-value threshold parameter, and the HMCanBroad algorithm of
+\citet{HMCan} uses a finalThreshold parameter (higher thresholds
+result in more false positives).
 
-To account for this pruning step is our evaluation, we used Receiver
+To account for this pruning step in our evaluation, we used Receiver
 Operating Characteristic (ROC) curve analysis. For each threshold
 parameter, we computed the false positive rate and true positive rate
 using the labels, which results in one point on the ROC curve. The
@@ -1591,7 +1603,7 @@ baseline methods from the bioinformatics literature, which we also
 trained using grid search.
 
 To demonstrate that changepoint detection algorithms are more accurate
-than typical heuristics from the bioinformatics literature, we also
+than typical heuristics, we also
 compared with the MACS and HMCanBroad methods \citep{MACS,
   HMCan}. MACS is a popular heuristic for data with a sharp peak
 pattern such as H3K4me3, and \mbox{HMCanBroad} is a popular heuristic
@@ -1687,7 +1699,7 @@ the previous best, the relatively slow quadratic $O(Kn^2)$ time
 CDPA.
 
 We observed that the heuristic algorithms which are popular in the
-bioinformatics literature (MACS, HMCanBroad) are much less accurate
+bioinformatics literature (MACS, HMCanBroad) are much less accurate peak detectors
 than the optimal changepoint detection algorithms (CDPA, PDPA,
 GPDPA). In the past these sub-optimal heuristics have been preferred
 because of their speed. For example, the CDPA took 2 hours to compute
@@ -1696,24 +1708,21 @@ whereas the GPDPA took 2 minutes, and the MACS heuristic took 1
 minute. Using our proposed GPDPA, it is now possible to compute highly
 accurate models in an amount of time that is comparable to heuristic
 algorithms. Our proposed GPDPA can now be used as an optimal
-alternative to heuristic algorithms, even for large data sets.
+alternative to heuristic algorithms, even for large data sets. 
+For \emph{any} model with $P$ peaks, our GPDPA with $K=2P+1$ segments can be used to compute 
+a more likely (or equally likely) set of peaks (in terms of the Poisson likelihood 
+of the piecewise constant model with a segment for each peak and background region).
 
-In future work we will be interested to explore pruning techniques for
-other constrained changepoint models. For example, our proposed GPDPA can be
-applied to solve changepoint problems with general affine constraints
-on adjacent segment mean parameters
-\citep{Hocking-constrained-changepoint-detection}. However, when the number of
-expected changepoints grows with the number of data points, then
-$K=O(n)$ and the GPDPA has $O(n^2 \log n)$ average time
-complexity (since it computes all models with $1,\dots,K$
-segments). We have already started modifying the GPDPA for optimal
-partitioning \citep{optimal-partitioning}, which results in a
-Generalized Functional Pruning Optimal Partitioning (GFPOP)
-algorithm. It computes the best $K$-segment model for a single penalty
-constant $\lambda$ (without computing models with $1,\dots,K-1$
-segments) in $O(n\log n)$ time.
-
-
+The framework we have introduced for estimating changepoints when
+there are constraints on parameters of neighboring segments can be
+applied more widely. For example, ideas from an early draft of this
+paper \citep{Hocking-constrained-changepoint-detection} have already
+been used to impose the constraint of positive changes that are
+observed in neuro spike train data \citep{Jewell2018}. More generally,
+constrained changepoint detection models will be interesting to
+explore in the context of other data such as time series and
+statistical process monitoring.
+ 
 \section{Reproducible Research Statement}
 
 The source code and data used to create this manuscript (including all
