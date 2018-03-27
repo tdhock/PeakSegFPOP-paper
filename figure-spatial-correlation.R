@@ -62,15 +62,17 @@ for(file.i in 1:nrow(files.dt)){
       last==chromEnd[.N])]
     fit <- PeakSegOptimal::PeakSegPDPAchrom(count.dt, 2L)
     cov.dt.list[[paste(count.method, file.i)]] <- data.table(count.method, f, count.dt)
-    peaks.dt.list[[paste(count.method, file.i)]] <- data.table(count.method, f, subset(fit$segments, status=="peak" & peaks==2))
+    peaks.dt.list[[paste(count.method, file.i)]] <- data.table(count.method, f, subset(fit$segments, peaks==2))
   }
 }
 
 cov.dt <- do.call(rbind, cov.dt.list)
-peaks.dt <- do.call(rbind, peaks.dt.list)
+peaks.dt <- do.call(rbind, peaks.dt.list)[status=="peak"]
 
+cov.dt[, list(max=max(count)), by=list(experiment)]
 scale.dt <- data.table(
   y=15, count.method="last",
+  yy=-c(54, 377)/10,
   start=c(111750, 175440),
   end=c(111800, 175490),
   experiment=c("H3K36me3", "H3K4me3"))
@@ -80,6 +82,55 @@ max.dt <- cov.dt[, list(
   ), by=count.method]
 blank.dt <- cov.dt[, list(min.chromStart=min(chromStart)), by=list(count.method, experiment)][max.dt, on=list(count.method)]
 size <- 3
+cov.peaks <- do.call(rbind, peaks.dt.list)[count.method=="coverage"]
+gg <- ggplot()+
+  theme_bw()+
+  geom_segment(aes(
+    start, yy,
+    xend=end, yend=yy),
+               color="grey",
+               size=4,
+               data=scale.dt)+
+  geom_text(aes(
+    (start+end)/2, yy, label=paste(end-start, "kb")),
+               color="grey",
+             vjust=-0.7,
+               data=scale.dt)+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  facet_wrap("experiment", scales="free", labeller=function(df){
+    if("count.method" %in% names(df)){
+      df$count.method <- c(
+        ## coverage="each read counted at 100 positions, one for each aligned base: spatial correlation present",
+        ## last="each read counted at one position, the last aligned base: spatial correlation absent"
+        coverage="Some spatial correlation",
+        last="No spatial correlation"
+        )[df$count.method]
+    }
+    if("experiment" %in% names(df)){
+      df$experiment <- c(
+        H3K36me3="Broad histone mark H3K36me3",
+        H3K4me3="Sharp histone mark H3K4me3"
+        )[df$experiment]
+    }
+    df
+  })+
+  geom_step(aes(
+    chromStart/1e3, count),
+            data=cov.dt[count.method=="coverage"])+
+  geom_segment(aes(
+    chromStart/1e3, mean,
+    xend=chromEnd/1e3, yend=mean),
+               color="deepskyblue",
+               size=1,
+               data=cov.peaks)+
+  xlab("position on chromosome (kb = kilo bases)")+
+  scale_y_continuous("aligned read coverage")+
+  coord_cartesian(expand=FALSE)
+png("figure-spatial-correlation-mean.png", 1800, 600, res=200)
+print(gg)
+dev.off()
+
+
 gg <- ggplot()+
   theme_bw()+
   geom_segment(aes(
@@ -91,7 +142,7 @@ gg <- ggplot()+
   geom_text(aes(
     (start+end)/2, y, label=paste(end-start, "kb")),
                color="grey",
-             vjust=-0.5,
+             vjust=-0.5, 
                data=scale.dt)+
   theme(panel.margin=grid::unit(0, "lines"))+
   facet_grid(count.method ~ experiment, scales="free", labeller=function(df){
