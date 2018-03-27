@@ -853,86 +853,6 @@ print(gg.pruning)
 
 tsegs <- 3
 ti <- 4
-cost.lines[, total.cost := cost*3]
-minima[, total.min.cost := min.cost*3]
-gg.pruning <- ggplot()+
-  theme_bw()+
-  theme(panel.margin=grid::unit(0, "lines"))+
-  geom_line(aes(mean, total.cost, group=paste(cost.type, piece.i), linetype=cost.type),
-            size=3,
-            color="grey80",
-            data=cost.lines[timestep==ti & tsegs==total.segments & cost.type == "compare"])+
-  geom_text(aes(
-    mean, cost, label=label),
-            data=data.table(
-              mean=15, cost=-14.42*3),
-              label=c(
-                "best cost in\n2 segments\nand 3 data\n$C_{2,3}(u_2)$"))+
-  geom_text(aes(
-    mean, cost, label=label),
-            color="red",
-            data=data.table(
-              mean=7, cost=-14.48*3),
-              label=c(
-                "CDPA discards possibility
-of non-decreasing change after $t_1=2$"))+
-  geom_segment(aes(x, y, xend=xend, yend=yend),
-            color="red",
-               linetype="dotted",
-               data=data.table(
-                 x=10, y=-14.48*3, xend=17, yend=-43.51),
-               arrow=grid::arrow(length=grid::unit(0.1, "in"), type="closed"))+
-  geom_text(aes(
-    mean, cost, label=label),
-            color="red",
-            data=data.table(
-              mean=7, cost=-14.5*3),
-              label=c(
-                "CDPA computes this scalar min cost,
-only considering a possible
-non-decreasing change after $t_1=1$"))+
-  geom_segment(aes(x, y, xend=xend, yend=yend),
-            color="red",
-               linetype="dotted",
-               data=data.table(
-                 x=10, y=-14.5*3, xend=13, yend=-43.56),
-               arrow=grid::arrow(length=grid::unit(0.1, "in"), type="closed"))+
-  geom_text(aes(
-    mean, cost, label=label),
-            color="grey50",
-            data=data.table(
-              mean=17, cost=-14.52*3,
-              label=c(
-                "GPDPA considers both
-possible changes $t_1\\in\\{1,2\\}$
-by computing $C^\\geq_{2,3}(u_3)$,
-the functional min cost of a
-non-increasing change after $t_2=3$")))+
-  geom_line(aes(mean, total.cost),
-            data=cost.lines[timestep==ti & tsegs==total.segments & cost.type == "result"])+
-  geom_line(aes(mean, total.cost, group=paste(cost.type, piece.i), linetype=cost.type,
-                color=data.i.fac),
-            size=1,
-            data=cost.lines[timestep==ti & tsegs==total.segments & cost.type == "result"])+
-  geom_point(aes(min.cost.mean, total.min.cost),
-             data=minima[timestep==ti & tsegs==total.segments,])+
-  coord_cartesian(ylim=c(-14.525, -14.4)*3)+
-  scale_color_discrete("previous\nsegment\nend", guide="none")+
-  scale_linetype_discrete(labels=c(result="$C_{2,3}$", compare="C^\\geq{2,3}"), guide="none")+
-  geom_text(aes(
-    mean, cost, color=data.i.fac, label=label),
-            data=data.table(
-              mean=c(10, 18), cost=-14.46*3, data.i.fac=factor(c(1, 2)),
-              label=c(
-                "cost of non-decreasing\nchange after $t_1=1$\n$\\ell(y_3, u_2)+$C_{2,2}(u_2)$",
-                "cost of non-decreasing\nchange after $t_1=2$\n$\\ell(y_3, u_2)+$C^\\leq_{1,2}(u_2)")))+
-  ylab("cost")+
-  xlab("segment mean")
-print(gg.pruning)
-tikz("figure-PeakSegPDPA-demo-CDPA-fails.tex", 4, 3)
-print(gg.pruning)
-dev.off()
-
 data.lines.list <- list()
 data.minima.list <- list()
 data.infeasible.list <- list()
@@ -1065,7 +985,7 @@ viz <- list(
               size=8,
               data=data.table(envelope, seg.i="pruning"))+
     geom_line(aes(mean, cost, color=data.i.fac,
-                  group=paste(piece.i, data.i),
+                  group=paste(piece.i, data.i, cost.type),
                   key=paste(cost.type, min.mean, max.mean),
                   showSelected=total.segments, showSelected2=timestep),
               data=data.table(cost.lines, seg.i="pruning"))+
@@ -1138,7 +1058,7 @@ viz <- list(
     scale_x_continuous(
       "data point",
       breaks=unique(c(seq(1, length(input.dt$count), by=10), length(input.dt$count)))),
-  time=list(variable="timestep", ms=2000),
+  ##time=list(variable="timestep", ms=2000),
   duration=list(timestep=2000)
 )
 minima.active <- data.minima[constraint=="active",]
