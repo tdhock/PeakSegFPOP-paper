@@ -1,8 +1,8 @@
 source("packages.R")
 
-load("../PeakSeg-paper/dp.peaks.train.RData")
-load("dp.peaks.error.RData")
-load("dp.peaks.RData")
+(objs <- load("../PeakSeg-paper/dp.peaks.train.RData"))
+(objs <- load("dp.peaks.error.RData"))
+(objs <- load("dp.peaks.RData"))
 
 library(dplyr)
 good.group.df <- groups %>%
