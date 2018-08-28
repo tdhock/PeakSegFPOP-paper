@@ -216,17 +216,17 @@ algorithm can be used to find a more likely model with three peaks
 \centering
 \includegraphics{jss-figure-more-likely-models-one-peak}
 \caption{\label{fig:one-peak} Default peak model from the baseline
-  MACS2 algorithm (left) and the optimal peak model computed using the
-  proposed PeakSegFPOP algorithm (right).}
+  MACS2 algorithm (top) and the optimal peak model computed using the
+  proposed PeakSegFPOP algorithm (bottom).}
 \end{figure}
 
 \begin{figure}[t!]
 \centering
 \includegraphics{jss-figure-more-likely-models-three-peaks}
 \caption{\label{fig:three-peaks} The peak model from the baseline
-  MACS2 algorithm detected five peaks (left), and our PeakSegFPOP
+  MACS2 algorithm detected five peaks (top), and our PeakSegFPOP
   algorithm can be used to find a more likely model with three peaks
-  (right).}
+  (bottom).}
 \end{figure}
  
 \begin{figure}[t!]
@@ -237,6 +237,17 @@ algorithm can be used to find a more likely model with three peaks
   benchmark. Data sizes range from $N=10^2$ to $10^7$ weighted data to
   segment (x-axis); disk usage (top panel) and computation time
   (bottom panel) are log-linear $O(N \log N)$.}
+\end{figure}
+ 
+\begin{figure}[t!]
+\centering
+\includegraphics{jss-figure-target-intervals-models-penalty}
+\caption{\label{fig:target-intervals-models-penalty} The PeakSegFPOP
+  algorithm was used to compute optimal models for six of the largest
+  problems (panels from left to right) for a variety of penalty
+  parameters (x-axis). Y-axes show empirical measurements of cost
+  function pieces (intervals, top panel), timings (minutes, middle
+  panel), and disk usage (gigabytes, bottom panel).}
 \end{figure}
  
 
@@ -343,12 +354,12 @@ algorithm can be used to find a more likely model with three peaks
 % maps, tables, \dots) that are not cited in the main text can be credited here.
 % \end{leftbar}
 
-The results in this paper were obtained using
-\proglang{R}~3.4.1 with the
-\pkg{MASS}~7.3.47 package. \proglang{R} itself
-and all packages used are available from the Comprehensive
-\proglang{R} Archive Network (CRAN) at
-\url{https://CRAN.R-project.org/}.
+% The results in this paper were obtained using
+% \proglang{R}~3.4.1 with the
+% \pkg{MASS}~7.3.47 package. \proglang{R} itself
+% and all packages used are available from the Comprehensive
+% \proglang{R} Archive Network (CRAN) at
+% \url{https://CRAN.R-project.org/}.
 
 
 \section*{Acknowledgments}

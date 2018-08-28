@@ -13,13 +13,6 @@ The fold IDs that we used in our four-fold cross-validation experiment
 to compute test AUC/accuracy are listed in
 http://members.cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/4foldcv-test-folds.csv
 
-** TODOs
-
-- add figure files, [[file:figure-good-bad.R]]
-- new slides showing better peak detection specific examples
-  [[file:figure-min-train-error.R]]
-- big model labels in [[file:figure-test-error-dots.R]]
-
 ** Figures
 
 To recompute the figures from the paper, execute the code in the
@@ -35,6 +28,24 @@ following R scripts.
 
 For the last two figures, use the [[file:Makefile]] to re-make some
 intermediate RData files based on the [[http://members.cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/][ChIP-seq benchmark data]].
+
+** JSS paper
+
+- LaTeX source: [[file:jss-paper.tex]]
+- Figure showing that disk-based storage is not much slower than
+  memory-based storage. [[file:jss-figure-disk-memory-compare-speed.R]]
+- Figure showing that PeakSegFPOP can be used to compute more likely
+  models than the default MACS2
+  model. [[file:jss-figure-more-likely-models.R]]
+- Figure showing that [[file:jss-figure-target-intervals-models.R]]
+
+** TODOs
+
+- add figure files, [[file:figure-good-bad.R]]
+- new slides showing better peak detection specific examples
+  [[file:figure-min-train-error.R]]
+- big model labels in [[file:figure-test-error-dots.R]]
+
 
 ** 28 Mar 2017
 - [[file:PDPA.timings.small.R]] runs the PeakSegPDPA algorithm for each
