@@ -1,3 +1,11 @@
+jss-paper.pdf: jss-paper.tex jss-figure-more-likely-models-three-peaks.png
+	rm -rf *.aux *.bbl
+	pdflatex jss-paper
+	bibtex jss-paper
+	pdflatex jss-paper
+	pdflatex jss-paper
+jss-figure-more-likely-models-three-peaks.png: jss-figure-more-likely-models.R
+	R --no-save < $<
 HOCKING-RIGAILL-constrained-functional-pruning.pdf: HOCKING-RIGAILL-constrained-functional-pruning.tex refs.bib figure-1-min-operators.pdf figure-2-min-envelope.tex figure-PDPA-microbenchmark.pdf figure-PDPA-intervals.png figure-PDPA-timings.pdf figure-test-error-dots.pdf
 	rm -rf *.aux *.bbl
 	pdflatex HOCKING-RIGAILL-constrained-functional-pruning
