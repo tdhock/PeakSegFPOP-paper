@@ -45,7 +45,7 @@ if(!file.exists(data.dir)){
 fit.dt.list <- list()
 zip.dt.list <- list()
 model.i.vec <- 1:nrow(small.models)
-model.i.vec <- 1:151
+##model.i.vec <- 1:151
 for(model.i in model.i.vec){
   model <- small.models[model.i]
   pen.str <- paste(model$penalty)
@@ -68,9 +68,10 @@ for(model.i in model.i.vec){
     })[["elapsed"]]
     time.df <- microbenchmark(
       memory=PeakSegOptimal::PeakSegFPOPchrom(coverage.dt, model$penalty),
-      disk=PeakSegPipeline::PeakSegFPOP_disk(
+      disk=fit <- PeakSegPipeline::PeakSegFPOP_disk(
         coverage.bedGraph, pen.str),
       times=2)
+    unlink(fit$db)
     gzip.seconds <- system.time({
       system(paste("gzip", coverage.bedGraph))
     })[["elapsed"]]
@@ -148,7 +149,7 @@ leg <- ggplot()+
     data=bench.stats)+
   scale_y_log10("seconds")+
   scale_x_continuous(
-    "log10(number of data after compression)",
+    "log10(N = number of data to segment)",
     limits=c(NA, 6))
 dl <- direct.label(leg, "last.polygons")
 pdf("jss-figure-disk-memory-compare-speed.pdf", 3.3, 3)
