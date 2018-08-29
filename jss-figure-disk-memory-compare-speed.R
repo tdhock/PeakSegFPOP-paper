@@ -18,9 +18,10 @@ small.models <- bench.models[small.probs, on=list(prob.dir)]
 small.models[, sum(hours)]
 
 bench.dir <- "~/projects/feature-learning-benchmark"
-data.tar.xz <- file.path(bench.dir, "peak-detection-data.tar.xz")
-if(!file.exists(data.tar.xz)){
-  download.file("https://archive.ics.uci.edu/ml/machine-learning-databases/00439/peak-detection-data.tar.xz", data.tar.xz)
+data.dir <- file.path(bench.dir, "data")
+if(!file.exists(data.dir)){
+  download.file("https://archive.ics.uci.edu/ml/machine-learning-databases/00439/peak-detection-data.tar.xz", "data.tar.xz")
+  system(paste("cd", bench.dir, "&& tar xvf data.tar.xz && rm data.tar.xz"))
 }
 
 

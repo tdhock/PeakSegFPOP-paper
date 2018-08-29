@@ -1,5 +1,65 @@
 \documentclass[article]{jss}
 
+% For algorithms
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+% As of 2011, we use the hyperref package to produce hyperlinks in the
+% resulting PDF.  If this breaks your system, please commend out the
+% following usepackage line and replace \usepackage{icml2016} with
+% \usepackage[nohyperref]{icml2016} above.
+\usepackage{hyperref}
+\usepackage{xcolor}
+\definecolor{Ckt}{HTML}{E41A1C}
+\definecolor{Min}{HTML}{4D4D4D}%grey30
+%{B3B3B3}%grey70
+\definecolor{MinMore}{HTML}{377EB8}
+\definecolor{Data}{HTML}{984EA3}
+
+% Packages hyperref and algorithmic misbehave sometimes.  We can fix
+% this with the following command.
+%\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% Employ the following version of the ``usepackage'' statement for
+% submitting the draft version of the paper for review.  This will set
+% the note in the first column to ``Under review.  Do not distribute.''
+%\usepackage{icml2016} 
+\usepackage{fullpage}
+
+% Employ this version of the ``usepackage'' statement after the paper has
+% been accepted, when creating the final version.  This will set the
+% note in the first column to ``Proceedings of the...''
+%\usepackage[accepted]{icml2016}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows}
+\usepackage{amssymb,amsmath}
+\usepackage{natbib}
+\usepackage{amsthm}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\sign}{sign}
+\DeclareMathOperator*{\Lik}{Lik}
+\DeclareMathOperator*{\Peaks}{Peaks}
+\DeclareMathOperator*{\HotSpots}{HotSpots}
+\newcommand{\Cost}{\text{Cost}}
+\usepackage{stfloats}
+\DeclareMathOperator*{\Diag}{Diag}
+\DeclareMathOperator*{\TPR}{TPR}
+\DeclareMathOperator*{\Segments}{Segments}
+\DeclareMathOperator*{\Changes}{Changes}
+\DeclareMathOperator*{\FPR}{FPR}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\maximize}{maximize}
+\DeclareMathOperator*{\minimize}{minimize}
+\newcommand{\ZZ}{\mathbb Z}
+\newcommand{\NN}{\mathbb N}
+\newcommand{\RR}{\mathbb R}
+
+
 %% -- LaTeX packages and custom commands ---------------------------------------
 
 %% recommended packages
@@ -249,6 +309,458 @@ algorithm can be used to find a more likely model with three peaks
   function pieces (intervals, top panel), timings (minutes, middle
   panel), and disk usage (gigabytes, bottom panel).}
 \end{figure}
+
+\newpage
+
+foo
+\newpage
+
+bar
+\newpage
+
+\subsection{Penalized version of reduced isotonic regression}
+
+\citet{fpop} proposed the Functional Pruning Optimal Partitioning
+(FPOP) algorithm to solve the ``penalized'' or ``optimal
+partitioning'' version of the segment neighborhood problem, where the
+constraint of $K$ segments is replaced by a non-negative penalty
+$\lambda\in\RR_+$ on the number of changes in the objective
+function. Rather than computing all models from 1 to $K$ segments (as
+in the PDPA), the FPOP algorithm computes the single model with $K$
+segments (without computing models from 1 to $K-1$ segments). The same
+penalization idea can be applied to models with affine constraints
+between adjacent segment means.  The penalized version of the reduced
+isotonic regression problem (\ref{eq:reduced}) can be stated as
+\begin{align}
+  \label{eq:penalized_reduced_isotonic}
+  \minimize_{
+    \substack{
+    \mathbf m\in\RR^n\\
+\mathbf c\in\{0,1\}^{n-1}
+}
+  %\mathbf t\in\{1,\dots,n\}^{K+1}
+    } &\ \ 
+  \sum_{t=1}^n \ell(y_t, m_t) + \lambda \sum_{t=1}^{n-1} I(c_t \neq 0) \\
+  \text{subject to\,} &\ \ c_t = 0 \Rightarrow m_t = m_{t+1}
+  \nonumber\\
+&\ \ c_t = 1 \Rightarrow m_t \leq m_{t+1}.
+\nonumber
+\nonumber
+\end{align}
+Note that the $c_t$ variable is a changepoint indicator.  The same
+functional pruning techniques used for the GPDPA can be exploited to
+create a solver for this problem. This results in the Generalized
+Functional Pruning Optimal Partitioning Algorithm (GFPOP, see
+Table~\ref{tab:GFPOP}).
+
+\begin{table}
+  \centering
+\begin{tabular}{c|c|c}
+  & Segment Neighborhood & Optimal Partitioning\\
+\hline
+unconstrained & PDPA & FPOP \\
+\hline
+constrained & GPDPA & GFPOP 
+\end{tabular}
+\caption{
+Algorithms for solving constrained and unconstrained versions 
+of the Segment Neighborhood and Optimal Partitioning problems. 
+PDPA = Pruned Dynamic Programming Algorithm, 
+FPOP = Functional Pruning Optimal Partitioning, 
+G = Generalized (can handle affine constraints on adjacent segment means).}
+\label{tab:GFPOP}
+\end{table}
+
+Let $\overline C_{\lambda,t}(u)$ be the
+penalized cost of the most likely segmentation up to data point $t$,
+with last segment mean $u$. The initialization for the first data
+point is $\overline C_{\lambda,1}(u) = \ell(y_1, u)$. The dynamic programming update rule
+for all data points $t>1$ is
+\begin{equation}
+  \overline C_{\lambda,t}(u) = \ell(y_t, u) + \min\{
+  \overline C_{\lambda,t-1}^\leq(u) + \lambda,\, \overline C_{\lambda,t-1}(u)
+  \}.
+\end{equation}
+The same sub-routines described in Section~\ref{sec:MinLess} can be
+used to implement the algorithm below, which solves the penalized
+reduced isotonic regression problem
+(\ref{eq:penalized_reduced_isotonic}).
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE Input: data set $\mathbf y\in\RR^n$, penalty constant $\lambda\geq 0$.
+\STATE Output: vectors of optimal segment means $U\in\RR^{n}$ and ends $T\in\{1,\dots,n\}^{n}$
+\STATE Compute min $\underline y$ and max $\overline y$ of $\mathbf y$.
+\label{line:op-min-max}
+\STATE $\overline C_{\lambda,1}\gets \text{OnePiece}(y_1, \underline y, \overline y)$
+\STATE for data points $t$ from 2 to $n$: // dynamic programming
+\label{line:for-dp-t}
+\begin{ALC@g}
+  \STATE $\text{min\_prev}\gets \lambda + \text{MinLess}(t-1, \overline C_{\lambda,t-1})$
+  \label{line:op-MinLess}
+  \STATE $\text{min\_new}\gets \text{MinOfTwo}(\text{min\_prev}, \overline C_{\lambda, t-1})$
+  \label{line:op-MinOfTwo}
+  \STATE $\overline C_{\lambda,t}\gets \text{min\_new} + \text{OnePiece}(y_t, \underline y, \overline y)$
+  \label{line:op-AddNew}
+\end{ALC@g}
+\STATE $u^*,t',u'\gets \text{ArgMin}(\overline C_{\lambda,n})$ // begin decoding
+\label{line:op-ArgMin}
+\STATE $i\gets 1;\, U_{i}\gets u^*;\, T_{i}\gets t'$
+\label{line:op-store-i}
+\STATE while $t' > 0$:
+\begin{ALC@g}
+  \STATE if $u' < \infty$: $u^*\gets u'$
+  \STATE $t',u'\gets\text{FindMean}(u^*, \overline C_{\lambda,t'})$
+  \STATE $i\gets i+1;\, U_{i}\gets u^*;\, T_{i}\gets t'$
+\label{line:op-i+1}
+\end{ALC@g}
+\caption{\label{algo:OPIR}Generalized Functional Pruning Optimal
+  Partitioning (GFPOP) for penalized reduced isotonic regression}
+\end{algorithmic}
+\end{algorithm}
+
+Algorithm~\ref{algo:OPIR} begins by computing the min/max
+(line~\ref{line:op-min-max}). The main storage
+of the algorithm is $\overline C_{\lambda, t}$, which should be
+initialized as an array of $n$ empty FunctionPieceList objects. 
+
+The dynamic programming recursion in this algorithm has only one for
+loop over data points $t$ (line~\ref{line:for-dp-t}). The penalty
+constant $\lambda$ is added to all of the function pieces that result
+from MinLess (line~\ref{line:op-MinLess}), before computing MinOfTwo
+(line~\ref{line:op-MinOfTwo}). The last step of each dynamic
+programming update is to add the cost of the new data point
+(line~\ref{line:op-AddNew}).
+
+The decoding process on lines~\ref{line:op-ArgMin}--\ref{line:op-i+1}
+is essentially the same as the GPDPA (Algorithm~\ref{algo:GPDPA}). The
+last segment mean and second to last segment end are first stored on
+line~\ref{line:op-store-i} in $(U_1,T_1)$. For each other segment $i$,
+the mean and previous segment end are stored on line~\ref{line:op-i+1}
+in $(U_i,T_i)$. Note that there should be space to store $(U_i,T_i)$
+parameters for up to $n$ segments. However, there are usually less
+than $n$ segments, and the algorithm should return a special flag for
+unused parameters, for example $(U_i=\infty, T_i=-1)$.
+
+The time complexity of Algorithm~\ref{algo:OPIR} is $O(n I)$, where
+$I$ is the time complexity of the MinLess and MinOfTwo
+sub-routines. As in the GPDPA, the time complexity of these
+sub-routines is linear in the number of intervals (FunctionPiece
+objects) that are used to represent the $\overline C_{\lambda, t}$
+cost functions. Since the number of intervals in real data is
+typically $I=O(\log n)$ (see Section~\ref{sec:results_time}), the
+overall time complexity of Algorithm~\ref{algo:OPIR} is on average
+$O(n \log n)$.
+
+\subsection{Generalized Functional Pruning Optimal Partitioning
+  Solvers}
+\label{sec:GFPOP}
+
+The GFPOP algorithm can solve problems with more general constraints
+than reduced isotonic regression. Let $G=(V,E)$ be a directed graph
+that represents the model constraints (for examples see
+Figure~\ref{fig:state-graphs}). The vertices $V=\{1,\dots,|V|\}$ can be
+represented as integers, one for every distinct state. The edges
+$E=\{1,\dots,|E|\}$ is another set of integers, each of which represents
+one of the possible changes between states. Each edge/change $c\in E$
+has corresponding data
+$(\underline v_c, \overline v_c, \lambda_c, g_c)$ which specifies a
+transition from state $\underline v_c$ to state $\overline v_c$, with
+a penalty of $\lambda_c\in\RR_+$, and a constraint function
+$g_c:\RR\times\RR\rightarrow\RR$.
+
+\begin{figure*}
+  \centering
+\parbox{1in}{
+\centering \textbf{Unconstrained}\\
+  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+                    thick,main node/.style={circle,draw}]
+
+  \node[main node] (1) {1};
+
+  \path[every node/.style={font=\sffamily\small}]
+    (1) edge [loop below] node {$g_0, \lambda$} (1);
+\end{tikzpicture}
+}
+\parbox{1in}{
+\centering \textbf{Reduced\\
+isotonic\\
+ regression}\\
+  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+                    thick,main node/.style={circle,draw}]
+
+  \node[main node] (1) {1};
+
+  \path[every node/.style={font=\sffamily\small}]
+    (1) edge [loop below] node {$g_\uparrow, \lambda$} (1);
+\end{tikzpicture}
+}
+\parbox{1.5in}{
+\centering \textbf{Peak detection}
+  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+                    thick,main node/.style={circle,draw}]
+
+  \node[main node] (1) {peak};
+  \node[main node] (2) [below of=1] {background};
+
+  \path[every node/.style={font=\sffamily\small}]
+    (2) edge [bend left] node {$g_\uparrow, \lambda_\uparrow$} (1)
+    (1) edge [bend left] node {$g_\downarrow, \lambda_\downarrow$} (2);
+\end{tikzpicture}
+}
+\parbox{2.5in}{
+\centering \textbf{Unimodal regression}
+  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+                    thick,main node/.style={circle,draw}]
+
+  \node[main node] (1) {up/down};
+  \node[main node] (2) [below left of=1] {up};
+  \node[main node] (3) [below right of=1] {down};
+
+  \path[every node/.style={font=\sffamily\small}]
+    (2) edge [bend left] node {$g_\uparrow, \lambda_1$} (1)
+    (1) edge [loop below] node {$g_\uparrow, \lambda_2$} (1)
+    (1) edge [bend left] node {$g_\downarrow, \lambda_3$} (3)
+    (3) edge [loop right] node {$g_\downarrow, \lambda_4$} (3);
+\end{tikzpicture}
+}
+\caption{Examples of state graphs for four models. Nodes represent
+  states and edges represent changes. Each change has a corresponding
+  penalty $\lambda$, and a function $g$ that determines what types of
+  changes are possible ($g_0$ any change, $g_\uparrow$ non-decreasing,
+  $g_\downarrow$ non-increasing). Even if there is no edge from a node
+  to itself, it is still possible to stay in the same state without
+  introducing a changepoint and penalty. Note that the Unimodal
+  regression state X should be interpreted as ``can change X''
+  e.g. up/down means ``can change up/down.'' }
+  \label{fig:state-graphs}
+\end{figure*}
+\begin{figure}[H]
+  \centering
+\parbox{2in}{
+\centering
+\textbf{Reduced Isotonic Regression}\\
+  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+  thick,main node/.style={circle,draw}]
+  \node[main node] (t) {$C_{1,t}$};
+  \node[main node] (t1) [right of=t] {$C_{1, t+1}$};
+  \path[every node/.style={font=\small}]
+    (t) edge [dotted] node {$C_{1, t}$} (t1)
+    (t) edge [black, bend right] node [below] {$C_{1, t}^{g_\uparrow}+\lambda$} (t1)
+;
+\end{tikzpicture}
+}
+\parbox{2in}{
+\centering
+\textbf{Peak detection}\\
+  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+  thick,main node/.style={circle,draw}]
+  \node[main node] (peak_t) {$C_{\text{peak},t}$};
+  \node[main node] (bkg_t) [below of=peak_t] {$C_{\text{bkg}, t}$};
+  \node[main node] (peak_t1) [right of=peak_t] {$C_{\text{peak}, t+1}$};
+  \node[main node] (bkg_t1) [right of=bkg_t] {$C_{\text{bkg}, t+1}$};
+  \path[every node/.style={font=\small}]
+    (peak_t) edge [dotted] node {$C_{\text{peak}, t}$} (peak_t1)
+    (peak_t) edge [black, bend right] node [right] {$C_{\text{peak}, t}^{g_\downarrow}+\lambda_\downarrow$} (bkg_t1)
+    (bkg_t) edge [dotted] node[midway, below] {$C_{\text{bkg}, t}$} (bkg_t1)
+    (bkg_t) edge [black, bend left] node[right] {$C_{\text{bkg}, t}^{g_\uparrow}+\lambda_\uparrow$} (peak_t1)
+;
+\end{tikzpicture}
+}
+\parbox{2in}{
+\centering
+\textbf{Unimodal regression}\\
+  \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm,
+  thick,main node/.style={circle,draw}]
+  \node[main node] (up_t) {$C_{\text{up},t}$};
+  \node[main node] (up_down_t) [below of=up_t] {$C_{\text{up/down}, t}$};
+  \node[main node] (down_t) [below of=up_down_t] {$C_{\text{down}, t}$};
+  \node[main node] (up_t1) [right of=up_t] {$C_{\text{up}, t+1}$};
+  \node[main node] (up_down_t1) [below of=up_t1] {$C_{\text{up/down}, t+1}$};
+  \node[main node] (down_t1) [below of=up_down_t1] {$C_{\text{down}, t+1}$};
+  \path[every node/.style={font=\small}]
+    (up_t) edge [dotted] node {$C_{\text{up}, t}$} (up_t1)
+    (up_down_t) edge [dotted] node[midway, below] {$C_{\text{up/down}, t}$} (up_down_t1)
+    (down_t) edge [dotted] node {$C_{\text{down}, t}$} (down_t1)
+    (up_t) edge [black, bend left] node [near end] {$C_{\text{up}, t}^{g_\uparrow}+\lambda_{1}$} (up_down_t1)
+    (up_down_t) edge [black, bend left] node [above] {$C_{\text{up/down}, t}^{g_\uparrow}+\lambda_{2}\hspace{0.8cm}$} (up_down_t1)
+    (up_down_t) edge [black] node [below left] {$C_{\text{up/down}, t}^{g_\downarrow}+\lambda_3$} (down_t1)
+    (down_t) edge [black, bend right] node [midway, below] {$C_{\text{down}, t}^{g_\downarrow}+\lambda_4$} (down_t1)
+;
+\end{tikzpicture}
+}
+\caption{Computation graphs which represent the dynamic programming
+  updates (\ref{eq:generalDP}) for the state graph models in
+  Figure~\ref{fig:state-graphs}. Nodes represent cost functions
+  $C_{s,t}$ in each state $s$ at data $t$ and $t+1$. Edges represent
+  inputs to the $\min\{\}$ operation (solid for a changepoint, dotted
+  for no change). For example in reduced isotonic regression, $C_{1,t+1}(u) = \ell(y_{t+1}, u) + \min\{ C_{1,t}(u), C_{1,t}^{g_{\uparrow}}(u) + \lambda \}$.
+}
+  \label{fig:computation-graphs}
+\end{figure}
+
+In the optimization problem below we
+also allow $c=0$, which implies no penalty $\lambda_0=0$, and means no
+change:
+\begin{align}
+  \label{eq:GFPOP_problem}
+  \minimize_{
+    \substack{
+    \mathbf m\in\RR^n,\ \mathbf s\in V^n\\
+\mathbf c\in \{0,1,\dots,|E|\}^{n-1}
+}
+    } &\ \ 
+  \sum_{t=1}^n \ell(y_t, m_t) + \sum_{t=1}^{n-1} \lambda_{c_t} \\
+  \text{subject to \hskip 0.9cm} &\ \ c_t = 0 \Rightarrow m_t = m_{t+1}
+\text{ and } s_t= s_{t+1}
+  \nonumber\\
+&\ \ c_t \neq 0 \Rightarrow g_{c_t}(m_t, m_{t+1})\leq 0\text{ and }
+(s_t,s_{t+1})=(\underline v_{c_t}, \overline v_{c_t}).
+\nonumber
+\end{align}
+If some states are desired at the start or end, then those constraints
+$s_1\in \underline S, s_n\in\overline S$ can also be enforced.  To
+compute the solution to this optimization problem, we propose the
+following dynamic programming algorithm.
+
+Let $C_{s,t}(u)$ be the optimal cost with mean $u$ and state $s$ at
+data point $t$. This quantity can be recursively computed using
+dynamic programming. The initialization for the first data point is
+$ C_{s,1}(u) = \ell(y_1, u)$ for all states $s$. The dynamic
+programming update rule for all data points $t>1$ is
+\begin{equation}
+\label{eq:generalDP}
+   C_{s,t}(u) = \ell(y_t, u) + \min\{
+   M_{s,t-1}(u),\,  C_{s,t-1}(u)
+  \},
+\end{equation}
+where the minimum cost of all possible changes to state $s$ from time
+point $t-1$ is
+\begin{equation}
+  M_{s,t-1}(u) = \min_{c\in E_s} C^{g_c}_{\underline v_c, t-1}(u) + \lambda_c,
+\end{equation}
+and the set of all changes going to state $s$ is
+\begin{equation}
+  E_s = \{c\in E \mid \overline v_c = s\}.
+\end{equation}
+The computations required for the dynamic programming updates
+(\ref{eq:generalDP}) can be visualized using a computation graph
+(Figure~\ref{fig:computation-graphs}).
+
+The pseudocode for the algorithm which implements the dynamic
+programming updates (\ref{eq:generalDP}) is stated below.
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE Input: data $\mathbf y$ and weights $\mathbf w$ (both size $n$), 
+number of vertices/states $|V|$, starts $\underline S\subseteq V$, 
+edges/transitions $E$.
+\STATE Allocate $|V|\times n$ array of optimal cost functions $C_{s,t}$, 
+each initialized to NULL.
+\STATE for $t$ from $1$ to $n$:
+\begin{ALC@g}
+  \STATE if $t==1$:
+  \begin{ALC@g}
+    \STATE for $s$ in $\underline S$: // initialize cost for all possible starting states
+    \begin{ALC@g}
+      \STATE $C_{s,t}\gets\text{InitialCost}(y_t, w_t)$
+    \end{ALC@g}
+  \end{ALC@g}
+  \STATE else:
+  \begin{ALC@g}
+    \STATE for $s$ from $1$ to $|V|$: 
+    \begin{ALC@g}
+      \STATE if $C_{s,t-1}$ is NOT NULL: // previous cost in this state has been computed
+      \begin{ALC@g}
+        \STATE $C_{s,t}\gets C_{s,t-1}$ // cost of staying in this state (no change)
+      \end{ALC@g}
+    \end{ALC@g}
+    \STATE for ($\underline v$, $\overline v$, $\lambda$,
+    ConstrainedCost) in $E$:
+    \begin{ALC@g}
+      \STATE if $C_{\underline v,t-1}$ is NOT NULL: // previous cost has been computed
+      \begin{ALC@g}
+        \STATE
+        $\text{cost\_of\_change}\gets
+        \text{ConstrainedCost}(C_{\underline v, t-1})$
+        \STATE
+        $\text{cost\_of\_change.set}
+        (\underline v, t-1)$
+        \STATE
+        $\text{cost\_of\_change.addPenalty}
+        (\text{$\lambda$})$
+        \STATE if $C_{\overline v,t}$ is NULL:
+        \begin{ALC@g}
+          \STATE $C_{\overline v,t}\gets\text{cost\_of\_change}$
+        \end{ALC@g}
+        \STATE else:
+        \begin{ALC@g}
+          \STATE
+          $C_{\overline v,t}\gets \text{MinOfTwo}(C_{\overline v,t},
+          \text{cost\_of\_change})$
+        \end{ALC@g}
+      \end{ALC@g}
+    \end{ALC@g}
+    \STATE for $s$ from $1$ to $|V|$:
+    \begin{ALC@g}
+      \STATE if $C_{s,t}$ is NOT NULL:
+      \begin{ALC@g}
+        \STATE $C_{s,t}\text{.addDataPoint}(y_t, w_t)$
+      \end{ALC@g}
+    \end{ALC@g}
+  \end{ALC@g}
+\end{ALC@g}
+\STATE Output: $|V|\times n$ array of optimal cost functions $C_{s,t}$.
+\caption{\label{algo:GFPOP}Generalized Functional Pruning Optimal
+  Partitioning Algorithm, Dynamic Programming (GFPOP-DP)}
+\end{algorithmic}
+\end{algorithm}
+
+The algorithm above performs several checks if $C_{s,t}$ is NULL or
+not (lines 9, 12, 16, 21). All costs are initialized as NULL (line
+2). After having performed the cost update for data $t$, a NULL cost
+$C_{s,t}$ means that state $s$ is not feasible at data $t$. For each
+constraint function $g$ there is a corresponding ConstrainedCost
+sub-routine that is mentioned on lines~11 and 13 (e.g. no constraint
+$g_0$ MinUnconstrained, non-decreasing change $g_\uparrow$ MinLess,
+non-increasing change $g_\downarrow$ MinMore). 
+
+The average time and space complexity of Algorithm~\ref{algo:GFPOP} is
+$O(|V| n I)$ where $|V|$ is the number of states and $I$ is the
+average number of of intervals stored in the $|V|\times n$ array of
+$C_{s,t}$ cost functions. We observed that $I=\log n$ in the empirical
+tests of the peak detection model on ChIP-seq data
+(Section~\ref{sec:results_time}), so we expect that the average time
+complexity of Algorithm~\ref{algo:GFPOP} is $O(|V| n\log n)$.
+
+Note that the algorithm above only performs the dynamic
+programming. The decoding of optimal model parameters is achieved
+using the algorithm below.
+
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE Output: $|V|\times n$ array of optimal cost functions $C_{s,t}$, 
+ends $\overline S\subseteq V$.
+\STATE Allocate
+$\mathbf m\in\RR^n$ (mean), 
+$\mathbf s\in\ZZ^n$ (state), 
+$\mathbf t\in\ZZ^n$ (segment end).
+\STATE $u^*,s^*,t',s'\gets \text{ArgMin}(C_{\cdot,n}, \overline S)$ // begin decoding
+\STATE $i\gets 1;\, m_{i}\gets u^*;\, s_i\gets s^*;\, t_{i}\gets n$
+\STATE while $t' > 0$:
+\begin{ALC@g}
+  \STATE $i\gets i+1;\, t_{i}\gets t'$
+  \STATE $u^*,s^*,t',s'\gets \text{ArgMin}(C_{s',t'})$
+  \STATE $m_{i}\gets u^*;\, s_i\gets s^*$
+\end{ALC@g}
+\STATE Output: 
+$\mathbf m$, 
+$\mathbf s$, 
+$\mathbf t$.
+\caption{\label{algo:GFPOP-decode}Generalized Functional Pruning Optimal
+  Partitioning Algorithm, decoding (GFPOP-decode)}
+\end{algorithmic}
+\end{algorithm}
+
+
  
 
 % \begin{CodeChunk}
