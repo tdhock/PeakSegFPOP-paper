@@ -230,11 +230,89 @@ stat.colors <- c(
   "#984EA3", "#FF7F00", "#FFFF33", 
   "#A65628", "#F781BF", "#999999")
 line.size <- 1
+line.dt <- rbind(box.max.stats[, data.table(
+  var, stat, box.mid, line.value=max.intervals
+)], box.segments.stats[, data.table(
+  var, stat, box.mid, line.value=median
+  )])
 (show.point <- show.segments[bedGraph.lines ==max(bedGraph.lines) & variable=="mean.intervals"])
-ref.dt <- rbind(
+hline.dt <- rbind(
   data.table(x=3, y=1, label="1 gigabyte", var="gigabytes"),
   data.table(x=3, y=60, label="1 hour", var="minutes"))
-gg <- ggplot()+
+
+ref.dt <- data.table(N.data=10^seq(log10.range[1], log10.range[2], l=100))
+fun.list <- list(
+  "log(N)"=log,
+  "N log(N)"=function(x)x*log(x),
+  "N"=identity)
+one.var <- "gigabytes"
+one.line <- line.dt[var==one.var]
+first.row <- one.line[order(box.mid)][1]
+for(fun.name in names(fun.list)){
+  fun <- fun.list[[fun.name]]
+  first.y <- fun(first.row$box.mid)
+  ref.dt[[fun.name]] <- fun(ref.dt$N.data)/first.y*first.row$line.value
+}
+ref.tall <- melt(ref.dt, id.vars="N.data")
+leg <- ggplot()+
+  geom_line(aes(
+    log10(N.data), log10(value), color=variable),
+    size=2,
+    data=ref.tall)+
+  geom_ribbon(aes(
+    log10(box.mid), ymin=log10(q05), ymax=log10(q95)),
+    alpha=0.5,
+    data=box.segments.stats[var==one.var])+
+  geom_line(aes(
+    log10(box.mid), log10(line.value)),
+    data=one.line)+
+  scale_x_continuous(
+    "log10(N = number of data to segment)",
+    limits=c(NA, 7.5)
+  )
+dl <- direct.label(leg, "last.polygons")
+pdf("jss-figure-target-intervals-models-NlogN.pdf")
+print(dl)
+dev.off()
+
+
+ref.dt <- data.table(N.data=10^seq(log10.range[1], log10.range[2], l=100))
+fun.list <- list(
+  "log(N)"=log,
+  "loglog(N)"=function(x)log(log(x)),
+  "sqrt(N)"=sqrt)
+one.var <- "intervals"
+one.line <- line.dt[var==one.var & stat=="mean"]
+first.row <- one.line[order(box.mid)][1]
+for(fun.name in names(fun.list)){
+  fun <- fun.list[[fun.name]]
+  first.y <- fun(first.row$box.mid)
+  ref.dt[[fun.name]] <- fun(ref.dt$N.data)/first.y*first.row$line.value
+}
+ref.tall <- melt(ref.dt, id.vars="N.data")
+leg <- ggplot()+
+  geom_line(aes(
+    log10(N.data), log10(value), color=variable),
+    size=2,
+    data=ref.tall)+
+  geom_ribbon(aes(
+    log10(box.mid), ymin=log10(q05), ymax=log10(q95)),
+    alpha=0.5,
+    data=box.segments.stats[var==one.var])+
+  geom_line(aes(
+    log10(box.mid), log10(line.value)),
+    data=one.line)+
+  ylab("log10(mean number of intervals)")+
+  scale_x_continuous(
+    "log10(N = number of data to segment)",
+    limits=c(NA, 7.5)
+  )
+dl <- direct.label(leg, "last.polygons")
+pdf("jss-figure-target-intervals-models-logN.pdf")
+print(dl)
+dev.off()
+
+leg <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
   facet_grid(var ~ ., scales="free")+
@@ -244,24 +322,28 @@ gg <- ggplot()+
   geom_hline(aes(
     yintercept=y),
     color="grey50",
-    data=ref.dt)+
+    data=hline.dt)+
   geom_text(aes(
     x, y, label=label),
     color="grey50", 
-    data=ref.dt,
+    data=hline.dt,
     vjust=-0.5)+
   geom_ribbon(aes(
     log10(box.mid), ymin=q05, ymax=q95, fill=stat),
     alpha=0.5,
     data=box.segments.stats)+
   geom_line(aes(
-    log10(box.mid), median, color=stat),
+    log10(box.mid), line.value, color=stat),
     size=line.size,
-    data=box.segments.stats)+
-  geom_line(aes(
-    log10(box.mid), max.intervals, color=stat),
-    size=line.size,
-    data=box.max.stats)+
+    data=line.dt)+
+  ## geom_line(aes(
+  ##   log10(box.mid), median, color=stat),
+  ##   size=line.size,
+  ##   data=box.segments.stats)+
+  ## geom_line(aes(
+  ##   log10(box.mid), max.intervals, color=stat),
+  ##   size=line.size,
+  ##   data=box.max.stats)+
   geom_point(aes(
     log10(bedGraph.lines), max.value),
     shape=1,
@@ -296,8 +378,11 @@ gg <- ggplot()+
   scale_y_log10("")+
   scale_color_manual(values=stat.colors)+
   scale_fill_manual(values=stat.colors, guide=FALSE)+
-  xlab("log10(number of data after compression = lines in bedGraph file)")
-
+  scale_x_continuous(
+    "log10(N = number of data to segment)",
+    limits=c(NA, 7.5)
+  )
+gg <- direct.label(leg, "last.polygons")
 pdf("jss-figure-target-intervals-models.pdf", 7, 3)
 print(gg)
 dev.off()
