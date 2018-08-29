@@ -299,15 +299,28 @@ algorithm can be used to find a more likely model with three peaks
   (bottom panel) are log-linear $O(N \log N)$.}
 \end{figure}
  
+% \begin{figure}[t!]
+% \centering
+% \includegraphics{jss-figure-target-intervals-models-penalty}
+% \caption{\label{fig:target-intervals-models-penalty} The PeakSegFPOP
+%   algorithm was used to compute optimal models for six of the largest
+%   problems (panels from left to right) for a variety of penalty
+%   parameters (x-axis). Y-axes show empirical measurements of cost
+%   function pieces (intervals, top panel), timings (minutes, middle
+%   panel), and disk usage (gigabytes, bottom panel).}
+% \end{figure}
+
 \begin{figure}[t!]
 \centering
-\includegraphics{jss-figure-target-intervals-models-penalty}
-\caption{\label{fig:target-intervals-models-penalty} The PeakSegFPOP
-  algorithm was used to compute optimal models for six of the largest
-  problems (panels from left to right) for a variety of penalty
-  parameters (x-axis). Y-axes show empirical measurements of cost
-  function pieces (intervals, top panel), timings (minutes, middle
-  panel), and disk usage (gigabytes, bottom panel).}
+\begin{minipage}{3.1in}
+  \includegraphics{jss-figure-disk-memory-compare-speed}
+\end{minipage} 
+\begin{minipage}{3.1in}
+  \includegraphics{jss-figure-disk-memory-compare-speed-penalty}
+\end{minipage}
+\caption{\label{fig:disk-memory-compare-speed} The disk-based
+  implementation is only a constant factor slower than the
+  memory-based implementation.}
 \end{figure}
 
 \newpage
@@ -350,26 +363,8 @@ isotonic regression problem (\ref{eq:reduced}) can be stated as
 Note that the $c_t$ variable is a changepoint indicator.  The same
 functional pruning techniques used for the GPDPA can be exploited to
 create a solver for this problem. This results in the Generalized
-Functional Pruning Optimal Partitioning Algorithm (GFPOP, see
-Table~\ref{tab:GFPOP}).
+Functional Pruning Optimal Partitioning Algorithm.
 
-\begin{table}
-  \centering
-\begin{tabular}{c|c|c}
-  & Segment Neighborhood & Optimal Partitioning\\
-\hline
-unconstrained & PDPA & FPOP \\
-\hline
-constrained & GPDPA & GFPOP 
-\end{tabular}
-\caption{
-Algorithms for solving constrained and unconstrained versions 
-of the Segment Neighborhood and Optimal Partitioning problems. 
-PDPA = Pruned Dynamic Programming Algorithm, 
-FPOP = Functional Pruning Optimal Partitioning, 
-G = Generalized (can handle affine constraints on adjacent segment means).}
-\label{tab:GFPOP}
-\end{table}
 
 Let $\overline C_{\lambda,t}(u)$ be the
 penalized cost of the most likely segmentation up to data point $t$,

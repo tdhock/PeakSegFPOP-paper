@@ -1,9 +1,11 @@
-jss-paper.pdf: jss-paper.tex jss-figure-more-likely-models-three-peaks.png jss-figure-target-intervals-models.pdf
+jss-paper.pdf: jss-paper.tex jss-figure-more-likely-models-three-peaks.png jss-figure-target-intervals-models.pdf jss-figure-disk-memory-compare-speed.pdf
 	rm -rf *.aux *.bbl
 	pdflatex jss-paper
 	bibtex jss-paper
 	pdflatex jss-paper
 	pdflatex jss-paper
+jss-figure-disk-memory-compare-speed.pdf: jss-figure-disk-memory-compare-speed.R
+	R --no-save < $<
 jss-figure-target-intervals-models.pdf: jss-figure-target-intervals-models.R target.intervals.models.csv
 	R --no-save < $<
 target.intervals.models.csv: target.intervals.models.R

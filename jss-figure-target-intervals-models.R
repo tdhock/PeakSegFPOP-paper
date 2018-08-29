@@ -231,6 +231,9 @@ stat.colors <- c(
   "#A65628", "#F781BF", "#999999")
 line.size <- 1
 (show.point <- show.segments[bedGraph.lines ==max(bedGraph.lines) & variable=="mean.intervals"])
+ref.dt <- rbind(
+  data.table(x=3, y=1, label="1 gigabyte", var="gigabytes"),
+  data.table(x=3, y=60, label="1 hour", var="minutes"))
 gg <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
@@ -239,13 +242,13 @@ gg <- ggplot()+
     3, y),
     data=blank.dt)+
   geom_hline(aes(
-    yintercept=yint),
+    yintercept=y),
     color="grey50",
-    data=data.table(yint=1, var="gigabytes"))+
+    data=ref.dt)+
   geom_text(aes(
     x, y, label=label),
     color="grey50", 
-    data=data.table(x=3, y=1, label="1 gigabyte", var="gigabytes"),
+    data=ref.dt,
     vjust=-0.5)+
   geom_ribbon(aes(
     log10(box.mid), ymin=q05, ymax=q95, fill=stat),
