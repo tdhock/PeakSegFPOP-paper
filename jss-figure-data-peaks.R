@@ -5,7 +5,7 @@ library(ggplot2)
 target.intervals.models <- fread("target.intervals.models.csv")
 labeled_problems_features <- fread("labeled_problems_features.csv")
 select.dt <- labeled_problems_features[, data.table(prob.dir)]
-bench.models <- target.intervals.models[select.dt, on=list(prob.dir)]
+bench.models <- target.intervals.models[select.dt, on=list(prob.dir)][log(bedGraph.lines) < penalty & penalty < bedGraph.lines & 1000 < bedGraph.lines]
 bench.models[, minutes := seconds/60]
 bench.models[, hours := minutes/60]
 bench.models[, gigabytes := megabytes/1024]
@@ -15,7 +15,7 @@ min.err.ranges <- bench.models[, .SD[errors==min(errors), list(
   max.penalty=max(penalty),
   min.peaks=min(peaks),
   max.peaks=max(peaks)
-)], by=list(bedGraph.lines, prob.dir)]
+)], by=list(bedGraph.lines, prob.dir)][order(bedGraph.lines)]
 
 no.zero <- min.err.ranges[0 < min.peaks]
 seg.dt <- no.zero[min.peaks < max.peaks]
@@ -53,11 +53,11 @@ leg <- ggplot()+
     bedGraph.lines, min.penalty,
     xend=bedGraph.lines, yend=max.penalty),
     data=penalty.ranges)+
-  ## geom_segment(aes(
-  ##   bedGraph.lines, min.penalty,
-  ##   xend=bedGraph.lines, yend=max.penalty),
-  ##   color="red",
-  ##   data=min.err.ranges)+
+  geom_segment(aes(
+    bedGraph.lines, min.penalty,
+    xend=bedGraph.lines, yend=max.penalty),
+    color="red",
+    data=min.err.ranges)+
   geom_line(aes(
     N, value, color=variable),
     data=ref.tall)+
@@ -88,6 +88,50 @@ leg <- ggplot()+
   scale_x_log10("N = number of weighted data to segment")+
   scale_y_log10()
 dl <- direct.label(leg, "last.polygons")
-png("jss-figure-data-penalty.png", 7, 3, units="in", res=200)
-print(dl)
+
+## Plot a dot at the middle number of peaks.
+min.err.ranges[, mid.peaks := (min.peaks+max.peaks)/2]
+ggplot()+
+  geom_point(aes(
+    bedGraph.lines, mid.peaks),
+    data=min.err.ranges)+
+  scale_x_log10()+
+  scale_y_log10()
+
+## Make boxes with the median and quartiles of the number of peaks.
+log10.range <- log10(range(min.err.ranges$bedGraph.lines))
+box.dt <- data.table(
+  box.mid=10^seq(log10.range[1], log10.range[2], l=8))
+(diff.vec <- diff(log10(box.dt$box.mid)))
+box.w <- diff.vec[1]/2
+box.dt[, box.min := 10^(log10(box.mid)-box.w) ]
+box.dt[, box.max := 10^(log10(box.mid)+box.w) ]
+box.dt[, box.i := 1:.N]
+box.models <- box.dt[min.err.ranges, on=list(
+  box.min < bedGraph.lines,
+  box.max > bedGraph.lines)]
+stopifnot(nrow(box.models) == nrow(min.err.ranges))
+box.models.stats <- box.models[, list(
+  median=median(mid.peaks),
+  q75=quantile(mid.peaks, 0.75),
+  q25=quantile(mid.peaks, 0.25),
+  min=min(mid.peaks),
+  max=max(mid.peaks),
+  models=.N
+), by=list(box.mid)][order(box.mid)]
+gg <- ggplot()+
+  geom_ribbon(aes(
+    box.mid, ymin=q25, ymax=q75),
+    data=box.models.stats,
+    alpha=0.5)+
+  geom_line(aes(
+    box.mid, median),
+    data=box.models.stats)+
+  scale_x_log10(
+    "N = number of weighted data to segment (log scale)",
+    labels=paste)+
+  scale_y_log10("Peaks in models with min label error\n(log scale)")
+
+pdf("jss-figure-data-peaks.pdf", 7, 3)
+print(gg)
 dev.off()

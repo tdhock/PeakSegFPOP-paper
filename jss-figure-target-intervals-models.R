@@ -5,7 +5,7 @@ library(directlabels)
 target.intervals.models <- fread("target.intervals.models.csv")
 labeled_problems_features <- fread("labeled_problems_features.csv")
 select.dt <- labeled_problems_features[, data.table(prob.dir)]
-bench.models <- target.intervals.models[select.dt, on=list(prob.dir)][log(bedGraph.lines) < penalty & penalty < bedGraph.lines]
+bench.models <- target.intervals.models[select.dt, on=list(prob.dir)][log(bedGraph.lines) < penalty & penalty < bedGraph.lines & 1000 < bedGraph.lines]
 bench.models[, gigabytes := megabytes/1024]
 prob.dir.vec <- c(
   "Most bases"=bench.models[which.max(bases), prob.dir],
@@ -237,8 +237,8 @@ line.dt <- rbind(box.max.stats[, data.table(
   )])
 (show.point <- show.segments[bedGraph.lines ==max(bedGraph.lines) & variable=="mean.intervals"])
 hline.dt <- rbind(
-  data.table(x=3, y=1, label="1 gigabyte", var="gigabytes"),
-  data.table(x=3, y=60, label="1 hour", var="minutes"))
+  data.table(x=10^3.5, y=1, label="1 gigabyte", var="gigabytes"),
+  data.table(x=10^3.5, y=60, label="1 hour", var="minutes"))
 
 ref.dt <- data.table(N.data=10^seq(log10.range[1], log10.range[2], l=100))
 fun.list <- list(
@@ -317,7 +317,7 @@ leg <- ggplot()+
   theme(panel.margin=grid::unit(0, "lines"))+
   facet_grid(var ~ ., scales="free")+
   geom_blank(aes(
-    3, y),
+    10^3.5, y),
     data=blank.dt)+
   geom_hline(aes(
     yintercept=y),
@@ -329,28 +329,20 @@ leg <- ggplot()+
     data=hline.dt,
     vjust=-0.5)+
   geom_ribbon(aes(
-    log10(box.mid), ymin=q05, ymax=q95, fill=stat),
+    box.mid, ymin=q05, ymax=q95, fill=stat),
     alpha=0.5,
     data=box.segments.stats)+
   geom_line(aes(
-    log10(box.mid), line.value, color=stat),
+    box.mid, line.value, color=stat),
     size=line.size,
     data=line.dt)+
-  ## geom_line(aes(
-  ##   log10(box.mid), median, color=stat),
-  ##   size=line.size,
-  ##   data=box.segments.stats)+
-  ## geom_line(aes(
-  ##   log10(box.mid), max.intervals, color=stat),
-  ##   size=line.size,
-  ##   data=box.max.stats)+
   geom_point(aes(
-    log10(bedGraph.lines), max.value),
+    bedGraph.lines, max.value),
     shape=1,
     color=max.color,
     data=show.max)+
   geom_text(aes(
-    log10(bedGraph.lines)-0.05, max.value,
+    bedGraph.lines, max.value,
     label=paste(
       format(bedGraph.lines, big.mark=","),
       "data,",
@@ -361,12 +353,12 @@ leg <- ggplot()+
     data=show.max)+
   ## show median.
   geom_point(aes(
-    log10(bedGraph.lines), mean.value),
+    bedGraph.lines, mean.value),
     shape=1,
     color=max.color,
     data=show.point)+
   geom_text(aes(
-    log10(bedGraph.lines), mean.value,
+    bedGraph.lines, mean.value,
     label=paste(
       format(bedGraph.lines, big.mark=","),
       "data,",
@@ -375,12 +367,15 @@ leg <- ggplot()+
     hjust=1,
     vjust=-1,
     data=show.point)+
-  scale_y_log10("")+
+  scale_y_log10("(log scales)", labels=function(chr){
+    paste(chr)
+  })+
   scale_color_manual(values=stat.colors)+
   scale_fill_manual(values=stat.colors, guide=FALSE)+
-  scale_x_continuous(
-    "log10(N = number of data to segment)",
-    limits=c(NA, 7.5)
+  scale_x_log10(
+    "N = number of data to segment (log scale)",
+    limits=c(NA, 10^7.25),
+    labels=paste
   )
 gg <- direct.label(leg, "last.polygons")
 pdf("jss-figure-target-intervals-models.pdf", 7, 3)

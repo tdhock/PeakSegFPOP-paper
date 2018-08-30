@@ -8,7 +8,7 @@ library(directlabels)
 target.intervals.models <- fread("target.intervals.models.csv")
 labeled_problems_features <- fread("labeled_problems_features.csv")
 select.dt <- labeled_problems_features[, data.table(prob.dir)]
-bench.models <- target.intervals.models[select.dt, on=list(prob.dir)][log(bedGraph.lines) < penalty & penalty < bedGraph.lines]
+bench.models <- target.intervals.models[select.dt, on=list(prob.dir)][log(bedGraph.lines) < penalty & penalty < bedGraph.lines & 1000 < bedGraph.lines]
 bench.models[, minutes := seconds/60]
 bench.models[, hours := minutes/60]
 bench.models[, gigabytes := megabytes/1024]
@@ -125,7 +125,7 @@ leg <- ggplot()+
     data=details.dt)+
   scale_y_log10("seconds")+
   xlim(NA, 13)
-dl <- direct.label(leg, "last.qp")
+dl <- direct.label(leg, list("last.qp", dl.trans(x=x+0.1)))
 pdf("jss-figure-disk-memory-compare-speed-penalty.pdf", 3.3, 3)
 print(dl)
 dev.off()
@@ -150,7 +150,7 @@ leg <- ggplot()+
   scale_y_log10("seconds")+
   scale_x_continuous(
     "log10(N = number of data to segment)",
-    limits=c(NA, 6))
+    limits=c(NA, 6.2))
 dl <- direct.label(leg, "last.polygons")
 pdf("jss-figure-disk-memory-compare-speed.pdf", 3.3, 3)
 print(dl)
