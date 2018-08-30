@@ -1,6 +1,8 @@
 library(data.table)
 library(ggplot2)
 
+## chrom <- "chr11"
+## sid <- "McGill0104" monocyte
 chunk.name <- "H3K4me3_TDH_immune/5"
 chunk.dir <- file.path("data", chunk.name)
 counts.RData <- file.path(chunk.dir, "counts.RData")
