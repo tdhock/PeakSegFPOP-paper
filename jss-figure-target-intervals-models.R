@@ -226,7 +226,9 @@ box.segments.stats[var=="intervals" & stat=="mean" & box.mid==max(box.mid)]
 
 ##dput(RColorBrewer::brewer.pal(Inf, "Set1"))
 stat.colors <- c(
-  mean="#E41A1C", total="#377EB8", max="#4DAF4A",
+  mean="#E41A1C",
+  max="#377EB8",
+  total="#4DAF4A",
   "#984EA3", "#FF7F00", "#FFFF33", 
   "#A65628", "#F781BF", "#999999")
 line.size <- 1
@@ -237,8 +239,8 @@ line.dt <- rbind(box.max.stats[, data.table(
   )])
 (show.point <- show.segments[bedGraph.lines ==max(bedGraph.lines) & variable=="mean.intervals"])
 hline.dt <- rbind(
-  data.table(x=10^3.5, y=1, label="1 gigabyte", var="gigabytes"),
-  data.table(x=10^3.5, y=60, label="1 hour", var="minutes"))
+  data.table(x=10^3.5, y=1, vjust=-0.5, label="1 gigabyte", var="gigabytes"),
+  data.table(x=10^3.5, y=60, vjust=1.25, label="1 hour", var="minutes"))
 
 ref.dt <- data.table(N.data=10^seq(log10.range[1], log10.range[2], l=100))
 fun.list <- list(
@@ -305,7 +307,7 @@ leg <- ggplot()+
   ylab("log10(mean number of intervals)")+
   scale_x_continuous(
     "log10(N = number of data to segment)",
-    limits=c(NA, 7.5)
+    limits=c(NA, 7.75)
   )
 dl <- direct.label(leg, "last.polygons")
 pdf("jss-figure-target-intervals-models-logN.pdf")
@@ -325,9 +327,9 @@ leg <- ggplot()+
     data=hline.dt)+
   geom_text(aes(
     x, y, label=label),
+    vjust=-0.5,
     color="grey50", 
-    data=hline.dt,
-    vjust=-0.5)+
+    data=hline.dt)+
   geom_ribbon(aes(
     box.mid, ymin=q05, ymax=q95, fill=stat),
     alpha=0.5,
@@ -378,7 +380,119 @@ leg <- ggplot()+
     labels=paste
   )
 gg <- direct.label(leg, "last.polygons")
-pdf("jss-figure-target-intervals-models.pdf", 7, 3)
+pdf("jss-figure-target-intervals-models-all.pdf", 3, 3)
+print(gg)
+dev.off()
+
+## Left and right figures. Right plot disk usage and time.
+gg <- ggplot()+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  facet_grid(var ~ ., scales="free")+
+  geom_blank(aes(
+    10^4.5, y),
+    data=blank.dt[var!="intervals"])+
+  geom_hline(aes(
+    yintercept=y),
+    color="grey50",
+    data=hline.dt)+
+  geom_text(aes(
+    10^4, y, label=label, vjust=vjust),
+    color="grey50", 
+    data=hline.dt)+
+  geom_ribbon(aes(
+    box.mid, ymin=q05, ymax=q95),
+    alpha=0.5,
+    data=box.segments.stats[var!="intervals"])+
+  geom_line(aes(
+    box.mid, line.value),
+    size=line.size,
+    data=line.dt[var!="intervals"])+
+  geom_point(aes(
+    bedGraph.lines, max.value),
+    shape=1,
+    color=max.color,
+    data=show.max[var!="intervals"])+
+  geom_text(aes(
+    bedGraph.lines, max.value,
+    label=paste(
+      format(bedGraph.lines, big.mark=","),
+      "data,",
+      round(max.value), var)),
+    color=max.color,
+    hjust=1,
+    vjust=-0.5,
+    data=show.max[var!="intervals"])+
+  scale_y_log10("Computational requirements\n(log scales)", labels=function(chr){
+    paste(chr)
+  })+
+  scale_x_log10(
+    "N = number of data to segment\n(log scale)",
+    labels=paste
+  )
+pdf("jss-figure-target-intervals-models-computation.pdf", 3.5, 3)
+print(gg)
+dev.off()
+
+## Left plot intervals.
+leg <- ggplot()+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  geom_ribbon(aes(
+    box.mid, ymin=q05, ymax=q95, fill=stat),
+    alpha=0.5,
+    data=box.segments.stats[var=="intervals"])+
+  geom_line(aes(
+    box.mid, line.value, color=stat),
+    size=line.size,
+    data=line.dt[var=="intervals"])+
+  geom_point(aes(
+    bedGraph.lines, max.value),
+    shape=1,
+    color=max.color,
+    data=show.max[var=="intervals"])+
+  geom_text(aes(
+    1e7, max.value,
+    label=paste(
+      format(bedGraph.lines, big.mark=","),
+      "data,",
+      round(max.value), var)),
+    color=max.color,
+    hjust=1,
+    vjust=-0.5,
+    data=show.max[var=="intervals"])+
+  ## show median.
+  geom_point(aes(
+    bedGraph.lines, mean.value),
+    shape=1,
+    color=max.color,
+    data=show.point[var=="intervals"])+
+  geom_text(aes(
+    3e7, mean.value,
+    label=paste(
+      format(bedGraph.lines, big.mark=","),
+      "data,",
+      round(mean.value), var)),
+    color=max.color,
+    hjust=1,
+    vjust=-1.75,
+    data=show.point)+
+  scale_y_log10(
+    "Intervals/candidate changepoints\n(log scale)",
+    limits=c(NA, 1000),
+    labels=function(chr){
+      paste(chr)
+    })+
+  scale_color_manual(values=stat.colors)+
+  scale_fill_manual(values=stat.colors, guide=FALSE)+
+  scale_x_log10(
+    "N = number of data to segment\n(log scale)",
+    limits=c(NA, 10^7.75),
+    labels=paste
+  )
+gg <- direct.label(leg, list("last.qp", dl.trans(x=x+0.1)))
+
+pdf("jss-figure-target-intervals-models.pdf", 3.5, 3)
 print(gg)
 dev.off()
 

@@ -120,6 +120,7 @@ box.models.stats <- box.models[, list(
   models=.N
 ), by=list(box.mid)][order(box.mid)]
 gg <- ggplot()+
+  theme_bw()+
   geom_ribbon(aes(
     box.mid, ymin=q25, ymax=q75),
     data=box.models.stats,

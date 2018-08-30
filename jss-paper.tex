@@ -313,10 +313,25 @@ algorithm can be used to find a more likely model with three peaks
   memory-based implementation.}
 \end{figure}
 
+% \begin{figure}[t!]
+% \centering
+% \includegraphics{jss-figure-target-intervals-models-all}
+% \caption{\label{fig:target-intervals-models-all} The PeakSegFPOP algorithm
+%   was used on the large data sets in the
+%   benchmark. Data sizes range from $N=10^2$ to $10^7$ weighted data to
+%   segment (x-axis); disk usage (top panel) and computation time
+%   (bottom panel) are log-linear $O(N \log N)$.}
+% \end{figure}
+ 
 \begin{figure}[t!]
 \centering
-\includegraphics{jss-figure-target-intervals-models}
-\caption{\label{fig:target-intervals-models} The PeakSegFPOP algorithm
+\begin{minipage}{3.1in}
+  \includegraphics{jss-figure-target-intervals-models}
+\end{minipage} 
+\begin{minipage}{3.1in}
+  \includegraphics{jss-figure-target-intervals-models-computation}
+\end{minipage}
+\caption{\label{fig:target-intervals-models-all} The PeakSegFPOP algorithm
   was used on the large data sets in the
   benchmark. Data sizes range from $N=10^2$ to $10^7$ weighted data to
   segment (x-axis); disk usage (top panel) and computation time
