@@ -23,9 +23,6 @@ some.counts <- counts.dt[sample.id == "McGill0104"]
 load(file.path(chunk.dir, "regions.RData"))
 regions.dt <- data.table(regions)
 some.regions <- regions.dt[sample.id=="McGill0104"]
-
-some.counts[, plot(chromStart, coverage)]
-
 small.counts <- some.counts[, approx(chromStart, coverage, seq(min(chromStart), max(chromStart), l=1000))]
 
 ann.colors <-
@@ -33,7 +30,7 @@ ann.colors <-
     peakStart="#ffafaf",
     peakEnd="#ff4c4c",
     peaks="#a445ee")
-ggplot()+
+gg <- ggplot()+
   theme_bw()+
   scale_fill_manual(values=ann.colors)+
   geom_tallrect(aes(
@@ -49,7 +46,9 @@ ggplot()+
 (some.models <- bench.models[prob.dir=="H3K36me3_TDH_immune/samples/monocyte/McGill0104/problems/chr12:7239876-34856694"])
 model.i.vec <- c(
   "too many peaks"=5,
-  "min incorrect labels"=15,
+  "no errors, max peaks"=12,
+  ##"min incorrect labels"=15,
+  "no errors, min peaks"=18,
   "too few peaks"=19)
 
 error.dt.list <- list()
@@ -67,7 +66,8 @@ for(i in seq_along(model.i.vec)){
   fit <- PeakSegPipeline::problem.PeakSegFPOP(prob.dir, pen.str)
   fit.peaks <- fit$segments[status=="peak"]
   fit.errors <- PeakError::PeakErrorChrom(fit.peaks, some.regions)
-  meta <- data.table(model.name, model.y=-i*3, penalty=model$penalty)
+  meta <- data.table(
+    model.name, model.y=-i*3, penalty=model$penalty, peaks=model$peaks)
   peak.dt.list[[model.name]] <- data.table(meta, fit.peaks)
   error.dt.list[[model.name]] <- data.table(meta, fit.errors)
   ##system(paste("gzip", file.path(prob.dir, coverage.bedGraph.gz)))
@@ -75,26 +75,35 @@ for(i in seq_along(model.i.vec)){
 peak.dt <- do.call(rbind, peak.dt.list)
 error.dt <- do.call(rbind, error.dt.list)
 
-ggplot()+
+coverage.dt <- fread(file.path(prob.dir, "coverage.bedGraph"), drop=c(1,3))
+setnames(coverage.dt, c("chromStart", "coverage"))
+xlim.vec <- c(1.52e7, 1.73e7)
+small.counts <- coverage.dt[, approx(chromStart, coverage, seq(xlim.vec[1], xlim.vec[2], l=1000))]
+
+show.peaks <- peak.dt[min(error.dt$chromStart) < chromStart & chromStart < max(error.dt$chromEnd)]
+gg <- ggplot()+
   theme_bw()+
   scale_fill_manual(values=ann.colors)+
   geom_tallrect(aes(
     xmin=chromStart, xmax=chromEnd, fill=annotation),
     alpha=0.5,
+    size=0.4,
     color="grey",
     data=some.regions)+
   geom_line(aes(
     x, y),
     color="grey50",
     data=small.counts)+
-  coord_cartesian(xlim=range(small.counts$x), expand=FALSE)+
+  coord_cartesian(
+    xlim=xlim.vec, expand=FALSE,
+    ylim=c(-14, 31))+
   geom_rect(aes(
     xmin=chromStart, xmax=chromEnd,
     linetype=status,
     ymin=model.y-1, ymax=model.y+1),
     fill=NA,
     color="black",
-    size=1,
+    size=0.7,
     data=error.dt)+
   scale_linetype_manual("error type",
                         values=c(correct=0,
@@ -105,9 +114,26 @@ ggplot()+
     xend=chromEnd, yend=model.y),
     color="deepskyblue",
     size=2,
-    data=peak.dt)+
+    data=show.peaks)+
   geom_point(aes(
     chromStart, model.y),
     color="deepskyblue",
     shape=1,
-    data=peak.dt)
+    data=show.peaks)+
+  geom_text(aes(
+    chromStart, model.y,
+    label=sprintf("penalty=%.0f ", penalty)),
+    hjust=1,
+    data=error.dt[chromStart==min(chromStart)])+
+  geom_text(aes(
+    chromEnd, model.y,
+    label=sprintf(" %s (%d)", model.name, peaks)),
+    hjust=0,
+    data=error.dt[chromStart==max(chromStart)])+
+  xlab("position on chromosome")+
+  scale_y_continuous(
+    "aligned read counts",
+    breaks=seq(0, 30, by=10))
+pdf("jss-figure-label-error.pdf", 8, 3)
+print(gg)
+dev.off()
