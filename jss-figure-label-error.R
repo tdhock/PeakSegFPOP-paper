@@ -79,17 +79,18 @@ coverage.dt <- fread(file.path(prob.dir, "coverage.bedGraph"), drop=c(1,3))
 setnames(coverage.dt, c("chromStart", "coverage"))
 xlim.vec <- c(1.52e7, 1.73e7)
 small.counts <- coverage.dt[, approx(chromStart, coverage, seq(xlim.vec[1], xlim.vec[2], l=1000))]
+coverage.dt[xlim.vec[1] < chromStart & chromStart < xlim.vec[2]]
 
 show.peaks <- peak.dt[min(error.dt$chromStart) < chromStart & chromStart < max(error.dt$chromEnd)]
 gg <- ggplot()+
   theme_bw()+
-  scale_fill_manual(values=ann.colors)+
+  scale_fill_manual("label", values=ann.colors)+
   geom_tallrect(aes(
     xmin=chromStart, xmax=chromEnd, fill=annotation),
     alpha=0.5,
     size=0.4,
     color="grey",
-    data=some.regions)+
+    data=some.regions[annotation!="noPeaks"])+
   geom_line(aes(
     x, y),
     color="grey50",

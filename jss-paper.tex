@@ -275,17 +275,32 @@ algorithm can be used to find a more likely model with three peaks
 \begin{figure}[t!]
 \centering
 \includegraphics{jss-figure-label-error}
-\caption{\label{fig:label-error} The optimal number of peaks for a given data set has the minimum number of label errors.}
+\caption{\label{fig:label-error} Labels are used to compute an error
+  rate for each peak model (blue bars), defined as the sum of false
+  positive and false negative labels (rectangles with black
+  outline). This H3K36me3 ChIP-seq data set has $N=1,254,751$ data to
+  segment on a subset of chr12, but in the plot above we show only the
+  82,233 data (grey signal) in the region around the labels (colored
+  rectangles). The model with penalty=6682 results in 320 peaks, which
+  is too many (three false positive labels with more than one peak
+  start/end). Conversely, the model with penalty=278653 results in 33
+  peaks, which is too few (only two peaks in the plotted region,
+  resulting in two false negative labels on the right where there
+  should be exactly one peak start/end). The range of penalties between 9586 and
+  267277 results in models with between 34 and 236 peaks, and achieves
+  zero label errors. }
 \end{figure}
 
 \begin{figure}[t!]
 \centering
 \includegraphics{jss-figure-data-peaks}
-\caption{\label{fig:data-peaks} The optimal number of peaks increases
-  with data set size $N$. For each data set we computed minimal error
-  models (see Figure~\ref{fig:label-error}); we then plot the number of peaks in
+\caption{\label{fig:data-peaks} The number of peaks with minimal label
+  errors increases with data set size $N$. For each data set we
+  computed peak models with minimal label errors (see
+  Figure~\ref{fig:label-error}); we then plot the number of peaks in
   minimal error models as a function of data set size $N$. Median line
-  and quartile band computed over several data sets of a given size $N$.}
+  and quartile band computed over several data sets of a given size
+  $N$.}
 \end{figure}
   
 \begin{figure}[t!]
