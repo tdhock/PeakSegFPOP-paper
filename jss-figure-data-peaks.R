@@ -85,7 +85,7 @@ leg <- ggplot()+
   geom_line(aes(
     N.data, value, color=variable),
     data=ref.tall)+
-  scale_x_log10("N = number of weighted data to segment")+
+  scale_x_log10("N = number of data to segment (log scale)")+
   scale_y_log10()
 dl <- direct.label(leg, "last.polygons")
 
@@ -129,7 +129,7 @@ gg <- ggplot()+
     box.mid, median),
     data=box.models.stats)+
   scale_x_log10(
-    "N = number of weighted data to segment (log scale)",
+    "N = number of data to segment (log scale)",
     labels=paste)+
   scale_y_log10("Peaks in models with min label error\n(log scale)")
 
