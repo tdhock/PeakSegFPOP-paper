@@ -1,9 +1,6 @@
-source("findPeaks.R")
 library(data.table)
 library(ggplot2)
 library(directlabels)
-library(PeakSegPipeline)
-library(penaltyLearning)
 
 target.intervals.models <- fread("target.intervals.models.csv")
 labeled_problems_features <- fread("labeled_problems_features.csv")
@@ -11,117 +8,108 @@ select.dt <- labeled_problems_features[, data.table(prob.dir)]
 bench.models <- target.intervals.models[select.dt, on=list(prob.dir)][log(bedGraph.lines) < penalty & penalty < bedGraph.lines & 1000 < bedGraph.lines]
 bench.models[, gigabytes := megabytes/1024]
 
-min.err <- bench.models[, list(
-  n.feasible.0=sum(errors==0 & status=="feasible"),
-  min.errors=min(errors),
-  max.fp=max(fp),
-  max.fn=max(fn),
-  max.gigabytes=max(gigabytes)
-  ), by=list(bedGraph.lines, prob.dir)]
+jss.evaluations <- readRDS("jss.evaluations.rds")[others.penalty!=Inf]
 
-zero.err <- min.err[min.errors==0 & max.gigabytes < 30 & 0 < max.fp & 0 < max.fn][order(bedGraph.lines)]
-some.models <- bench.models[some.probs, on=list(bedGraph.lines, prob.dir)]
-picked.models <- bench.models[zero.err, {
-  i.zero <- which(errors==0)
-  first <- min(i.zero)
-  last <- max(i.zero)
-  mid <- (first+last)/2
-  i.pick <- i.zero[which.min(abs(i.zero-mid))]
-  .SD[i.pick]
-}, by=list(prob.dir), on=list(bedGraph.lines, prob.dir)]
+others.tall <- melt(
+  jss.evaluations,
+  measure.vars=c("others.seconds", "others.megabytes"))
+others.tall[, var := sub("others.", "", variable)]
 
-picked.models[, log10.peaks := log10(peaks)]
-picked.models[, log10.lines := log10(bedGraph.lines)]
-fit <- lm(log10.peaks ~ log10.lines, picked.models)
-log10.range <- picked.models[, log10(range(bedGraph.lines))]
-line.dt <- data.table(log10.lines=seq(log10.range[1], log10.range[2], l=100))
-line.dt[, log10.peaks := predict(fit, line.dt)]
+prob.stats <- others.tall[, list(
+  OP=.N,
+  sum=sum(value),
+  median=median(value),
+  q95=quantile(value, 0.95),
+  q05=quantile(value, 0.05)
+  ), by=list(var, bedGraph.lines, segments, peaks)]
+
+target.stats <- others.tall[, list(
+  sum=sum(value),
+  median=median(value),
+  q95=quantile(value, 0.95),
+  q05=quantile(value, 0.05)
+  ), by=list(var, target.N)]
 
 ggplot()+
-  geom_point(aes(
-    log10.lines, log10.peaks),
-    shape=1,
-    data=picked.models)+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  facet_grid(var ~ ., scales="free")+
+  geom_ribbon(aes(
+    target.N, ymin=q05, ymax=q95),
+    alpha=0.5,
+    data=target.stats)+
   geom_line(aes(
-    log10.lines, log10.peaks),
-    color="red",
-    data=line.dt)
-
-picked.models[, residual := log10.peaks-predict(fit, picked.models)]
-close.models <- picked.models[abs(residual) < 0.1]
-
-some.probs <- data.table(target.N=10^seq(log10.range[1], log10.range[2], l=10))[, {
-  close.models[order(abs(target.N-bedGraph.lines))][1:2]
-}, by=list(target.N)]
-
-ggplot()+
+    target.N, median),
+    size=1,
+    data=target.stats)+
   geom_point(aes(
-    log10.lines, log10.peaks),
+    bedGraph.lines, sum),
     shape=1,
-    data=picked.models)+
-  geom_point(aes(
-    log10.lines, log10.peaks),
-    color="red",
-    data=some.probs)
+    data=prob.stats)+
+  scale_x_log10("N = number of data to segment (log scale)")+
+  scale_y_log10("(log scales)")
 
-ggplot()+
-  geom_point(aes(
-    bedGraph.lines, peaks),
-    data=some.probs)+
-  scale_x_log10()+
-  scale_y_log10()
-
-prob.i.vec <- 1:nrow(some.probs)
-##prob.i.vec <- 1:6
-iterations.dt.list <- list()
-for(prob.i in prob.i.vec){
-  prob <- some.probs[prob.i]
-  cat(sprintf("%4d / %4d problems\n", prob.i, length(prob.i.vec)))
-  pdir <- file.path("~/projects/feature-learning-benchmark/data", prob$prob.dir)
-  system(paste("gunzip", file.path(pdir, "coverage.bedGraph.gz")))
-  match.df <- namedCapture::str_match_named(pdir, paste0(
-    "(?<chrom>chr[^:]+)",
-    ":",
-    "(?<problemStart>[0-9]+)",
-    "-",
-    "(?<problemEnd>[0-9]+)"), list(
-      problemStart=as.integer,
-      problemEnd=as.integer))
-  fwrite(
-    match.df, file.path(pdir, "problem.bed"),
-    quote=FALSE, sep="\t", col.names=FALSE, row.names=FALSE)
-  fit.list <- problem.betterPeaks(pdir, prob$peaks, verbose=1)
-  iterations.dt.list[[prob.i]] <- data.table(
-    prob,
-    evaluations=nrow(fit.list$others)-1,
-    search.peaks=fit.list$loss$peaks,
-    search.seconds=sum(fit.list$others$seconds),
-    search.megabytes=sum(fit.list$others$megabytes))
+evals.dt <- prob.stats[var=="seconds"]
+evals.dt[, SN := segments-1]
+evals.tall <- melt(
+  evals.dt,
+  measure.vars=c("SN", "OP", "peaks"),
+  variable.name="algo",
+  value.name="evaluations")
+algo.key <- c(
+  peaks="O(sqrt N) peaks\nin zero-error model",
+  SN="Segment Neighborhood\nO(sqrt N) DP iterations",
+  OP="Optimal Partitioning\nO(log N) DP iterations")
+evals.tall[, algorithm := algo.key[paste(algo)] ]
+N.data <- 10^seq(4, 7, l=100)
+fun.list <- list(
+  N=identity,
+  "log(N)"=log,
+  "loglog(N)"=function(x)log(log(x)),
+  "sqrt(N)"=sqrt)
+ref.line.list <- list(
+  OP=list(y=9, lines=c("log(N)", "sqrt(N)", "loglog(N)")),
+  SN=list(y=60, lines=c("N", "log(N)", "sqrt(N)")))
+ref.tall.list <- list()
+for(ref.name in names(ref.line.list)){
+  ref.info <- ref.line.list[[ref.name]]
+  for(fun.name in ref.info$lines){
+    fun <- fun.list[[fun.name]]
+    first.y <- fun(min(N.data))
+    ref.tall.list[[paste(fun.name, ref.name)]] <- data.table(
+      N.data,
+      ref.name,
+      fun.name,
+      value=fun(N.data)/first.y*ref.info$y)
+  }
 }
-iterations.dt <- do.call(rbind, iterations.dt.list)
-
-ggplot()+
+ref.tall <- do.call(rbind, ref.tall.list)
+leg <- ggplot()+
+  theme_bw()+
   geom_point(aes(
-    bedGraph.lines, evaluations),
+    bedGraph.lines, evaluations, color=algorithm),
     shape=1,
-    data=iterations.dt)+
-  scale_x_log10()+
-  scale_y_log10()
+    data=evals.tall)+
+  scale_x_log10(
+    "N = number of data to segment (log scale)",
+    limits=c(NA, 1e8)
+  )+
+  scale_y_log10("Number of O(N log N) dynamic programming iterations")
+dl <- direct.label(leg, list("last.qp", dl.trans(x=x+0.1)))
+print(dl)
 
-ggplot()+
-  geom_point(aes(
-    bedGraph.lines, search.seconds),
-    shape=1,
-    data=iterations.dt)+
-  scale_x_log10()+
-  scale_y_log10()
+dl.ref <- dl+
+  geom_line(aes(
+    N.data, value, group=paste(ref.name, fun.name)),
+    data=ref.tall)+
+  geom_text(aes(
+    N.data, value, label=fun.name),
+    hjust=0,
+    data=ref.tall[N.data==max(N.data)])
+pdf("jss-figure-evaluations-ref.pdf", 3, 3)
+print(dl.ref)
+dev.off()
 
-ggplot()+
-  geom_point(aes(
-    bedGraph.lines, search.megabytes),
-    shape=1,
-    data=iterations.dt)+
-  scale_x_log10()+
-  scale_y_log10()
-
-
+pdf("jss-figure-evaluations.pdf", 3, 3)
+print(dl)
+dev.off()

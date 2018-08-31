@@ -119,8 +119,43 @@ box.models.stats <- box.models[, list(
   max=max(mid.peaks),
   models=.N
 ), by=list(box.mid)][order(box.mid)]
+ref.dt <- data.table(N.data=10^seq(log10.range[1], log10.range[2], l=100))
+log10.range <- log10(range(box.models.stats$box.mid))
+N.data <- 10^seq(log10.range[1], log10.range[2], l=100)
+fun.list <- list(
+  "O(N)"=identity,
+  "O(log N)"=log,
+  "loglog(N)"=function(x)log(log(x)),
+  "O(sqrt N)"=sqrt)
+ref.line.list <- list(
+  ##OP=list(y=9, lines=c("log(N)", "sqrt(N)", "loglog(N)")),
+  SN=list(y=13.5, lines=c("O(N)", "O(log N)", "O(sqrt N)")))
+ref.tall.list <- list()
+for(ref.name in names(ref.line.list)){
+  ref.info <- ref.line.list[[ref.name]]
+  for(fun.name in ref.info$lines){
+    fun <- fun.list[[fun.name]]
+    first.y <- fun(min(N.data))
+    ref.tall.list[[paste(fun.name, ref.name)]] <- data.table(
+      N.data,
+      ref.name,
+      fun.name,
+      value=fun(N.data)/first.y*ref.info$y)
+  }
+}
+ref.tall <- do.call(rbind, ref.tall.list)
+ref.color <- 'red'
 gg <- ggplot()+
   theme_bw()+
+  geom_line(aes(
+    N.data, value, group=paste(ref.name, fun.name)),
+    color=ref.color,
+    data=ref.tall)+
+  geom_text(aes(
+    N.data, value, label=fun.name),
+    color=ref.color,
+    hjust=0,
+    data=ref.tall[N.data==max(N.data)])+
   geom_ribbon(aes(
     box.mid, ymin=q25, ymax=q75),
     data=box.models.stats,
@@ -130,6 +165,7 @@ gg <- ggplot()+
     data=box.models.stats)+
   scale_x_log10(
     "N = number of data to segment (log scale)",
+    limits=c(NA, 1e8),
     labels=paste)+
   scale_y_log10("Peaks in models with min label error\n(log scale)")
 
