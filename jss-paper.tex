@@ -294,22 +294,13 @@ algorithm can be used to find a more likely model with three peaks
 \begin{figure}[t!]
 \centering
 \includegraphics{jss-figure-data-peaks}
-\caption{\label{fig:data-peaks} The number of peaks with minimal label
-  errors increases with data set size $N$. For each data set we
+\caption{\label{fig:data-peaks} The model with minimal label
+  errors has $O(\sqrt{N})$ peaks in a data set of size $N$. For each data set we
   computed peak models with minimal label errors (see
   Figure~\ref{fig:label-error}); we then plot the number of peaks in
-  minimal error models as a function of data set size $N$. Median line
-  and quartile band computed over several data sets of a given size
-  $N$.}
-\end{figure}
-  
-\begin{figure}[t!]
-\centering
-\includegraphics{jss-figure-evaluations}
-\caption{\label{fig:evaluations} TODO show that to find a zero-error
-  model with a number of peaks that increases with $N$, we only need
-  to solve a sub-linear number of penalties (so FPOP is faster than
-  PDPA).}
+  minimal error models as a function of data set size $N$. Black median line
+  and grey quartile band computed over several data sets of a given size
+  $N$; asymptotic reference lines shown in red.}
 \end{figure}
   
 \begin{figure}[t!]
@@ -394,7 +385,28 @@ algorithm can be used to find a more likely model with three peaks
   given size $N$; black dots and text show computational requirements
   for the most extreme data sets.}
 \end{figure}
- 
+
+\begin{figure}[t!]
+\centering
+\begin{minipage}{3.1in}
+  \includegraphics{jss-figure-evaluations}
+\end{minipage} 
+\begin{minipage}{3.1in}
+  \includegraphics{jss-figure-evaluations-computation}
+\end{minipage}
+\caption{\label{fig:evaluations} Computing a zero-error model with
+  $O(\sqrt{N})$ peaks is possible in $O(N(\log N)^2)$ time using our
+  proposed Optimal Partitioning Search algorithm. \textbf{Left:}
+  Segment Neighborhood requires $O(\sqrt{N})$ dynamic programming
+  iterations to compute a model with $O(\sqrt{N})$ peaks; our proposed
+  Optimal Partitioning search algorithm requires only $O(\log N)$
+  iterations. \textbf{Right:} Optimal Partitioning solves for one
+  penalty in $O(N\log N)$ space/time (median line and 5\%/95\% quantile band
+  over data sets and penalties); finding the zero-error model with
+  $O(\sqrt{N})$ peaks takes $O(N (\log N)^2)$ time/space -- only a log
+  factor more (points).}
+\end{figure}
+  
 \newpage
 
 foo

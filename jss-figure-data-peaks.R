@@ -165,7 +165,7 @@ gg <- ggplot()+
     data=box.models.stats)+
   scale_x_log10(
     "N = number of data to segment (log scale)",
-    limits=c(NA, 1e8),
+    limits=c(NA, 10^7.5),
     labels=paste)+
   scale_y_log10("Peaks in models with min label error\n(log scale)")
 

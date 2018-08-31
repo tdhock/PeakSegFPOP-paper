@@ -427,7 +427,7 @@ gg <- ggplot()+
     paste(chr)
   })+
   scale_x_log10(
-    "N = number of data to segment\n(log scale)",
+    "N = data to segment (log scale)",
     labels=paste
   )
 pdf("jss-figure-target-intervals-models-computation.pdf", 3.5, 3)
@@ -486,7 +486,7 @@ leg <- ggplot()+
   scale_color_manual(values=stat.colors)+
   scale_fill_manual(values=stat.colors, guide=FALSE)+
   scale_x_log10(
-    "N = number of data to segment\n(log scale)",
+    "N = data to segment (log scale)",
     limits=c(NA, 10^7.75),
     labels=paste
   )
