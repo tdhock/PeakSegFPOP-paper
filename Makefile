@@ -4,7 +4,9 @@ jss-paper.pdf: jss-paper.tex jss-figure-more-likely-models-three-peaks.png jss-f
 	bibtex jss-paper
 	pdflatex jss-paper
 	pdflatex jss-paper
-jss-figure-evaluations.pdf: jss-figure-evaluations.R
+jss.evaluations.rds: jss.evaluations.R
+	R --no-save < $<
+jss-figure-evaluations.pdf: jss-figure-evaluations.R jss.evaluations.rds
 	R --no-save < $<
 jss-figure-label-error.pdf: jss-figure-label-error.R
 	R --no-save < $<

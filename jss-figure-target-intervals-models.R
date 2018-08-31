@@ -490,9 +490,19 @@ leg <- ggplot()+
     limits=c(NA, 10^7.75),
     labels=paste
   )
-gg <- direct.label(leg, list("last.qp", dl.trans(x=x+0.1)))
+dl <- direct.label(leg, list("last.qp", dl.trans(x=x+0.1)))
+
+gg <- leg+
+  geom_line(aes(
+    N.data, value, group=variable),
+    color="grey",
+    data=ref.tall)+
+  geom_text(aes(
+    N.data, value, label=variable),
+    hjust=0,
+    color="grey",
+    data=ref.tall[N.data==max(N.data)])+
 
 pdf("jss-figure-target-intervals-models.pdf", 3.5, 3)
-print(gg)
+print(dl)
 dev.off()
-
