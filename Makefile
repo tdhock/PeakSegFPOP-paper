@@ -1,4 +1,4 @@
-jss-paper.pdf: jss-paper.tex jss-figure-more-likely-models-three-peaks.png jss-figure-target-intervals-models.pdf jss-figure-disk-memory-compare-speed.pdf jss-figure-data-peaks.pdf jss-figure-label-error.pdf jss-figure-evaluations.pdf
+jss-paper.pdf: jss-paper.tex jss-figure-more-likely-models-three-peaks.png jss-figure-target-intervals-models.pdf jss-figure-disk-memory-compare-speed.pdf jss-figure-data-peaks.tex jss-figure-label-error.pdf jss-figure-evaluations.tex
 	rm -rf *.aux *.bbl
 	pdflatex jss-paper
 	bibtex jss-paper
@@ -6,11 +6,11 @@ jss-paper.pdf: jss-paper.tex jss-figure-more-likely-models-three-peaks.png jss-f
 	pdflatex jss-paper
 jss.evaluations.rds: jss.evaluations.R
 	R --no-save < $<
-jss-figure-evaluations.pdf: jss-figure-evaluations.R jss.evaluations.rds
+jss-figure-evaluations.tex: jss-figure-evaluations.R jss.evaluations.rds
 	R --no-save < $<
 jss-figure-label-error.pdf: jss-figure-label-error.R
 	R --no-save < $<
-jss-figure-data-peaks.pdf: jss-figure-data-peaks.R
+jss-figure-data-peaks.tex: jss-figure-data-peaks.R
 	R --no-save < $<
 jss-figure-disk-memory-compare-speed.pdf: jss-figure-disk-memory-compare-speed.R
 	R --no-save < $<

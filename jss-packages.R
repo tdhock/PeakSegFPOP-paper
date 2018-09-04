@@ -1,0 +1,11 @@
+works_with_R(
+  "3.5.1",
+  data.table="1.11.4",
+  directlabels="2018.5.22",
+  ggplot2="3.0.0",
+  tikzDevice="0.12")
+options(
+  tikzDocumentDeclaration=paste(
+    "\\documentclass[article]{jss}",
+    "\\usepackage{amsmath,amssymb,amsthm}"),
+  tikzMetricsDictionary="tikzMetricsJSS")
