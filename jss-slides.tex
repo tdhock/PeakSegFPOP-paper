@@ -285,7 +285,7 @@ for Peak Detection in Large Genomic Data
   }} &\ \ 
     \sum_{i=1}^N \ell( m_i,  z_i) 
 \\
-      \text{subject to} &\ \ {I[m_i\neq m_{i+1}]=S-1,}
+      \text{subject to} &\ \ {\alert{\sum_{i=1}^{N-1} I[m_i\neq m_{i+1}]}=S-1,}
   \nonumber\\
   &\ \ \text{...up-down constraints on $m$.}
   \nonumber 
@@ -326,7 +326,7 @@ for Peak Detection in Large Genomic Data
 % \\
 %    0=t_0<t_1<\cdots<t_{S-1}<t_S=N
   }} &\ \ 
-    \sum_{i=1}^N \ell( m_i,  z_i)  + \lambda\sum_{i=1}^{N-1}I[m_{i}\neq m_{i+1}]
+    \sum_{i=1}^N \ell( m_i,  z_i)  + \lambda\alert{\sum_{i=1}^{N-1}I[m_{i}\neq m_{i+1}]}
 \\
       \text{subject to} &\ \ \text{...up-down constraints on $m$.}
   \nonumber 
