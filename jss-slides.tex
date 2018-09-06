@@ -185,34 +185,34 @@ for Peak Detection in Large Genomic Data
 %   \end{itemize}
 % \end{frame}
 
-% \begin{frame}
-%   \frametitle{Statistical model is a piecewise constant Poisson mean}
-%   H {\it et al.}, {\it ICML} 2015. 
+\begin{frame}
+  \frametitle{Statistical model is a piecewise constant Poisson mean}
+  H {\it et al.}, {\it ICML} 2015. 
 
-%   \input{figure-PeakSeg}
-%   \vskip -0.8cm    
-%   \begin{itemize}
-%   \item We have $n$ count data $z_1, \dots, z_n\in\ZZ_+$.
-%   \item Fix the number of segments $S\in\{1, 2, \dots, n\}$.
-%   \item Optimization variables: $S-1$ changepoints
-%     $t_1 < \cdots < t_{S-1}$ and $S$ segment means $u_1,\dots,u_S\in\RR_+$.
-%   \item Let $0=t_0<t_1 < \cdots < t_{S-1}<t_S=n$ be the segment
-%     limits.
-%   \item Statistical model: for every segment $s\in\{1,\dots,S\}$,
-%     $z_i \stackrel{\text{iid}}{\sim} \text{Poisson}(u_s)$ for every data
-%     point $i\in(t_{s-1},t_s]$.
-%   \item PeakSeg up-down constraint: $u_1\leq u_2 \geq u_3 \leq u_4 \geq \cdots$
-%   \item Want to find means $u_s$ which maximize the Poisson likelihood:
-%     $P(Z = z_i|u_s) = u_s^{z_i} e^{-u_s} / (z_i!)$.
-%   \item Equivalent to finding means $u_s$ which minimize the Poisson
-%     loss: $\ell(u_s, z_i) = u_s - z_i\log u_s$.
-%   % \item Comparison to Hidden Markov Model:
-%   %   \begin{description}
-%   %   \item[Likelihood] Same emission terms, no transition terms.
-%   %   \item[Constraint] Number of changes rather than values.
-%   %   \end{description}
-%   \end{itemize}
-% \end{frame}
+  \input{figure-PeakSeg}
+  \vskip -0.8cm    
+  \begin{itemize}
+  \item We have $n$ count data $z_1, \dots, z_n\in\ZZ_+$.
+  \item Fix the number of segments $S\in\{1, 2, \dots, n\}$.
+  \item Optimization variables: $S-1$ changepoints
+    $t_1 < \cdots < t_{S-1}$ and $S$ segment means $u_1,\dots,u_S\in\RR_+$.
+  \item Let $0=t_0<t_1 < \cdots < t_{S-1}<t_S=n$ be the segment
+    limits.
+  \item Statistical model: for every segment $s\in\{1,\dots,S\}$,
+    $z_i \stackrel{\text{iid}}{\sim} \text{Poisson}(u_s)$ for every data
+    point $i\in(t_{s-1},t_s]$.
+  \item PeakSeg up-down constraint: $u_1\leq u_2 \geq u_3 \leq u_4 \geq \cdots$
+  \item Want to find means $u_s$ which maximize the Poisson likelihood:
+    $P(Z = z_i|u_s) = u_s^{z_i} e^{-u_s} / (z_i!)$.
+  \item Equivalent to finding means $u_s$ which minimize the Poisson
+    loss: $\ell(u_s, z_i) = u_s - z_i\log u_s$.
+  % \item Comparison to Hidden Markov Model:
+  %   \begin{description}
+  %   \item[Likelihood] Same emission terms, no transition terms.
+  %   \item[Constraint] Number of changes rather than values.
+  %   \end{description}
+  \end{itemize}
+\end{frame}
 
 \begin{frame}
   \frametitle{Maximum likelihood changepoint detection with up-down constraints on adjacent segment means (PeakSeg)}
@@ -228,7 +228,6 @@ for Peak Detection in Large Genomic Data
    0=t_0<t_1<\cdots<t_{S-1}<t_S=N
   }} &\ \ 
     \sum_{s=1}^S\  \sum_{i=t_{s-1}+1}^{t_s} \ell( u_s,  z_i) 
-  \label{PeakSegPDPA}
 \\
       \text{subject to \hskip 0.75cm} &\ \ \alert<3>{u_{s-1} \leq u_s\ \forall s\in\{2,4,\dots\},}
   \nonumber\\
@@ -246,6 +245,229 @@ for Peak Detection in Large Genomic Data
 \item H {\it et al.}, arXiv 2017: $O(SN\log N)$ time optimal algorithm.
 \end{itemize}
 \end{frame} 
+
+\section{New functional pruning algorithm}
+
+
+\begin{frame}
+  \frametitle{Previous work on the Segment Neighborhood problem}
+  \begin{tabular}{r|c|c}
+    & no pruning & functional pruning \\
+    \hline
+    unconstrained & Dynamic Prog. Algo. & Pruned DPA \\
+     & exact $O(SN^2)$ & exact $O(SN\log N)$\\
+    %R pkgs: & \alert<1>{changepoint} & \alert<2>{cghseg, Segmentor}\\
+    & Auger and L. 1989 & Rigaill 2010\\
+    \hline
+    up-down constrained & Constrained DPA & Generalized PDPA \\
+     & inexact $O(SN^2)$ & exact $O(SN\log N)$\\
+    %R pkgs: & \alert<3>{PeakSegDP} & \alert<4>{PeakSegOptimal}\\
+    & H et al 2015 & H et al 2017\\
+    \hline
+  \end{tabular}
+  \begin{itemize}
+  % \item \alert<1>{Auger and Lawrence 1989, Jackson et al 2005}.
+  % \item \alert<2>{Rigaill 2010, Johnson 2013, Cleynen et al 2014}.
+  % \item \alert<3>{Hocking, Rigaill, Bourque 2015}.
+  % \item \alert<4>{\textbf{Contribution:} Generalized Pruned Dynamic
+  %       Programming Algorithm (GPDPA) that \textbf{exactly} computes the
+  %     \textbf{constrained} model for $n$ data points and up to $S$ segments in
+  %      $O(Sn\log n)$ time}.
+  \item All algorithms solve the \textbf{Segment Neighborhood}
+    ``constrained'' problem: most likely mean $m_i$ for data $z_i$,
+    subject to the constraint of $S$ segments ($S-1$ changes).
+  \end{itemize} 
+\begin{align*}
+    \minimize_{\substack{
+  \mathbf m\in\RR^{N}
+% \\
+%    0=t_0<t_1<\cdots<t_{S-1}<t_S=N
+  }} &\ \ 
+    \sum_{i=1}^N \ell( m_i,  z_i) 
+\\
+      \text{subject to} &\ \ {I[m_i\neq m_{i+1}]=S-1,}
+  \nonumber\\
+  &\ \ \text{...up-down constraints on $m$.}
+  \nonumber 
+\end{align*}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Previous work on the Optimal Partitioning problem}
+  \begin{tabular}{r|c|c}
+    & no pruning & functional pruning \\
+    \hline
+    unconstrained & Opt. Part. Algo. & FPOP \\
+     & exact $O(N^2)$ & exact $O(N\log N)$\\
+    %R pkgs: & \alert<1>{changepoint} & \alert<2>{cghseg, Segmentor}\\
+    & Jackson et al 2005 & Maidstone et al 2016\\
+    \hline
+    up-down constrained &  & Generalized FPOP \\
+     &  & exact $O(N\log N)$\\
+    %R pkgs: & \alert<3>{PeakSegDP} & \alert<4>{PeakSegOptimal}\\
+    &  & \textbf{This work}\\
+    \hline
+  \end{tabular}
+  \begin{itemize}
+  % \item \alert<1>{Auger and Lawrence 1989, Jackson et al 2005}.
+  % \item \alert<2>{Rigaill 2010, Johnson 2013, Cleynen et al 2014}.
+  % \item \alert<3>{Hocking, Rigaill, Bourque 2015}.
+  % \item \alert<4>{\textbf{Contribution:} Generalized Pruned Dynamic
+  %       Programming Algorithm (GPDPA) that \textbf{exactly} computes the
+  %     \textbf{constrained} model for $n$ data points and up to $S$ segments in
+  %      $O(Sn\log n)$ time}.
+  \item All algorithms solve the \textbf{Optimal Partitioning}
+    ``penalized'' problem: most likely mean $m_i$ for data $z_i$,
+    penalized by a non-negative $\lambda\in\RR_+$ for each change:
+  \end{itemize}
+\begin{align*}
+    \minimize_{\substack{
+  \mathbf m\in\RR^{N}
+% \\
+%    0=t_0<t_1<\cdots<t_{S-1}<t_S=N
+  }} &\ \ 
+    \sum_{i=1}^N \ell( m_i,  z_i)  + \lambda\sum_{i=1}^{N-1}I[m_{i}\neq m_{i+1}]
+\\
+      \text{subject to} &\ \ \text{...up-down constraints on $m$.}
+  \nonumber 
+\end{align*}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Dynamic programming and functional pruning}
+  \textbf{Classical dynamic programming for optimal partitioning}
+  (Jackson et al 2005) computes the vector of optimal loss values up
+  to $N$ data points, $O(N^2)$ time because each DP iteration needs to
+  consider all $O(N)$ possible changepoints and cost values.
+$$
+\begin{array}{ccccc}
+  \mathcal C_{1} & \mathcal C_2 & \cdots & \mathcal C_{N-1} &  \mathcal C_N
+\end{array}
+$$
+\textbf{Functional pruning optimal partitioning} (Maidstone 2016)
+computes a vector of loss \textbf{functions}, $O(N\log N)$ because
+each DP iteration only considers $O(\log N)$ candidate changepoints
+\\(the others --- which will never be optimal --- are pruned).
+$$
+\begin{array}{ccccc}
+   C_{1}(m_1) & C_2(m_2) & \cdots & C_{N-1}(m_{N-1}) &   C_N(m_{N})
+\end{array}
+$$
+\textbf{Contribution of this work}: a new algorithm that applies the
+functional pruning technique to the up-down constrained model.
+\end{frame}
+
+\begin{frame}
+  \frametitle{Constrained optimal partitioning problem}
+  \begin{align*}
+  \label{eq:penalized_peakseg}
+  \minimize_{
+    \substack{
+    \mathbf m\in\RR^N,\ \mathbf s\in\{0, 1\}^N\\
+\mathbf c\in\{-1, 0,1\}^{N-1}\\
+}
+    } &\ \ 
+  \sum_{i=1}^N \ell(m_i, z_i) + \lambda \sum_{i=1}^{N-1} I(c_i \neq 0) \\
+  \text{subject to\ \ } &\ \text{no change: }c_t = 0 \Rightarrow m_t = m_{t+1}\text{ and }s_t=s_{t+1}
+  \nonumber\\
+&\ \text{go up: }c_t = 1 \Rightarrow m_t \leq m_{t+1}\text{ and }(s_t,s_{t+1})=(0,1),
+  \nonumber\\
+&\ \text{go down: } c_t = -1 \Rightarrow m_t \geq m_{t+1}\text{ and }(s_t,s_{t+1})=(1,0).
+\nonumber
+\end{align*}
+\begin{minipage}{0.5\linewidth}
+    \begin{tikzpicture}[->,>=latex,shorten >=1pt,auto,node distance=2cm,
+                    thick,main node/.style={circle,draw}]
+
+  \node[main node] (1) {$s=1$};
+  \node[main node] (2) [below of=1] {$s=0$};
+
+  \path[every node/.style={font=\sffamily\small}]
+    (2) edge [bend left] node {$c=1, \leq, \lambda$} (1)
+    (1) edge [bend left] node {$c=-1, \geq, \lambda$} (2);
+\end{tikzpicture}
+\end{minipage}
+\begin{minipage}{0.45\linewidth}
+  Nodes=states $s$,\\
+  Edges=changes $c$ (constraint, penalty).
+\end{minipage}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Dynamic programming update rules}
+Recursively compute two vectors of real-valued cost functions:
+$$
+\begin{array}{cccl}
+  \overline C_{1}(m_1) & \cdots & \overline C_N(m_{N})& \text{ optimal cost in peak state $s=1$}\\
+  \underline C_{1}(m_1) & \cdots & \underline C_N(m_{N})& \text{ optimal cost in background state $s=0$}\\
+\end{array}
+$$
+\begin{minipage}{0.65\linewidth}
+  $$\overline C_{t+1}(\mu) = \ell(\mu, z_i) + \min\{
+  \overline C_t(\mu),\, 
+  \underline C_t^\leq(\mu)+\lambda
+\},$$
+  $$\underline C_{t+1}(\mu) = \ell(\mu, z_i) + \min\{
+  \underline C_t(\mu),\, 
+  \overline C_t^\geq(\mu)+\lambda
+\},$$
+where $f^\leq(\mu) = \min_{x\leq\mu} f(x)$,\\
+$f^\geq(\mu) = \min_{x\geq\mu} f(x)$.
+\end{minipage}
+\begin{minipage}{0.25\linewidth}
+  \begin{tikzpicture}[->,>=latex,shorten >=1pt,auto,node distance=3cm,
+  thick,main node/.style={circle,draw}]
+  \node[main node] (peak_t) {$\overline C_t$};
+  \node[main node] (bkg_t) [below of=peak_t] {$\underline C_t$};
+  \node[main node] (peak_t1) [right of=peak_t] {$\overline C_{t+1}$};
+  \node[main node] (bkg_t1) [right of=bkg_t] {$\underline C_{t+1}$};
+  \path[every node/.style={font=\small}]
+    (peak_t) edge [dotted] node {$\overline C_{t}$} (peak_t1)
+    (peak_t) edge [black, bend right] node [right] {$\overline C_{t}^{\geq}+\lambda$} (bkg_t1)
+    (bkg_t) edge [dotted] node[midway, below] {$\underline C_{t}$} (bkg_t1)
+    (bkg_t) edge [black, bend left] node[right] {$\underline C_{ t}^{\leq}+\lambda$} (peak_t1)
+;
+\end{tikzpicture}
+\end{minipage}
+\end{frame}
+
+\section{Results on ChIP-seq benchmark}
+
+\begin{frame}
+  \frametitle{Functional pruning algorithms faster for larger data sets}
+
+Benchmark data set: \url{http://github.com/tdhock/feature-learning-benchmark}
+
+\begin{itemize}
+\item 4951 data sets ranging from $N=10^3$ to $N=10^7$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Labels used to determine optimal number of peaks}
+  \includegraphics[width=\textwidth]{jss-figure-label-error-data-labels}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Labels used to determine optimal number of peaks}
+  \includegraphics[width=\textwidth]{jss-figure-label-error-data-labels}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Labels used to determine optimal number of peaks}
+  \includegraphics[width=\textwidth]{jss-figure-label-error-too-few}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Labels used to determine optimal number of peaks}
+  \includegraphics[width=\textwidth]{jss-figure-label-error-too-many}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Labels used to determine optimal number of peaks}
+  \includegraphics[width=\textwidth]{jss-figure-label-error}
+\end{frame}
 
 \begin{frame}
   \frametitle{Number of peaks/segments increases with $N$ }
@@ -266,80 +488,6 @@ for Peak Detection in Large Genomic Data
   
 \end{frame}
 
-\section{New functional pruning algorithm}
-
-
-\begin{frame}
-  \frametitle{Relation to previous work}
-  \begin{tabular}{r|c|c}
-    & no pruning & functional pruning \\
-    \hline
-    unconstrained & \alert<1>{Dynamic Prog. Algo.} & \alert<2>{Pruned DPA} \\
-     & \alert<1>{exact $O(Sn^2)$} & \alert<2>{exact $O(Sn\log n)$}\\
-    R pkgs: & \alert<1>{changepoint} & \alert<2>{cghseg, Segmentor}\\
-    \hline
-    up-down constrained & \alert<3>{Constrained DPA} & \alert<4>{\textbf{GPDPA}} \\
-     & \alert<3>{inexact $O(Sn^2)$} & \alert<4>{exact $O(Sn\log n)$}\\
-    R pkgs: & \alert<3>{PeakSegDP} & \alert<4>{PeakSegOptimal}\\
-    \hline
-  \end{tabular}
-  \begin{itemize}
-  \item \alert<1>{Auger and Lawrence 1989, Jackson et al 2005}.
-  \item \alert<2>{Rigaill 2010, Johnson 2013, Cleynen et al 2014}.
-  \item \alert<3>{Hocking, Rigaill, Bourque 2015}.
-  \item \alert<4>{\textbf{Contribution:} Generalized Pruned Dynamic
-        Programming Algorithm (GPDPA) that \textbf{exactly} computes the
-      \textbf{constrained} model for $n$ data points and up to $S$ segments in
-       $O(Sn\log n)$ time}.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Dynamic programming and functional pruning}
-  \textbf{Classical dynamic programming} (Auger and Lawrence 1989)
-  computes the matrix of optimal loss values in $S$ segments up to $n$
-  data points, $O(S n^2)$
-$$
-\begin{array}{ccc}
-  \mathcal L_{1,1} & \cdots &   \mathcal L_{1,n}\\
-  \vdots &  & \vdots\\
-  \mathcal L_{S,1} & \cdots & \mathcal L_{S,n}\\
-\end{array}
-$$
-\textbf{Dynamic programming with functional pruning} (Rigaill 2010,
-Johnson 2013) computes a matrix of loss \textbf{functions}, the
-optimal loss up to $n$ data points if segment $S$ has mean $u_S$,
-$O(S n\log n)$
-$$
-\begin{array}{ccc}
-   L_{1,1}(u_1) & \cdots & L_{1,n}(u_1)\\
-  \vdots &  & \vdots\\
-   L_{S,1}(u_S) & \cdots & L_{S,n}(u_S),\\
-\end{array}
-$$
-\textbf{Contribution of this work}: a new algorithm that applies the
-functional pruning technique to the up-down constrained model.
-\end{frame}
-
-\section{Results on ChIP-seq benchmark}
-
-\begin{frame}
-  \frametitle{Functional pruning algorithms faster for larger data sets}
-
-Benchmark data set: \url{http://members.cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/}
-
-  %\includegraphics[width=1\textwidth]{figure-PDPA-timings.pdf}
-  \input{figure-PDPA-timings-wide-labels}
-
-Time to compute 10 models (0, ..., 9 peaks) for 2752 data
-    sequences down to \textcolor{GPDPA}{6 hours (GPDPA)} from
-    \textcolor{CDPA}{156 hours (CDPA)}.
-  % Total time to compute 10 models (0, ..., 9 peaks) for all problems:
-  % \begin{itemize}
-  % \item CDPA: 156 hours, inexact.
-  % \item GPDPA: 6 hours, exact.
-  % \end{itemize}
-\end{frame}
 
 \begin{frame}
   \frametitle{New labeling method for peak detection in ChIP-seq data}
@@ -382,6 +530,16 @@ Time to compute 10 models (0, ..., 9 peaks) for 2752 data
     \url{https://cran.r-project.org/package=PeakSegOptimal}
   \end{itemize}
   Future work: other constraints and loss functions.
+\end{frame}
+
+\begin{frame}
+  \frametitle{Cost function computation}
+  Computation of each update rule is linear in number of
+  intervals/pieces/candidates -- empirically $O(\log n)$.
+  \begin{minipage}[t]{\linewidth}
+  \hskip -1cm
+  \input{figure-2-min-envelope} 
+  \end{minipage}
 \end{frame}
 
 \end{document}
