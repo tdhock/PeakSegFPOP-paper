@@ -108,6 +108,7 @@ problem.betterPeaks <- function
   model.list <- list()
   next.pen <- c(0, Inf)
   iteration <- 0
+  under <- over <- data.table(peaks=NA)
   while(length(next.pen)){
     if(verbose)cat(
       "Next =", paste(next.pen, collapse=", "),
@@ -121,6 +122,8 @@ problem.betterPeaks <- function
         L$loss$seconds <- L$timing$seconds
         L$loss$megabytes <- L$timing$megabytes
         L$loss$iteration <- iteration
+        L$loss$under <- under$peaks
+        L$loss$over <- over$peaks
         L
       }
     )
@@ -151,29 +154,10 @@ problem.betterPeaks <- function
     if(!is.null(next.pen)){
       next.pen <- (over$total.cost-under$total.cost)/(under$peaks-over$peaks)
     }
-    ## below for storage.
-    loss.list <- lapply(model.list, "[[", "loss")
-    loss.dt <- do.call(rbind, loss.list)[order(penalty)]
-    if(2 <= verbose){
-      print(loss.dt[, .(penalty, segments, peaks, bases, mean.pen.cost, total.cost, status)])
-    }
-    if(!is.numeric(loss.dt$penalty)){
-      stop("penalty column is not numeric -- check loss in _loss.tsv files")
-    }
-    unique.peaks <- loss.dt[, data.table(
-      .SD[which.min(iteration)],
-      penalties=.N
-    ), by=list(peaks)]
-    path.dt <- data.table(penaltyLearning::modelSelection(
-      unique.peaks, "total.cost", "peaks"))
-    path.dt[, next.pen := max.lambda]
-    path.dt[, already.computed := next.pen %in% names(loss.list)]
-    path.dt[, no.next := c(diff(peaks) == -1, NA)]
-    path.dt[, done := already.computed | no.next]
-    ## above for storage.
   }#while(!is.null(pen))
   out <- model.list[[paste(candidate$penalty)]]
-  out$others <- path.dt
+  loss.list <- lapply(model.list, "[[", "loss")
+  out$others <- do.call(rbind, loss.list)[order(iteration)]
   out
 ### TODO
 }

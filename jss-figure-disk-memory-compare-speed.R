@@ -157,10 +157,10 @@ leg <- ggplot()+
   theme_bw()+
   scale_color_manual(values=storage.colors)+
   scale_fill_manual(values=storage.colors)+
-  geom_segment(aes(
-    bedGraph.lines, min.seconds,
-    xend=bedGraph.lines, yend=max.seconds),
-    data=range.dt)+
+  ## geom_segment(aes(
+  ##   bedGraph.lines, min.seconds,
+  ##   xend=bedGraph.lines, yend=max.seconds),
+  ##   data=range.dt)+
   geom_ribbon(aes(
     bedGraph.lines, ymin=q25, ymax=q75, fill=storage),
     alpha=0.5,

@@ -501,6 +501,42 @@ $f^\geq(\mu) = \min_{x\geq\mu} f(x)$.
 \end{frame}
 
 \begin{frame}
+  \frametitle{GFPOP Implementation stores cost functions on disk}
+
+  \includegraphics[width=0.5\textwidth]{jss-figure-disk-memory-compare-speed}
+
+  \begin{itemize}
+  \item Disk storage is only a constant factor slower than memory!
+  \item Both are $O(N\log N)$ time.
+  \item Memory implementation: $O(N \log N)$ memory! (too big)
+  \item Disk implementation: $O(\log N)$ memory ($<1$GB), $O(N\log N)$
+    disk.
+  \end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Time/space to solve one penalty is $O(N \log N)$}
+
+  Total time/space = $O(NI)$ where $I$ is the number of intervals
+  (candidate changepoints) stored in every optimal cost function
+  $\overline C_t(\mu)$.
+
+  \begin{minipage}{0.48\textwidth}
+    \includegraphics[width=\textwidth]{jss-figure-target-intervals-models}
+    $I=O(\log N)$ intervals.
+  \end{minipage}
+  \begin{minipage}{0.48\textwidth}
+    \includegraphics[width=\textwidth]{jss-figure-target-intervals-models-computation}
+    Overall  $O(N \log N)$ complexity.
+  \end{minipage}
+  
+\vskip 0.5cm
+  But how to compute model with $O(\sqrt N)$ peaks?
+
+\end{frame}
+
+\begin{frame}
   \frametitle{Binary search algorithm using GFPOP to compute most
     likely model with at most $P^*$ peaks}
   \begin{algorithmic}[1]
@@ -511,29 +547,115 @@ $f^\geq(\mu) = \min_{x\geq\mu} f(x)$.
   \begin{ALC@g}
     \STATE $\lambda=(\overline L-\underline L)/(\underline p-\overline p)$
     \STATE $L_{\text{new}},p_{\text{new}}\gets\text{GFPOP}(\mathbf z, \lambda)$
-    \STATE If $p_{\text{new}}\in\{\underline p, \overline p\}$: return $\underline p$
-    \STATE If 
-% Target is 29 peaks.
-% > fit.list$others[order(iteration)][, list(iteration, penalty, peaks, total.cost)]
-%    iteration    penalty peaks total.cost
-% 1:         1     0.0000  5432 -101338.71
-% 2:         1        Inf     0  456952.08
-% 3:         2   102.7781   589  -24520.02
-% 4:         3   817.4399    35   79012.40
-% 5:         4 10798.2767     9  133428.19
-% 6:         5  2092.9150    16  101350.53
-% 7:         6  1175.6911    23   90865.85
-% 8:         7   987.7878    29   84428.12
+    \STATE If $p_{\text{new}}\in\{\underline p, \overline p\}$: return model with $\underline p$ peaks.
+    \STATE If $p_{\text{new}} < P^*$: $\underline p\gets p_{\text{new}}$
+    \STATE Else: $\overline p\gets p_{\text{new}}$
+% > prob.i <- 3
+% > fit.list$others[order(iteration)][, list(target.peaks=prob$peaks, iteration, under, over, penalty, peaks, total.cost)]
+%    target.peaks iteration under over    penalty peaks total.cost
+% 1:           33         1    NA   NA     0.0000  7487 -201361.96
+% 2:           33         1    NA   NA        Inf     0  920923.98
+% 3:           33         2     0 7487   149.8979   753  -24385.02
+% 4:           33         3     0  753  1255.3904    47  153676.28
+% 5:           33         4     0   47 16324.4191    10  310043.81
+% 6:           33         5    10   47  4226.1495    21  214200.02
+% 7:           33         6    21   47  2327.8360    33  177484.99
 % > 
   \end{ALC@g}
+  \STATE If $\underline p=P^*$: return model with $\underline p$ peaks.
+  \STATE Else: return model with $\overline p$ peaks.
   \end{algorithmic}
 \end{frame}
+
+\begin{frame}
+  \frametitle{Example run of binary search algorithm using GFPOP}
+  One data set with $P^*=93$ peaks and $N=146,186$ data.
+  \begin{tabular}{rrrrrr}
+ iteration& $\underline p$& $\overline p$&    $\lambda$ & $p_{\text{new}}$& $L_{\text{new}}$\\
+\hline
+         1&    &    &     0& 68752&   -2570319\\
+         1&    &    &        $\infty$&     0&   14239212\\
+         2&     0& 68752&   244.4952&  4361&    1980119\\
+         3&     0&  4361&  2811.0738&   188&    3676671\\
+         4&     0&   188& 56183.7271&    55&    5330310\\
+         5&    55&   188& 12433.3766&    98&    4108354\\
+         6&    55&    98& 28417.5941&    72&    4584042\\
+         7&    72&    98& 18295.6895&    83&    4336773\\
+         8&    83&    98& 15227.9249&    90&    4218815\\
+         9&    90&    98& 13807.6282&    95&    4146172\\
+        10&    90&    95& 14528.5052&    92&    4188881\\
+        11&    92&    95& 14236.0863&    94&    4160179\\
+        12&    92&    94& 14350.6622&    93&    4174480
+  \end{tabular}
+
+  \alert{12 DP iterations much fewer than $93\times 2=186$ which would be
+  required for Segment Neighborhood!}
+\end{frame}
+
 
 \begin{frame}
   \frametitle{Only $O(\log N)$ runs of GFPOP to compute $O(\sqrt N)$
     peaks}
   \input{jss-figure-evaluations} 
+  
+\end{frame}
+
+\begin{frame}
+  \frametitle{Binary search only a log factor slower than solving one penalty}
+  \input{jss-figure-evaluations-computation} 
+
+  For $N=10^7$ only several hours of computation! (compare with weeks
+  for Segment Neighborhood algorithm)
+  
+\end{frame}
+
+\begin{frame}
+  \frametitle{Conclusions}
+
+  \begin{itemize}
+  \item Previous GPDPA was $O(N\sqrt N\log N)$ -- much too complex to
+    compute a zero-error model with $O(\sqrt N)$ peaks for $N=10^7$
+    data.
+  \item Proposed GFPOP with binary search is $O(N(\log N)^2)$ time,
+    $O(\log N)$ memory, $O(N\log N)$ disk -- optimal models are now
+    possible to compute for large data.
+  \item Future work: changepoint detection in large ecological data?
+  \item Contact me: toby.hocking@nau.edu
+  \item Thanks!
+  \end{itemize}
+  
+\end{frame}
+
+\begin{frame}
+  \frametitle{For some data
+ the desired number of peaks does not exist!}
+
+One data set with $P^*=75$ and $N=66,031$ data.
+
+\begin{tabular}{rrrrrr}
+\small
+ iteration& $\underline p$& $\overline p$&    $\lambda$ & $p_{\text{new}}$& $L_{\text{new}}$\\
+  \hline
+    1 &  &  & 0 & 29681 & -1495863.85 \\ 
+    1 &  &  & $\infty$ &   0 & 1200631.42 \\ 
+    2 &   0 & 29681 & 90.85 & 3445 & -1245181.37 \\ 
+    3 &   0 & 3445 & 709.96 & 401 & -446632.57 \\ 
+    4 &   0 & 401 & 4107.89 &  51 & 3105.03 \\ 
+    5 &  51 & 401 & 1284.96 & 168 & -230152.31 \\ 
+    6 &  51 & 168 & 1993.65 &  97 & -120725.83 \\ 
+    7 &  51 &  97 & 2691.98 &  68 & -53946.18 \\ 
+    8 &  68 &  97 & 2302.75 &  81 & -86423.80 \\ 
+    9 &  68 &  81 & 2498.28 &  77 & -76891.10 \\ 
+   10 &  68 &  77 & 2549.44 &  71 & -61722.09 \\ 
+   11 &  71 &  77 & 2528.17 &  74 & -69330.62 \\ 
+   12 &  74 &  77 & 2520.16 &  76 & -74374.78 \\ 
+   13 &  \alert{74} &  \alert{76} & \alert{2522.08} &  \alert{76} & -74374.78 \\ 
+\end{tabular}
+
+\alert{No model exists between $\underline p=74$ and
+  $\overline p=76$, so algo stops and returns the simpler model with 74 peaks.}
 
 \end{frame}
+
 
 \end{document}

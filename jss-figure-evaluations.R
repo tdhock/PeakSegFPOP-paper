@@ -7,6 +7,7 @@ bench.models <- target.intervals.models[select.dt, on=list(prob.dir)][log(bedGra
 bench.models[, gigabytes := megabytes/1024]
 
 jss.evaluations <- readRDS("jss.evaluations.rds")[others.penalty!=Inf]
+jss.evaluations[peaks != loss.peaks, list(bedGraph.lines, peaks, loss.peaks)]
 
 jss.evaluations[, others.minutes := others.seconds/60]
 jss.evaluations[, others.gigabytes := others.megabytes/1024]
@@ -19,9 +20,10 @@ prob.stats <- others.tall[, list(
   OP=.N,
   sum=sum(value),
   median=median(value),
+  max=max(value),
   q95=quantile(value, 0.95),
   q05=quantile(value, 0.05)
-  ), by=list(var, bedGraph.lines, segments, peaks)]
+  ), by=list(var, bedGraph.lines, segments=peaks*2+1, peaks)]
 
 target.stats <- others.tall[, list(
   sum=sum(value),
@@ -31,7 +33,10 @@ target.stats <- others.tall[, list(
   ), by=list(var, target.N)]
 
 both.points <- rbind(
-  prob.stats[, data.table(bedGraph.lines, value=sum, var, algorithm="find model")],
+  prob.stats[var=="minutes", data.table(
+    bedGraph.lines, value=sum, var, algorithm="find model")],
+  prob.stats[var=="gigabytes", data.table(
+    bedGraph.lines, value=max, var, algorithm="find model")],
   others.tall[, data.table(bedGraph.lines, value, var, algorithm="solve one")])
 ggplot()+
   theme_bw()+
@@ -99,10 +104,10 @@ gg <- ggplot()+
     color=op.color,
     data=target.stats)+
   geom_point(aes(
-    bedGraph.lines, sum),
+    bedGraph.lines, value),
     shape=1,
     color=op.color,
-    data=prob.stats)+
+    data=both.points[algorithm=="find model"])+
   scale_x_log10(
     "N = data to segment (log scale)"
   )+
@@ -305,7 +310,7 @@ gg <- ggplot()+
       l <- ifelse(
         algorithm=="solve one",
         "Solve for one penalty\n$O(N \\log N)$ time",
-        "Find zero-error model\nwith $O(\\sqrt N)$ peaks\n$O(N(\\log N)^2)$ time")
+        "Binary search for model\nwith $O(\\sqrt N)$ peaks\n$O(N(\\log N)^2)$ time")
       ifelse(var=="gigabytes", sub("time", "space", l), l)
     }),
     size=3,
@@ -336,7 +341,7 @@ gg <- ggplot()+
      via GFPOP (log scale)",
 labels=paste)
 ##print(gg)
-tikz("jss-figure-evaluations-computation.tex", 3.1, 3)
+tikz("jss-figure-evaluations-computation.tex", 3.1, 2.5)
 print(gg)
 dev.off() 
 
@@ -388,18 +393,19 @@ leg <- ggplot()+
     breaks=10^seq(4, 7, by=1)
   )+
   scale_y_log10(
-    "Number of $O(N \\log N)$ DP
-iterations to compute model with
-$O(\\sqrt N)$ peaks (log scale)",
+    "Number of $O(N \\log N)$
+DP iterations to compute
+model with $O(\\sqrt N)$
+peaks (log scale)",
     limits=c(NA, 2000)
   )
 m <- list(
-  cex=0.75,
+  ##cex=0.75,
   dl.trans(x=x+0.1),
   "last.points", "calc.boxes",
   "reduce.cex.lr",
   function(d,...){
-    d$h <- d$h * 1.5
+    d$h <- d$h +0.3
     d
   },
   "calc.borders",
@@ -420,6 +426,6 @@ print(dl)
 ## print(dl.ref)
 ## dev.off()
 
-tikz("jss-figure-evaluations.tex", 3.1, 3)
+tikz("jss-figure-evaluations.tex", 3.1, 2.5)
 print(dl)
 dev.off()

@@ -282,6 +282,7 @@ ref.dt <- data.table(N.data=10^seq(log10.range[1], log10.range[2], l=100))
 fun.list <- list(
   "log(N)"=log,
   "loglog(N)"=function(x)log(log(x)),
+  "sqrt(log(N))"=function(x)sqrt(log(x)),
   "sqrt(N)"=sqrt)
 one.var <- "intervals"
 one.line <- line.dt[var==one.var & stat=="mean"]
