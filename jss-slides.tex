@@ -41,15 +41,14 @@
 
 \begin{document}
 
-\title{
-A Generalized Functional Pruning Optimal Partitioning Algorithm
-for Peak Detection in Large Genomic Data
-}
+\title{ A Generalized Functional Pruning Optimal Partitioning (GFPOP)
+  Algorithm for Peak Detection in Large Genomic Data }
 
 \author{
   Toby Dylan Hocking\\
   toby.hocking@nau.edu\\
-  joint work with Guillem Rigaill}
+  joint work with \\
+Guillem Rigaill, Guillaume Bourque, Paul Fearnhead}
 
 %\date{13 Nov 2017}
 
@@ -318,7 +317,7 @@ for Peak Detection in Large Genomic Data
   %      $O(Sn\log n)$ time}.
   \item All algorithms solve the \textbf{Optimal Partitioning}
     ``penalized'' problem: most likely mean $m_i$ for data $z_i$,
-    penalized by a non-negative $\lambda\in\RR_+$ for each change:
+    penalized by a non-negative penalty $\lambda\in\RR_+$ for each change:
   \end{itemize}
 \begin{align*}
     \minimize_{\substack{
@@ -395,7 +394,8 @@ functional pruning technique to the up-down constrained model.
 \end{frame}
 
 \begin{frame}
-  \frametitle{Dynamic programming update rules}
+  \frametitle{Generalized Functional Pruning Optimal Partitioning
+    (GFPOP) algorithm for up-down constrained model}
 Recursively compute two vectors of real-valued cost functions:
 $$
 \begin{array}{cccl}
@@ -435,47 +435,61 @@ $f^\geq(\mu) = \min_{x\geq\mu} f(x)$.
 \section{Results on ChIP-seq benchmark}
 
 \begin{frame}
-  \frametitle{Functional pruning algorithms faster for larger data sets}
+  \frametitle{Benchmark of large genomic data sets}
 
-Benchmark data set: \url{http://github.com/tdhock/feature-learning-benchmark}
+\url{http://github.com/tdhock/feature-learning-benchmark}
 
 \begin{itemize}
 \item 4951 data sets ranging from $N=10^3$ to $N=10^7$.
+\item Ran GFPOP with penalty $\lambda\in(\log N, N)$, resulting in a
+  range of models with different numbers of peaks, for each data set.
+\item Each data set has \textbf{labels} which can be used to determine
+  an appropriate number of peaks.
 \end{itemize}
 \end{frame}
 
 \begin{frame}
   \frametitle{Labels used to determine optimal number of peaks}
-  \includegraphics[width=\textwidth]{jss-figure-label-error-data-labels}
+  \includegraphics[width=\textwidth]{jss-figure-label-error-data}
+  
+  One ChIP-seq data set with $N=1,254,751$ (only 82,233 shown).
 \end{frame}
 
 \begin{frame}
   \frametitle{Labels used to determine optimal number of peaks}
   \includegraphics[width=\textwidth]{jss-figure-label-error-data-labels}
+
+  Visually labeled regions (H {\it et al.}, {\it Bioinformatics} 2017). 
 \end{frame}
 
 \begin{frame}
   \frametitle{Labels used to determine optimal number of peaks}
   \includegraphics[width=\textwidth]{jss-figure-label-error-too-few}
+
+  Penalty too large, too few peaks, 2 false negative labels.
 \end{frame}
 
 \begin{frame}
   \frametitle{Labels used to determine optimal number of peaks}
   \includegraphics[width=\textwidth]{jss-figure-label-error-too-many}
+
+  Penalty too small, too many peaks, 3 false positive labels.
 \end{frame}
 
 \begin{frame}
   \frametitle{Labels used to determine optimal number of peaks}
   \includegraphics[width=\textwidth]{jss-figure-label-error}
+  
+  Models with 34--236 peaks have no label errors (midpoint=135).
 \end{frame}
 
 \begin{frame}
-  \frametitle{Number of peaks/segments increases with $N$ }
+  \frametitle{Segment Neighborhood model too slow for $O(\sqrt N)$ peaks }
   \input{jss-figure-data-peaks-slide}
   \vskip -0.4cm
   \begin{itemize} 
   \item %H {\it et al.}, arXiv 2017: $O(SN\log N)$ time/space
-    Optimal algorithm requires $O(S)$ dynamic programming iterations,
+    Previous GPDPA: $O(S)$ dynamic programming iterations,
     each is $O(N\log N)$ time/space.
   \item If we want $S=O(\sqrt{N})$ segments then the algorithm is
     $O(N \sqrt N \log N)$ time/space -- too much for large data.
@@ -484,62 +498,42 @@ Benchmark data set: \url{http://github.com/tdhock/feature-learning-benchmark}
     segments we need means 220 TB of storage space and 17 weeks of
     computation time!
   \end{itemize}
-
-  
-\end{frame}
-
-
-\begin{frame}
-  \frametitle{New labeling method for peak detection in ChIP-seq data}
-
-  H {\it et al.}, {\it Bioinformatics} 2017: choose peak model/parameters
-  which minimize the number of incorrectly predicted labels.
-
-  \includegraphics[width=\textwidth]{figure-PeakError.pdf}
-  \begin{itemize}
-  \item \textbf{peakStart}: exactly one peak start (0=FN, more=FP).
-  \item \textbf{peakEnd}: exactly one peak end (0=FN, more=FP).
-  \item \textbf{noPeaks}: no overlapping peaks (otherwise FP).
-  \item \textbf{peaks}: at least one overlapping peak (otherwise FN).
-  \item R package PeakError.
-  \end{itemize}
-\end{frame}
-
-
-\begin{frame}
-  \frametitle{Contribution: new fast and exact constrained algorithm}
-  \begin{tabular}{r|c|c}
-    & no pruning & functional pruning \\
-    \hline
-    unconstrained & Dynamic Programming & Pruned DP \\
-     & exact $O(S n^2)$ & exact $O(Sn\log n)$\\
-    R pkgs: & changepoint & cghseg, Segmentor\\
-    \hline
-    up-down constrained & constrained DP & \textbf{GPDPA} \\
-     & inexact $O(Sn^2)$ & exact $O(Sn\log n)$\\
-    R pkgs: & PeakSegDP & \textbf{PeakSegOptimal}\\
-    \hline 
-  \end{tabular}
-  \begin{itemize}
-  \item New GPDPA that computes optimal changepoints 
-    using the Poisson loss and the up-down constraint.
-  \item State-of-the-art peak detection accuracy in ChIP-seq data.
-  \item Empirically $O(S n \log n)$ time and memory for $n$ data
-    points and $S$ segments.
-  \item C++ code in PeakSegOptimal R package, 
-    \url{https://cran.r-project.org/package=PeakSegOptimal}
-  \end{itemize}
-  Future work: other constraints and loss functions.
 \end{frame}
 
 \begin{frame}
-  \frametitle{Cost function computation}
-  Computation of each update rule is linear in number of
-  intervals/pieces/candidates -- empirically $O(\log n)$.
-  \begin{minipage}[t]{\linewidth}
-  \hskip -1cm
-  \input{figure-2-min-envelope} 
-  \end{minipage}
+  \frametitle{Binary search algorithm using GFPOP to compute most
+    likely model with at most $P^*$ peaks}
+  \begin{algorithmic}[1]
+  \STATE Input: data $\mathbf z\in\RR^N$, target peaks $P^*$.
+  \STATE $\overline L,\overline p \gets \text{GFPOP}(\mathbf z, \lambda=0)$ // max peak model
+  \STATE $\underline L,\underline p \gets \text{GFPOP}(\mathbf z, \lambda=\infty)$ // 0 peak model
+  \STATE While $\underline p\neq P^*$ and $\overline p\neq P^*$:
+  \begin{ALC@g}
+    \STATE $\lambda=(\overline L-\underline L)/(\underline p-\overline p)$
+    \STATE $L_{\text{new}},p_{\text{new}}\gets\text{GFPOP}(\mathbf z, \lambda)$
+    \STATE If $p_{\text{new}}\in\{\underline p, \overline p\}$: return $\underline p$
+    \STATE If 
+% Target is 29 peaks.
+% > fit.list$others[order(iteration)][, list(iteration, penalty, peaks, total.cost)]
+%    iteration    penalty peaks total.cost
+% 1:         1     0.0000  5432 -101338.71
+% 2:         1        Inf     0  456952.08
+% 3:         2   102.7781   589  -24520.02
+% 4:         3   817.4399    35   79012.40
+% 5:         4 10798.2767     9  133428.19
+% 6:         5  2092.9150    16  101350.53
+% 7:         6  1175.6911    23   90865.85
+% 8:         7   987.7878    29   84428.12
+% > 
+  \end{ALC@g}
+  \end{algorithmic}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Only $O(\log N)$ runs of GFPOP to compute $O(\sqrt N)$
+    peaks}
+  \input{jss-figure-evaluations} 
+
 \end{frame}
 
 \end{document}

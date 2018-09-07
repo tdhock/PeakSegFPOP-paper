@@ -267,6 +267,75 @@ gg <- ggplot()+
 zero-error model with $O(\\sqrt N)$ peaks
 via Optimal Partitioning (log scales)",
     labels=paste)
+
+algo.key <- c(
+  peaks="$O(\\sqrt N)$ peaks\nin zero-error model",
+  SN="Segment\nNeighborhood\nGPDPA\n$O(\\sqrt N)$\niterations",
+  OP="Optimal\nPartitioning\nGFPOP\n$O(\\log N)$\niterations")
+abbrev.colors <- c(
+  "#E41A1C",#red
+  "#377EB8",#blue
+  OP="#4DAF4A",#green
+  "#984EA3",#purple
+  "#FF7F00",#orange
+  "#FFFF33", #yellow
+  "#A65628",#brown
+  "#F781BF",#pink
+  SN="#999999")#grey
+op.color <- abbrev.colors[["OP"]]
+algo.colors <- structure(abbrev.colors, names=algo.key[names(abbrev.colors)])
+text.dt <- both.points[bedGraph.lines==max(bedGraph.lines), list(
+  y=(max(value)+min(value))/2,
+  hjust=0,
+  vjust=1
+), by=list(var, algorithm, bedGraph.lines)]
+d <- function(bedGraph.lines, y, algorithm, var, hjust, vjust){
+  data.table(bedGraph.lines, y, algorithm, var, hjust, vjust)
+}
+text.dt <- rbind(
+  d(3e3, 1e5, "find model", "gigabytes", 0, 1),
+  d(1e7, 0.0005, "solve one", "gigabytes", 1, 0),
+  d(3e3, 300, "find model", "minutes", 0, 1),
+  d(1e7, 0.03, "solve one", "minutes", 1, 0))
+gg <- ggplot()+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  geom_text(aes(
+    bedGraph.lines, y, hjust=hjust, vjust=vjust, label={
+      l <- ifelse(
+        algorithm=="solve one",
+        "Solve for one penalty\n$O(N \\log N)$ time",
+        "Find zero-error model\nwith $O(\\sqrt N)$ peaks\n$O(N(\\log N)^2)$ time")
+      ifelse(var=="gigabytes", sub("time", "space", l), l)
+    }),
+    size=3,
+    color=op.color,
+    data=text.dt[var=="minutes"])+
+  geom_ribbon(aes(
+    target.N, ymin=q05, ymax=q95),
+    alpha=0.5,
+    fill=op.color,
+    data=target.stats[var=="minutes"])+
+  geom_line(aes(
+    target.N, median),
+    size=1,
+    color=op.color,
+    data=target.stats[var=="minutes"])+
+  geom_point(aes(
+    bedGraph.lines, sum),
+    shape=1,
+    color=op.color,
+    data=prob.stats[var=="minutes"])+
+  scale_x_log10(
+    "$N$ = data to segment
+(log scale)"
+  )+
+  scale_y_log10(
+    "Time (minutes) to compute
+     model with $O(\\sqrt N)$ peaks
+     via GFPOP (log scale)",
+labels=paste)
+##print(gg)
 tikz("jss-figure-evaluations-computation.tex", 3.1, 3)
 print(gg)
 dev.off() 
@@ -313,14 +382,15 @@ leg <- ggplot()+
     bedGraph.lines, evaluations, color=algorithm),
     data=evals.tall)+
   scale_x_log10(
-    "$N$ = data to segment (log scale)",
+    "$N$ = data to segment
+(log scale)",
     limits=c(NA, 10^8.5),
     breaks=10^seq(4, 7, by=1)
   )+
   scale_y_log10(
-    "Number of $O(N \\log N)$ dynamic
-programming iterations to find
-model with $O(\\sqrt N)$ peaks (log scale)",
+    "Number of $O(N \\log N)$ DP
+iterations to compute model with
+$O(\\sqrt N)$ peaks (log scale)",
     limits=c(NA, 2000)
   )
 m <- list(
