@@ -2,15 +2,17 @@ source("findPeaks.R")
 library(data.table)
 library(ggplot2)
 
-## chrom <- "chr11"
-## sid <- "McGill0104" monocyte
 chunk.name <- "H3K4me3_TDH_immune/5"
 chunk.dir <- file.path("data", chunk.name)
 counts.RData <- file.path(chunk.dir, "counts.RData")
 load(counts.RData)
 counts.dt <- data.table(counts)
 
-sample.num.vec <- c(101, 104, 4, 91, 322)
+sample.num.vec <- c(#101,
+  ##322,
+  ##4, 91,
+  104
+)
 sample.id.vec <- sprintf("McGill%04d", sample.num.vec)
 some.counts <- counts.dt[sample.id %in% sample.id.vec]
 
@@ -47,6 +49,8 @@ segs.list <- list()
 loss.list <- list()
 logLik.list <- list()
 chrom <- "chr11"
+n.peaks.vec <- 5:1
+n.peaks.vec <- as.integer(c(5, 3))
 for(sample.i in seq_along(sample.id.vec)){
   sample.id <- sample.id.vec[[sample.i]]
   cat(sprintf("%4d / %4d %s\n", sample.i, length(sample.id.vec), sample.id))
@@ -93,56 +97,65 @@ for(sample.i in seq_along(sample.id.vec)){
   total.cost.macs <- data.means[, PeakSegOptimal::PoissonLoss(
     coverage, mean, weight)]
   ##better.list <- problem.mostFeasibleBetterPeaks(problem.dir, nrow(sample.peaks))
-  better.list <- problem.fewestBetterPeaks(problem.dir, total.cost.macs)
-  loss.list[[paste(sample.id)]] <- data.table(
-    sample.id, rbind(
-      data.table(
-        model="macs2",
-        status=ifelse(infeasible.changes==0, "feasible", "infeasible"),
-        total.cost=total.cost.macs,
-        peaks=nrow(sample.peaks)),
-      data.table(
-        model="better",
-        better.list$loss[, .(status, total.cost, peaks)])))
-  segs.list[[paste(sample.id)]] <- sample.segs <- data.table(
-    sample.id, rbind(
-      data.table(model="macs2", seg.means),
-      data.table(
-        model="better",
-        better.list$segments[, .(
-          segStart=chromStart,
-          segEnd=chromEnd,
-          mean,
-          status
-        )]
-      )
+  ##better.list <- problem.fewestBetterPeaks(problem.dir, total.cost.macs)
+  loss.list[[paste(sample.id, "macs2")]] <- data.table(
+    sample.id, 
+    model="macs2",
+    status=ifelse(infeasible.changes==0, "feasible", "infeasible"),
+    total.cost=total.cost.macs,
+    peaks=nrow(sample.peaks))
+  segs.list[[paste(sample.id, "macs2")]] <- data.table(
+    sample.id, model="macs2", seg.means)
+  for(n.peaks in n.peaks.vec){
+    better.list <- PeakSegPipeline::problem.sequentialSearch(problem.dir, n.peaks)
+    loss.list[[paste(sample.id, n.peaks)]] <- data.table(
+      sample.id, 
+      model=n.peaks,
+      better.list$loss[, .(status, total.cost, peaks)])
+    segs.list[[paste(sample.id, n.peaks)]] <- data.table(
+      sample.id, 
+      model=n.peaks,
+      better.list$segments[, .(
+        segStart=chromStart,
+        segEnd=chromEnd,
+        mean,
+        status
+      )]
     )
-  )
-  logLik.list[[paste(sample.id)]] <- sample.segs[, {
-    data.table(
-      PoissonLogLik(sample.counts, .SD),
-      peaks=(.N-1)/2
-      )
-  }, by=list(sample.id, model)]
+  }
 }
-logLik <- do.call(rbind, logLik.list)
 segs <- do.call(rbind, segs.list)
 loss <- do.call(rbind, loss.list)
+logLik <- segs[, {
+  data.table(
+    PoissonLogLik(sample.counts, .SD),
+    peaks=(.N-1)/2
+  )
+}, by=list(sample.id, model)]
+changes <- segs[order(segStart), data.table(
+  position=segStart[-1],
+  constraint=ifelse(diff(mean)==0, "equality", "inequality")
+), by=list(sample.id, model)]
 
 max.dt <- some.counts[, list(
   max=max(coverage)
 ), by=list(sample.id)]
 max.logLik <- logLik[max.dt, on=list(sample.id)]
 
+possible.vec <- c("macs2", n.peaks.vec)
+lab.vec <- gsub(" ", "\n", ifelse(
+  possible.vec=="macs2",
+  "Default MACS2 model",
+  paste0("Optimal ", possible.vec, "-peak model")))
 mfactor <- function(val){
   factor(
     val,
-    c("macs2", "better"),
-    c("Default MACS2 model", "More likely model
-(PeakSegFPOP)"))
+    possible.vec,
+    lab.vec)
 }
 max.logLik[, model.fac := mfactor(model)]
 segs[, model.fac := mfactor(model)]
+changes[, model.fac := mfactor(model)]
 gg <- ggplot()+
   geom_text(aes(
     118120, max, label=sprintf(
@@ -239,116 +252,14 @@ gg <- ggplot()+
     data=one(segs[status=="peak"]))+
   xlab("position on chromosome")+
   ylab("aligned read coverage")
-png("jss-figure-more-likely-models-one-peak.png",
-    units="in", res=200, width=6, height=3)
-print(gg)
-dev.off() 
+## png("jss-figure-more-likely-models-one-peak.png",
+##     units="in", res=200, width=6, height=3)
+## print(gg)
+## dev.off() 
 ##system("display jss-figure-more-likely-models-one-peak.png")
 
-### Second try, three peaks.
-segs.list <- list()
-loss.list <- list()
-logLik.list <- list()
-chrom <- "chr11"
-sid <- "McGill0104"
-for(sample.i in which(sample.id.vec==sid)){
-  sample.id <- sample.id.vec[[sample.i]]
-  cat(sprintf("%4d / %4d %s\n", sample.i, length(sample.id.vec), sample.id))
-  s.dt <- data.table(sample.id)
-  sample.counts <- counts.dt[s.dt, on=list(sample.id)]
-  sample.peaks <- peaks.dt[s.dt, on=list(sample.id)]
-  problemStart <- sample.counts$chromStart[1]
-  problemEnd <- sample.counts[.N, chromEnd]
-  problem <- data.table(chrom, problemStart, problemEnd)
-  problem.dir <- file.path(
-    "jss-data", sample.id,
-    sprintf("%s:%d-%d", chrom, problemStart, problemEnd))
-  dir.create(problem.dir, showWarnings=FALSE, recursive=TRUE)
-  problem.bed <- file.path(problem.dir, "problem.bed")
-  fwrite(problem, problem.bed, sep="\t", col.names=FALSE)
-  coverage.bedGraph <- file.path(problem.dir, "coverage.bedGraph")
-  coverage.dt <- sample.counts[, data.table(
-    chrom, chromStart, chromEnd, coverage)]
-  fwrite(coverage.dt, coverage.bedGraph, sep="\t", col.names=FALSE)
-  seg.limit.vec <- c(
-    problemStart,
-    sample.peaks[, rbind(chromStart, chromEnd)],
-    problemEnd)
-  n.limits <- length(seg.limit.vec)
-  seg.dt <- data.table(
-    segStart=seg.limit.vec[-n.limits],
-    segEnd=seg.limit.vec[-1])
-  seg.dt[, segStart1 := segStart+1]
-  sample.counts[, chromStart1 := chromStart+1]
-  setkey(seg.dt, segStart1, segEnd)
-  setkey(sample.counts, chromStart1, chromEnd)
-  over.dt <- foverlaps(sample.counts, seg.dt, nomatch=0L)
-  over.dt[chromStart < segStart, chromStart := segStart]
-  over.dt[segEnd < chromEnd, chromEnd := segEnd]
-  over.dt[, weight := chromEnd-chromStart]
-  stopifnot(problemEnd-problemStart == sum(over.dt$weight))
-  seg.means <- over.dt[, list(
-    mean=sum(coverage*weight)/sum(weight)
-  ), by=list(segStart, segEnd)]
-  seg.means[, status := rep(c("background", "peak"), l=.N)]
-  data.means <- seg.means[over.dt, on=list(segStart, segEnd)]
-  logLik.macs <- data.means[, sum(dpois(coverage, mean, log=TRUE)*weight)]
-  infeasible.changes <- seg.means[, sum(sign(diff(mean)) != c(1, -1))]
-  total.cost.macs <- data.means[, PeakSegOptimal::PoissonLoss(
-    coverage, mean, weight)]
-  better.list <- problem.betterPeaks(problem.dir, 3L)
-  loss.list[[paste(sample.id)]] <- data.table(
-    sample.id, rbind(
-      data.table(
-        model="macs2",
-        status=ifelse(infeasible.changes==0, "feasible", "infeasible"),
-        total.cost=total.cost.macs,
-        peaks=nrow(sample.peaks)),
-      data.table(
-        model="better",
-        better.list$loss[, .(status, total.cost, peaks)])))
-  segs.list[[paste(sample.id)]] <- sample.segs <- data.table(
-    sample.id, rbind(
-      data.table(model="macs2", seg.means),
-      data.table(
-        model="better",
-        better.list$segments[, .(
-          segStart=chromStart,
-          segEnd=chromEnd,
-          mean,
-          status
-        )]
-      )
-    )
-  )
-  logLik.list[[paste(sample.id)]] <- sample.segs[, {
-    data.table(
-      PoissonLogLik(sample.counts, .SD),
-      peaks=(.N-1)/2
-      )
-  }, by=list(sample.id, model)]
-}
-logLik <- do.call(rbind, logLik.list)
-segs <- do.call(rbind, segs.list)
-loss <- do.call(rbind, loss.list)
-
-max.dt <- some.counts[, list(
-  max=max(coverage)
-), by=list(sample.id)]
-max.logLik <- logLik[max.dt, on=list(sample.id)]
-
-mfactor <- function(val){
-  factor(
-    val,
-    c("macs2", "better"),
-    c("Default MACS2 model", "More likely model
-(PeakSegFPOP)"))
-}
-max.logLik[, model.fac := mfactor(model)]
-segs[, model.fac := mfactor(model)]
-
 one <- function(dt){
-  dt[sample.id==sid]
+  dt[sample.id=="McGill0104"]
 }
 gg <- ggplot()+
   geom_text(aes(
@@ -384,6 +295,15 @@ gg <- ggplot()+
     size=1,
     data=one(segs))+
   xlab("position on chromosome")+
+  scale_linetype_manual(values=c(
+    equality="solid",
+    inequality="dotted"))+
+  geom_vline(aes(
+    xintercept=position,
+    linetype=constraint),
+    data=changes,
+    size=0.5,
+    color="green")+
   ylab("aligned read coverage")
 png("jss-figure-more-likely-models-three-peaks.png",
     units="in", res=200, width=6, height=3)

@@ -80,8 +80,8 @@ problem.findPeaks <- function
 }
 
 problem.betterPeaks <- function
-### Compute a model with better (more likely) peaks, with at most the
-### number of peaks given by peaks.int. This function repeated calls
+### Compute the most likely peak model with at most the number of
+### peaks given by peaks.int. This function repeated calls
 ### problem.PeakSegFPOP with different penalty values, until either
 ### (1) it finds the peaks.int model, or (2) it concludes that there
 ### is no peaks.int model, in which case it returns the next simplest

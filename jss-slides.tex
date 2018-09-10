@@ -245,6 +245,24 @@ Guillem Rigaill, Guillaume Bourque, Paul Fearnhead}
 \end{itemize}
 \end{frame} 
 
+\begin{frame}
+  \frametitle{Dynamic programming with up-down constraints is highly accurate for both broad and sharp data/pattern types}
+  \includegraphics[width=\textwidth]{figure-test-error-dots}
+  \vskip -0.5cm
+  H {\it et al.}, {\it arXiv} 2017. 
+  \begin{itemize}
+  \item 4-fold cross-validation: train on 3/4 of labels, test on 1/4.
+  \item All models trained by learning a scalar significance
+    threshold / penalty parameter, which is varied to compute ROC/AUC.
+  \item MACS is highly inaccurate in all data sets.
+  \item HMCanBroad is accurate for broad but not sharp pattern.
+  \item Unconstrained PDPA algorithm not as accurate as up-down
+    constrained algorithms (CDPA, GPDPA).
+  \end{itemize}
+  \scriptsize
+  %\url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/} 
+\end{frame}
+
 \section{New functional pruning algorithm}
 
 
@@ -609,7 +627,7 @@ $f^\geq(\mu) = \min_{x\geq\mu} f(x)$.
   
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
   \frametitle{Conclusions}
 
   \begin{itemize}
@@ -619,6 +637,9 @@ $f^\geq(\mu) = \min_{x\geq\mu} f(x)$.
   \item Proposed GFPOP with binary search is $O(N(\log N)^2)$ time,
     $O(\log N)$ memory, $O(N\log N)$ disk -- optimal models are now
     possible to compute for large data.
+  \item C++ code with R interface:
+    \verb|PeakSegPipeline::PeakSegFPOP_disk|
+    \url{https://github.com/tdhock/PeakSegPipeline}
   \item Future work: changepoint detection in large ecological data?
   \item Contact me: toby.hocking@nau.edu
   \item Thanks!
