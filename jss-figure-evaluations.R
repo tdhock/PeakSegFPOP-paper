@@ -341,7 +341,7 @@ gg <- ggplot()+
      via GFPOP (log scale)",
 labels=paste)
 ##print(gg)
-tikz("jss-figure-evaluations-computation.tex", 3.1, 2.5)
+tikz("jss-figure-evaluations-computation.tex", 3.1, 2.6)
 print(gg)
 dev.off() 
 
@@ -400,7 +400,7 @@ peaks (log scale)",
     limits=c(NA, 2000)
   )
 m <- list(
-  ##cex=0.75,
+  cex=0.8,
   dl.trans(x=x+0.1),
   "last.points", "calc.boxes",
   "reduce.cex.lr",
@@ -426,6 +426,6 @@ print(dl)
 ## print(dl.ref)
 ## dev.off()
 
-tikz("jss-figure-evaluations.tex", 3.1, 2.5)
+tikz("jss-figure-evaluations.tex", 3.1, 2.6)
 print(dl)
 dev.off()

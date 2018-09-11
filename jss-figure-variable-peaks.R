@@ -125,29 +125,31 @@ DP iterations (log scale)", breaks=seq(0, 20, by=2))+
   scale_color_manual(values=algo.colors)
 
 op.evals <- evals.tall[algo=="OP"]
-bigO <- function(dt, x.var, y.var, fun.list, group.vec){
-  dt[, {
-    x <- .SD[[x.var]]
-    y <- .SD[[y.var]]
-    x.seq <- exp(seq(log(10), log(1e5), l=10))
-    data.table(fun=names(fun.list))[, {
-      f <- fun.list[[fun]]
-      first.y <- f(min(x.seq))
-      dt <- data.table(x=x.seq, y=f(x.seq)/first.y*10)
-      dt[[x.var]] <- dt$x
-      dt[[y.var]] <- dt$y
-      dt
-    }, by=list(fun)]
-  }, by=group.vec]
+first.peaks <- 3
+N.peaks <- 10^seq(log10(first.peaks), 5, l=30)
+fun.list <- list(
+  ##N=identity,
+  "$\\log(N)$"=log
+  ##"loglog(N)"=function(x)log(log(x)),
+  ##"sqrt(N)"=sqrt
+)
+first.dt <- op.evals[peaks==first.peaks, list(
+  evaluations=mean(evaluations)
+), by=list(target.N)]
+ref.tall.list <- list()
+for(first.i in 1:nrow(first.dt)){
+  first <- first.dt[first.i]
+  for(fun.name in names(fun.list)){
+    fun <- fun.list[[fun.name]]
+    first.y <- fun(first.peaks)
+    ref.tall.list[[paste(fun.name, first.i)]] <- data.table(
+      N.peaks,
+      first,
+      fun.name,
+      value=fun(N.peaks)/first.y*first$evaluations)
+  }
 }
-(o <- bigO(
-      op.evals,
-      "peaks",
-      "evaluations",
-      list(
-        "$O(\\log P)$"=log
-        ),
-      "target.N"))
+(ref.tall <- do.call(rbind, ref.tall.list))
 
 gg <- ggplot()+
   theme_bw()+
@@ -156,7 +158,7 @@ gg <- ggplot()+
     df$target.N <- paste("N $\\approx$", df$target.N)
     df
   })+
-  scale_x_log10("Number of peaks (log scale)")+
+  scale_x_log10("Number of peaks $P$ (log scale)")+
   scale_y_log10("Number of $O(N \\log N)$
 DP iterations (log scale)")+
   geom_point(aes(
@@ -165,11 +167,13 @@ DP iterations (log scale)")+
     data=op.evals)+
   geom_abline(
     slope=2, intercept=0,
-    color=sn.color)+
+    size=1,
+    color=sn.color)
+
+gg+
   geom_line(aes(
-    peaks, evaluations, group=fun),
-    data=o)
-print(gg)
+    N.peaks, value),
+    data=ref.tall)
     
 tikz("jss-figure-variable-peaks.tex", 6, 3)
 print(gg)

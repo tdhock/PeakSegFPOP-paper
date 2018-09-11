@@ -650,11 +650,12 @@ algorithm can be used to find a more likely model with three peaks
 %\includegraphics{jss-figure-variable-peaks}
 \input{jss-figure-variable-peaks}
 \caption{\label{fig:variable-peaks} The number of $O(N \log N)$
-  dynamic programming iterations is linear for Segment Neighborhood
-  (grey line) but sub-linear, empirically $O(\log P)$ for Optimal
-  Partitioning (green dots). Segment Neighborhood is always faster for
-  computing simple models with than 10 peaks (20 segments); Optimal
-  Partitioning is faster for larger models.}
+  dynamic programming iterations is linear $O(P)$ for Segment
+  Neighborhood (grey line) but sub-linear, empirically $O(\log P)$ for
+  Optimal Partitioning with sequential search (green dots). Optimal
+  Partitioning is empirically faster for computing models with
+  $P\geq 10$ peaks (20 segments); Segment Neighborhood is faster for
+  smaller models.}
 \end{figure}
 
 
