@@ -326,12 +326,24 @@ $O(N\log N)$ time, $O(N\log N)$ disk, $O(\log N)$ memory.
 
     \node[main node] (1) {$s=1$};
     \node[main node] (2) [below of=1] {$s=0$};
+    \node (3) [left of=2] {start};
+    \node (4) [right of=2] {end};
 
     \path[every node/.style={font=\sffamily\small}]
     (2) edge [bend left] node {$c=1, \leq, \lambda$} (1)
-    (1) edge [bend left] node {$c=-1, \geq, \lambda$} (2);
+    (3) edge (2)
+    (2) edge (4)
+    (1) edge [bend left] node {$c=-1, \geq, 0$} (2);
   \end{tikzpicture}
-  \caption{State graph for PeakSeg model.}
+  \caption{State graph for changepoint model with up-down constraints
+    between adjacent segment means. State $s=0$ represents background
+    noise (small values) whereas state $s=1$ represents peaks (large
+    values). Constraint $c=1$ enforces a non-decreasing change via the
+    min-less operator ($\leq$) with a penalty of $\lambda$; $c=-1$
+    enforces a non-increasing change via the min-more operator
+    ($\geq$) with a penalty of $0$. The model is additionally
+    constrained to start and end in the background noise $s=0$ state
+    ($s_1=s_N=0$).}
   \label{fig:state-graph}
 \end{figure}
 
@@ -357,20 +369,45 @@ $f^\geq(\mu) = \min_{x\geq\mu} f(x)$.
 
   \begin{figure}
     \centering
-    \begin{tikzpicture}[->,>=latex,shorten >=1pt,auto,node distance=3cm,
+    \begin{tikzpicture}[->,>=latex,shorten >=1pt,auto,node distance=2.5cm,
       thick,main node/.style={circle,draw}]
-      \node[main node] (peak_t) {$\overline C_t$};
-      \node[main node] (bkg_t) [below of=peak_t] {$\underline C_t$};
-      \node[main node] (peak_t1) [right of=peak_t] {$\overline C_{t+1}$};
-      \node[main node] (bkg_t1) [right of=bkg_t] {$\underline C_{t+1}$};
+      \node[main node] (peak_t1) {$\overline C_{t-1}$};
+      \node[main node] (bkg_t1) [below of=peak_t1] {$\underline C_{t-1}$};
+      \node[main node] (peak_t) [right of=peak_t1] {$\overline C_{t}$};
+      \node[main node] (bkg_t) [right of=bkg_t1] {$\underline C_{t}$};
+      \node[main node] (peak_2) [left of=peak_t1] {$\overline C_2$};
+      \node[main node] (bkg_2) [left of=bkg_t1] {$\underline C_2$};
+      \node[main node] (peak_N1) [right of=peak_t] {$\overline C_{N-1}$};
+      \node[main node] (bkg_N1) [right of=bkg_t] {$\underline C_{N-1}$};
+      \node[main node] (bkg_N) [right of=bkg_N1] {$\underline C_N$};
+      \node[main node] (bkg_1) [left of=bkg_2] {$\underline C_1$};
       \path[every node/.style={font=\small}]
-      (peak_t) edge [dotted] node {$\overline C_{t}$} (peak_t1)
-      (peak_t) edge [black, bend right] node [right] {$\overline C_{t}^{\geq}+\lambda$} (bkg_t1)
-      (bkg_t) edge [dotted] node[midway, below] {$\underline C_{t}$} (bkg_t1)
-      (bkg_t) edge [black, bend left] node[right] {$\underline C_{ t}^{\leq}+\lambda$} (peak_t1)
+      (peak_t1) edge [dotted] node {$\overline C_{t-1}$} (peak_t)
+      (peak_t1) edge [black, bend right] node [right] {$\overline C_{t-1}^{\geq}$} (bkg_t)
+      (bkg_t1) edge [dotted] node[midway, below] {$\underline C_{t-1}$} (bkg_t)
+      (bkg_t1) edge [black, bend left] node[right] {$\underline C_{ t-1}^{\leq}+\lambda$} (peak_t)
+      (bkg_1) edge [black, bend left] node[right] {$\underline C_{1}^{\leq}+\lambda$} (peak_2)
+      (bkg_1) edge [dotted] node[midway, below] {$\underline C_1$} (bkg_2)
+      (peak_N1) edge [black, bend right] node [right] {$\overline C_{N-1}^{\geq}$} (bkg_N)
+      (bkg_N1) edge [dotted] node[midway, below] {$\underline C_{N-1}$} (bkg_N)
+      (bkg_2) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (bkg_t1)
+      (peak_2) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (peak_t1)
+      (bkg_N1) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (bkg_t)
+      (peak_N1) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (peak_t)
       ;
     \end{tikzpicture}
-    \caption{Computation graph for up-down constrained model}
+    \caption{Directed acyclic graph (DAG) representing dynamic
+      programming computations for changepoint model with up-down
+      constraints between adjacent segment means. Nodes in the graph
+      repesent cost functions, and edges represent inputs to the the
+      MinOfTwo sub-routine (Algorithm~\ref{algo:GFPOP}). There is one
+      column for each data point and one row for each state: the
+      optimal cost of the peak state $s=1$ at data point $t$ is
+      $\overline C_t$ (top row); the optimal cost of the background
+      noise state $s=0$ is $\underline C_t$ (bottom row). There is
+      only one edge going to $\underline C_2$ and $\overline C_2$
+      because the model is constrained to start in the background
+      noise state ($s_1=0$).}
     \label{fig:computation-graph}
   \end{figure}
 
