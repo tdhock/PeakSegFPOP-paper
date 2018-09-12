@@ -771,115 +771,43 @@ algorithm can be used to find a more likely model with three peaks
 
 The pseudocode for the algorithm which implements the dynamic
 programming updates (\ref{eq:generalDP}) is stated below.
+
 \begin{algorithm}
 \begin{algorithmic}[1]
-\STATE Input: data $\mathbf y$ and weights $\mathbf w$ (both size $n$), 
-number of vertices/states $|V|$, starts $\underline S\subseteq V$, 
-edges/transitions $E$.
-\STATE Allocate $|V|\times n$ array of optimal cost functions $C_{s,t}$, 
-each initialized to NULL.
-\STATE for $t$ from $1$ to $n$:
+\STATE Input: data set $\mathbf z\in\RR^n$, penalty constant $\lambda\geq 0$.
+\STATE Output: vectors of optimal segment means $U\in\RR^{n}$ and ends $T\in\{1,\dots,n\}^{n}$
+\STATE Compute min $\underline z$ and max $\overline z$ of $\mathbf z$.
+\label{line:op-min-max}
+\STATE
+$\underline C_1\gets
+ \text{OnePiece}(z_1, \underline z, \overline z)$
+\STATE for data points $t$ from 2 to $n$: // dynamic programming
+\label{line:for-dp-t}
 \begin{ALC@g}
-  \STATE if $t==1$:
-  \begin{ALC@g}
-    \STATE for $s$ in $\underline S$: // initialize cost for all possible starting states
-    \begin{ALC@g}
-      \STATE $C_{s,t}\gets\text{InitialCost}(y_t, w_t)$
-    \end{ALC@g}
-  \end{ALC@g}
-  \STATE else:
-  \begin{ALC@g}
-    \STATE for $s$ from $1$ to $|V|$: 
-    \begin{ALC@g}
-      \STATE if $C_{s,t-1}$ is NOT NULL: // previous cost in this state has been computed
-      \begin{ALC@g}
-        \STATE $C_{s,t}\gets C_{s,t-1}$ // cost of staying in this state (no change)
-      \end{ALC@g}
-    \end{ALC@g}
-    \STATE for ($\underline v$, $\overline v$, $\lambda$,
-    ConstrainedCost) in $E$:
-    \begin{ALC@g}
-      \STATE if $C_{\underline v,t-1}$ is NOT NULL: // previous cost has been computed
-      \begin{ALC@g}
-        \STATE
-        $\text{cost\_of\_change}\gets
-        \text{ConstrainedCost}(C_{\underline v, t-1})$
-        \STATE
-        $\text{cost\_of\_change.set}
-        (\underline v, t-1)$
-        \STATE
-        $\text{cost\_of\_change.addPenalty}
-        (\text{$\lambda$})$
-        \STATE if $C_{\overline v,t}$ is NULL:
-        \begin{ALC@g}
-          \STATE $C_{\overline v,t}\gets\text{cost\_of\_change}$
-        \end{ALC@g}
-        \STATE else:
-        \begin{ALC@g}
-          \STATE
-          $C_{\overline v,t}\gets \text{MinOfTwo}(C_{\overline v,t},
-          \text{cost\_of\_change})$
-        \end{ALC@g}
-      \end{ALC@g}
-    \end{ALC@g}
-    \STATE for $s$ from $1$ to $|V|$:
-    \begin{ALC@g}
-      \STATE if $C_{s,t}$ is NOT NULL:
-      \begin{ALC@g}
-        \STATE $C_{s,t}\text{.addDataPoint}(y_t, w_t)$
-      \end{ALC@g}
-    \end{ALC@g}
-  \end{ALC@g}
+  \STATE $\overline M\gets \lambda + \text{MinLess}(t-1, \underline C_{t-1})$ //cost of change up
+  \label{line:op-MinLess}
+  \STATE $\overline C_{t}\gets \text{MinOfTwo}(\overline M, \overline C_{t-1})+\text{OnePiece}(z_t, \underline z, \overline z)$
+  \label{line:op-MinOfTwo}
+  \STATE $\underline M\gets \text{MinMore}(t-1, \overline C_{t-1})$ //cost of change down
+  \label{line:op-MinMore}
+  \STATE $\underline C_{t}\gets \text{MinOfTwo}(\underline M, \underline C_{t-1})+\text{OnePiece}(z_t, \underline z, \overline z)$
+  \label{line:op-MinOfTwo-under}
 \end{ALC@g}
-\STATE Output: $|V|\times n$ array of optimal cost functions $C_{s,t}$.
-\caption{\label{algo:GFPOP}Generalized Functional Pruning Optimal
-  Partitioning Algorithm, Dynamic Programming (GFPOP-DP)}
-\end{algorithmic}
-\end{algorithm}
-
-The algorithm above performs several checks if $C_{s,t}$ is NULL or
-not (lines 9, 12, 16, 21). All costs are initialized as NULL (line
-2). After having performed the cost update for data $t$, a NULL cost
-$C_{s,t}$ means that state $s$ is not feasible at data $t$. For each
-constraint function $g$ there is a corresponding ConstrainedCost
-sub-routine that is mentioned on lines~11 and 13 (e.g. no constraint
-$g_0$ MinUnconstrained, non-decreasing change $g_\uparrow$ MinLess,
-non-increasing change $g_\downarrow$ MinMore). 
-
-The average time and space complexity of Algorithm~\ref{algo:GFPOP} is
-$O(|V| n I)$ where $|V|$ is the number of states and $I$ is the
-average number of of intervals stored in the $|V|\times n$ array of
-$C_{s,t}$ cost functions. We observed that $I=\log n$ in the empirical
-tests of the peak detection model on ChIP-seq data
-(Section~\ref{sec:results_time}), so we expect that the average time
-complexity of Algorithm~\ref{algo:GFPOP} is $O(|V| n\log n)$.
-
-Note that the algorithm above only performs the dynamic
-programming. The decoding of optimal model parameters is achieved
-using the algorithm below.
-
-\begin{algorithm}
-\begin{algorithmic}[1]
-\STATE Output: $|V|\times n$ array of optimal cost functions $C_{s,t}$, 
-ends $\overline S\subseteq V$.
-\STATE Allocate
-$\mathbf m\in\RR^n$ (mean), 
-$\mathbf s\in\ZZ^n$ (state), 
-$\mathbf t\in\ZZ^n$ (segment end).  
-\STATE $u^*,s^*,t',s'\gets \text{ArgMin}(C_{\cdot,n}, \overline S)$ // begin decoding
-\STATE $i\gets 1;\, m_{i}\gets u^*;\, s_i\gets s^*;\, t_{i}\gets n$
+\STATE $u^*,t',u'\gets \text{ArgMin}(\underline C_{n})$ // begin decoding
+\label{line:op-ArgMin}
+\STATE $i\gets 1;\, U_{i}\gets u^*;\, T_{i}\gets t'$
+\label{line:op-store-i}
 \STATE while $t' > 0$:
 \begin{ALC@g}
-  \STATE $i\gets i+1;\, t_{i}\gets t'$
-  \STATE $u^*,s^*,t',s'\gets \text{ArgMin}(C_{s',t'})$
-  \STATE $m_{i}\gets u^*;\, s_i\gets s^*$
+  \STATE if $u' < \infty$: $u^*\gets u'$
+  \STATE if $i$ is odd: $\text{cost}\gets \overline C_{t'}$ else $\underline C_{t'}$
+  \STATE $t',u'\gets\text{FindMean}(u^*, \text{cost})$
+  \STATE $i\gets i+1;\, U_{i}\gets u^*;\, T_{i}\gets t'$
+\label{line:op-i+1}
 \end{ALC@g}
-\STATE Output: 
-$\mathbf m$, 
-$\mathbf s$, 
-$\mathbf t$.
-\caption{\label{algo:GFPOP-decode}Generalized Functional Pruning Optimal
-  Partitioning Algorithm, decoding (GFPOP-decode)}
+\caption{\label{algo:GFPOP}Generalized Functional Pruning Optimal
+  Partitioning (GFPOP) for changepoint model with up-down constraints
+  between adjacent segment means.}
 \end{algorithmic}
 \end{algorithm}
 
