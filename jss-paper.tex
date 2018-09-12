@@ -632,6 +632,7 @@ algorithm can be used to find a more likely model with three peaks
   %\includegraphics{jss-figure-evaluations-computation}
   \input{jss-figure-evaluations-computation} 
 \end{minipage} 
+\vskip -0.5cm
 \caption{\label{fig:evaluations} Computing a zero-error model with
   $O(\sqrt{N})$ peaks is possible in $O(N(\log N)^2)$ time using our
   proposed Optimal Partitioning Search algorithm. \textbf{Left:}
@@ -648,14 +649,24 @@ algorithm can be used to find a more likely model with three peaks
 \begin{figure}[t!]
 \centering
 %\includegraphics{jss-figure-variable-peaks}
-\input{jss-figure-variable-peaks}
-\caption{\label{fig:variable-peaks} The number of $O(N \log N)$
-  dynamic programming iterations is linear $O(P)$ for Segment
-  Neighborhood (grey line) but sub-linear, empirically $O(\log P)$ for
-  Optimal Partitioning with sequential search (green dots). Optimal
-  Partitioning is empirically faster for computing models with
-  $P\geq 10$ peaks (20 segments); Segment Neighborhood is faster for
-  smaller models.}
+\begin{minipage}{3in}
+  \input{jss-figure-variable-peaks}
+\end{minipage}
+\begin{minipage}{3in} 
+  \input{jss-figure-variable-peaks-zoom}
+\end{minipage}
+\vskip -0.5cm
+\caption{\label{fig:variable-peaks} Comparison of iterations using
+  Segment Neighborhood (grey lines) and Optimal Partitioning (green
+  dots). GFPOP with sequential search
+  (Algorithm~\ref{algo:seq-search}) was used to compute optimal models
+  with different numbers of peaks $P$, for two data sets with
+  $N\approx 6\times 10^5$. \textbf{Left:} the number of iterations is
+  linear $O(P)$ for Segment Neighborhood (grey lines) but empirically
+  $O(\log P)$ for Optimal Partitioning with sequential search (green
+  dots). \textbf{Right:} Optimal Partitioning is empirically faster
+  for computing models with $P>5$ peaks (10 segments); Segment
+  Neighborhood is faster for smaller models.}
 \end{figure}
 
 
@@ -854,7 +865,7 @@ ends $\overline S\subseteq V$.
 \STATE Allocate
 $\mathbf m\in\RR^n$ (mean), 
 $\mathbf s\in\ZZ^n$ (state), 
-$\mathbf t\in\ZZ^n$ (segment end).
+$\mathbf t\in\ZZ^n$ (segment end).  
 \STATE $u^*,s^*,t',s'\gets \text{ArgMin}(C_{\cdot,n}, \overline S)$ // begin decoding
 \STATE $i\gets 1;\, m_{i}\gets u^*;\, s_i\gets s^*;\, t_{i}\gets n$
 \STATE while $t' > 0$:

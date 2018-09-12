@@ -174,7 +174,64 @@ gg+
   geom_line(aes(
     N.peaks, value),
     data=ref.tall)
-    
-tikz("jss-figure-variable-peaks.tex", 6, 3)
+
+
+gg.zoom <- ggplot()+
+  ggtitle("Zoom to $P \\leq 10$ peaks\n(linear scales)")+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  scale_x_continuous(
+    "Number of peaks $P$",
+    breaks=seq(0, 10, by=2))+
+  scale_y_continuous("Number of $O(N \\log N)$ DP iterations",
+breaks=seq(0, 20, by=2))+
+  geom_point(aes(
+    peaks, evaluations),
+    color=op.color,
+    data=op.evals[target.N==max(target.N) & peaks <= 10])+
+  geom_abline(
+    slope=2, intercept=0,
+    size=1,
+    color=sn.color)+
+  coord_equal()+
+  scale_color_manual(values=abbrev.colors, guide=FALSE)+
+  geom_text(aes(
+    x, y, label=label, color=algo, hjust=hjust),
+    size=3,
+    data=rbind(
+      data.table(x=4, y=14, algo="SN", label="SN\nfaster\nfor\n$P<5$", hjust=1),
+      data.table(x=8, y=14, algo="OP", label="OP\nfaster\nfor\n$P>5$", hjust=0)),
+    vjust=0.5)
+tikz("jss-figure-variable-peaks-zoom.tex", 3, 3)
+print(gg.zoom)
+dev.off()
+
+## only show figure for largest data set size.
+gg <- ggplot()+
+  ggtitle("All timings (log scales)")+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  scale_x_log10("Number of peaks $P$")+
+  scale_y_log10("Number of $O(N \\log N)$ DP iterations")+
+  geom_point(aes(
+    peaks, evaluations),
+    color=op.color,
+    data=op.evals[target.N==max(target.N)])+
+  geom_abline(
+    slope=2, intercept=0,
+    size=1,
+    color=sn.color)+
+  scale_color_manual(values=abbrev.colors, guide=FALSE)+
+  geom_text(aes(
+    x, y, label=label, color=algo),
+    size=3,
+    data=rbind(
+      data.table(x=10, y=25, algo="SN", label="Segment\nNeighborhood\nGPDPA\n$O(P)$ iterations"),
+      data.table(x=100, y=11, algo="OP", label="Optimal\nPartitioning\nGFPOP\n$O(\\log P)$ iterations")),
+    vjust=1,
+    hjust=0)
+gg
+
+tikz("jss-figure-variable-peaks.tex", 3, 3)
 print(gg)
 dev.off()

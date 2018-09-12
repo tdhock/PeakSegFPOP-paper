@@ -310,7 +310,7 @@ gg <- ggplot()+
       l <- ifelse(
         algorithm=="solve one",
         "Solve for one penalty\n$O(N \\log N)$ time",
-        "Binary search for model\nwith $O(\\sqrt N)$ peaks\n$O(N(\\log N)^2)$ time")
+        "Sequential search for model\nwith $O(\\sqrt N)$ peaks\n$O(N(\\log N)^2)$ time")
       ifelse(var=="gigabytes", sub("time", "space", l), l)
     }),
     size=3,
