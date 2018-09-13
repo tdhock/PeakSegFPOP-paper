@@ -1,6 +1,6 @@
 jss-slides.pdf: jss-slides.tex jss-paper.pdf
 	pdflatex jss-slides
-jss-paper.pdf: jss-paper.tex jss-figure-more-likely-models-three-peaks.png jss-figure-target-intervals-models.pdf jss-figure-disk-memory-compare-speed.pdf jss-figure-data-peaks.tex jss-figure-label-error.pdf jss-figure-evaluations.tex jss-figure-variable-peaks.tex
+jss-paper.pdf: jss-paper.tex jss-figure-more-likely-models-three-peaks.png jss-figure-target-intervals-models.pdf jss-figure-disk-memory-compare-speed.pdf jss-figure-data-peaks.tex jss-figure-label-error.pdf jss-figure-evaluations.tex jss-figure-variable-peaks.tex jss-refs.bib
 	rm -rf *.aux *.bbl
 	pdflatex jss-paper
 	bibtex jss-paper
