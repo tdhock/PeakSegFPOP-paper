@@ -306,13 +306,11 @@ The optimization problem that our algorithm solves is
   \mathbf c\in\{-1, 0,1\}^{N-1}\\
   }
   } &\ \ 
-      \sum_{i=1}^N \ell(m_i, z_i) + \lambda \sum_{i=1}^{N-1} I(c_i \neq 0) \\
-  \text{subject to\ \ } &\ \text{no change: }c_t = 0 \Rightarrow m_t = m_{t+1}\text{ and }s_t=s_{t+1}
-                          \nonumber\\
-    &\ \text{go up: }c_t = 1 \Rightarrow m_t \leq m_{t+1}\text{ and }(s_t,s_{t+1})=(0,1),
-      \nonumber\\
-    &\ \text{go down: } c_t = -1 \Rightarrow m_t \geq m_{t+1}\text{ and }(s_t,s_{t+1})=(1,0).
-      \nonumber
+      \sum_{i=1}^N \ell(m_i, z_i) + \lambda \sum_{i=1}^{N-1} I(c_i = 1) \\
+  \text{subject to\ \ \ } &\ \text{no change: }c_t = 0 \Rightarrow m_t = m_{t+1}\text{ and }s_t=s_{t+1}, \\
+    &\ \text{non-decreasing change: }c_t = 1 \Rightarrow m_t \leq m_{t+1}\text{ and }(s_t,s_{t+1})=(0,1),\\
+    &\ \text{non-increasing change: } c_t = -1 \Rightarrow m_t \geq m_{t+1}\text{ and }(s_t,s_{t+1})=(1,0),\\
+  & \ \text{start and end down: } s_1=s_N=0.
 \end{align*}
 
 It is implemented in \R\ as
