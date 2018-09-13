@@ -367,6 +367,52 @@ $O(\log N)$ memory.
 
 \section{Models and software} \label{sec:models}
 
+\subsection{Unconstrained Segment Neighborhood model}
+
+Let $z_1,\dots,z_N\in\ZZ_+$ be a sequence of non-negative count
+data. The piecewise constant Poisson model with $S$ segments has mean
+parameters $u_1,\dots,u_S$ and changepoint parameters
+$0=t_0<t_1<\cdots<t_{S-1}<t_S=N$. For every segment
+$s\in\{1,\dots,S\}$,
+$z_i \stackrel{\text{iid}}{\sim} \text{Poisson}(u_s)$ for every data
+point $i\in(t_{s-1},t_s]$ on that segment. Maximum likelihood
+inference in this model is equivalent to solving the minimization
+problem
+\begin{align}
+    \minimize_{\substack{
+  \mathbf u\in\RR^{S}
+\\
+   0=t_0<t_1<\cdots<t_{S-1}<t_S=N
+  }} &\ \ 
+    \sum_{s=1}^S\  \sum_{i=t_{s-1}+1}^{t_s} \ell(u_s,z_i).
+\end{align}
+Note that $\ell(u, z)=u-z\log u$ is the Poisson loss (minus the log
+Poisson likelihood).
+
+To demonstrate the relationship with the Optimal Partitioning problem,
+we re-write the optimization problem below in terms of $m_1,\dots,m_N\in\RR$
+segment mean parameters assigned to each data point,
+\begin{align}
+    \minimize_{\substack{
+  \mathbf m\in\RR^{N}
+% \\
+%    0=t_0<t_1<\cdots<t_{S-1}<t_S=N
+  }} &\ \ 
+    \sum_{i=1}^N \ell(m_i, z_i)
+\\
+      \text{subject to} &\ \ \sum_{i=1}^{N-1} I[m_i\neq m_{i+1}]=S-1.
+  \nonumber
+\end{align}
+Note that the sum of indicator functions in the constraint ensures
+that there are exactly $S-1$ changepoints in the sequence of mean
+values $m_i$.
+
+\subsection{Unconstrained Optimal Partitioning problem}
+
+TODO
+
+\subsection{Optimal Partitioning problem with constraints between adjacent segment means}
+
 The optimization problem that our algorithm solves is
 \begin{align*}
   \label{eq:penalized_peakseg}
