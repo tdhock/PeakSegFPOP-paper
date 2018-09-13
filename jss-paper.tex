@@ -420,8 +420,8 @@ $f^\geq(\mu) = \min_{x\geq\mu} f(x)$.
     \STATE $\lambda=(\overline L-\underline L)/(\underline p-\overline p)$
     \STATE $L_{\text{new}},p_{\text{new}}\gets\text{GFPOP}(\mathbf z, \lambda)$
     \STATE If $p_{\text{new}}\in\{\underline p, \overline p\}$: return model with $\underline p$ peaks.
-    \STATE If $p_{\text{new}} < P^*$: $\underline p\gets p_{\text{new}}$
-    \STATE Else: $\overline p\gets p_{\text{new}}$
+    \STATE If $p_{\text{new}} < P^*$: $\underline L,\underline p\gets L_{\text{new}},p_{\text{new}}$
+    \STATE Else: $\overline L,\overline p\gets L_{\text{new}},p_{\text{new}}$
 % > prob.i <- 3
 % > fit.list$others[order(iteration)][, list(target.peaks=prob$peaks, iteration, under, over, penalty, peaks, total.cost)]
 %    target.peaks iteration under over    penalty peaks total.cost
