@@ -884,40 +884,26 @@ fit$loss
 
 @ 
 
-The returned object is a named list of data.tables.
+The returned \code{fit} object is a named list of data.tables. The
+\code{fit\$loss} component is one row that contains general
+information about the computed model. We can see that the optimal
+model for $\lambda=10^4$ had $P=7$ peaks ($K=15$ segments/$K-1=14$
+changepoints). The \code{fit\$segments} component is used to
+visualize three of those peaks in a subset of the data below.
 
-<<plotModel>>=
+<<plotModel, fig=TRUE, height=3>>=
 
 library(ggplot2)
-changes <- fit$segments[, list(
-  constraint=ifelse(diff(mean)==0, "equality", "inequality"),
-  chromStart=chromEnd[-1],
-  chromEnd=chromEnd[-1])]
-ggplot()+
-  theme_bw()+
-  geom_step(aes(
-    chromStart, count),
-    color="grey50",
-    data=Mono27ac$coverage)+
-  geom_segment(aes(
-    chromStart, mean,
-    xend=chromEnd, yend=mean),
-    color="green",
-    size=1,
-    data=fit$segments)+
-  geom_vline(aes(
-    xintercept=chromEnd, linetype=constraint),
-    color="green",
-    linetype="dotted",
-    data=changes)+
+gg <- ggplot()+theme_bw()+
+  geom_step(aes(chromStart, count), color="grey50", data=Mono27ac$coverage)+
+  geom_segment(aes(chromStart, mean, xend=chromEnd, yend=mean),
+    color="green", size=1, data=fit$segments)+
   coord_cartesian(xlim=c(2e5, 3e5))
+print(gg)
 
 @ 
 
-TODO discuss code usage
-
 \subsection{Sequential search algorithm for $P^*$ peaks}
-
 
 \begin{algorithm}
     \begin{algorithmic}[1]
