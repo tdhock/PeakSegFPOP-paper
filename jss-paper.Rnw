@@ -328,12 +328,11 @@ constraints on adjacent segment means. Previous work is limited to solvers for t
 \subsection{Contributions}
 
 This paper presents two new algorithms for constrained optimal
-changepoint detection, along with an analysis of their empirical
-time/space complexity in a benchmark of large genomic data. The
-algorithms are implemented in the \R\ package
-\pkg{PeakSegPipeline} on GitHub.\footnote{
-\url{https://github.com/tdhock/PeakSegPipeline}
-}
+changepoint detection (Section~\ref{sec:algorithms}), along with an
+analysis of their empirical time/space complexity in a benchmark of
+large genomic data (Section~\ref{sec:results}). The algorithms are
+implemented in the \R\ package \pkg{PeakSegPipeline} on
+GitHub.\footnote{ \url{https://github.com/tdhock/PeakSegPipeline} }
 
 First, we present a new algorithm for solving the Optimal Partitioning
 problem with up-down constraints between adjacent segment means
@@ -368,7 +367,7 @@ for $N=10^7$ data using only minutes of compute time and gigabytes of
 storage (which is much less than weeks/terabytes which would be
 required for the Segment Neighborhood algorithm). 
 
-\section{Models and software} \label{sec:models}
+\section{Statistical models and optimization problems} \label{sec:models}
 
 \subsection{Unconstrained Segment Neighborhood model}
 
@@ -590,6 +589,8 @@ problem~(\ref{min:op-up-down}) in $O(N\log N)$ time.
   \label{fig:state-graph}
 \end{figure}
 
+\section{Algorithms and Software}
+\label{sec:algorithms}
 \subsection{Generalized Functional Pruning Optimal Partitioning (GFPOP)}
 
 In this section we propose a generalization of the FPOP algorithm
@@ -603,6 +604,50 @@ problem~\ref{min:op-up-down}. Each node in the computation graph
 represents an optimal cost function, and each edge represents an input
 to the $\min\{\}$ operation in the dynamic programming
 equations~(\ref{eq:dp-over}) and (\ref{eq:dp-under}) below.
+
+\begin{figure}
+  \centering
+  \begin{tikzpicture}[->,>=latex,shorten >=1pt,auto,node distance=2.5cm,
+    thick,main node/.style={circle,draw}]
+    \node[main node] (peak_t1) {$ C_{1,i-1}$};
+    \node[main node] (bkg_t1) [below of=peak_t1] {$ C_{0,i-1}$};
+    \node[main node] (peak_t) [right of=peak_t1] {$ C_{1,i}$};
+    \node[main node] (bkg_t) [right of=bkg_t1] {$ C_{0,i}$};
+    \node[main node] (peak_2) [left of=peak_t1] {$ C_{1,2}$};
+    \node[main node] (bkg_2) [left of=bkg_t1] {$ C_{0,2}$};
+    \node[main node] (peak_N1) [right of=peak_t] {$ C_{1,N-1}$};
+    \node[main node] (bkg_N1) [right of=bkg_t] {$ C_{0,N-1}$};
+    \node[main node] (bkg_N) [right of=bkg_N1] {$ C_{0,N}$};
+    \node[main node] (bkg_1) [left of=bkg_2] {$ C_{0,1}$};
+    \path[every node/.style={font=\small}]
+    (peak_t1) edge [dotted] node {$ C_{1,i-1}$} (peak_t)
+    (peak_t1) edge [black, bend right] node [right] {$ C_{1,i-1}^{\geq}$} (bkg_t)
+    (bkg_t1) edge [dotted] node[midway, below] {$ C_{0,i-1}$} (bkg_t)
+    (bkg_t1) edge [black, bend left] node[right] {$ C_{0,i-1}^{\leq}+\lambda$} (peak_t)
+    (bkg_1) edge [black, bend left] node[right] {$ C_{0,1}^{\leq}+\lambda$} (peak_2)
+    (bkg_1) edge [dotted] node[midway, below] {$ C_{0,1}$} (bkg_2)
+    (peak_N1) edge [black, bend right] node [right] {$ C_{1,N-1}^{\geq}$} (bkg_N)
+    (bkg_N1) edge [dotted] node[midway, below] {$ C_{0,N-1}$} (bkg_N)
+    (bkg_2) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (bkg_t1)
+    (peak_2) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (peak_t1)
+    (bkg_N1) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (bkg_t)
+    (peak_N1) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (peak_t)
+    ;
+  \end{tikzpicture}
+  \caption{Directed acyclic graph (DAG) representing dynamic
+    programming computations (Algorithm~\ref{algo:GFPOP}) for
+    changepoint model with up-down constraints between adjacent
+    segment means. Nodes in the graph repesent cost functions, and
+    edges represent inputs to the the MinOfTwo sub-routine
+    (solid=changepoint, dotted=no change). There is one column for
+    each data point and one row for each state: the optimal cost of
+    the peak state $s=1$ at data point $i$ is $ C_{1,i}$ (top
+    row); the optimal cost of the background noise state $s=0$ is
+    $ C_{0,i}$ (bottom row). There is only one edge going to
+    $ C_{0,2}$ and $ C_{1,2}$ because the model is
+    constrained to start in the background noise state ($s_1=0$).}
+  \label{fig:computation-graph}
+\end{figure}
 
 More precisely, we define the optimal cost of mean $\mu$ in state
 $\sigma$ at any data point $\tau\in\{1,\dots,N\}$ to be
@@ -671,9 +716,14 @@ optimal cost of the peak state $s=1$ at data $i>2$ is
    C_{1,i}(\mu) = \ell(\mu, z_i) + \min\{
    C_{1,i-1}(\mu),\, 
    C_{0,i-1}^\leq(\mu)+\lambda
-\},
+\}.
 \end{equation}
-and the optimal cost of the background state $s=0$ is
+Note how the inputs to the $\min\{\}$ operation are the same as the
+edges leading to the $C_{1,i}$ node in the computation graph
+(Figure~\ref{fig:computation-graph}). 
+
+Similarly, the optimal cost of
+the background state $s=0$ is
 \begin{equation}
   \label{eq:dp-under}
      C_{0,i}(\mu) = \ell(\mu, z_i) + \min\{
@@ -688,54 +738,221 @@ where min-more operator is defined as
 \end{equation}
 These dynamic programming rules are summarized in
 Algorithm~\ref{algo:GFPOP}, Generalized Functional Pruning Optimal
-Partitioning. It is implemented in \proglang{C++} code with an
-interface in the \R\ package \pkg{PeakSegPipeline}. Its complexity is
-$O(N\log N)$ time, $O(N\log N)$ disk, $O(\log N)$ memory.
+Partitioning. The key to implementing the algorithm is to use a
+PiecewiseFunction data structure that can exactly represent an
+optimal cost function $C_{s,t}$. In the case of the Poisson loss,
+each $C_{s,t}(\mu)$ is a piecewise function where each piece is of the
+form $\alpha\mu + \beta\log\mu +
+\gamma$. Therefore the optimal cost can be stored as a list
+of intervals of $\mu\in[\text{MIN},\text{MAX}]$, each with
+coefficients $\alpha,\beta,\gamma$.
 
-\begin{figure}
-  \centering
-  \begin{tikzpicture}[->,>=latex,shorten >=1pt,auto,node distance=2.5cm,
-    thick,main node/.style={circle,draw}]
-    \node[main node] (peak_t1) {$ C_{1,i-1}$};
-    \node[main node] (bkg_t1) [below of=peak_t1] {$ C_{0,i-1}$};
-    \node[main node] (peak_t) [right of=peak_t1] {$ C_{1,i}$};
-    \node[main node] (bkg_t) [right of=bkg_t1] {$ C_{0,i}$};
-    \node[main node] (peak_2) [left of=peak_t1] {$ C_{1,2}$};
-    \node[main node] (bkg_2) [left of=bkg_t1] {$ C_{0,2}$};
-    \node[main node] (peak_N1) [right of=peak_t] {$ C_{1,N-1}$};
-    \node[main node] (bkg_N1) [right of=bkg_t] {$ C_{0,N-1}$};
-    \node[main node] (bkg_N) [right of=bkg_N1] {$ C_{0,N}$};
-    \node[main node] (bkg_1) [left of=bkg_2] {$ C_{0,1}$};
-    \path[every node/.style={font=\small}]
-    (peak_t1) edge [dotted] node {$ C_{1,i-1}$} (peak_t)
-    (peak_t1) edge [black, bend right] node [right] {$ C_{1,i-1}^{\geq}$} (bkg_t)
-    (bkg_t1) edge [dotted] node[midway, below] {$ C_{0,i-1}$} (bkg_t)
-    (bkg_t1) edge [black, bend left] node[right] {$ C_{0,i-1}^{\leq}+\lambda$} (peak_t)
-    (bkg_1) edge [black, bend left] node[right] {$ C_{0,1}^{\leq}+\lambda$} (peak_2)
-    (bkg_1) edge [dotted] node[midway, below] {$ C_{0,1}$} (bkg_2)
-    (peak_N1) edge [black, bend right] node [right] {$ C_{1,N-1}^{\geq}$} (bkg_N)
-    (bkg_N1) edge [dotted] node[midway, below] {$ C_{0,N-1}$} (bkg_N)
-    (bkg_2) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (bkg_t1)
-    (peak_2) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (peak_t1)
-    (bkg_N1) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (bkg_t)
-    (peak_N1) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (peak_t)
-    ;
-  \end{tikzpicture}
-  \caption{Directed acyclic graph (DAG) representing dynamic
-    programming computations (Algorithm~\ref{algo:GFPOP}) for
-    changepoint model with up-down constraints between adjacent
-    segment means. Nodes in the graph repesent cost functions, and
-    edges represent inputs to the the MinOfTwo sub-routine
-    (solid=changepoint, dotted=no change). There is one column for
-    each data point and one row for each state: the optimal cost of
-    the peak state $s=1$ at data point $i$ is $ C_{1,i}$ (top
-    row); the optimal cost of the background noise state $s=0$ is
-    $ C_{0,i}$ (bottom row). There is only one edge going to
-    $ C_{0,2}$ and $ C_{1,2}$ because the model is
-    constrained to start in the background noise state ($s_1=0$).}
-  \label{fig:computation-graph}
-\end{figure}
+\begin{algorithm}
+\begin{algorithmic}[1]
+\STATE Input: data set $\mathbf z\in\RR^N$, penalty constant $\lambda\geq 0$.
+\STATE Output: vectors of optimal segment means $U\in\RR^{N}$ and ends $T\in\{1,\dots,N\}^{N}$
+\STATE Initialize $2\times N$ empty PiecewiseFunction objects $C_{s,t}$ either in memory or on disk.
+\label{line:initialize}
+\STATE Compute min $\underline z$ and max $\overline z$ of $\mathbf z$.
+\label{line:op-min-max}
+\STATE
+$ C_{0,1}\gets
+ \text{OnePiece}(z_1, \underline z, \overline z)$
+\label{line:first-cost}
+\STATE for data point $i$ from 2 to $N$: // dynamic programming
+\label{line:for-dp-t}
+\begin{ALC@g}
+  \STATE $ M_1\gets \lambda + \text{MinLess}(i-1,  C_{0,i-1})$ //cost of non-decreasing change
+  \label{line:op-MinLess}
+  \STATE $ C_{1,i}\gets \text{MinOfTwo}( M_1,  C_{1,i-1})+\text{OnePiece}(z_i, \underline z, \overline z)$
+  \label{line:op-MinOfTwo}
+  \STATE $ M_0\gets \text{MinMore}(i-1,  C_{1,i-1})$ //cost of non-increasing change
+  \label{line:op-MinMore}
+  \STATE $ C_{0,i}\gets \text{MinOfTwo}( M_0,  C_{0,i-1})+\text{OnePiece}(z_i, \underline z, \overline z)$
+  \label{line:op-MinOfTwo-under}
+\end{ALC@g}
+\STATE $\text{mean},\text{prevEnd},\text{prevMean}\gets \text{ArgMin}( C_{0,n})$ // begin decoding
+\label{line:op-ArgMin}
+\STATE $\text{seg}\gets 1;\, U_{\text{seg}}\gets \text{mean};\, T_{\text{seg}}\gets \text{prevEnd}$
+\label{line:op-store-i}
+\STATE while $\text{prevEnd} > 0$:
+\begin{ALC@g}
+  \STATE if $\text{prevMean} < \infty$: $\text{mean}\gets \text{prevMean}$
+  \STATE if $\text{seg}$ is odd: $\text{cost}\gets  C_{1,\text{prevEnd}}$ else $ C_{0,\text{prevEnd}}$
+  \STATE $\text{prevEnd},\text{prevMean}\gets\text{FindMean}(\text{mean}, \text{cost})$
+  \STATE $\text{seg}\gets \text{seg}+1;\, U_{\text{seg}}\gets \text{mean};\, T_{\text{seg}}\gets \text{prevEnd}$
+\label{line:op-i+1}
+\end{ALC@g}
+\caption{\label{algo:GFPOP}Generalized Functional Pruning Optimal
+  Partitioning (GFPOP) for changepoint model with up-down constraints
+  between adjacent segment means.}
+\end{algorithmic}
+\end{algorithm}
 
+Algorithm~\ref{algo:GFPOP} begins on line~\ref{line:initialize} by
+initializing the array $C_{s, t}$ of optimal cost functions (either in
+memory or on disk). It then computes the min $\underline z$ and max
+$\overline z$ of the data (line~\ref{line:op-min-max}) and uses the
+OnePiece sub-routine to initialize the optimal cost at the first data
+point (line~\ref{line:first-cost}). Since the Poisson loss is
+$\ell(\mu, z_1)=\mu-z_1\log \mu$, this first optimal cost function is
+represented as the single function piece with interval/coefficients
+$(\alpha=1,\beta=-z_1,\gamma=0,\text{MIN}=\underline
+z,\text{MAX}=\overline z)$. 
+
+The dynamic programming recursion in this algorithm is a loop over
+data points $i$ (line~\ref{line:for-dp-t}). To compute $C_{1,i}$, the
+penalty constant $\lambda$ is added to all of the result of MinLess
+(line~\ref{line:op-MinLess}), before computing MinOfTwo and adding the
+cost of the new data point (line~\ref{line:op-MinOfTwo}). The
+computation for $C_{0,i}$ is similar, but uses MinMore and does not
+add the penalty $\lambda$
+(lines~\ref{line:op-MinMore}--\ref{line:op-MinOfTwo-under}). See
+\citep{Hocking-constrained-changepoint-detection} for more details
+about how the MinLess/MinMore/MinOfTwo sub-routines process the
+PiecewiseFunction objects.
+
+After computing the optimal cost functions, the decoding of optimal
+parameters occurs on
+lines~\ref{line:op-ArgMin}--\ref{line:op-i+1}. The last segment mean 
+and second to last segment end are first stored on
+line~\ref{line:op-store-i} in $(U_1,T_1)$. For each other segment $i$,
+the mean and previous segment end are stored on line~\ref{line:op-i+1}
+in $(U_i,T_i)$. Note that there should be space to store $(U_i,T_i)$
+parameters for up to $N$ segments. However, there are usually less
+than $N$ segments, and the algorithm should return a special flag for
+unused parameters, for example $(U_i=\infty, T_i=-1)$.
+
+The complexity of Algorithm~\ref{algo:GFPOP} is $O(N I)$, where $I$ is
+the mean number of intervals (function pieces) that are used to
+represent the $C_{s, t}$ cost functions. Theoretically there are some
+pathological data sets for which the algorithm computes $I=O(N)$
+intervals, which results in the worst-case complexity of $O(N^2)$.
+Since the number of intervals in real data is empirically
+$I=O(\log N)$ (see Figure~\ref{fig:intervals}), the overall complexity
+of Algorithm~\ref{algo:GFPOP} is on average $O(N \log N)$. Using
+disk-based storage its complexity is $O(N\log N)$ time, $O(N\log N)$
+disk, $O(\log N)$ memory. 
+
+We implemented the disk-based version of Algorithm~\ref{algo:GFPOP} in
+\proglang{C++} code with an interface in the \R\ package
+\pkg{PeakSegPipeline}. To illustrate its usage we first load a set of
+genomic data,
+
+<<loadData>>=
+
+library(PeakSegPipeline)
+data(Mono27ac, package="PeakSegPipeline")
+Mono27ac$coverage
+
+@ 
+
+Note that the 4 column bedGraph format shown above must be used to
+represent a data set. Futhermore a run-length encoding should be used
+for data sets that have runs of the same values. Each row represents a
+sequence of identical data values. For example the first row means
+that the value 0 occurs on the 72601 positions in [60000,132601), the
+second row means a value of 1 for the 42 positions in [132601,132643),
+etc. This run-length encoding results in significant savings in disk
+space and time; for example in the data set above there are only 6921
+lines used to represent 520000 data values.
+
+In order to handle very large data sets while using only $O(\log N)$
+memory, the algorithm reads input data from a text file on disk (and
+never actually stores the entire data set in memory). So before using
+the algorithm we must save the data set to disk, in bedGraph format
+(the four columns shown above, separated by tabs).
+
+<<saveData>>=
+
+data.dir <- file.path(tempdir(),"chr11:60000-580000")
+dir.create(data.dir)
+write.table(
+  Mono27ac$coverage, file.path(data.dir, "coverage.bedGraph"),
+  col.names=FALSE, row.names=FALSE, quote=FALSE, sep="\t")
+
+@ 
+
+After saving the file to disk, we can run the algorithm using the code
+below.
+
+<<problemPeakSegFPOP>>=
+
+## Compute one model with penalty=10000
+fit <- PeakSegPipeline::problem.PeakSegFPOP(data.dir, "10000")
+fit$loss
+
+@ 
+
+The returned object is a named list of data.tables.
+
+<<plotModel>>=
+
+library(ggplot2)
+changes <- fit$segments[, list(
+  constraint=ifelse(diff(mean)==0, "equality", "inequality"),
+  chromStart=chromEnd[-1],
+  chromEnd=chromEnd[-1])]
+ggplot()+
+  theme_bw()+
+  geom_step(aes(
+    chromStart, count),
+    color="grey50",
+    data=Mono27ac$coverage)+
+  geom_segment(aes(
+    chromStart, mean,
+    xend=chromEnd, yend=mean),
+    color="green",
+    size=1,
+    data=fit$segments)+
+  geom_vline(aes(
+    xintercept=chromEnd, linetype=constraint),
+    color="green",
+    linetype="dotted",
+    data=changes)+
+  coord_cartesian(xlim=c(2e5, 3e5))
+
+@ 
+
+TODO discuss code usage
+
+\subsection{Sequential search algorithm for $P^*$ peaks}
+
+
+\begin{algorithm}
+    \begin{algorithmic}[1]
+  \STATE Input: data $\mathbf z\in\RR^N$, target peaks $P^*$.
+  \STATE $\overline L,\overline p \gets \text{GFPOP}(\mathbf z, \lambda=0)$ // initialize upper bound to max peak model
+  \STATE $\underline L,\underline p \gets \text{GFPOP}(\mathbf z, \lambda=\infty)$ // initialize lower bound to 0 peak model
+  \STATE While $P^*\not\in \{\underline p,\, \overline p\}$:
+  \begin{ALC@g}
+    \STATE $\lambda=(\overline L-\underline L)/(\underline p-\overline p)$
+    \STATE $L_{\text{new}},p_{\text{new}}\gets\text{GFPOP}(\mathbf z, \lambda)$
+    \STATE If $p_{\text{new}}\in\{\underline p, \overline p\}$: return model with $\underline p$ peaks.
+    \STATE If $p_{\text{new}} < P^*$: $\underline L,\underline p\gets L_{\text{new}},p_{\text{new}}$ // new lower bound
+    \STATE Else: $\overline L,\overline p\gets L_{\text{new}},p_{\text{new}}$ // new upper bound
+% > prob.i <- 3
+% > fit.list$others[order(iteration)][, list(target.peaks=prob$peaks, iteration, under, over, penalty, peaks, total.cost)]
+%    target.peaks iteration under over    penalty peaks total.cost
+% 1:           33         1    NA   NA     0.0000  7487 -201361.96
+% 2:           33         1    NA   NA        Inf     0  920923.98
+% 3:           33         2     0 7487   149.8979   753  -24385.02
+% 4:           33         3     0  753  1255.3904    47  153676.28
+% 5:           33         4     0   47 16324.4191    10  310043.81
+% 6:           33         5    10   47  4226.1495    21  214200.02
+% 7:           33         6    21   47  2327.8360    33  177484.99
+% > 
+  \end{ALC@g}
+  \STATE If $P^*=\underline p$: return model with $\underline p$ peaks.
+  \STATE Else: return model with $\overline p$ peaks.
+  \end{algorithmic}
+\caption{\label{algo:seq-search}Sequential search for $P^*$ peaks using GFPOP.}
+\end{algorithm}
+
+Algorithm~\ref{algo:seq-search} (sequential search for $P^*$ peaks)
+uses GFPOP as a sub-routine to find the optimal model with $P^*$
+peaks. Its complexity is $O(N(\log N)^2)$ time, $O(N\log N)$ space,
+$O(\log N)$ memory.
 
 % \begin{leftbar}
 % Note that around the \verb|{equation}| above there should be no spaces (avoided
@@ -823,7 +1040,7 @@ $O(N\log N)$ time, $O(N\log N)$ disk, $O(\log N)$ memory.
 %% - Comments within the code chunks should be avoided - these should be made
 %%   within the regular LaTeX text.
 
-\section{Illustrations} \label{sec:illustrations}
+\section{Results on large genomic data} \label{sec:results}
 
 \subsection{Computing the maximum likelihood model with a given number
   of peaks}
@@ -953,7 +1170,7 @@ algorithm can be used to find a more likely model with three peaks
 \begin{minipage}{3in}
   \includegraphics{jss-figure-target-intervals-models-computation}
 \end{minipage}
-\caption{\label{fig:target-intervals-models-all} In our empirical
+\caption{\label{fig:intervals} In our empirical
   tests, the computational requirements of the GFPOP algorithm
   were log-linear $O(N \log N)$ in the number of data points $N$ to
   segment. \textbf{Left:} we analyzed the number of intervals $I$
@@ -1118,86 +1335,8 @@ Segment Neighborhood algorithm would thus be $O(SN\log N)$
 
 %% -- Optional special unnumbered sections -------------------------------------
 
-\section*{Computational details}
-
-The pseudocode for the algorithm which implements the dynamic
-programming updates (\ref{eq:generalDP}) is stated below.
-
-\begin{algorithm}
-\begin{algorithmic}[1]
-\STATE Input: data set $\mathbf z\in\RR^N$, penalty constant $\lambda\geq 0$.
-\STATE Output: vectors of optimal segment means $U\in\RR^{N}$ and ends $T\in\{1,\dots,N\}^{N}$
-\STATE Compute min $\underline z$ and max $\overline z$ of $\mathbf z$.
-\label{line:op-min-max}
-\STATE
-$ C_{0,1}\gets
- \text{OnePiece}(z_1, \underline z, \overline z)$
-\STATE for data point $i$ from 2 to $N$: // dynamic programming
-\label{line:for-dp-t}
-\begin{ALC@g}
-  \STATE $ M_1\gets \lambda + \text{MinLess}(i-1,  C_{0,i-1})$ //cost of non-decreasing change
-  \label{line:op-MinLess}
-  \STATE $ C_{1,i}\gets \text{MinOfTwo}( M_1,  C_{1,i-1})+\text{OnePiece}(z_i, \underline z, \overline z)$
-  \label{line:op-MinOfTwo}
-  \STATE $ M_0\gets \text{MinMore}(i-1,  C_{1,i-1})$ //cost of non-increasing change
-  \label{line:op-MinMore}
-  \STATE $ C_{0,i}\gets \text{MinOfTwo}( M_0,  C_{0,i-1})+\text{OnePiece}(z_i, \underline z, \overline z)$
-  \label{line:op-MinOfTwo-under}
-\end{ALC@g}
-\STATE $\text{mean},\text{prevEnd},\text{prevMean}\gets \text{ArgMin}( C_{0,n})$ // begin decoding
-\label{line:op-ArgMin}
-\STATE $\text{seg}\gets 1;\, U_{\text{seg}}\gets \text{mean};\, T_{\text{seg}}\gets \text{prevEnd}$
-\label{line:op-store-i}
-\STATE while $\text{prevEnd} > 0$:
-\begin{ALC@g}
-  \STATE if $\text{prevMean} < \infty$: $\text{mean}\gets \text{prevMean}$
-  \STATE if $\text{seg}$ is odd: $\text{cost}\gets  C_{1,\text{prevEnd}}$ else $ C_{0,\text{prevEnd}}$
-  \STATE $\text{prevEnd},\text{prevMean}\gets\text{FindMean}(\text{mean}, \text{cost})$
-  \STATE $\text{seg}\gets \text{seg}+1;\, U_{\text{seg}}\gets \text{mean};\, T_{\text{seg}}\gets \text{prevEnd}$
-\label{line:op-i+1}
-\end{ALC@g}
-\caption{\label{algo:GFPOP}Generalized Functional Pruning Optimal
-  Partitioning (GFPOP) for changepoint model with up-down constraints
-  between adjacent segment means.}
-\end{algorithmic}
-\end{algorithm}
 
 
-
-\begin{algorithm}
-    \begin{algorithmic}[1]
-  \STATE Input: data $\mathbf z\in\RR^N$, target peaks $P^*$.
-  \STATE $\overline L,\overline p \gets \text{GFPOP}(\mathbf z, \lambda=0)$ // initialize upper bound to max peak model
-  \STATE $\underline L,\underline p \gets \text{GFPOP}(\mathbf z, \lambda=\infty)$ // initialize lower bound to 0 peak model
-  \STATE While $P^*\not\in \{\underline p,\, \overline p\}$:
-  \begin{ALC@g}
-    \STATE $\lambda=(\overline L-\underline L)/(\underline p-\overline p)$
-    \STATE $L_{\text{new}},p_{\text{new}}\gets\text{GFPOP}(\mathbf z, \lambda)$
-    \STATE If $p_{\text{new}}\in\{\underline p, \overline p\}$: return model with $\underline p$ peaks.
-    \STATE If $p_{\text{new}} < P^*$: $\underline L,\underline p\gets L_{\text{new}},p_{\text{new}}$ // new lower bound
-    \STATE Else: $\overline L,\overline p\gets L_{\text{new}},p_{\text{new}}$ // new upper bound
-% > prob.i <- 3
-% > fit.list$others[order(iteration)][, list(target.peaks=prob$peaks, iteration, under, over, penalty, peaks, total.cost)]
-%    target.peaks iteration under over    penalty peaks total.cost
-% 1:           33         1    NA   NA     0.0000  7487 -201361.96
-% 2:           33         1    NA   NA        Inf     0  920923.98
-% 3:           33         2     0 7487   149.8979   753  -24385.02
-% 4:           33         3     0  753  1255.3904    47  153676.28
-% 5:           33         4     0   47 16324.4191    10  310043.81
-% 6:           33         5    10   47  4226.1495    21  214200.02
-% 7:           33         6    21   47  2327.8360    33  177484.99
-% > 
-  \end{ALC@g}
-  \STATE If $P^*=\underline p$: return model with $\underline p$ peaks.
-  \STATE Else: return model with $\overline p$ peaks.
-  \end{algorithmic}
-\caption{\label{algo:seq-search}Sequential search for $P^*$ peaks using GFPOP.}
-\end{algorithm}
-
-Algorithm~\ref{algo:seq-search} (sequential search for $P^*$ peaks)
-uses GFPOP as a sub-routine to find the optimal model with $P^*$
-peaks. Its complexity is $O(N(\log N)^2)$ time, $O(N\log N)$ space,
-$O(\log N)$ memory.
 
 % \begin{leftbar} 
 % If necessary or useful, information about certain computational details
