@@ -168,14 +168,14 @@ operation.
 The classical dynamic programming algorithms have time complexity
 which is quadratic in the number of data $N$. The algorithm which
 solves the ``Segment Neighborhood'' problem computes a sequence of
-optimal models from 1 to $K$ segments, in $O(KN^2)$ time
-\citet{segment-neighborhood}.  \citet{optimal-partitioning} described
+optimal models from 1 to $K$ segments in $O(KN^2)$ time
+\citep{segment-neighborhood}.  \citet{optimal-partitioning} described
 an $O(N^2)$ algorithm which solves the related ``Optimal
 Partitioning'' problem. Rather than explicitly using the number of
 segments $K$ as a parameter, it inputs a non-negative penalty
 parameter $\lambda\in \RR_+$. The classical algorithm for solving the
 Segment Neighborhood problem is available in \R\ as
-\verb|changepoint::cpt.mean(method="SegNeigh")|
+\code{changepoint::cpt.mean}
 \citep{changepoint}. We know of no \R\ implementation of the classical
 $O(N^2)$ algorithm for solving the Optimal Partitioning problem.
 
@@ -470,8 +470,8 @@ $s_i$:
     &\ \text{change: }c_i = 1 \Rightarrow m_i \neq m_{i+1}\text{ and }(s_i,s_{i+1})=(0,0).\label{eq:change-constraint}
 \end{align}
 Note that the state $s_i$ and changepoint $c_i$ variables could be
-eliminated from the optimization problem --- $s_i=0$ for all $i$, and 
-$c_i=I(m_i\neq m_{i+1})$. We include them in problem~(\ref{min:op-c})
+eliminated from the optimization problem --- $s_i=0$ and 
+$c_i=I(m_i\neq m_{i+1})$ for all $i$. We include them in problem~(\ref{min:op-c})
 in order to show the relationship with the problem in the next
 section, with constraints between adjacent segment means.
 
@@ -518,7 +518,31 @@ this model corresponds to the following minimization problem:
     &\ \text{non-increasing change: } c_i = -1 \Rightarrow m_i \geq m_{i+1}\text{ and }(s_i,s_{i+1})=(1,0),\nonumber\\
   & \ \text{start and end down: } s_1=s_N=0.\nonumber
 \end{align}
-Note that the model complexity (right TODO)
+Note how the problem~(\ref{min:op-up-down}) with up-down constraints
+is of the same form as the previous unconstrained
+problem~\ref{min:op-c}. Again there is one constraint for every
+edge/changepoint in the state graph
+(Figure~\ref{fig:state-graph}). The difference is that in
+problem~(\ref{min:op-up-down}), we have inequality constraints between
+adjacent segment means (e.g. when $c_i=1$, we must have a
+non-decreasing change in the mean $m_i\leq m_{i+1}$). Another
+difference is the model complexity in problem~(\ref{min:op-up-down})
+is the total number of $c_i=1$ non-decreasing changes, which is
+equivalent to the number of peak segments $P$, and is linear in the
+total number of segments $K=2P+1$ and changes $K-1=2P$.
+
+
+The solution to the Optimal Partitioning
+problem~(\ref{min:op-up-down}) can be computed by first solving the
+Segment Neighborhood version of the problem \citep{Maidstone2016}. In
+\R\ the \pkg{PeakSegDP} package provides a sub-optimal solution in
+$O(K N^2)$ time, and the \pkg{PeakSegOptimal} package provides an
+optimal solution in $O(KN\log N)$ time. However in large genomic data
+the number of peaks/segments $K$ increases with $N$, so it is
+intractable to solve the Segment Neighborhood problem when both $N$
+and $K$ are large. Therefore in the next section we propose a new
+algorithm for directly solving the constrained Optimal Partitioning
+problem~(\ref{min:op-up-down}) in $O(N\log N)$ time.
 
 \begin{figure}
   \centering
@@ -568,67 +592,129 @@ Note that the model complexity (right TODO)
 
 \subsection{Generalized Functional Pruning Optimal Partitioning (GFPOP)}
 
-The state graph (Figure~\ref{fig:state-graph}, right) can be converted
-into a directed acyclic graph (Figure~\ref{fig:computation-graph})
-that represents the dynamic programming updates required to solve
+In this section we propose a generalization of the FPOP algorithm
+\citep{Maidstone2016} which allows optimal inference in models with
+inequality constraints between adjacent means, such as
+problem~(\ref{min:op-up-down}). The state graph
+(Figure~\ref{fig:state-graph}, right) can be converted into a directed
+acyclic graph (Figure~\ref{fig:computation-graph}) that represents the
+dynamic programming updates required to solve
 problem~\ref{min:op-up-down}. Each node in the computation graph
 represents an optimal cost function, and each edge represents an input
 to the $\min\{\}$ operation in the dynamic programming
 equations~(\ref{eq:dp-over}) and (\ref{eq:dp-under}) below.
 
-More precisely, the algorithm begins by initializing the optimal cost of the background state $s=0$ at data point $i=1$ to compute the optimal cost of
-the peak state $s=1$ at data $i>2$, we use
+More precisely, we define the optimal cost of mean $\mu$ in state
+$\sigma$ at any data point $\tau\in\{1,\dots,N\}$ to be
+\begin{align}
+  \label{eq:C_sigma_tau}
+   C_{\sigma,\tau}(\mu)=\min_{
+  \substack{
+  \mathbf m\in\RR^\tau,\ \mathbf s\in\{0, 1\}^\tau\\
+  \mathbf c\in\{-1, 0,1\}^{\tau-1}\\
+  }
+  } &\ \ 
+      \sum_{i=1}^\tau \ell(m_i, z_i) + \lambda \sum_{i=1}^{\tau-1} I(c_i = 1) \\
+  \text{subject to\ \ } &\ c_i = 0 \Rightarrow m_i = m_{i+1}\text{ and }s_i=s_{i+1}, \nonumber\\
+    &\ c_i = 1 \Rightarrow m_i \leq m_{i+1}\text{ and }(s_i,s_{i+1})=(0,1),\nonumber\\
+    &\ c_i = -1 \Rightarrow m_i \geq m_{i+1}\text{ and }(s_i,s_{i+1})=(1,0),\nonumber\\
+  & \  s_1=s_N=0,\nonumber\\
+& \ m_\tau=\mu,\, s_\tau=\sigma.\label{tau-constraints}
+\end{align}
+Note how the objective and constraints above are identical to the
+up-down constrained Optimal Partitioning
+problem~(\ref{min:op-up-down}) up to $\tau-1$ data points, but with
+two added constraints at data point $\tau$ (\ref{tau-constraints}). At
+data point $\tau$ the mean is constrained to be $m_\tau=\mu$ and the
+state is constrained to be $s_\tau=\sigma$. The cost
+$C_{\sigma,\tau}(\mu)$ is a real-valued function that must be computed
+by minimizing over all previous means $m_1,\dots,m_{\tau-1}$, states
+$s_1,\dots,s_{\tau-1}$, and changes $c_1,\dots,c_{\tau-1}$.
+It can be computed recursively using the dynamic programming
+updates that we propose below.
+
+The algorithm begins by initializing the optimal cost of the
+background state at the first data point,
 \begin{equation}
-  \label{eq:dp-over}
-  \overline C_{i}(\mu) = \ell(\mu, z_i) + \min\{
-  \overline C_{i-1}(\mu),\, 
-  \underline C_{i-1}^\leq(\mu)+\lambda
-\},
+  \label{eq:init_1}
+  C_{0,1}(\mu)=\ell(\mu, z_1).
 \end{equation}
+The computations for the second data point are also special, because
+the model is constrained to start in the background state $s_1=0$. To
+get to the background state $s_2=0$ at the second data point requires no
+change ($c_1=0$), with a cost of
+\begin{eqnarray}
+  C_{0,2}(\mu)=C_{0,1}(\mu)+\ell(\mu, z_2).
+\end{eqnarray}
+Similarly, to get to the peak state $s_2=1$ at the second data point
+requires a non-decreasing change ($c_1=1$), with a cost of
 \begin{equation}
-  \label{eq:dp-under}
-    \underline C_{i}(\mu) = \ell(\mu, z_i) + \min\{
-  \underline C_{i-1}(\mu),\, 
-  \overline C_{i-1}^\geq(\mu)+\lambda
-\},
+  \label{eq:C_12}
+  C_{1,2}(\mu)=\min_{m_1\leq\mu} C_{0,1}(m_1)+\lambda + \ell(\mu, z_2)=C_{0,1}^\leq(\mu)+\lambda+\ell(\mu, z_2).
 \end{equation}
-where the min-less operator is defined as 
+Note that we were able to re-write the optimal cost function in terms
+of a single variable $\mu$ by using the min-less operator,
 \begin{equation}
   \label{eq:min-less}
-  f^\leq(\mu) = \min_{x\leq\mu} f(x),
+  f^\leq(\mu) = \min_{x\leq\mu} f(x).
 \end{equation}
-and the min-more operator is defined as
+The min-less operator is also used to compute the optimal cost in the
+functional pruning algorithm that solves the Segment Neighborhood
+version of this problem
+\citep{Hocking-constrained-changepoint-detection}. 
+
+More generally, the dynamic programming update rules can be derived
+from the computation graph (Figure~\ref{fig:computation-graph}). The
+optimal cost of the peak state $s=1$ at data $i>2$ is
+\begin{equation}
+  \label{eq:dp-over}
+   C_{1,i}(\mu) = \ell(\mu, z_i) + \min\{
+   C_{1,i-1}(\mu),\, 
+   C_{0,i-1}^\leq(\mu)+\lambda
+\},
+\end{equation}
+and the optimal cost of the background state $s=0$ is
+\begin{equation}
+  \label{eq:dp-under}
+     C_{0,i}(\mu) = \ell(\mu, z_i) + \min\{
+   C_{0,i-1}(\mu),\, 
+   C_{1,i-1}^\geq(\mu)+\lambda
+\},
+\end{equation}
+where min-more operator is defined as
 \begin{equation}
   \label{eq:min-more}
   f^\geq(\mu) = \min_{x\geq\mu} f(x).
 \end{equation}
-The algorithm is implemented in \R\ as
-\verb|PeakSegPipeline::PeakSegFPOP_disk|. Its complexity is
+These dynamic programming rules are summarized in
+Algorithm~\ref{algo:GFPOP}, Generalized Functional Pruning Optimal
+Partitioning. It is implemented in \proglang{C++} code with an
+interface in the \R\ package \pkg{PeakSegPipeline}. Its complexity is
 $O(N\log N)$ time, $O(N\log N)$ disk, $O(\log N)$ memory.
 
 \begin{figure}
   \centering
   \begin{tikzpicture}[->,>=latex,shorten >=1pt,auto,node distance=2.5cm,
     thick,main node/.style={circle,draw}]
-    \node[main node] (peak_t1) {$\overline C_{i-1}$};
-    \node[main node] (bkg_t1) [below of=peak_t1] {$\underline C_{i-1}$};
-    \node[main node] (peak_t) [right of=peak_t1] {$\overline C_{i}$};
-    \node[main node] (bkg_t) [right of=bkg_t1] {$\underline C_{i}$};
-    \node[main node] (peak_2) [left of=peak_t1] {$\overline C_2$};
-    \node[main node] (bkg_2) [left of=bkg_t1] {$\underline C_2$};
-    \node[main node] (peak_N1) [right of=peak_t] {$\overline C_{N-1}$};
-    \node[main node] (bkg_N1) [right of=bkg_t] {$\underline C_{N-1}$};
-    \node[main node] (bkg_N) [right of=bkg_N1] {$\underline C_N$};
-    \node[main node] (bkg_1) [left of=bkg_2] {$\underline C_1$};
+    \node[main node] (peak_t1) {$ C_{1,i-1}$};
+    \node[main node] (bkg_t1) [below of=peak_t1] {$ C_{0,i-1}$};
+    \node[main node] (peak_t) [right of=peak_t1] {$ C_{1,i}$};
+    \node[main node] (bkg_t) [right of=bkg_t1] {$ C_{0,i}$};
+    \node[main node] (peak_2) [left of=peak_t1] {$ C_{1,2}$};
+    \node[main node] (bkg_2) [left of=bkg_t1] {$ C_{0,2}$};
+    \node[main node] (peak_N1) [right of=peak_t] {$ C_{1,N-1}$};
+    \node[main node] (bkg_N1) [right of=bkg_t] {$ C_{0,N-1}$};
+    \node[main node] (bkg_N) [right of=bkg_N1] {$ C_{0,N}$};
+    \node[main node] (bkg_1) [left of=bkg_2] {$ C_{0,1}$};
     \path[every node/.style={font=\small}]
-    (peak_t1) edge [dotted] node {$\overline C_{i-1}$} (peak_t)
-    (peak_t1) edge [black, bend right] node [right] {$\overline C_{i-1}^{\geq}$} (bkg_t)
-    (bkg_t1) edge [dotted] node[midway, below] {$\underline C_{i-1}$} (bkg_t)
-    (bkg_t1) edge [black, bend left] node[right] {$\underline C_{i-1}^{\leq}+\lambda$} (peak_t)
-    (bkg_1) edge [black, bend left] node[right] {$\underline C_{1}^{\leq}+\lambda$} (peak_2)
-    (bkg_1) edge [dotted] node[midway, below] {$\underline C_1$} (bkg_2)
-    (peak_N1) edge [black, bend right] node [right] {$\overline C_{N-1}^{\geq}$} (bkg_N)
-    (bkg_N1) edge [dotted] node[midway, below] {$\underline C_{N-1}$} (bkg_N)
+    (peak_t1) edge [dotted] node {$ C_{1,i-1}$} (peak_t)
+    (peak_t1) edge [black, bend right] node [right] {$ C_{1,i-1}^{\geq}$} (bkg_t)
+    (bkg_t1) edge [dotted] node[midway, below] {$ C_{0,i-1}$} (bkg_t)
+    (bkg_t1) edge [black, bend left] node[right] {$ C_{0,i-1}^{\leq}+\lambda$} (peak_t)
+    (bkg_1) edge [black, bend left] node[right] {$ C_{0,1}^{\leq}+\lambda$} (peak_2)
+    (bkg_1) edge [dotted] node[midway, below] {$ C_{0,1}$} (bkg_2)
+    (peak_N1) edge [black, bend right] node [right] {$ C_{1,N-1}^{\geq}$} (bkg_N)
+    (bkg_N1) edge [dotted] node[midway, below] {$ C_{0,N-1}$} (bkg_N)
     (bkg_2) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (bkg_t1)
     (peak_2) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (peak_t1)
     (bkg_N1) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (bkg_t)
@@ -642,49 +728,14 @@ $O(N\log N)$ time, $O(N\log N)$ disk, $O(\log N)$ memory.
     edges represent inputs to the the MinOfTwo sub-routine
     (solid=changepoint, dotted=no change). There is one column for
     each data point and one row for each state: the optimal cost of
-    the peak state $s=1$ at data point $i$ is $\overline C_i$ (top
+    the peak state $s=1$ at data point $i$ is $ C_{1,i}$ (top
     row); the optimal cost of the background noise state $s=0$ is
-    $\underline C_i$ (bottom row). There is only one edge going to
-    $\underline C_2$ and $\overline C_2$ because the model is
+    $ C_{0,i}$ (bottom row). There is only one edge going to
+    $ C_{0,2}$ and $ C_{1,2}$ because the model is
     constrained to start in the background noise state ($s_1=0$).}
   \label{fig:computation-graph}
 \end{figure}
 
-
-\begin{algorithm}
-    \begin{algorithmic}[1]
-  \STATE Input: data $\mathbf z\in\RR^N$, target peaks $P^*$.
-  \STATE $\overline L,\overline p \gets \text{GFPOP}(\mathbf z, \lambda=0)$ // initialize upper bound to max peak model
-  \STATE $\underline L,\underline p \gets \text{GFPOP}(\mathbf z, \lambda=\infty)$ // initialize lower bound to 0 peak model
-  \STATE While $P^*\not\in \{\underline p,\, \overline p\}$:
-  \begin{ALC@g}
-    \STATE $\lambda=(\overline L-\underline L)/(\underline p-\overline p)$
-    \STATE $L_{\text{new}},p_{\text{new}}\gets\text{GFPOP}(\mathbf z, \lambda)$
-    \STATE If $p_{\text{new}}\in\{\underline p, \overline p\}$: return model with $\underline p$ peaks.
-    \STATE If $p_{\text{new}} < P^*$: $\underline L,\underline p\gets L_{\text{new}},p_{\text{new}}$ // new lower bound
-    \STATE Else: $\overline L,\overline p\gets L_{\text{new}},p_{\text{new}}$ // new upper bound
-% > prob.i <- 3
-% > fit.list$others[order(iteration)][, list(target.peaks=prob$peaks, iteration, under, over, penalty, peaks, total.cost)]
-%    target.peaks iteration under over    penalty peaks total.cost
-% 1:           33         1    NA   NA     0.0000  7487 -201361.96
-% 2:           33         1    NA   NA        Inf     0  920923.98
-% 3:           33         2     0 7487   149.8979   753  -24385.02
-% 4:           33         3     0  753  1255.3904    47  153676.28
-% 5:           33         4     0   47 16324.4191    10  310043.81
-% 6:           33         5    10   47  4226.1495    21  214200.02
-% 7:           33         6    21   47  2327.8360    33  177484.99
-% > 
-  \end{ALC@g}
-  \STATE If $P^*=\underline p$: return model with $\underline p$ peaks.
-  \STATE Else: return model with $\overline p$ peaks.
-  \end{algorithmic}
-\caption{\label{algo:seq-search}Sequential search for $P^*$ peaks using GFPOP.}
-\end{algorithm}
-
-Algorithm~\ref{algo:seq-search} (sequential search for $P^*$ peaks)
-uses GFPOP as a sub-routine to find the optimal model with $P^*$
-peaks. Its complexity is $O(N(\log N)^2)$ time, $O(N\log N)$ space,
-$O(\log N)$ memory.
 
 % \begin{leftbar}
 % Note that around the \verb|{equation}| above there should be no spaces (avoided
@@ -1074,35 +1125,35 @@ programming updates (\ref{eq:generalDP}) is stated below.
 
 \begin{algorithm}
 \begin{algorithmic}[1]
-\STATE Input: data set $\mathbf z\in\RR^n$, penalty constant $\lambda\geq 0$.
-\STATE Output: vectors of optimal segment means $U\in\RR^{n}$ and ends $T\in\{1,\dots,n\}^{n}$
+\STATE Input: data set $\mathbf z\in\RR^N$, penalty constant $\lambda\geq 0$.
+\STATE Output: vectors of optimal segment means $U\in\RR^{N}$ and ends $T\in\{1,\dots,N\}^{N}$
 \STATE Compute min $\underline z$ and max $\overline z$ of $\mathbf z$.
 \label{line:op-min-max}
 \STATE
-$\underline C_1\gets
+$ C_{0,1}\gets
  \text{OnePiece}(z_1, \underline z, \overline z)$
-\STATE for data points $t$ from 2 to $n$: // dynamic programming
+\STATE for data point $i$ from 2 to $N$: // dynamic programming
 \label{line:for-dp-t}
 \begin{ALC@g}
-  \STATE $\overline M\gets \lambda + \text{MinLess}(t-1, \underline C_{t-1})$ //cost of non-decreasing change
+  \STATE $ M_1\gets \lambda + \text{MinLess}(i-1,  C_{0,i-1})$ //cost of non-decreasing change
   \label{line:op-MinLess}
-  \STATE $\overline C_{t}\gets \text{MinOfTwo}(\overline M, \overline C_{t-1})+\text{OnePiece}(z_t, \underline z, \overline z)$
+  \STATE $ C_{1,i}\gets \text{MinOfTwo}( M_1,  C_{1,i-1})+\text{OnePiece}(z_i, \underline z, \overline z)$
   \label{line:op-MinOfTwo}
-  \STATE $\underline M\gets \text{MinMore}(t-1, \overline C_{t-1})$ //cost of non-increasing change
+  \STATE $ M_0\gets \text{MinMore}(i-1,  C_{1,i-1})$ //cost of non-increasing change
   \label{line:op-MinMore}
-  \STATE $\underline C_{t}\gets \text{MinOfTwo}(\underline M, \underline C_{t-1})+\text{OnePiece}(z_t, \underline z, \overline z)$
+  \STATE $ C_{0,i}\gets \text{MinOfTwo}( M_0,  C_{0,i-1})+\text{OnePiece}(z_i, \underline z, \overline z)$
   \label{line:op-MinOfTwo-under}
 \end{ALC@g}
-\STATE $u^*,t',u'\gets \text{ArgMin}(\underline C_{n})$ // begin decoding
+\STATE $\text{mean},\text{prevEnd},\text{prevMean}\gets \text{ArgMin}( C_{0,n})$ // begin decoding
 \label{line:op-ArgMin}
-\STATE $i\gets 1;\, U_{i}\gets u^*;\, T_{i}\gets t'$
+\STATE $\text{seg}\gets 1;\, U_{\text{seg}}\gets \text{mean};\, T_{\text{seg}}\gets \text{prevEnd}$
 \label{line:op-store-i}
-\STATE while $t' > 0$:
+\STATE while $\text{prevEnd} > 0$:
 \begin{ALC@g}
-  \STATE if $u' < \infty$: $u^*\gets u'$
-  \STATE if $i$ is odd: $\text{cost}\gets \overline C_{t'}$ else $\underline C_{t'}$
-  \STATE $t',u'\gets\text{FindMean}(u^*, \text{cost})$
-  \STATE $i\gets i+1;\, U_{i}\gets u^*;\, T_{i}\gets t'$
+  \STATE if $\text{prevMean} < \infty$: $\text{mean}\gets \text{prevMean}$
+  \STATE if $\text{seg}$ is odd: $\text{cost}\gets  C_{1,\text{prevEnd}}$ else $ C_{0,\text{prevEnd}}$
+  \STATE $\text{prevEnd},\text{prevMean}\gets\text{FindMean}(\text{mean}, \text{cost})$
+  \STATE $\text{seg}\gets \text{seg}+1;\, U_{\text{seg}}\gets \text{mean};\, T_{\text{seg}}\gets \text{prevEnd}$
 \label{line:op-i+1}
 \end{ALC@g}
 \caption{\label{algo:GFPOP}Generalized Functional Pruning Optimal
@@ -1111,6 +1162,42 @@ $\underline C_1\gets
 \end{algorithmic}
 \end{algorithm}
 
+
+
+\begin{algorithm}
+    \begin{algorithmic}[1]
+  \STATE Input: data $\mathbf z\in\RR^N$, target peaks $P^*$.
+  \STATE $\overline L,\overline p \gets \text{GFPOP}(\mathbf z, \lambda=0)$ // initialize upper bound to max peak model
+  \STATE $\underline L,\underline p \gets \text{GFPOP}(\mathbf z, \lambda=\infty)$ // initialize lower bound to 0 peak model
+  \STATE While $P^*\not\in \{\underline p,\, \overline p\}$:
+  \begin{ALC@g}
+    \STATE $\lambda=(\overline L-\underline L)/(\underline p-\overline p)$
+    \STATE $L_{\text{new}},p_{\text{new}}\gets\text{GFPOP}(\mathbf z, \lambda)$
+    \STATE If $p_{\text{new}}\in\{\underline p, \overline p\}$: return model with $\underline p$ peaks.
+    \STATE If $p_{\text{new}} < P^*$: $\underline L,\underline p\gets L_{\text{new}},p_{\text{new}}$ // new lower bound
+    \STATE Else: $\overline L,\overline p\gets L_{\text{new}},p_{\text{new}}$ // new upper bound
+% > prob.i <- 3
+% > fit.list$others[order(iteration)][, list(target.peaks=prob$peaks, iteration, under, over, penalty, peaks, total.cost)]
+%    target.peaks iteration under over    penalty peaks total.cost
+% 1:           33         1    NA   NA     0.0000  7487 -201361.96
+% 2:           33         1    NA   NA        Inf     0  920923.98
+% 3:           33         2     0 7487   149.8979   753  -24385.02
+% 4:           33         3     0  753  1255.3904    47  153676.28
+% 5:           33         4     0   47 16324.4191    10  310043.81
+% 6:           33         5    10   47  4226.1495    21  214200.02
+% 7:           33         6    21   47  2327.8360    33  177484.99
+% > 
+  \end{ALC@g}
+  \STATE If $P^*=\underline p$: return model with $\underline p$ peaks.
+  \STATE Else: return model with $\overline p$ peaks.
+  \end{algorithmic}
+\caption{\label{algo:seq-search}Sequential search for $P^*$ peaks using GFPOP.}
+\end{algorithm}
+
+Algorithm~\ref{algo:seq-search} (sequential search for $P^*$ peaks)
+uses GFPOP as a sub-routine to find the optimal model with $P^*$
+peaks. Its complexity is $O(N(\log N)^2)$ time, $O(N\log N)$ space,
+$O(\log N)$ memory.
 
 % \begin{leftbar} 
 % If necessary or useful, information about certain computational details
