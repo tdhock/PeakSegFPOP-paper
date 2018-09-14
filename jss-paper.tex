@@ -154,25 +154,25 @@
 Several dynamic programming algorithms for inferring optimal multiple
 changepoint models have been proposed in recent years
 (Table~\ref{tab:unconstrained-algos}). Such algorithms seek to compute
-the optimal model with $S$ segments ($S-1$ changepoints) for a
+the optimal model with $K$ segments ($K-1$ changepoints) for a
 sequence of $N$ data, $z_1,\dots,z_N$. The optimization variables are
-the $S-1$ discrete changepoints (which take integer values from 1 to
-$N-1$), and the $S$ segment means (typically real-valued). The goal of
+the $K-1$ discrete changepoints (which take integer values from 1 to
+$N-1$), and the $K$ segment means (typically real-valued). The goal of
 optimal changepoint algorithms is to find the arrangement of
 changepoints and segment means which maximizes a likelihood function
 (or equivalently minimizes a loss function). Optimizing by naively
-computing the best mean and likelihood for each of the $O(N^{S-1})$
-possible arrangements of changepoints is an exponential $O(N^S)$ time
+computing the best mean and likelihood for each of the $O(N^{K-1})$
+possible arrangements of changepoints is an exponential $O(N^K)$ time
 operation.
 
 The classical dynamic programming algorithms have time complexity
 which is quadratic in the number of data $N$. The algorithm which
 solves the ``Segment Neighborhood'' problem computes a sequence of
-optimal models from 1 to $S$ segments, in $O(SN^2)$ time
+optimal models from 1 to $K$ segments, in $O(KN^2)$ time
 \citet{segment-neighborhood}.  \citet{optimal-partitioning} described
 an $O(N^2)$ algorithm which solves the related ``Optimal
 Partitioning'' problem. Rather than explicitly using the number of
-segments $S$ as a parameter, it inputs a non-negative penalty
+segments $K$ as a parameter, it inputs a non-negative penalty
 parameter $\lambda\in \RR_+$. The classical algorithm for solving the
 Segment Neighborhood problem is available in \R\ as
 \verb|changepoint::cpt.mean(method="SegNeigh")|
@@ -181,7 +181,7 @@ $O(N^2)$ algorithm for solving the Optimal Partitioning problem.
 
 \citet{pruned-dp} proposed a Pruned Dynamic Programming Algorithm
 (PDPA) for solving the Segment Neighborhood problem in faster
-$O(S N\log N)$ time. The novelty of the PDPA is the functional
+$O(K N\log N)$ time. The novelty of the PDPA is the functional
 representation of the optimal cost, which allows pruning the $O(N)$
 possible changepoints to only $O(\log N)$ candidates (while
 maintaining optimality). The original implementation of the PDPA was
@@ -206,8 +206,8 @@ reduce the $O(N)$ possible changepoints to only $O(\log N)$ candidates
     Problem & No changepoint pruning & Functional pruning \\
     \hline
     Segment  & Dynamic Prog. Algo. (DPA) & Pruned DPA (PDPA) \\
-                  Neighborhood & Optimal, $O(SN^2)$ time & Optimal, $O(SN\log N)$ time\\
-            $S$ segments& \citet{segment-neighborhood} & \citet{pruned-dp}\\
+                  Neighborhood & Optimal, $O(KN^2)$ time & Optimal, $O(KN\log N)$ time\\
+            $K$ segments& \citet{segment-neighborhood} & \citet{pruned-dp}\\
             & \pkg{changepoint} & \pkg{jointseg}\\
     \hline
     Optimal  & Optimal Partitioning Algorithm & FPOP \\
@@ -248,14 +248,14 @@ domain-specific states. For example in genomic data such as ChIP-seq
 terms of peaks (large values which represent protein binding) and
 background (small values which represent background noise).
 
-In this context, \citet{HOCKING-PeakSeg} introduced a $O(SN^2)$
+In this context, \citet{HOCKING-PeakSeg} introduced a $O(KN^2)$
 Constrained Dynamic Programming Algorithm (CDPA) for computing a model
 where up changes are followed by down changes, and vice versa
 (Table~\ref{tab:constrained-algos}). These constraints ensure that
 odd-numbered segments can be interpreted as background, and
 even-numbered segments can be interpreted as peaks. Although the CDPA
 provides a sub-optimal solution to the Segment Neighborhood problem in
-$O(SN^2)$ time, \citet{HOCKING2016-chipseq} showed that it achieves
+$O(KN^2)$ time, \citet{HOCKING2016-chipseq} showed that it achieves
 state-of-the-art peak detection accuracy in a benchmark of
 ChIP-seq data sets. 
 
@@ -275,7 +275,7 @@ constraints between adjacent segment means. The resulting Generalized
 Pruned Dynamic Programming Algorithm (GPDPA) reduces the number of
 candidate changepoints from $O(N)$ to $O(\log N)$ while enforcing the constraints and maintaining
 optimality. The GPDPA computes the optimal solution to the up-down
-constrained Segment Neighborhood problem in $O(SN\log N)$ time.  The
+constrained Segment Neighborhood problem in $O(KN\log N)$ time.  The
 \pkg{PeakSegOptimal} \R\ package provides an in-memory solver for the up-down constrained Segment Neighborhood model
 \citep{Hocking-constrained-changepoint-detection}.
 
@@ -285,7 +285,7 @@ constrained Segment Neighborhood problem in $O(SN\log N)$ time.  The
     & No changepoint pruning & Functional pruning \\
     \hline
     Segment Neighborhood & Constrained DPA & Generalized PDPA \\
-$S$ segments    & Sub-optimal,  $O(SN^2)$ & Optimal, $O(SN\log N)$\\
+$K$ segments    & Sub-optimal,  $O(KN^2)$ & Optimal, $O(KN\log N)$\\
     & \citet{HOCKING-PeakSeg} & 
 % dont know why this isn't abbreviated to etal!!!
 \citet{Hocking-constrained-changepoint-detection}
@@ -339,29 +339,29 @@ First, we present a new algorithm for solving the Optimal Partitioning
 problem with up-down constraints between adjacent segment means
 (GFPOP, Algorithm~\ref{algo:GFPOP}). The fastest existing algorithm
 for the up-down constrained changepoint model was the
-$O(SN\log N)$ solver for the Segment Neighborhood problem
+$O(KN\log N)$ solver for the Segment Neighborhood problem
 (Table~\ref{tab:constrained-algos}). In large genomic data sets, we
 are only interested in models with many segments/changepoints, so it
-is a waste of time and space to compute all models from 1 to $S$
+is a waste of time and space to compute all models from 1 to $K$
 segments using Segment Neighborhood algorithms. Our proposed GFPOP
 algorithm solves the Optimal Partitioning problem, so yields one
-optimal model with $S$ segments (without having to compute the models
-from 1 to $S-1$ segments). We show that the empirical complexity of
+optimal model with $K$ segments (without having to compute the models
+from 1 to $K-1$ segments). We show that the empirical complexity of
 our GFPOP implementation is $O(N\log N)$ time, $O(N\log N)$ space, and
 $O(\log N)$ memory, which makes it possible to compute optimal models
 for large genomic data sets on common laptop computers.
 
 Although solving the Optimal Partitioning problem is faster by a
-factor of $O(S)$, the user is unable to directly choose the number of
-segments $S$. The user inputs a penalty $\lambda$, and gets one of the
+factor of $O(K)$, the user is unable to directly choose the number of
+segments $K$. The user inputs a penalty $\lambda$, and gets one of the
 optimal changepoint models as output. Thus, we also propose a
 sequential search (Algorithm~\ref{algo:seq-search}) which computes the
-optimal model for a specified number of segments $S$. It repeatedly
+optimal model for a specified number of segments $K$. It repeatedly
 calls GFPOP to solve Optimal Partitioning with different penalties
-$\lambda$, until it finds the most likelihood model with at most $S$
+$\lambda$, until it finds the most likelihood model with at most $K$
 segments. We empirically show that the sequential search only requires
-$O(\log S)$ evaluations of GFPOP. Overall the proposed algorithm is
-thus $O( N \log(N)\log(S))$ time, $O(N\log N)$ disk, $O(\log N)$
+$O(\log K)$ evaluations of GFPOP. Overall the proposed algorithm is
+thus $O( N \log(N)\log(K))$ time, $O(N\log N)$ disk, $O(\log N)$
 memory. In an analysis of benchmark genomic data sets, we show that
 this algorithm can compute an optimal model with $O(\sqrt N)$ peaks
 for $N=10^7$ data using only minutes of compute time and gigabytes of
@@ -373,67 +373,67 @@ required for the Segment Neighborhood algorithm).
 \subsection{Unconstrained Segment Neighborhood model}
 
 Let $z_1,\dots,z_N\in\ZZ_+$ be a sequence of non-negative count
-data. The piecewise constant Poisson model with $S$ segments has mean
-parameters $u_1,\dots,u_S\in\RR$ and changepoint parameters
-$0=t_0<t_1<\cdots<t_{S-1}<t_S=N$. For every segment
-$s\in\{1,\dots,S\}$, the statistical model assumes
-$z_i \stackrel{\text{iid}}{\sim} \text{Poisson}(u_s)$ for every data
-point $i\in(t_{s-1},t_s]$ on that segment. Maximum likelihood
+data. The piecewise constant Poisson model with $K$ segments has mean
+parameters $u_1,\dots,u_K\in\RR$ and changepoint parameters
+$0=t_0<t_1<\cdots<t_{K-1}<t_K=N$. For every segment
+$k\in\{1,\dots,K\}$, the statistical model assumes
+$z_i \stackrel{\text{iid}}{\sim} \text{Poisson}(u_k)$ for every data
+point $i\in(t_{k-1},t_k]$ on that segment. Maximum likelihood
 inference in this model is equivalent to solving the minimization
 problem
 \begin{align}
     \minimize_{\substack{
-  \mathbf u\in\RR^{S}
+  \mathbf u\in\RR^{K}
 \\
-   0=t_0<t_1<\cdots<t_{S-1}<t_S=N
+   0=t_0<t_1<\cdots<t_{K-1}<t_K=N
   }} &\ \ 
-    \sum_{s=1}^S\  \sum_{i=t_{s-1}+1}^{t_s} \ell(u_s,z_i).
+    \sum_{k=1}^K\  \sum_{i=t_{k-1}+1}^{t_k} \ell(u_k,z_i).
 \label{min:ut}
 \end{align}
 Note that $\ell(u, z)=u-z\log u$ is the Poisson loss (minus the log
 Poisson likelihood). We refer to problem~(\ref{min:ut}) as
 ``unconstrained'' because there are no constraints between adjacent
-segment mean variables $u_s,u_{s+1}$.
+segment mean variables $u_k,u_{k+1}$.
 
 To demonstrate the relationship with the Optimal Partitioning problem,
 we re-write problem~(\ref{min:ut}) as the equivalent optimization
-problem below. Instead of $S$ mean parameters $u_s$ and $S-1$
-changepoint parameters $t_s$, we use $N$ segment mean
+problem below. Instead of $K$ mean parameters $u_k$ and $K-1$
+changepoint parameters $t_k$, we use $N$ segment mean
 parameters $m_i$ assigned to each data point,
 \begin{align}
     \minimize_{\substack{
   \mathbf m\in\RR^{N}
-% \\
-%    0=t_0<t_1<\cdots<t_{S-1}<t_S=N
   }} &\ \ 
     \sum_{i=1}^N \ell(m_i, z_i)
 \label{min:m}
 \\
-      \text{subject to} &\ \ \sum_{i=1}^{N-1} I[m_i\neq m_{i+1}]=S-1.
+      \text{subject to} &\ \ \sum_{i=1}^{N-1} I[m_i\neq m_{i+1}]=K-1,
   \nonumber
 \end{align}
-Note that the objective function is the same as in
-problem~(\ref{min:ut}), and the sum of indicator functions in the
-constraint ensures that there are exactly $S-1$ changepoints in the
-sequence of mean values $m_i$.
+where the number of segments $K$ is the fixed tuning parameter which
+controls the tradeoff between data fitting and regularization. Note
+that the objective function is the same as in problem~(\ref{min:ut}),
+and the sum of indicator functions in the constraint ensures that
+there are exactly $K-1$ changepoints in the sequence of mean values
+$m_i$.
 
 Problem~(\ref{min:ut}) is non-convex because of the integer-valued
 changepoint variables, and problem~(\ref{min:m}) is non-convex due to
 the indicator functions in the constraint. This non-convexity means
 that standard gradient-based algorithms can not be used to compute the
 optimal solution. Nonetheless, the optimal solution can be computed in
-$O(SN^2)$ time using the classic dynamic programming algorithm (\R\
-package \pkg{changepoint}), or in $O(SN\log N)$ time using dynamic
+$O(KN^2)$ time using the classic dynamic programming algorithm (\R\
+package \pkg{changepoint}), or in $O(KN\log N)$ time using dynamic
 programming with functional pruning (\R\ package \pkg{jointseg}). Both
-solvers return the optimal $u_s,t_s$ values for
+solvers return the optimal $u_k,t_k$ values for
 problem~(\ref{min:ut}), which can be easily converted to the optimal
 $m_i$ values for problem~(\ref{min:m}), via
-$m_i=u_s \forall i\in (t_{s-1},t_s]$.
+$m_i=u_k \forall i\in (t_{k-1},t_k]$.
 
 \subsection{Unconstrained Optimal Partitioning problem}
 
 The Optimal Partitioning problem moves the term from the constraint in
-problem~(\ref{min:m}) to a model complexity term in the objective
+problem~(\ref{min:m}) to the objective
 function:
 \begin{align}
   \label{min:op}
@@ -446,36 +446,64 @@ function:
 \end{align}
 The first term in the objective function is the Poisson loss, which
 encourages data fitting. The second term is the the number of
-changepoints, which encourages a regularized mean vector $\mathbf m$. The
-non-negative penalty $\lambda\in\RR_+$ controls the tradeoff between
-the two objectives. Larger penalty $\lambda$ values result in models
-with fewer changepoints/segments. The extreme penalty values are
-$\lambda=0$ which yields $N$ segments ($N-1$ changepoints), and
-$\lambda=\infty$ which yields 1 segment (0 changepoints).
+changepoints, which encourages a regularized mean vector $\mathbf
+m$. The non-negative penalty $\lambda\in\RR_+$ controls the tradeoff
+between the two objectives (it is a tuning parameter that must be
+fixed before solving the problem). Larger penalty $\lambda$ values
+result in models with fewer changepoints/segments. The extreme penalty
+values are $\lambda=0$ which yields $N$ segments ($N-1$ changepoints),
+and $\lambda=\infty$ which yields 1 segment (0 changepoints).
 
-Below we re-write the Optimal Partitioning problem in terms of
-changepoint variables $c_i$,
+Below we write an equivalent version of the Optimal Partitioning
+problem, in terms of changepoint variables $c_i$ and state variables
+$s_i$:
 \begin{align}
   \label{min:op-c}
   \minimize_{
   \substack{
-  \mathbf m\in\RR^N,\\
+  \mathbf m\in\RR^N,\, \mathbf s\in\{0\}^N\\
   \mathbf c\in\{0,1\}^{N-1}\\
   }
   } &\ \ 
-      \sum_{i=1}^N \ell(m_i, z_i) + \lambda \sum_{i=1}^{N-1} c_i \\
-  \text{subject to\ \ \ } &\ \text{no change: }c_i = 0 \Rightarrow m_i = m_{i+1}, \nonumber\\
-    &\ \text{change: }c_i = 1 \Rightarrow m_i \neq m_{i+1}.\nonumber
+      \sum_{i=1}^N \ell(m_i, z_i) + \lambda \sum_{i=1}^{N-1} I(c_i=1) \\
+  \text{subject to\ \ } &\ \text{no change: }c_i = 0 \Rightarrow m_i = m_{i+1}\text{ and } s_i=s_{i+1}, \nonumber\\
+    &\ \text{change: }c_i = 1 \Rightarrow m_i \neq m_{i+1}\text{ and }(s_i,s_{i+1})=(0,0).\label{eq:change-constraint}
 \end{align}
-Note that the $c_i$ variables could be eliminated from the
-optimization problem by taking $c_i=I(m_i\neq m_{i+1})$. We include
-them in problem~(\ref{min:op-c}) in order to show the relationship
-with the problem in the next section, with constraints between
-adjacent segment means.
+Note that the state $s_i$ and changepoint $c_i$ variables could be
+eliminated from the optimization problem --- $s_i=0$ for all $i$, and 
+$c_i=I(m_i\neq m_{i+1})$. We include them in problem~(\ref{min:op-c})
+in order to show the relationship with the problem in the next
+section, with constraints between adjacent segment means.
 
-\subsection{Optimal Partitioning problem with constraints between adjacent segment means}
+\citet{Hocking-constrained-changepoint-detection} proposed to use a
+graph to represent a constrained changepoint model. The graph that
+corresponds to problem~(\ref{min:op-c}) is shown in
+Figure~\ref{fig:state-graph}, left. In such graphs, nodes represent
+possible values of state variables $s_i$ and edges represent possible
+changepoints $c_i\neq 0$. Each edge/changepoint corresponds to a
+constraint such as (\ref{eq:change-constraint}).
 
-The optimization problem that our algorithm solves is
+The optimal solution to problems~(\ref{min:op}) and (\ref{min:op-c})
+can be computed in $O(N^2)$ time using the classic dynamic programming
+algorithm (not currently implemented in \R), or in $O(N\log N)$ time
+using Functional Pruning Optimal Partitioning (\R\ package
+\pkg{fpop}).
+
+\subsection{Optimal Partitioning problem with up-down constraints between
+  adjacent segment means}
+
+For genomic data such as ChIP-seq \citep{chip-seq}, it is desirable to
+have a changepoint model which is interpretable in terms of peaks
+(large values) and background noise (small values). We therefore
+propose a model based on the graph shown in
+Figure~\ref{fig:state-graph}, right. It has two nodes/states: $s=0$
+for background, and $s=1$ for peaks. It has two edges/changes: $c=1$
+for a non-decreasing change from background $s=0$ to a peak $s=1$, and
+$c=-1$ for a non-increasing change from a peak $s=1$ to background
+$s=0$. Furthermore, the model is constrained to start and end in the
+background state (because peaks are not present at the boundaries of
+genomic data sequences). Maximum likelihood inference in
+this model corresponds to the following minimization problem:
 \begin{align}
   \label{min:op-up-down}
   \minimize_{
@@ -485,11 +513,12 @@ The optimization problem that our algorithm solves is
   }
   } &\ \ 
       \sum_{i=1}^N \ell(m_i, z_i) + \lambda \sum_{i=1}^{N-1} I(c_i = 1) \\
-  \text{subject to\ \ \ } &\ \text{no change: }c_t = 0 \Rightarrow m_t = m_{t+1}\text{ and }s_t=s_{t+1}, \nonumber\\
-    &\ \text{non-decreasing change: }c_t = 1 \Rightarrow m_t \leq m_{t+1}\text{ and }(s_t,s_{t+1})=(0,1),\nonumber\\
-    &\ \text{non-increasing change: } c_t = -1 \Rightarrow m_t \geq m_{t+1}\text{ and }(s_t,s_{t+1})=(1,0),\nonumber\\
+  \text{subject to\ \ } &\ \text{no change: }c_i = 0 \Rightarrow m_i = m_{i+1}\text{ and }s_i=s_{i+1}, \nonumber\\
+    &\ \text{non-decreasing change: }c_i = 1 \Rightarrow m_i \leq m_{i+1}\text{ and }(s_i,s_{i+1})=(0,1),\nonumber\\
+    &\ \text{non-increasing change: } c_i = -1 \Rightarrow m_i \geq m_{i+1}\text{ and }(s_i,s_{i+1})=(1,0),\nonumber\\
   & \ \text{start and end down: } s_1=s_N=0.\nonumber
 \end{align}
+Note that the model complexity (right TODO)
 
 \begin{figure}
   \centering
@@ -537,20 +566,30 @@ The optimization problem that our algorithm solves is
   \label{fig:state-graph}
 \end{figure}
 
-The algorithm recursively computes the two vectors of real-valued cost
-functions using the update rules:
+\subsection{Generalized Functional Pruning Optimal Partitioning (GFPOP)}
+
+The state graph (Figure~\ref{fig:state-graph}, right) can be converted
+into a directed acyclic graph (Figure~\ref{fig:computation-graph})
+that represents the dynamic programming updates required to solve
+problem~\ref{min:op-up-down}. Each node in the computation graph
+represents an optimal cost function, and each edge represents an input
+to the $\min\{\}$ operation in the dynamic programming
+equations~(\ref{eq:dp-over}) and (\ref{eq:dp-under}) below.
+
+More precisely, the algorithm begins by initializing the optimal cost of the background state $s=0$ at data point $i=1$ to compute the optimal cost of
+the peak state $s=1$ at data $i>2$, we use
 \begin{equation}
   \label{eq:dp-over}
-  \overline C_{t}(\mu) = \ell(\mu, z_i) + \min\{
-  \overline C_{t-1}(\mu),\, 
-  \underline C_{t-1}^\leq(\mu)+\lambda
+  \overline C_{i}(\mu) = \ell(\mu, z_i) + \min\{
+  \overline C_{i-1}(\mu),\, 
+  \underline C_{i-1}^\leq(\mu)+\lambda
 \},
 \end{equation}
 \begin{equation}
   \label{eq:dp-under}
-    \underline C_{t}(\mu) = \ell(\mu, z_i) + \min\{
-  \underline C_{t-1}(\mu),\, 
-  \overline C_{t-1}^\geq(\mu)+\lambda
+    \underline C_{i}(\mu) = \ell(\mu, z_i) + \min\{
+  \underline C_{i-1}(\mu),\, 
+  \overline C_{i-1}^\geq(\mu)+\lambda
 \},
 \end{equation}
 where the min-less operator is defined as 
@@ -567,49 +606,49 @@ The algorithm is implemented in \R\ as
 \verb|PeakSegPipeline::PeakSegFPOP_disk|. Its complexity is
 $O(N\log N)$ time, $O(N\log N)$ disk, $O(\log N)$ memory.
 
-  \begin{figure}
-    \centering
-    \begin{tikzpicture}[->,>=latex,shorten >=1pt,auto,node distance=2.5cm,
-      thick,main node/.style={circle,draw}]
-      \node[main node] (peak_t1) {$\overline C_{t-1}$};
-      \node[main node] (bkg_t1) [below of=peak_t1] {$\underline C_{t-1}$};
-      \node[main node] (peak_t) [right of=peak_t1] {$\overline C_{t}$};
-      \node[main node] (bkg_t) [right of=bkg_t1] {$\underline C_{t}$};
-      \node[main node] (peak_2) [left of=peak_t1] {$\overline C_2$};
-      \node[main node] (bkg_2) [left of=bkg_t1] {$\underline C_2$};
-      \node[main node] (peak_N1) [right of=peak_t] {$\overline C_{N-1}$};
-      \node[main node] (bkg_N1) [right of=bkg_t] {$\underline C_{N-1}$};
-      \node[main node] (bkg_N) [right of=bkg_N1] {$\underline C_N$};
-      \node[main node] (bkg_1) [left of=bkg_2] {$\underline C_1$};
-      \path[every node/.style={font=\small}]
-      (peak_t1) edge [dotted] node {$\overline C_{t-1}$} (peak_t)
-      (peak_t1) edge [black, bend right] node [right] {$\overline C_{t-1}^{\geq}$} (bkg_t)
-      (bkg_t1) edge [dotted] node[midway, below] {$\underline C_{t-1}$} (bkg_t)
-      (bkg_t1) edge [black, bend left] node[right] {$\underline C_{ t-1}^{\leq}+\lambda$} (peak_t)
-      (bkg_1) edge [black, bend left] node[right] {$\underline C_{1}^{\leq}+\lambda$} (peak_2)
-      (bkg_1) edge [dotted] node[midway, below] {$\underline C_1$} (bkg_2)
-      (peak_N1) edge [black, bend right] node [right] {$\overline C_{N-1}^{\geq}$} (bkg_N)
-      (bkg_N1) edge [dotted] node[midway, below] {$\underline C_{N-1}$} (bkg_N)
-      (bkg_2) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (bkg_t1)
-      (peak_2) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (peak_t1)
-      (bkg_N1) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (bkg_t)
-      (peak_N1) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (peak_t)
-      ;
-    \end{tikzpicture}
-    \caption{Directed acyclic graph (DAG) representing dynamic
-      programming computations (Algorithm~\ref{algo:GFPOP}) for
-      changepoint model with up-down constraints between adjacent
-      segment means. Nodes in the graph repesent cost functions, and
-      edges represent inputs to the the MinOfTwo sub-routine
-      (solid=changepoint, dotted=no change). There is one column for
-      each data point and one row for each state: the optimal cost of
-      the peak state $s=1$ at data point $t$ is $\overline C_t$ (top
-      row); the optimal cost of the background noise state $s=0$ is
-      $\underline C_t$ (bottom row). There is only one edge going to
-      $\underline C_2$ and $\overline C_2$ because the model is
-      constrained to start in the background noise state ($s_1=0$).}
-    \label{fig:computation-graph}
-  \end{figure}
+\begin{figure}
+  \centering
+  \begin{tikzpicture}[->,>=latex,shorten >=1pt,auto,node distance=2.5cm,
+    thick,main node/.style={circle,draw}]
+    \node[main node] (peak_t1) {$\overline C_{i-1}$};
+    \node[main node] (bkg_t1) [below of=peak_t1] {$\underline C_{i-1}$};
+    \node[main node] (peak_t) [right of=peak_t1] {$\overline C_{i}$};
+    \node[main node] (bkg_t) [right of=bkg_t1] {$\underline C_{i}$};
+    \node[main node] (peak_2) [left of=peak_t1] {$\overline C_2$};
+    \node[main node] (bkg_2) [left of=bkg_t1] {$\underline C_2$};
+    \node[main node] (peak_N1) [right of=peak_t] {$\overline C_{N-1}$};
+    \node[main node] (bkg_N1) [right of=bkg_t] {$\underline C_{N-1}$};
+    \node[main node] (bkg_N) [right of=bkg_N1] {$\underline C_N$};
+    \node[main node] (bkg_1) [left of=bkg_2] {$\underline C_1$};
+    \path[every node/.style={font=\small}]
+    (peak_t1) edge [dotted] node {$\overline C_{i-1}$} (peak_t)
+    (peak_t1) edge [black, bend right] node [right] {$\overline C_{i-1}^{\geq}$} (bkg_t)
+    (bkg_t1) edge [dotted] node[midway, below] {$\underline C_{i-1}$} (bkg_t)
+    (bkg_t1) edge [black, bend left] node[right] {$\underline C_{i-1}^{\leq}+\lambda$} (peak_t)
+    (bkg_1) edge [black, bend left] node[right] {$\underline C_{1}^{\leq}+\lambda$} (peak_2)
+    (bkg_1) edge [dotted] node[midway, below] {$\underline C_1$} (bkg_2)
+    (peak_N1) edge [black, bend right] node [right] {$\overline C_{N-1}^{\geq}$} (bkg_N)
+    (bkg_N1) edge [dotted] node[midway, below] {$\underline C_{N-1}$} (bkg_N)
+    (bkg_2) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (bkg_t1)
+    (peak_2) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (peak_t1)
+    (bkg_N1) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (bkg_t)
+    (peak_N1) edge [color=white] node[below, text=black, pos=0.5] {$\cdots$} (peak_t)
+    ;
+  \end{tikzpicture}
+  \caption{Directed acyclic graph (DAG) representing dynamic
+    programming computations (Algorithm~\ref{algo:GFPOP}) for
+    changepoint model with up-down constraints between adjacent
+    segment means. Nodes in the graph repesent cost functions, and
+    edges represent inputs to the the MinOfTwo sub-routine
+    (solid=changepoint, dotted=no change). There is one column for
+    each data point and one row for each state: the optimal cost of
+    the peak state $s=1$ at data point $i$ is $\overline C_i$ (top
+    row); the optimal cost of the background noise state $s=0$ is
+    $\underline C_i$ (bottom row). There is only one edge going to
+    $\underline C_2$ and $\overline C_2$ because the model is
+    constrained to start in the background noise state ($s_1=0$).}
+  \label{fig:computation-graph}
+\end{figure}
 
 
 \begin{algorithm}
