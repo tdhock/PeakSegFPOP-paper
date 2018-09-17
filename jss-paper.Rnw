@@ -960,8 +960,14 @@ We now assume the user wants to compute the optimal model with a fixed
 number of peaks $P^*$. To compute that model we will maximize the function
 \begin{equation}
   \label{eq:G}
-  G(\lambda)=F(\lambda) - P^*\lambda.
+  G(\lambda)=F(\lambda) - P^*\lambda = \min_{
+    P\in\{0,1,\dots,P_{\text{max}}\}
+    } \underbrace{L_P + \lambda(P-P^*)}_{g_P(\lambda)}.
 \end{equation}
+From the equation above it is clear that $G(\lambda)$ is a concave
+function that can be computed as the minimum of a finite number of
+affine functions $g_P(\lambda)=L_P+\lambda(P-P^*)$. For an example $G$
+function see Figure~\ref{fig:evaluations-concave}.
 
 \begin{figure}[t!]
 \centering
@@ -973,26 +979,69 @@ number of peaks $P^*$. To compute that model we will maximize the function
 \end{minipage} 
 \vskip -0.5cm
 \caption{\label{fig:evaluations-concave} Example of a $G(\lambda)$
-  function which is maximized by
-  Algorithm~\ref{algo:seq-search} in order to find the optimal
-  model with $P^*$ peaks.}
-\end{figure} 
+  function which is maximized in order to find the most likely model
+  with at most $P^*=75$ peaks. Red dots show $G(\lambda)$ values
+  evaluated by the algorithm; grey lines show affine functions
+  $g_P(\lambda)=L_P+(P-P^*)\lambda$ used to determine the next
+  $\lambda$ value (line~\ref{line:lambda} of
+  Algorithm~\ref{algo:seq-search}). \textbf{Left:} iteration 1 runs
+  GFPOP with $\lambda\in\{0,\infty\}$, resulting in initial lower
+  bound of $\underline p=0$ peaks and upper bound of
+  $\overline p=29681$ peaks. In iteration 2 the algorithm finds the
+  intersection of the upper/lower bound lines
+  $g_0(\lambda)=g_{29681}(\lambda)$ at $\lambda=90.9$; running GFPOP
+  with that penalty reduces the upper bound to $\underline
+  p=3445$. \textbf{Right:} In the last iteration (13), we run GFPOP
+  with $\lambda=2522.1$ (which is where $g_{74}$
+  intersects $g_{76}$), resulting in 76 peaks when we already have
+  $\overline p=76$ as an upper bound (computed in iteration 12). The
+  maximum of $G$ is thus
+  $G(2522.1)=g_{74}(2522.1)=g_{76}(2522.1)$; the algorithm returns the
+  model with $P=74$ peaks.}
+\end{figure}  
   
+The main idea of the sequential search algorithm is to keep track of a
+lower bound $\underline p<P^*$ and upper bound $\overline p>P^*$ on
+the number of peaks computed thus far.  The algorithm starts with
+$\lambda=0,\overline p=P_{\text{max}}$ and
+$\lambda=\infty,\underline p=0$.  At each iteration of the algorithm,
+we find the intersection of the affine functions
+$g_{\underline p}(\lambda)=g_{\overline p}(\lambda)$, which leads to a
+new candidate penalty
+$\lambda_{\underline p,\overline p}=(L_{\overline p}-L_{\underline
+  p})/(\underline p-\overline p)$.  As previously described
+\citep{crops}, there are two possibilities for the solution to the
+Optimal Partitioning problem:
+\begin{itemize}
+\item GFPOP($\lambda_{\underline p,\overline p}$) yields
+  $\underline p$ or $\overline p$ peaks. In that case
+  $\max_\lambda G(\lambda)=G(\lambda_{\underline p,\overline
+    p})=g_{\underline p}(\lambda_{\underline p,\overline
+    p})=g_{\overline p}(\lambda_{\underline p,\overline p})$ and there
+  is no Optimal Partitioning model with $P^*$ peaks. We terminate the
+  algorithm by returning the model with $\underline p$ peaks.
+\item GFPOP($\lambda_{\underline p,\overline p}$) yields a new model
+  with $\rho$ peaks. If $\rho=P^*$ then
+  $\max_\lambda G(\lambda)=L_{P^*}$ and we return this
+  model. Otherwise it must be true that
+  $\underline p < \rho < \overline p$. If $\underline p<\rho < P^*$
+  then we use $\rho$ for a new lower bound $\underline p$; otherwise
+  we use it for a new upper bound $\overline p$.
+  %% implying
+  %% $G(\lambda_{\underline p,\overline p})=g_{\rho}(\lambda_{\underline
+  %%   p,\overline p})$. In that case,
+  %% $G(\lambda_{\underline p,\overline p})<g_{\underline
+  %%   p}(\lambda_{\underline p,\overline p})$ and
+  %% $G(\lambda_{\underline p,\overline p})<g_{\overline
+  %%   p}(\lambda_{\underline p,\overline p})$. We cont
+\end{itemize}
+%% Because $G$ is defined as the
+%% minimum of the $g_P$ (\ref{eq:G}), we know that
+%% $G(\lambda_{\underline p,\overline p})\leq g_{\underline p}(\lambda)$
+%% and
+%% $G(\lambda_{\underline p,\overline p})\leq g_{\overline p}(\lambda)$.
 
-After running GFPOP~(Algorithm~\ref{algo:GFPOP}) for a given data set
-$\mathbf z$ and penalty $\lambda$, we obtain the solution
-$(\mathbf m^\lambda,\mathbf s^\lambda, \mathbf c^\lambda)$ to
-problem~(\ref{min:op-up-down}). The number of peaks is
-\begin{equation}
-  \label{eq:optimal_peaks}
-  p(\mathbf c^\lambda) = \sum_{i=1}^{N-1}I(c^\lambda_i=1)
-\end{equation}
-and the total Poisson loss is
-\begin{equation}
-  \label{eq:total_loss}
-  L(\mathbf m^\lambda, \mathbf z) = \sum_{i=1}^N \ell(m^\lambda_i, z_i).
-\end{equation}
-The 
+
 
 \begin{algorithm}
     \begin{algorithmic}[1]
@@ -1000,8 +1049,10 @@ The
   \STATE $\overline L,\overline p \gets \text{GFPOP}(\mathbf z, \lambda=0)$ // initialize upper bound to max peak model
   \STATE $\underline L,\underline p \gets \text{GFPOP}(\mathbf z, \lambda=\infty)$ // initialize lower bound to 0 peak model
   \STATE While $P^*\not\in \{\underline p,\, \overline p\}$:
+  \label{line:while}
   \begin{ALC@g}
     \STATE $\lambda=(\overline L-\underline L)/(\underline p-\overline p)$
+    \label{line:lambda}
     \STATE $L_{\text{new}},p_{\text{new}}\gets\text{GFPOP}(\mathbf z, \lambda)$
     \STATE If $p_{\text{new}}\in\{\underline p, \overline p\}$: return model with $\underline p$ peaks.
     \STATE If $p_{\text{new}} < P^*$: $\underline L,\underline p\gets L_{\text{new}},p_{\text{new}}$ // new lower bound
@@ -1024,13 +1075,14 @@ The
 \caption{\label{algo:seq-search}Sequential search for $P^*$ peaks using GFPOP.}
 \end{algorithm}
 
-Algorithm~\ref{algo:seq-search} (sequential search for $P^*$ peaks)
-uses GFPOP as a sub-routine to find the optimal model with $P^*$
-peaks. Its complexity is $O(N(\log N)^2)$ time, $O(N\log N)$ space,
-$O(\log N)$ memory.
-
-\citet{crops} proposed a similar algorithm (CROPS) for computing
-Changepoint models for a Range Of PenaltieS.
+Algorithm~\ref{algo:seq-search} summarizes the sequential search. It
+uses GFPOP as a sub-routine to find the optimal model with at most
+$P^*$ peaks. Its space complexity is the same as GFPOP: $O(N\log N)$
+disk and $O(\log N)$ memory. Its time complexity is linear in the
+number of iterations of the while loop
+(line~\ref{line:while}). Empirically we see $O(\log P^*)$ iterations
+(Figure~\ref{fig:variable-peaks}), which implies an overall time
+complexity of $O(N\log(N)\log(P^*))$.
 
 The R code below computes the optimal model with 17 peaks:
 
