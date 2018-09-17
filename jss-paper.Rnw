@@ -1104,9 +1104,13 @@ fit$others[, list(iteration, under, over, penalty, peaks, total.loss)]
 @ 
 
 The output above shows that the algorithm only used three iterations
-to compute the optimal model with 17 peaks. Note that iteration 1
-evaluates both extreme penalties $\lambda\in\{0,\infty\}$ in parallel
-(and $\lambda=\infty$ is the trivial model with 0 peaks that can be
+to compute the optimal model with 17 peaks. The \code{under} and
+\code{over} columns show the current values of $\underline p$ and
+$\overline p$, respectively. The \code{peaks} and \code{total.loss}
+are $p_{\text{new}},L_{\text{new}}$ from the model that resulted from running GFPOP
+with $\lambda=\text{\code{penalty}}$. Note that iteration 1 evaluates both
+extreme penalties $\lambda\in\{0,\infty\}$ in parallel (and
+$\lambda=\infty$ is the trivial model with 0 peaks that can be
 computed without dynamic programming), so these two models are
 considered a single iteration.
 
