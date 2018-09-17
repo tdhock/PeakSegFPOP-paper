@@ -11,49 +11,103 @@ jss.evaluations <- inf.evaluations[others.penalty!=Inf]
 jss.evaluations[peaks != loss.peaks, list(bedGraph.lines, peaks, loss.peaks)]
 
 not.found <- inf.evaluations[bedGraph.lines==66031]
-biggest.it <- 8
+inf.pen <- 25000
+not.found[, x := ifelse(others.penalty==Inf, inf.pen, others.penalty)]
+not.found[, y := ifelse(others.penalty==Inf, others.total.loss-inf.pen*peaks, others.total.loss+(others.peaks-peaks)*others.penalty)]
+biggest.it <- 4
 it.text <- not.found[others.iteration <= biggest.it]
 it.points <- not.found[biggest.it < others.iteration]
 gg <- ggplot()+
   ggtitle(sprintf(
-    "Text=iterations 1-%d, Points=iterations %d-%d",
+    "Numbers=iterations 1-%d\nPoints=iterations %d-%d",
     biggest.it,
     min(it.points$others.iteration),
     max(it.points$others.iteration)))+
   theme_bw()+
-  xlab("penalty")+
-  ylab("penalized cost")+
+  xlab("Penalty $\\lambda$")+ 
+  ylab("$G(\\lambda)=F(\\lambda)-\\lambda P^*$")+
   geom_abline(aes(
     slope=others.peaks-peaks,
     intercept=others.total.loss),
     color="grey50",
     data=not.found)+
   geom_text(aes(
-    others.penalty,
-    others.total.loss+others.peaks*others.penalty-peaks*others.penalty,
+    ifelse(others.penalty==Inf, inf.pen, others.penalty),
+    ifelse(
+      others.penalty==Inf,
+      others.total.loss-inf.pen*peaks,
+      others.total.loss+(others.peaks-peaks)*others.penalty),
     label=others.iteration),
-    shape=1,
+    size=3,
     data=it.text)+
   geom_point(aes(
     others.penalty,
     others.total.loss+others.peaks*others.penalty-peaks*others.penalty),
     shape=1,
     data=it.points)
+print(gg)
+
+o <- 0.05
+it.text[, vjust := c(0, 1, 0.5, 1.2, 0.9)]
+it.text[, hjust := c(0-o, 1+o, 0-o, 0-o, 0-o)]
+gg <- ggplot()+
+  ggtitle("All 13 iterations")+
+  theme_bw()+
+  coord_cartesian(
+    xlim=c(-1000, inf.pen),
+    ylim=c(-1600000, -10000),
+    expand=FALSE)+
+  scale_x_continuous(
+    "Penalty $\\lambda$",
+    breaks=seq(0, 20000, by=5000))+ 
+  ylab("$G(\\lambda)=F(\\lambda)-\\lambda P^*$")+
+  geom_abline(aes(
+    slope=others.peaks-peaks,
+    intercept=others.total.loss),
+    color="grey50",
+    data=not.found)+
+  geom_l(aes(
+    x, y, hjust=hjust, vjust=vjust,
+    label=sprintf("it=%d, $P=%d$", others.iteration, others.peaks)),
+    size=3,
+    alpha=0.7,
+    color="red",
+    data=it.text)+
+  ## geom_text(aes(
+  ##   x, y, hjust=hjust, vjust=vjust,
+  ##   label=sprintf("it=%d, $P=%d$", others.iteration, others.peaks)),
+  ##   size=3,
+  ##   color="red",
+  ##   data=it.text)+
+  geom_point(aes(
+    x, y),
+    shape=1,
+    color="red",
+    data=not.found)
+print(gg)
+ 
 pdf("jss-figure-evaluations-concave.pdf")
 print(gg)
 dev.off()
+tikz("jss-figure-evaluations-concave.tex", 3, 2)
+print(gg)
+dev.off()
 
-it.points[, hjust := c(0, 1, 0,      1, 0)]
-it.points[, vjust := c(1, 0, 0.5,  0.5, 0.5)]
+biggest.it <- 8
+it.text <- not.found[others.iteration <= biggest.it]
+it.points <- not.found[biggest.it < others.iteration]
+o <- 0.05
+it.points[, hjust := c(0-o, 1+o, 0-o,      1+o, 0-o)]
+it.points[, vjust := c(1+o, 0-o, 1+o,  1+o, 0-o)]
 gg.zoom <- ggplot()+
   ggtitle(sprintf(
     "Zoom to iterations %d-%d",
     min(it.points$others.iteration),
     max(it.points$others.iteration)
   ))+
-  xlab("penalty")+
-  ylab("penalized cost")+
   theme_bw()+
+  xlab("penalty")+
+  ylab("concave function to maximize")+
   geom_abline(aes(
     slope=others.peaks-peaks,
     intercept=others.total.loss),
@@ -73,7 +127,103 @@ peaks=%d", others.iteration, others.peaks)),
     others.total.loss+others.peaks*others.penalty-peaks*others.penalty),
     shape=1,
     data=it.points)
+print(gg.zoom)
+
 pdf("jss-figure-evaluations-concave-zoom.pdf")
+print(gg.zoom)
+dev.off()
+
+gg.zoom <- ggplot()+
+  ggtitle(sprintf(
+    "Zoom to iterations %d-%d",
+    min(it.points$others.iteration),
+    max(it.points$others.iteration)
+  ))+
+  xlab("Penalty $\\lambda$")+ 
+  scale_y_continuous(
+    "$G(\\lambda)=F(\\lambda)-\\lambda P^*$",
+    limits=c(NA, -71830)
+  )+
+  theme_bw()+
+  geom_abline(aes(
+    slope=others.peaks-peaks,
+    intercept=others.total.loss),
+    color="grey50",
+    data=it.points)+
+  geom_label(aes(
+    others.penalty,
+    others.total.loss+others.peaks*others.penalty-peaks*others.penalty,
+    vjust=vjust,
+    hjust=hjust,
+    label=sprintf(
+      "it=%d
+$P=%d$", others.iteration, others.peaks)),
+size=3,
+alpha=0.5,
+color="white",
+    data=it.points)+
+  geom_text(aes(
+    others.penalty,
+    others.total.loss+others.peaks*others.penalty-peaks*others.penalty,
+    vjust=vjust,
+    hjust=hjust,
+    label=sprintf(
+      "it=%d
+$P=%d$", others.iteration, others.peaks)),
+size=3,
+    data=it.points)+
+  geom_point(aes(
+    others.penalty,
+    others.total.loss+others.peaks*others.penalty-peaks*others.penalty),
+    shape=1,
+    data=it.points)
+
+gg.zoom <- ggplot()+
+  ggtitle(sprintf(
+    "Zoom to iterations %d--%d",
+    min(it.points$others.iteration),
+    max(it.points$others.iteration)
+  ))+
+  xlab("Penalty $\\lambda$")+ 
+  scale_y_continuous(
+    "$G(\\lambda)=F(\\lambda)-\\lambda P^*$",
+    limits=c(NA, -71830)
+  )+
+  theme_bw()+
+  geom_abline(aes(
+    slope=others.peaks-peaks,
+    intercept=others.total.loss),
+    color="grey50",
+    data=it.points)+
+  geom_l(aes(
+    others.penalty,
+    others.total.loss+others.peaks*others.penalty-peaks*others.penalty,
+    vjust=vjust,
+    hjust=hjust,
+    label=sprintf(
+      "it=%d, $P=%d$", others.iteration, others.peaks)),
+    size=3,
+    alpha=0.7,
+    color="red",
+    data=it.points)+
+  ## geom_text(aes(
+  ##   others.penalty,
+  ##   others.total.loss+others.peaks*others.penalty-peaks*others.penalty,
+  ##   vjust=vjust,
+  ##   hjust=hjust,
+  ##   label=sprintf(
+  ##     "it=%d, $P=%d$", others.iteration, others.peaks)),
+  ##   size=3,
+  ##   color="red",
+  ##   data=it.points)+
+  geom_point(aes(
+    others.penalty,
+    others.total.loss+others.peaks*others.penalty-peaks*others.penalty),
+    shape=1,
+    color="red",
+    data=it.points)
+
+tikz("jss-figure-evaluations-concave-zoom.tex", 3, 2)
 print(gg.zoom)
 dev.off()
 

@@ -505,7 +505,7 @@ genomic data sequences). Maximum likelihood inference in
 this model corresponds to the following minimization problem:
 \begin{align}
   \label{min:op-up-down}
-  \minimize_{
+  F(\lambda) = \min_{
   \substack{
   \mathbf m\in\RR^N,\ \mathbf s\in\{0, 1\}^N\\
   \mathbf c\in\{-1, 0,1\}^{N-1}\\
@@ -864,8 +864,8 @@ the algorithm we must save the data set to disk, in bedGraph format
 
 <<saveData>>=
 
-data.dir <- file.path(tempdir(),"chr11:60000-580000")
-dir.create(data.dir)
+data.dir <- file.path("Mono27ac", "chr11:60000-580000")
+dir.create(data.dir, showWarnings=FALSE, recursive=TRUE)
 write.table(
   Mono27ac$coverage, file.path(data.dir, "coverage.bedGraph"),
   col.names=FALSE, row.names=FALSE, quote=FALSE, sep="\t")
@@ -911,9 +911,88 @@ print(gg)
 
 \subsection{Sequential search algorithm for $P^*$ peaks}
 
+Note that in GFPOP~(Algorithm~\ref{algo:GFPOP}), the user inputs a
+penalty $\lambda$, and is unable to directly choose the number of
+segments/peaks. In this section, we propose an algorithm that allows
+the user to specify the number of peaks. The algorithm then repeatedly
+calls GFPOP until it finds the most likely model with at most the
+specified number of peaks.
+
+To understand how the algorithm works, we must review the relationship
+between the Optimal Partitioning and Segment Neighborhood problems
+\citep{Maidstone2016}. We define the optimal loss for a given
+number of peaks $P$ as
+\begin{align}
+  \label{eq:L_P}
+  L_P=\min_{
+  \substack{
+  \mathbf m\in\RR^N,\ \mathbf s\in\{0, 1\}^N\\
+  \mathbf c\in\{-1, 0,1\}^{N-1}\\
+  }
+  } &\ \ 
+      \sum_{i=1}^N \ell(m_i, z_i) \\
+  \text{subject to\ \ } &\ c_i = 0 \Rightarrow m_i = m_{i+1}\text{ and }s_i=s_{i+1}, \nonumber\\
+    &\ c_i = 1 \Rightarrow m_i \leq m_{i+1}\text{ and }(s_i,s_{i+1})=(0,1),\nonumber\\
+    &\ c_i = -1 \Rightarrow m_i \geq m_{i+1}\text{ and }(s_i,s_{i+1})=(1,0),\nonumber\\
+  & \  s_1=s_N=0,\nonumber\\
+& P = \sum_{i=1}^{N-1} I(c_i = 1).\label{P-constraint}
+\end{align}
+The problem above is the Segment Neighborhood version of the Optimal
+Partitioning problem that GFPOP solves (\ref{min:op-up-down}). The
+penalty $\lambda$ is absent, and the model complexity (the number of
+peaks) has moved to a constraint (\ref{P-constraint}). Recall that
+$F(\lambda)$ is the minimum value of the Optimal Partitioning
+problem~(\ref{min:op-up-down}). It can be written in terms of the
+solution to the Segment Neighborhood problem~(\ref{eq:L_P}),
+\begin{equation}
+  \label{eq:F(lambda)}
+  F(\lambda) = \min_{
+    P\in\{0,1,\dots,P_{\text{max}}\} 
+  } L_P + \lambda P.
+\end{equation}
+The equation above makes it clear that there are only a finite number
+of optimal changepoint models (from 0 to $P_{\text{max}}$
+peaks). $F(\lambda)$ is a concave, non-decreasing function that can be
+computed as the minimum of a finite number of affine functions
+$f_P(\lambda)=L_P+\lambda P$.
+
+We now assume the user wants to compute the optimal model with a fixed
+number of peaks $P^*$. To compute that model we will maximize the function
+\begin{equation}
+  \label{eq:G}
+  G(\lambda)=F(\lambda) - P^*\lambda.
+\end{equation}
+
+\begin{figure}[t!]
+\centering
+\begin{minipage}{3in}
+  \input{jss-figure-evaluations-concave}
+\end{minipage} 
+\begin{minipage}{3in} 
+  \input{jss-figure-evaluations-concave-zoom} 
+\end{minipage} 
+\vskip -0.5cm
+\caption{\label{fig:evaluations-concave} Example of a $G(\lambda)$
+  function which is maximized by
+  Algorithm~\ref{algo:seq-search} in order to find the optimal
+  model with $P^*$ peaks.}
+\end{figure} 
+  
+
 After running GFPOP~(Algorithm~\ref{algo:GFPOP}) for a given data set
-$\mathbf z$ and penalty $\lambda$, we obtain the solution to
-problem~(\ref{min:op-up-down}).
+$\mathbf z$ and penalty $\lambda$, we obtain the solution
+$(\mathbf m^\lambda,\mathbf s^\lambda, \mathbf c^\lambda)$ to
+problem~(\ref{min:op-up-down}). The number of peaks is
+\begin{equation}
+  \label{eq:optimal_peaks}
+  p(\mathbf c^\lambda) = \sum_{i=1}^{N-1}I(c^\lambda_i=1)
+\end{equation}
+and the total Poisson loss is
+\begin{equation}
+  \label{eq:total_loss}
+  L(\mathbf m^\lambda, \mathbf z) = \sum_{i=1}^N \ell(m^\lambda_i, z_i).
+\end{equation}
+The 
 
 \begin{algorithm}
     \begin{algorithmic}[1]
