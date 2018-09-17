@@ -43,7 +43,7 @@ problem.findPeaks <- function
     loss.list <- lapply(model.list, "[[", "loss")
     loss.dt <- do.call(rbind, loss.list)[order(penalty)]
     if(2 <= verbose){
-      print(loss.dt[, .(penalty, segments, peaks, bases, mean.pen.cost, total.cost, status)])
+      print(loss.dt[, .(penalty, segments, peaks, bases, mean.pen.cost, total.loss, status)])
     }
     if(!is.numeric(loss.dt$penalty)){
       stop("penalty column is not numeric -- check loss in _loss.tsv files")
@@ -53,7 +53,7 @@ problem.findPeaks <- function
       penalties=.N
     ), by=list(peaks)]
     path.dt <- data.table(penaltyLearning::modelSelection(
-      unique.peaks, "total.cost", "peaks"))
+      unique.peaks, "total.loss", "peaks"))
     path.dt[, next.pen := max.lambda]
     path.dt[, already.computed := next.pen %in% names(loss.list)]
     path.dt[, no.next := c(diff(peaks) == -1, NA)]
@@ -152,7 +152,7 @@ problem.betterPeaks <- function
       next.pen <- NULL
     }
     if(!is.null(next.pen)){
-      next.pen <- (over$total.cost-under$total.cost)/(under$peaks-over$peaks)
+      next.pen <- (over$total.loss-under$total.loss)/(under$peaks-over$peaks)
       if(next.pen<0){
         ## sometimes happens for a large number of peaks -- cost is
         ## numerically unstable so we don't get a good penalty to try --
@@ -200,17 +200,17 @@ problem.fewestBetterPeaks <- function
 ### computed. If there is a labels.bed file then the number of
 ### incorrect labels will be computed in order to find the target
 ### interval of minimal error penalty values.
-  total.cost.upper.bound,
+  total.loss.upper.bound,
 ### numeric scalar: upper bound on loss (we want to find the model
 ### with fewest peaks, and loss which is below this quantity).
   verbose=0
 ### Print messages?
 ){
   stopifnot(
-    is.numeric(total.cost.upper.bound) &&
-    length(total.cost.upper.bound)==1)
+    is.numeric(total.loss.upper.bound) &&
+    length(total.loss.upper.bound)==1)
   problem.findPeaks(problem.dir, function(dt){
-    dt[, max(which(total.cost <= total.cost.upper.bound))]
+    dt[, max(which(total.loss <= total.loss.upper.bound))]
   }, verbose)
 }
 
@@ -220,17 +220,17 @@ problem.mostFeasibleBetterPeaks <- function
 ### computed. If there is a labels.bed file then the number of
 ### incorrect labels will be computed in order to find the target
 ### interval of minimal error penalty values.
-  total.cost.upper.bound,
+  total.loss.upper.bound,
 ### numeric scalar: upper bound on loss (we want to find the model
 ### with fewest peaks, and loss which is below this quantity).
   verbose=0
 ### Print messages?
 ){
   stopifnot(
-    is.numeric(total.cost.upper.bound) &&
-    length(total.cost.upper.bound)==1)
+    is.numeric(total.loss.upper.bound) &&
+    length(total.loss.upper.bound)==1)
   problem.findPeaks(problem.dir, function(dt){
-    i <- dt[, min(which(total.cost <= total.cost.upper.bound & status=="feasible"))]
+    i <- dt[, min(which(total.loss <= total.loss.upper.bound & status=="feasible"))]
     if(i==dt[, .N]){
       i-1L
     }else{

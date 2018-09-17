@@ -6,8 +6,76 @@ select.dt <- labeled_problems_features[, data.table(prob.dir)]
 bench.models <- target.intervals.models[select.dt, on=list(prob.dir)][log(bedGraph.lines) < penalty & penalty < bedGraph.lines & 1000 < bedGraph.lines]
 bench.models[, gigabytes := megabytes/1024]
 
-jss.evaluations <- readRDS("jss.evaluations.rds")[others.penalty!=Inf]
+inf.evaluations <- readRDS("jss.evaluations.rds")
+jss.evaluations <- inf.evaluations[others.penalty!=Inf]
 jss.evaluations[peaks != loss.peaks, list(bedGraph.lines, peaks, loss.peaks)]
+
+not.found <- inf.evaluations[bedGraph.lines==66031]
+biggest.it <- 8
+it.text <- not.found[others.iteration <= biggest.it]
+it.points <- not.found[biggest.it < others.iteration]
+gg <- ggplot()+
+  ggtitle(sprintf(
+    "Text=iterations 1-%d, Points=iterations %d-%d",
+    biggest.it,
+    min(it.points$others.iteration),
+    max(it.points$others.iteration)))+
+  theme_bw()+
+  xlab("penalty")+
+  ylab("penalized cost")+
+  geom_abline(aes(
+    slope=others.peaks-peaks,
+    intercept=others.total.loss),
+    color="grey50",
+    data=not.found)+
+  geom_text(aes(
+    others.penalty,
+    others.total.loss+others.peaks*others.penalty-peaks*others.penalty,
+    label=others.iteration),
+    shape=1,
+    data=it.text)+
+  geom_point(aes(
+    others.penalty,
+    others.total.loss+others.peaks*others.penalty-peaks*others.penalty),
+    shape=1,
+    data=it.points)
+pdf("jss-figure-evaluations-concave.pdf")
+print(gg)
+dev.off()
+
+it.points[, hjust := c(0, 1, 0,      1, 0)]
+it.points[, vjust := c(1, 0, 0.5,  0.5, 0.5)]
+gg.zoom <- ggplot()+
+  ggtitle(sprintf(
+    "Zoom to iterations %d-%d",
+    min(it.points$others.iteration),
+    max(it.points$others.iteration)
+  ))+
+  xlab("penalty")+
+  ylab("penalized cost")+
+  theme_bw()+
+  geom_abline(aes(
+    slope=others.peaks-peaks,
+    intercept=others.total.loss),
+    color="grey50",
+    data=it.points)+
+  geom_text(aes(
+    others.penalty,
+    others.total.loss+others.peaks*others.penalty-peaks*others.penalty,
+    vjust=vjust,
+    hjust=hjust,
+    label=sprintf(
+      "iteration=%d
+peaks=%d", others.iteration, others.peaks)),
+    data=it.points)+
+  geom_point(aes(
+    others.penalty,
+    others.total.loss+others.peaks*others.penalty-peaks*others.penalty),
+    shape=1,
+    data=it.points)
+pdf("jss-figure-evaluations-concave-zoom.pdf")
+print(gg.zoom)
+dev.off()
 
 jss.evaluations[, others.minutes := others.seconds/60]
 jss.evaluations[, others.gigabytes := others.megabytes/1024]

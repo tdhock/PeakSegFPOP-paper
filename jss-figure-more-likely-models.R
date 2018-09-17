@@ -93,16 +93,16 @@ for(sample.i in seq_along(sample.id.vec)){
   seg.means[, status := rep(c("background", "peak"), l=.N)]
   data.means <- seg.means[over.dt, on=list(segStart, segEnd)]
   logLik.macs <- data.means[, sum(dpois(coverage, mean, log=TRUE)*weight)]
-  infeasible.changes <- seg.means[, sum(sign(diff(mean)) != c(1, -1))]
-  total.cost.macs <- data.means[, PeakSegOptimal::PoissonLoss(
+  equality.constraints <- seg.means[, sum(diff(mean) == 0) ]
+  total.loss.macs <- data.means[, PeakSegOptimal::PoissonLoss(
     coverage, mean, weight)]
   ##better.list <- problem.mostFeasibleBetterPeaks(problem.dir, nrow(sample.peaks))
-  ##better.list <- problem.fewestBetterPeaks(problem.dir, total.cost.macs)
+  ##better.list <- problem.fewestBetterPeaks(problem.dir, total.loss.macs)
   loss.list[[paste(sample.id, "macs2")]] <- data.table(
     sample.id, 
     model="macs2",
-    status=ifelse(infeasible.changes==0, "feasible", "infeasible"),
-    total.cost=total.cost.macs,
+    equality.constraints,
+    total.loss=total.loss.macs,
     peaks=nrow(sample.peaks))
   segs.list[[paste(sample.id, "macs2")]] <- data.table(
     sample.id, model="macs2", seg.means)
@@ -111,7 +111,7 @@ for(sample.i in seq_along(sample.id.vec)){
     loss.list[[paste(sample.id, n.peaks)]] <- data.table(
       sample.id, 
       model=n.peaks,
-      better.list$loss[, .(status, total.cost, peaks)])
+      better.list$loss[, .(equality.constraints, total.loss, peaks)])
     segs.list[[paste(sample.id, n.peaks)]] <- data.table(
       sample.id, 
       model=n.peaks,

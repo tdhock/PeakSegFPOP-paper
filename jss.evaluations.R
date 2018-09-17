@@ -81,7 +81,7 @@ gg <- ggplot()+
   scale_y_log10()
 
 prob.i.vec <- 1:nrow(some.probs)
-prob.i.vec <- 1:16
+##prob.i.vec <- 1:16
 jss.evaluations.list <- list()
 for(prob.i in prob.i.vec){
   prob <- some.probs[prob.i]
@@ -100,7 +100,6 @@ for(prob.i in prob.i.vec){
     match.df, file.path(pdir, "problem.bed"),
     quote=FALSE, sep="\t", col.names=FALSE, row.names=FALSE)
   fit.list <- problem.betterPeaks(pdir, prob$peaks, verbose=1)
-  ##fit.list$others[order(iteration)][, list(target.peaks=prob$peaks, iteration, under, over, penalty, peaks, total.cost)]
   jss.evaluations.list[[prob.i]] <- data.table(
     prob,
     loss=fit.list$loss,

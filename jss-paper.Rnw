@@ -740,8 +740,8 @@ These dynamic programming rules are summarized in
 Algorithm~\ref{algo:GFPOP}, Generalized Functional Pruning Optimal
 Partitioning. The key to implementing the algorithm is to use a
 PiecewiseFunction data structure that can exactly represent an
-optimal cost function $C_{s,t}$. In the case of the Poisson loss,
-each $C_{s,t}(\mu)$ is a piecewise function where each piece is of the
+optimal cost function $C_{s,i}$. In the case of the Poisson loss,
+each $C_{s,i}(\mu)$ is a piecewise function where each piece is of the
 form $\alpha\mu + \beta\log\mu +
 \gamma$. Therefore the optimal cost can be stored as a list
 of intervals of $\mu\in[\text{MIN},\text{MAX}]$, each with
@@ -751,7 +751,7 @@ coefficients $\alpha,\beta,\gamma$.
 \begin{algorithmic}[1]
 \STATE Input: data set $\mathbf z\in\RR^N$, penalty constant $\lambda\geq 0$.
 \STATE Output: vectors of optimal segment means $U\in\RR^{N}$ and ends $T\in\{1,\dots,N\}^{N}$
-\STATE Initialize $2\times N$ empty PiecewiseFunction objects $C_{s,t}$ either in memory or on disk.
+\STATE Initialize $2\times N$ empty PiecewiseFunction objects $C_{s,i}$ either in memory or on disk.
 \label{line:initialize}
 \STATE Compute min $\underline z$ and max $\overline z$ of $\mathbf z$.
 \label{line:op-min-max}
@@ -790,7 +790,7 @@ $ C_{0,1}\gets
 \end{algorithm}
 
 Algorithm~\ref{algo:GFPOP} begins on line~\ref{line:initialize} by
-initializing the array $C_{s, t}$ of optimal cost functions (either in
+initializing the array $C_{s, i}$ of optimal cost functions (either in
 memory or on disk). It then computes the min $\underline z$ and max
 $\overline z$ of the data (line~\ref{line:op-min-max}) and uses the
 OnePiece sub-routine to initialize the optimal cost at the first data
@@ -807,25 +807,24 @@ penalty constant $\lambda$ is added to all of the result of MinLess
 cost of the new data point (line~\ref{line:op-MinOfTwo}). The
 computation for $C_{0,i}$ is similar, but uses MinMore and does not
 add the penalty $\lambda$
-(lines~\ref{line:op-MinMore}--\ref{line:op-MinOfTwo-under}). See
-\citep{Hocking-constrained-changepoint-detection} for more details
-about how the MinLess/MinMore/MinOfTwo sub-routines process the
-PiecewiseFunction objects.
+(lines~\ref{line:op-MinMore}--\ref{line:op-MinOfTwo-under}). The
+details about how the MinLess/MinMore/MinOfTwo sub-routines process
+the PiecewiseFunction objects have been described previously
+\citep{Hocking-constrained-changepoint-detection}.
 
 After computing the optimal cost functions, the decoding of optimal
 parameters occurs on
-lines~\ref{line:op-ArgMin}--\ref{line:op-i+1}. The last segment mean 
+lines~\ref{line:op-ArgMin}--\ref{line:op-i+1}. The last segment mean
 and second to last segment end are first stored on
 line~\ref{line:op-store-i} in $(U_1,T_1)$. For each other segment $i$,
 the mean and previous segment end are stored on line~\ref{line:op-i+1}
 in $(U_i,T_i)$. Note that there should be space to store $(U_i,T_i)$
-parameters for up to $N$ segments. However, there are usually less
-than $N$ segments, and the algorithm should return a special flag for
-unused parameters, for example $(U_i=\infty, T_i=-1)$.
+parameters for up to $N$ segments. In practice our implementation
+writes these parameters to a text output file on disk.
 
 The complexity of Algorithm~\ref{algo:GFPOP} is $O(N I)$, where $I$ is
 the mean number of intervals (function pieces) that are used to
-represent the $C_{s, t}$ cost functions. Theoretically there are some
+represent the $C_{s, i}$ cost functions. Theoretically there are some
 pathological data sets for which the algorithm computes $I=O(N)$
 intervals, which results in the worst-case complexity of $O(N^2)$.
 Since the number of intervals in real data is empirically
@@ -880,16 +879,23 @@ below.
 
 ## Compute one model with penalty=10000
 fit <- PeakSegPipeline::problem.PeakSegFPOP(data.dir, "10000")
-fit$loss
 
 @ 
 
 The returned \code{fit} object is a named list of data.tables. The
-\code{fit\$loss} component is one row that contains general
-information about the computed model. We can see that the optimal
-model for $\lambda=10^4$ had $P=7$ peaks ($K=15$ segments/$K-1=14$
-changepoints). The \code{fit\$segments} component is used to
-visualize three of those peaks in a subset of the data below.
+\code{fit\$loss} component shown below is one row that contains general
+information about the computed model: 
+
+<<fitLoss>>=
+
+fit$loss
+
+@ 
+
+Above we can see that the optimal model for $\lambda=10^4$ had $P=7$
+peaks ($K=15$ segments/$K-1=14$ changepoints). The
+\code{fit\$segments} component is used to visualize three of those
+peaks in a subset of the data below.
 
 <<plotModel, fig=TRUE, height=3>>=
 
@@ -904,6 +910,10 @@ print(gg)
 @ 
 
 \subsection{Sequential search algorithm for $P^*$ peaks}
+
+After running GFPOP~(Algorithm~\ref{algo:GFPOP}) for a given data set
+$\mathbf z$ and penalty $\lambda$, we obtain the solution to
+problem~(\ref{min:op-up-down}).
 
 \begin{algorithm}
     \begin{algorithmic}[1]
@@ -939,6 +949,35 @@ Algorithm~\ref{algo:seq-search} (sequential search for $P^*$ peaks)
 uses GFPOP as a sub-routine to find the optimal model with $P^*$
 peaks. Its complexity is $O(N(\log N)^2)$ time, $O(N\log N)$ space,
 $O(\log N)$ memory.
+
+\citet{crops} proposed a similar algorithm (CROPS) for computing
+Changepoint models for a Range Of PenaltieS.
+
+The R code below computes the optimal model with 17 peaks:
+
+<<seq-search>>=
+
+## Compute the optimal model with 17 peaks.
+fit <- PeakSegPipeline::problem.sequentialSearch(data.dir, 17L)
+
+@ 
+
+If you want to see how many iterations/penalties the algorithm
+required in order to compute the optimal model with 17 peaks, you can
+look at the \code{fit$others} component:
+
+<<>>=
+
+fit$others[, list(iteration, under, over, penalty, peaks, total.loss)]
+
+@ 
+
+The output above shows that the algorithm only used three iterations
+to compute the optimal model with 17 peaks. Note that iteration 1
+evaluates both extreme penalties $\lambda\in\{0,\infty\}$ in parallel
+(and $\lambda=\infty$ is the trivial model with 0 peaks that can be
+computed without dynamic programming), so these two models are
+considered a single iteration.
 
 % \begin{leftbar}
 % Note that around the \verb|{equation}| above there should be no spaces (avoided
