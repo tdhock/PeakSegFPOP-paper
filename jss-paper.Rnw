@@ -1202,12 +1202,33 @@ considered a single iteration.
 
 \section{Results on large genomic data} \label{sec:results}
 
-\subsection{Computing the maximum likelihood model with a given number
+In this section we discuss several applications of our algorithms in
+some genomic data sets. We downloaded the \verb|chipseq| data set from
+the UCI machine learning repository \citep{uci-ml-repo}. We considered
+4951 data sets ranging in size from $N=10^3$ to $N=10^7$ data points
+to segment.
+
+\subsection{Computing the maximum likelihood model with a 
+  given number
   of peaks}
 
-In one data set, MACS2 detected five peaks, and our GFPOP
-algorithm can be used to find a more likely model with three peaks
-(Figure~\ref{fig:three-peaks}). 
+In this section we show that our algorithms can be used to compute the
+most likely model for a given number of peaks. A subset of one data
+set is shown in Figure~\ref{fig:three-peaks}, along with three
+segmentation/peak models. In the top panel, we show the peak model
+that results from running MACS2, a heuristic algorithm from the
+bioinformatics literature \citep{MACS}. It detects five peaks, so we
+ran Algorithm~\ref{algo:seq-search} with $P^*=5$ on these data in
+order to compute the most likely model with at most 5 peaks (shown in
+middle panel). It is clear that the green segment means in the optimal
+5 peak model are a better fit, particularly for the peak on the
+left. Furthermore the optimal 5 peak model actually has one equality
+constraint, indicating that 5 peaks is likely to overfit these
+data. Therefore we also computed the optimal 3 peak model (bottom
+panel), which also has a higher log-likelihood than the 5 peak MACS2
+model. Overall it is clear that our algorithms can be used to compute
+models which are both more likely and more interpretable (with fewer
+peaks) than heuristics such as MACS2.
 
 \begin{figure}[t!]
 \centering
