@@ -1208,9 +1208,8 @@ the UCI machine learning repository \citep{uci-ml-repo}. We considered
 4951 data sets ranging in size from $N=10^3$ to $N=10^7$ data points
 to segment.
 
-\subsection{Computing the maximum likelihood model with a 
-  given number
-  of peaks}
+\subsection{Application: Computing the maximum likelihood model with a
+  given number of peaks}
 
 In this section we show that our algorithms can be used to compute the
 most likely model for a given number of peaks. A subset of one data
@@ -1260,56 +1259,66 @@ peaks) than heuristics such as MACS2.
 % before and after code input/output should be avoided (see above).
 % \end{leftbar}
 
+\subsection{GFPOP is empirically log-linear}
+
+To measure the empirical time complexity of GFPOP
+(Algorithm~\ref{algo:GFPOP}), we ran it on all 4951 genomic data sets,
+with a grid of penalty values $\lambda\in(\log N, N)$ for each data
+set of size $N$. The overall theoretical time/space complexity is
+$O(NI)$, where $I$ is the number of intervals (candidate changepoints)
+stored in the $C_{s,t}$ optimal cost functions. During each run we
+therefore recorded the mean and max number of intervals over all
+$s,t$. We observed that the empirical mean/max number of intervals
+increases logarithmically with data set size, $I=O(\log N)$
+(Figure~\ref{fig:intervals}, left). Remarkably, for the largest data
+set ($N=11,499,958$) the algorithm only computed a mean of $I=19$
+intervals. The most intervals computed to represent any single
+$C_{s,t}$ function was 512 intervals for one data set with
+$N=4,583,432$. 
+
+Since empirically $I=O(\log N)$ in these large genomic data sets, we
+expected an overall time/space complexity of $O(N\log N)$. The
+empirical measurements of time and space requirements are consistent
+with this expectation (Figure~\ref{fig:intervals}, right). For the
+largest data sets ($N=10^7$), the algorithm takes only about 80
+gigabytes of storage and 1 hour of computation time. Overall these
+results suggest that GFPOP can be used to compute optimal peak models
+for large genomic data in $O(N\log N)$ space/time.
+ 
 \begin{figure}[t!]
 \centering
-\includegraphics{jss-figure-label-error}
-\caption{\label{fig:label-error} Labels are used to compute an error
-  rate for each peak model (blue bars), defined as the sum of false
-  positive and false negative labels (rectangles with black
-  outline). This H3K36me3 ChIP-seq data set has $N=1,254,751$ data to
-  segment on a subset of chr12, but in the plot above we show only the
-  82,233 data (grey signal) in the region around the labels (colored
-  rectangles). The model with penalty=6682 results in 320 peaks, which
-  is too many (three false positive labels with more than one peak
-  start/end). Conversely, the model with penalty=278653 results in 33
-  peaks, which is too few (only two peaks in the plotted region,
-  resulting in two false negative labels on the right where there
-  should be exactly one peak start/end). The range of penalties between 9586 and
-  267277 results in models with between 34 and 236 peaks, and achieves
-  zero label errors. }
+\begin{minipage}{3in}
+  \includegraphics{jss-figure-target-intervals-models}
+\end{minipage} 
+\begin{minipage}{3in}
+  \includegraphics{jss-figure-target-intervals-models-computation}
+\end{minipage}
+\caption{\label{fig:intervals} In our empirical
+  tests, the computational requirements of the GFPOP algorithm
+  were log-linear $O(N \log N)$ in the number of data points $N$ to
+  segment. \textbf{Left:} we analyzed the number of intervals $I$
+  (candidate changepoints) stored in the $C_t(\mu)$ cost functions,
+  because the total time/space complexity is $O(NI)$. We observed
+  empirically that the mean number of intervals $I=O(\log N)$ (red
+  curve). Even the maximum number of intervals (blue curve) is much
+  less than $N$. \textbf{Right:} storage on disk (top panel) and
+  computation time (bottom panel) are empirically $O(N \log N)$. Error
+  bands show median and 5\%/95\% quantiles over several data sets of a
+  given size $N$; black dots and text show computational requirements
+  for the most extreme data sets.}
 \end{figure}
 
-\begin{figure}[t!]
-\centering
-%\includegraphics{jss-figure-data-peaks}
-\input{jss-figure-data-peaks}
-\caption{\label{fig:data-peaks} The model with minimal label
-  errors has $O(\sqrt{N})$ peaks in a data set of size $N$. For each data set we
-  computed peak models with minimal label errors (see
-  Figure~\ref{fig:label-error}); we then plot the number of peaks in
-  minimal error models as a function of data set size $N$. Black median line
-  and grey quartile band computed over several data sets of a given size
-  $N$; asymptotic reference lines shown in red.}
-\end{figure}
-  
-% \begin{figure}[t!] 
-% \centering
-% \includegraphics{jss-figure-more-likely-models-one-peak}
-% \caption{\label{fig:one-peak} Default peak model from the baseline
-%   MACS2 algorithm (top) and the optimal peak model computed using the
-%   proposed PeakSegFPOP algorithm (bottom).}
-% \end{figure}
+\subsection{Disk storage is slower then memory by a constant
+  factor}
 
-% \begin{figure}[t!]
-% \centering
-% \includegraphics{jss-figure-target-intervals-models-penalty}
-% \caption{\label{fig:target-intervals-models-penalty} The PeakSegFPOP
-%   algorithm was used to compute optimal models for six of the largest
-%   problems (panels from left to right) for a variety of penalty
-%   parameters (x-axis). Y-axes show empirical measurements of cost
-%   function pieces (intervals, top panel), timings (minutes, middle
-%   panel), and disk usage (gigabytes, bottom panel).}
-% \end{figure}
+In this previous section, we discussed how tens of gigabytes of
+storage are required to run GFPOP on large data. Since typical
+computers may not have enough memory, our implementation uses
+disk-based storage. We compared our disk-based implementation to
+another memory-based implementation, in terms of computation time on
+small data sets for which GFPOP uses $<1$GB of storage. We observed
+that disk storage is slower than memory storage by a constant factor
+(Figure~\ref{fig:disk-memory-compare-speed}), which was expected. 
 
 \begin{figure}[t!]
 \centering
@@ -1342,29 +1351,140 @@ peaks) than heuristics such as MACS2.
 %   segment (x-axis); disk usage (top panel) and computation time
 %   (bottom panel) are log-linear $O(N \log N)$.}
 % \end{figure}
- 
+
+\subsection{Sequential search is faster than Segment Neighborhood}
+
+In this section we compare the number of $O(N\log N)$ dynamic
+programming iterations required for the propsed sequential search
+(Algorithm~\ref{algo:seq-search}) and the previous Generalized Pruned
+Dynamic Programming Algorithm (GPDPA) of
+\citet{Hocking-constrained-changepoint-detection}. Both algorithms
+compute the solution to the Segment Neighborhood problem (optimal
+model with $P$ peaks). The GPDPA requires exactly $2P$ iterations of
+dynamic programming, each of which is an $O(N\log N)$ operation. In
+contrast, the proposed sequential search
+(Algorithm~\ref{algo:seq-search}) needs to solve for a sequence of
+penalties, each of which is done via GFPOP in $O(N\log N)$ time. 
+
+For two data sets with $N\approx 10^6$ we therefore recorded the
+empirical number of times GFPOP was called by the sequential search
+algorithm. We observed that the number of GFPOP calls grows
+logarithmically with $P$ (Figure~\ref{fig:variable-peaks}, left). For
+large number of peaks ($P>5$), it is clearly faster to use the
+sequential search algorithm (Figure~\ref{fig:variable-peaks},
+right). Overall these experiments indicate that the time complexity of
+the sequential search in large genomic data is $O(N\log(N)\log(P))$
+for $N$ data and $P$ peaks.
+
+
 \begin{figure}[t!]
 \centering
+%\includegraphics{jss-figure-variable-peaks}
 \begin{minipage}{3in}
-  \includegraphics{jss-figure-target-intervals-models}
-\end{minipage} 
-\begin{minipage}{3in}
-  \includegraphics{jss-figure-target-intervals-models-computation}
+  \input{jss-figure-variable-peaks}
 \end{minipage}
-\caption{\label{fig:intervals} In our empirical
-  tests, the computational requirements of the GFPOP algorithm
-  were log-linear $O(N \log N)$ in the number of data points $N$ to
-  segment. \textbf{Left:} we analyzed the number of intervals $I$
-  (candidate changepoints) stored in the $C_t(\mu)$ cost functions,
-  because the total time/space complexity is $O(NI)$. We observed
-  empirically that the mean number of intervals $I=O(\log N)$ (red
-  curve). Even the maximum number of intervals (blue curve) is much
-  less than $N$. \textbf{Right:} storage on disk (top panel) and
-  computation time (bottom panel) are empirically $O(N \log N)$. Error
-  bands show median and 5\%/95\% quantiles over several data sets of a
-  given size $N$; black dots and text show computational requirements
-  for the most extreme data sets.}
+\begin{minipage}{3in} 
+  \input{jss-figure-variable-peaks-zoom}
+\end{minipage}
+\vskip -0.5cm
+\caption{\label{fig:variable-peaks} Comparison of iterations using
+  Segment Neighborhood (grey lines) and Optimal Partitioning (green
+  dots). GFPOP with sequential search
+  (Algorithm~\ref{algo:seq-search}) was used to compute optimal models
+  with different numbers of peaks $P$, for two data sets with
+  $N\approx 6\times 10^5$. \textbf{Left:} the number of iterations is
+  linear $O(P)$ for Segment Neighborhood (grey lines) but empirically
+  $O(\log P)$ for Optimal Partitioning with sequential search (green
+  dots). \textbf{Right:} Optimal Partitioning is empirically faster
+  for computing models with $P>5$ peaks (10 segments); Segment
+  Neighborhood is faster for smaller models.}
 \end{figure}
+
+\subsection{Application: computing a zero-error peak model}
+
+In this section we study the perfomance of the proposed algorithms in
+a typical application. In the UCI \verb|chipseq| data set, there are
+labels that indicate subsets of the data with or without peaks. In
+this context the labels can be used to compute false positive and
+false negative rates for any peak model. For example
+Figure~\ref{fig:label-error} shows one data set with six labels and
+four peak models computed via GFPOP. Small penalties result in too
+many peaks, and large false positive rates. Large penalties result in
+too few peaks, and large false negative rates. A range of intermediate
+penalties/peaks achieves zero label errors. 
+The labels can thus be used to determine an appropriate number of
+peaks (with zero errors) for each data set.
+
+\begin{figure}[t!]
+\centering
+\includegraphics{jss-figure-label-error}
+\caption{\label{fig:label-error} Labels are used to compute an error
+  rate for each peak model (blue bars), defined as the sum of false
+  positive and false negative labels (rectangles with black
+  outline). This H3K36me3 ChIP-seq data set has $N=1,254,751$ data to
+  segment on a subset of chr12, but in the plot above we show only the
+  82,233 data (grey signal) in the region around the labels (colored
+  rectangles). The model with penalty=6682 results in 320 peaks, which
+  is too many (three false positive labels with more than one peak
+  start/end). Conversely, the model with penalty=278653 results in 33
+  peaks, which is too few (only two peaks in the plotted region,
+  resulting in two false negative labels on the right where there
+  should be exactly one peak start/end). The range of penalties between 9586 and
+  267277 results in models with between 34 and 236 peaks, and achieves
+  zero label errors. }
+\end{figure}
+
+More generally, after computing GFPOP models for a range of penalties
+for each data set, we computed the label error of each model. For each
+data set we computed the min/max peaks that achieves zero label errors
+(34/236 in Figure~\ref{fig:label-error}), along with the mean of those
+two values, $(34+236)/2=135$. We plot the mean number of peaks that
+achieves zero label errors as a function of data set size in
+Figure~\ref{fig:data-peaks}. In these data it is clear that models
+with $O(\sqrt N)$ peaks achieve zero label errors.
+
+\begin{figure}[t!]
+\centering
+%\includegraphics{jss-figure-data-peaks}
+\input{jss-figure-data-peaks}
+\caption{\label{fig:data-peaks} The model with minimal label
+  errors has $O(\sqrt{N})$ peaks in a data set of size $N$. For each data set we
+  computed peak models with minimal label errors (see
+  Figure~\ref{fig:label-error}); we then plot the number of peaks in
+  minimal error models as a function of data set size $N$. Black median line
+  and grey quartile band computed over several data sets of a given size
+  $N$; asymptotic reference lines shown in red.}
+\end{figure}
+  
+Computing the optimal model with $O(\sqrt N)$ peaks is computationally
+expensive using Segment Neighborhood algorithms, because the overall
+complexity would be $O(N\sqrt N\log N)$. For example in $N=10^7$ data,
+$P=O(\sqrt N)=1414$ peaks achieves zero label errors. Computing the
+optimal model with Segment Neighborhood would thus require 2828
+$O(N\log N)$ DP iterations. If we assume that each iteration would
+have similar computational requirements as one $O(N\log N)$ run of
+GFPOP, each would require about 1 hour and 80 gigabytes
+(Figure~\ref{fig:intervals}). Overall that would mean 220 terabytes of
+storage and 17 weeks of computation time, which is much too expensive
+in practice.
+
+Instead, we can use the proposed sequential search
+(Algorithm~\ref{algo:seq-search}) to compute a zero-error model with
+$O(\sqrt N)$ peaks. In our empirical tests, we observed that only
+$O(\log N)$ GFPOP calls are required to compute $O(\sqrt N)$ peaks
+(Figure~\ref{fig:evaluations}, left). In particular for $N=10^7$ data
+only 10--15 GFPOP calls are required, which is significantly fewer
+than the 2828 DP iterations that would be required for Segment
+Neighborhood solvers. 
+
+We also observed that the empirical timings of the sequential search
+are only a log-factor slower than solving for one penalty
+(Figure~\ref{fig:evaluations}, right). In particular for $N=10^7$ data
+the sequential search takes on the order of hours, which is much less
+than the weeks that would be required to solve the Segment
+Neighborhood problem. Overall these empirical results indicate that
+the sequential search algorithm can be used to compute a zero-error
+model with $O(\sqrt N)$ peaks in $O(N(\log N)^2)$ time.
 
 \begin{figure}[t!]
 \centering
@@ -1389,31 +1509,6 @@ peaks) than heuristics such as MACS2.
   $O(\sqrt{N})$ peaks takes $O(N (\log N)^2)$ time/space -- only a log
   factor more (points).}
 \end{figure} 
-  
-\begin{figure}[t!]
-\centering
-%\includegraphics{jss-figure-variable-peaks}
-\begin{minipage}{3in}
-  \input{jss-figure-variable-peaks}
-\end{minipage}
-\begin{minipage}{3in} 
-  \input{jss-figure-variable-peaks-zoom}
-\end{minipage}
-\vskip -0.5cm
-\caption{\label{fig:variable-peaks} Comparison of iterations using
-  Segment Neighborhood (grey lines) and Optimal Partitioning (green
-  dots). GFPOP with sequential search
-  (Algorithm~\ref{algo:seq-search}) was used to compute optimal models
-  with different numbers of peaks $P$, for two data sets with
-  $N\approx 6\times 10^5$. \textbf{Left:} the number of iterations is
-  linear $O(P)$ for Segment Neighborhood (grey lines) but empirically
-  $O(\log P)$ for Optimal Partitioning with sequential search (green
-  dots). \textbf{Right:} Optimal Partitioning is empirically faster
-  for computing models with $P>5$ peaks (10 segments); Segment
-  Neighborhood is faster for smaller models.}
-\end{figure}
-
-
 
  
 
@@ -1503,14 +1598,67 @@ peaks) than heuristics such as MACS2.
 % \end{CodeChunk}
 
 
+% \begin{figure}[t!] 
+% \centering
+% \includegraphics{jss-figure-more-likely-models-one-peak}
+% \caption{\label{fig:one-peak} Default peak model from the baseline
+%   MACS2 algorithm (top) and the optimal peak model computed using the
+%   proposed PeakSegFPOP algorithm (bottom).}
+% \end{figure}
+
+% \begin{figure}[t!]
+% \centering
+% \includegraphics{jss-figure-target-intervals-models-penalty}
+% \caption{\label{fig:target-intervals-models-penalty} The PeakSegFPOP
+%   algorithm was used to compute optimal models for six of the largest
+%   problems (panels from left to right) for a variety of penalty
+%   parameters (x-axis). Y-axes show empirical measurements of cost
+%   function pieces (intervals, top panel), timings (minutes, middle
+%   panel), and disk usage (gigabytes, bottom panel).}
+% \end{figure}
+
 
 %% -- Summary/conclusions/discussion -------------------------------------------
 
-\section{Summary and discussion} \label{sec:summary} Our main
-application of the proposed algorithms is in a set of genomic data
-sets ranging from $N=10^3$ to $N=10^7$. We use the labels in the data
-sets to show that there are $O(\sqrt N)$ peaks/segments. The fastest
-Segment Neighborhood algorithm would thus be $O(SN\log N)$
+\section{Summary and discussion} \label{sec:summary} 
+
+This paper presented two new algorithms for constrained optimal
+changepoint detection. We presented Generalized Functional
+Partitioning Optimal Partitioning (GFPOP) which computes the optimal
+model for one penalty $\lambda$. We also proposed a sequential search
+algorithm which repeated calls GFPOP in order to compute the most
+likely model with at most $P$ peaks. 
+
+We analyzed the proposed algorithms by running them on a set of
+genomic data sets ranging from $N=10^3$ to $N=10^7$. First, we showed
+that the algorithms can be used to compute models which are more
+likely than existing heuristics, and often more interpretable (fewer
+peaks). 
+
+Second, we studied the empirical complexity of GFPOP as the a function
+of the number of data $N$. We showed that GFPOP requires $O(N\log N)$
+time, $O(N \log N)$ space, and $O(\log N)$ memory. We furthermore
+showed that using disk-based storage is only a constant factor slower
+than memory-based storage. Overall we showed that GFPOP can be used to
+compute optimal peak models for up to $N=10^7$ data in reasonable
+amounts of time (hours). 
+
+Third, we studied the empirical complexity of sequential search as a
+function of data size $N$ and number of peaks $P$. We showed that it
+requires $O(N\log(N)\log(P))$ time, $O(N\log N)$ disk, $O(\log N)$
+memory. In particular we showed that it is always faster than Segment
+Neighborhood solvers for models with $P>5$ peaks. 
+
+Finally we analyzed the labels in our benchmark of large genomic data,
+which indicated that an appropriate number of peaks is $P=O(\sqrt
+N)$. We showed that sequential search computes the model with
+$O(\sqrt N)$ peaks in $O(N(\log N)^2)$ time, whereas existing Segment
+Neighborhood algorithms would be $O(N\sqrt N\log N)$. We showed that
+for $N=10^7$ data our approach only requires hours/gigabytes of
+time/space to compute optimal models. Our algorithms thus make it
+practical for the first time to compute optimal models with many peaks
+for large genomic data sets.
+
 
 
 

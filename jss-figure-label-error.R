@@ -299,5 +299,6 @@ gg.data <- ggplot()+
     "aligned read counts",
     breaks=seq(0, 30, by=10))
 pdf("jss-figure-label-error.pdf", 8, 3)
-print(gg)
+print(gg.data)
 dev.off()
+ 
