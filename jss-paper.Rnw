@@ -90,23 +90,37 @@
 %% - \title{} in title case
 %% - \Plaintitle{} without LaTeX markup (if any)
 %% - \Shorttitle{} with LaTeX markup (if any), used as running title
-\title{Generalized Functional Pruning Optimal Partitioning
+\title{Generalized Functional Pruning Optimal Partitioning (GFPOP)
   for Constrained Changepoint Detection in Large Genomic Data}
 
-\Plaintitle{Generalized Functional Pruning Optimal Partitioning for
+\Plaintitle{Generalized Functional Pruning Optimal Partitioning (GFPOP) for
   Constrained Changepoint Detection in Large Genomic Data}
 
 %\Shorttitle{A Short Demo Article in \proglang{R}}
 \Shorttitle{Constrained Optimal Changepoint Detection in Large Data}
 
 %% - \Abstract{} almost as usual
-\Abstract{ This article describes a new algorithm and \proglang{R}
-  package for optimal changepoint detection in large genomic data
-  sets. Previous packages have used in-memory implementations, which
-  limit application to relatively small data sets. The proposed
-  PeakSegPipeline package implements disk-based storage in order to
-  compute optimal changepoint models for the large data sets which are
-  widespread in genomics.}
+\Abstract{We describe a new algorithm and \proglang{R}
+  package for constrained optimal changepoint detection in large genomic data
+  sets. We begin by reviewing existing dynamic programming algorithms
+  for solving optimal changepoint detection problems, with and without
+  constraints between adjacent segment means. In large genomic data,
+  computing the constrained optimal model with many changepoints is
+  too expensive using the previous $O(KN\log N)$ Segment Neighborhood
+  algorithm (best model with $K$ segments for $N$ data). We propose
+  new GFPOP algorithm which is much faster for models with many segments $K$, because it solves the
+  constrained Optimal Partitioning problem in $O(N\log N)$ time (best
+  model for a given penalty $\lambda$). We also propose an sequential
+  search algorithm that computes the Segment Neighborhood solution by
+  solving $O(\log K)$ Optimal Partitioning problems. We study the
+  empirical time complexity of our algorithms in a benchmark of large
+  genomic data sets, which have $O(\sqrt N)$ changepoints. Whereas the
+  previous Segment Neighborhood algorithm would be $O(N\sqrt N\log N)$
+  in this context, our proposed algorithm is only $O(N(\log N)^2)$,
+  which is much faster. We show that our disk-based implementation in
+  the \pkg{PeakSegPipeline} \R\ package can be used quickly compute
+  constrained optimal models with many changepoints in genomic data
+  sets of up to ten million observations.}
 
 %% - \Keywords{} with LaTeX markup, at least one required
 %% - \Plainkeywords{} without LaTeX markup (if necessary)
