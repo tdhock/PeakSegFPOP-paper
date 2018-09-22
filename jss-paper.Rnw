@@ -193,16 +193,17 @@ Segment Neighborhood problem is available in \R\ as
 \citep{changepoint}. We know of no \R\ implementation of the classical
 $O(N^2)$ algorithm for solving the Optimal Partitioning problem.
 
-\citet{pruned-dp} proposed a Pruned Dynamic Programming Algorithm
-(PDPA) for solving the Segment Neighborhood problem in faster
-$O(K N\log N)$ time. The novelty of the PDPA is the functional
+\citet{pruned-dp-new} and \citet{johnson} proposed similar functional
+pruning techniques for solving the Segment Neighborhood problem in
+faster $O(K N\log N)$ time. The novelty of these techniques is the functional
 representation of the optimal cost, which allows pruning the $O(N)$
 possible changepoints to only $O(\log N)$ candidates (while
 maintaining optimality). The original implementation of the PDPA was
 available in \R\ as \verb|cghseg:::segmeanCO| for the Normal
 homoscedastic model, but \pkg{cghseg} has been removed from CRAN as of
-18 December 2017. The PDPA for the Normal homoscedastic model is now available as \verb|jointseg::Fpsn| on
-Bioconductor \citep{jointseg}. \citet{cleynen2013segmentation} described a
+18 December 2017. The PDPA for the Normal homoscedastic model is now
+available as \verb|jointseg::Fpsn| on Bioconductor
+\citep{jointseg}. \citet{cleynen2013segmentation} described a
 generalization of the PDPA for other likelihood/loss functions
 (Poisson, negative binomial, Normal heteroscedastic). These are
 available in \R\ as \verb|Segmentor3IsBack::Segmentor|.
@@ -240,6 +241,13 @@ reduce the $O(N)$ possible changepoints to only $O(\log N)$ candidates
 % $K$.  Because this model sometimes has several consecutive up changes,
 % it is non-trivial to interpret in terms of peaks and background
 % (Figure~\ref{fig:data-models}, top).
+
+Several heuristic algorithms are also available in \R.  The
+\pkg{stepR} package implements the SMUCE algorithm for multiscale
+changepoint inference \citep{stepR}. The \pkg{wbs} package implements
+the wild binary segmentation method of \citet{wbs}. An efficient
+implementation of the classical binary segmentation heuristic is
+available as \code{fpop::multiBinSeg}.
 
 \subsection{Models with inequality constraints between adjacent segment means}
 
@@ -611,7 +619,9 @@ peaks in $O(N\log N)$ time.
 In this section we propose a generalization of the FPOP algorithm
 \citep{Maidstone2016} which allows optimal inference in models with
 inequality constraints between adjacent means, such as
-problem~(\ref{min:op-up-down}). The state graph
+problem~(\ref{min:op-up-down}). In particular we implemented the
+optimal changepoint model using the Poisson loss and the up-down
+constraints. The state graph
 (Figure~\ref{fig:state-graph}, right) can be converted into a directed
 acyclic graph (Figure~\ref{fig:computation-graph}) that represents the
 dynamic programming updates required to solve
@@ -867,8 +877,9 @@ sequence of identical data values. For example the first row means
 that the value 0 occurs on the 72601 positions in [60000,132601), the
 second row means a value of 1 for the 42 positions in [132601,132643),
 etc. This run-length encoding results in significant savings in disk
-space and time; for example in the data set above there are only 6921
-lines used to represent 520000 data values.
+space and time while maintaining optimality \citep{Segmentor}; for
+example in the data set above there are only 6921 lines used to
+represent 520000 data values.
 
 In order to handle very large data sets while using only $O(\log N)$
 memory, the algorithm reads input data from a text file on disk (and
