@@ -147,56 +147,73 @@
 
 \begin{document}
 
+\section[Introduction]{Introduction} \label{sec:intro}
 
-%% -- Introduction -------------------------------------------------------------
+\subsection{Peak detection via changepoint methods}
 
-%% - In principle "as usual".
-%% - But should typically have some discussion of both _software_ and _methods_.
-%% - Use \proglang{}, \pkg{}, and \code{} markup throughout the manuscript.
-%% - If such markup is in (sub)section titles, a plain text version has to be
-%%   added as well.
-%% - All software mentioned should be properly \cite-d.
-%% - All abbreviations should be introduced.
-%% - Unless the expansions of abbreviations are proper names (like "Journal
-%%   of Statistical Software" above) they should be in sentence case (like
-%%   "generalized linear models" below).
+There are many applications, particularly within genomics, that involve detecting regions that deviate from a
+usual/background behaviour, and where qualitatively this deviations lead to an increased mean of some measured 
+signal (REFS). For example, with ChIPSeq data \citep{chip-seq} we have data of counts of ?? at different positions 
+along a chromosome. Interest lies in detecting regions linked to protein binding, for which we would expect the 
+counts to be higher than the usual background level.
 
-\section[Introduction: optimal changepoint detection in R]{Introduction: optimal changepoint detection in \proglang{R}} \label{sec:intro}
+One approach to detecting these regions is through algorithms that detect change in mean in data. This paper
+builds on recent work of REF:HOCKING and presents a new changepoint algorithm, and its implementation within 
+\R\ for doing so. This algorithm is based on modelling data as count data, and using the knowledge that we have
+background regions and peak regions, with the latter having higher mean than the former. This imposes constraints
+on the type of changes, with the mean of the data alternately increasing then decreasing in value. A particular
+challenge with such methods is that for them to be widely used, the algorithms need to scale well in terms of 
+both computational and memory costs to large data.
+
+There are other approaches to tackling this type of problem, for example based on hidden Markov models (REFS). 
+One drawback of such methods is that they assume the background mean does not change across large genomic regions, 
+whereas such long-range changes are observed in many real data sets. See REF:HOCKING (AND EARLIER PAPER) for a 
+detailed comparison of these methods with changepoint approaches. 
 
 \subsection{Models with no constraints between segment means}
 
-Several dynamic programming algorithms for inferring optimal multiple
-changepoint models have been proposed in recent years
-(Table~\ref{tab:unconstrained-algos}). Such algorithms seek to compute
-the optimal model with $K$ segments ($K-1$ changepoints) for a
-sequence of $N$ data, $z_1,\dots,z_N$. The optimization variables are
-the $K-1$ discrete changepoints (which take integer values from 1 to
-$N-1$), and the $K$ segment means (typically real-valued). The goal of
-optimal changepoint algorithms is to find the arrangement of
-changepoints and segment means which maximizes a likelihood function
-(or equivalently minimizes a loss function). Optimizing by naively
-computing the best mean and likelihood for each of the $O(N^{K-1})$
-possible arrangements of changepoints is an exponential $O(N^K)$ time
-operation.
+Denote the data by $z_1,\dots,z_N$. We assume the data is ordered: for genomic applications the ordering will 
+be due to position along a chromosome, for time-series data the ordering is commonly by time. The aim of 
+changepoint analysis is to partition the data in to $K$ segments that each contain consecutive data points, 
+such that features of the data are common within a segment but differ between segments. The feature of the data 
+that changes will depend on the application, but could be, for example, the mean of the data, the variance, or 
+the distribution. Detecting changes of different features requires different statistical algorithms.
 
-The classical dynamic programming algorithms have time complexity
-which is quadratic in the number of data $N$. The algorithm which
-solves the ``Segment Neighborhood'' problem computes a sequence of
-optimal models from 1 to $K$ segments in $O(KN^2)$ time
-\citep{segment-neighborhood}.  \citet{optimal-partitioning} described
-an $O(N^2)$ algorithm which solves the related ``Optimal
-Partitioning'' problem. Rather than explicitly using the number of
-segments $K$ as a parameter, it inputs a non-negative penalty
-parameter $\lambda\in \RR_+$. The classical algorithm for solving the
+Throughout we will let $K$ be the number of segments, with the changepoints being $0=t_0<t_1<\cdots<t_{K-1}<t_K=N$. 
+This means that the $k$th segment will contain data points $z_{t_{k-1}+1},\ldots,z_{t_k}$. We denote the 
+segment-specific parameter for the segment by $m_k$. For the problem of detecting changes in ChIP-seq data,
+it is natural to model each data point as a realisation of a Poisson random variable, with the segment-specific 
+parameter being the mean for that segment. Change detection is then an attempt to detect the points along the 
+chromosome where the mean of the data changes. 
+
+The algorithm we present is based on detecting changes via minimising a measure of fit to the data, 
+with this measure of fit being the negative log-likelihood under our Poisson model. This is a specific 
+implementation of a general approach to detecting changes, which introduces a loss for fitting a data-point $z$
+with a parameter value $m$, which we denote $\ell(m,z)$. If we know the number of segments we can estimate the 
+location of the segments via solving the following minisation problem
+ \begin{align}
+    \minimize_{\substack{
+  \mathbf m\in\RR^{K}
+\\
+   0=t_0<t_1<\cdots<t_{K-1}<t_K=N
+  }} &\ \ 
+    \sum_{k=1}^K\  \sum_{i=t_{k-1}+1}^{t_k} \ell(m_k,z_i).
+\label{min:ut}
+\end{align}
+Optimizing by naively searching over all possible arrangements of changepoints is an expensive $O(N^K)$ time
+operation. However, solving (\ref{min:ut}) can be achieved efficiently using dynamic programming. The first such
+algorithm was the Segment Neighborhood algorithm, which computes the series of 
+optimal segmentations with  1 to $K$ segments in $O(KN^2)$ time
+\citep{segment-neighborhood}.  The classical algorithm for solving the
 Segment Neighborhood problem is available in \R\ as
-\code{changepoint::cpt.mean}
-\citep{changepoint}. We know of no \R\ implementation of the classical
-$O(N^2)$ algorithm for solving the Optimal Partitioning problem.
-
-\citet{pruned-dp-new} and \citet{johnson} proposed similar functional
-pruning techniques for solving the Segment Neighborhood problem in
-faster $O(K N\log N)$ time. The novelty of these techniques is the functional
-representation of the optimal cost, which allows pruning the $O(N)$
+\code{changepoint::cpt.mean}. Recent research has led to faster algorithms, based on pruning the search space of 
+the Segment Neighborhood algorithm
+\citep{pruned-dp-new,johnson}, and these algorithms empirically take $O(K N \log N)$ time. 
+%%proposed similar functional
+%pruning techniques for solving the Segment Neighborhood problem in
+%faster $O(K N\log N)$ time. 
+The novelty of these techniques is a functional
+representation of the optimal cost, which allows pruning of the $O(N)$
 possible changepoints to only $O(\log N)$ candidates (while
 maintaining optimality). The original implementation of the PDPA was
 available in \R\ as \verb|cghseg:::segmeanCO| for the Normal
@@ -208,12 +225,35 @@ generalization of the PDPA for other likelihood/loss functions
 (Poisson, negative binomial, Normal heteroscedastic). These are
 available in \R\ as \verb|Segmentor3IsBack::Segmentor|.
 
-\citet{Maidstone2016} proposed a Functional Pruning Optimal Partitioning (FPOP)
-algorithm for solving the Optimal Partitioning problem in $O(N\log N)$
-time. As in the PDPA, the ``functional pruning'' technique is used to
-reduce the $O(N)$ possible changepoints to only $O(\log N)$ candidates
-(while maintaining optimality). The FPOP algorithm is available in \R\ as
-\verb|fpop::Fpop| \citep{fpop}.
+In practice it is unusual to know how many segments there are present in the data. 
+To estimate $K$ it is common to use some information criteria that takes account 
+both of the measure of fit to the data and the complexity of the segmentation
+model being fitted. The most natural measures of complexity are linear in the 
+number of changepoints. Whilst it is possible to estimate $K$ by solving the 
+Segment Neighborhood problem for an appropriate set of changes, and calculating 
+the value of the information criteria for each value of the number of segments, it 
+is faster to jointly estimate both $K$ and the changepoint locations that minimise 
+the information criteria. The first algorithm to do so was the Optimal Partioning 
+algorithm introduced by \citet{optimal-partitioning}. Optimal partitioning is an an 
+$O(N^2)$ algorithm, and can be significantly faster than Segment Neighborhood for 
+large $K$. 
+
+There has also been substantial research into speeding up the optimal partitioning algorithm, 
+using various ideas to prune the search space. In particular the Pruned Exact Linear Time (PELT)
+algorithm of REF, which is implemented within \code{changepoint::cpt.mean}, and Functional Pruning
+Optimal Partitioning (FPOP) of \citet{Maidstone2016} which is available in \R\ as
+\verb|fpop::Fpop| \citep{fpop}. Both these algorithm have a computational cost that is linear in 
+$N$ in situations where $K$ increases linearly with $N$. The FPOP algorithm has a computational cost 
+that is empirically $O(N \log N)$ in situations where $K$ increases sub-linearly with $N$. 
+See Table \ref{tab:unconstrained-algos} for a summary of the different dynamic programming algorithms and implementations.
+
+Whilst solving the optimal partitioning problem is faster than solving (\ref{min:ut}) for a range of $K$,
+the drawback is that you only get a single segmentation for a single value of the number of segments. 
+Furthermore the choice of penalty that you impose with the information criteria -- which corresponds the 
+improvement in fit to the data needed to add an additional changepoint -- can be hard to tune and have an 
+important impact on the accuracy of the estimate of the number of changepoints. One way to ameliorate this 
+concern is to find segmentations for a range of penalties, something that can be done efficiently (REF CROPS).
+
 
 \begin{table*}[t!]
   \centering
@@ -236,42 +276,33 @@ reduce the $O(N)$ possible changepoints to only $O(\log N)$ candidates
 \label{tab:unconstrained-algos} 
 \end{table*}
 
-% Oracle penalties \citep{cleynen2013segmentation} or learned penalties
-% \citep{HOCKING-penalties} can be used to select the number of segments
-% $K$.  Because this model sometimes has several consecutive up changes,
-% it is non-trivial to interpret in terms of peaks and background
-% (Figure~\ref{fig:data-models}, top).
-
-Several heuristic algorithms are also available in \R.  The
-\pkg{stepR} package implements the SMUCE algorithm for multiscale
-changepoint inference \citep{stepR}. The \pkg{wbs} package implements
+There are alternative approaches to fitting changepoint models, the most common of which are based on 
+specifying a test for a single change and then repeatedly applying this test to identify multiple 
+changepoints. Such approaches can be applied more
+widely than the dynamic programming based approaches described above, 
+and often have strong computational performance with algorithms that are 
+$O(N \log N)$ for the Segment Neighborhood problem. In situations where both procedures 
+can be used, these methods are often identical if we wish to identify at most one changepoint. 
+The advantage that the dynamic programming approaches have is that they jointly detect multiple 
+changepoints which can lead to more accurate estimates \cite[see e.g.][]{Maidstone2016}. Several of 
+these alternative algorithms are available in \R.   For example, the \pkg{wbs} package implements
 the wild binary segmentation method of \citet{wbs}. An efficient
 implementation of the classical binary segmentation heuristic is
-available as \code{fpop::multiBinSeg}.
+available as \code{fpop::multiBinSeg}. The
+\pkg{stepR} package implements the SMUCE algorithm for multiscale
+changepoint inference \citep{stepR}.
 
 \subsection{Models with inequality constraints between adjacent segment means}
 
-% Hidden Markov Models (HMMs) with common mean parameters for the peak
-% or background regions could be used to model such sequence data, but
-% we do not explore them in this paper for two reasons. First, we have
-% observed in real ChIP-seq data that background and peak means are not
-% constant throughout the genome (Supplementary Figure 4), so shared
-% mean parameters would not be a good fit. Second, inference algorithms
-% for HMMs are only guaranteed to find a local maximum of the
-% likelihood; we are more interested in changepoint detection models
-% with dynamic programming algorithms that can provably compute the
-% global maximum of the corresponding likelihood.
-
 The models discussed above are unconstrained in the sense that there
-are no constraints between segment means. However constraints can be
+are no constraints between segment parameters. However, as deecribed above, constraints can be
 useful when data need to be interpreted in terms of pre-defined
-domain-specific states. For example in genomic data such as ChIP-seq
-\citep{chip-seq}, the changepoint model needs to be interpreted in
+domain-specific states. In the ChIP-seq application the changepoint model needs to be interpreted in
 terms of peaks (large values which represent protein binding) and
 background (small values which represent background noise).
 
 In this context, \citet{HOCKING-PeakSeg} introduced a $O(KN^2)$
-Constrained Dynamic Programming Algorithm (CDPA) for computing a model
+Constrained Dynamic Programming Algorithm (CDPA) for fitting a model
 where up changes are followed by down changes, and vice versa
 (Table~\ref{tab:constrained-algos}). These constraints ensure that
 odd-numbered segments can be interpreted as background, and
@@ -280,14 +311,6 @@ provides a sub-optimal solution to the Segment Neighborhood problem in
 $O(KN^2)$ time, \citet{HOCKING2016-chipseq} showed that it achieves
 state-of-the-art peak detection accuracy in a benchmark of
 ChIP-seq data sets. 
-
-% However The size of these aligned read count data depends on the size of the
-% chromosomes in the reference genome. For example, the largest
-% chromosome in the human genome (hg19) is chr1, which has 249,250,621
-% bases (distinct positions at which the number of aligned reads is
-% measured). Analysis of such data thus requires computationally
-% efficient algorithms which scale to data sets of arbitrarily large
-% size.
 
 Because the quadratic time complexity of the CDPA limits its
 application to relatively small data sets,
@@ -325,16 +348,6 @@ $K$ segments    & Sub-optimal,  $O(KN^2)$ & Optimal, $O(KN\log N)$\\
 constraints on adjacent segment means. Previous work is limited to solvers for the Segment Neighborhood problem; this paper presents Generalized Functional Pruning Optimal Partitioning (GFPOP), Algorithm~\ref{algo:GFPOP}.}
   \label{tab:constrained-algos}
 \end{table}
-
-% The approach taken by the PeakSeg algorithm can be formalised as follows. For any given number, $K$,
-% of segments we try to find the best segmentation. We define how good a segmentation is by fitting
-% a constant mean for each segment of the chromosome, subject to the up-down constraint that
-% the segment means alternate between increasing and decreasing. Subject to this constraint we find the
-% best choice of segment means to minimize some loss function that measures how close the mean is to each 
-% observation. The cost of a segmentation is defined to be the resulting value of this loss summed over 
-% all observations. For a sequence of $n$ data points, PeakSeg attempts to search over the $O(n^{K-1})$ 
-% possible segmentations to find the one that minimizes this cost. 
-
 
 %% -- Manuscript ---------------------------------------------------------------
 
@@ -391,71 +404,11 @@ required for the Segment Neighborhood solver).
 
 \section{Statistical models and optimization problems} \label{sec:models}
 
-\subsection{Unconstrained Segment Neighborhood model}
-
-Let $z_1,\dots,z_N\in\ZZ_+$ be a sequence of non-negative count
-data. The piecewise constant Poisson model with $K$ segments has mean
-parameters $u_1,\dots,u_K\in\RR$ and changepoint parameters
-$0=t_0<t_1<\cdots<t_{K-1}<t_K=N$. For every segment
-$k\in\{1,\dots,K\}$, the statistical model assumes
-$z_i \stackrel{\text{iid}}{\sim} \text{Poisson}(u_k)$ for every data
-point $i\in(t_{k-1},t_k]$ on that segment. Maximum likelihood
-inference in this model is equivalent to solving the minimization
-problem
-\begin{align}
-    \minimize_{\substack{
-  \mathbf u\in\RR^{K}
-\\
-   0=t_0<t_1<\cdots<t_{K-1}<t_K=N
-  }} &\ \ 
-    \sum_{k=1}^K\  \sum_{i=t_{k-1}+1}^{t_k} \ell(u_k,z_i),
-\label{min:ut}
-\end{align}
-where $\ell(u, z)=u-z\log u$ is the Poisson loss (minus the log
-Poisson likelihood). We refer to problem~(\ref{min:ut}) as
-``unconstrained'' because there are no constraints between adjacent
-segment mean variables $u_k,u_{k+1}$.
-
-To demonstrate the relationship with the Optimal Partitioning problem,
-we re-write problem~(\ref{min:ut}) as the equivalent optimization
-problem below. Instead of $K$ mean parameters $u_k$ and $K-1$
-changepoint parameters $t_k$, we use $N$ segment mean
-parameters $m_i$, 
-\begin{align}
-    \minimize_{\substack{
-  \mathbf m\in\RR^{N}
-  }} &\ \ 
-    \sum_{i=1}^N \ell(m_i, z_i)
-\label{min:m}
-\\
-      \text{subject to} &\ \ \sum_{i=1}^{N-1} I[m_i\neq m_{i+1}]=K-1,
-  \nonumber
-\end{align}
-where the number of segments $K$ is the fixed tuning parameter which
-controls the tradeoff between data fitting and regularization. Note
-that the objective function is the same as in problem~(\ref{min:ut}),
-and the sum of indicator functions in the constraint ensures that
-there are exactly $K-1$ changepoints in the sequence of mean values
-$m_i$.
-
-Problem~(\ref{min:ut}) is non-convex because of the integer-valued
-changepoint variables, and problem~(\ref{min:m}) is non-convex due to
-the indicator functions in the constraint. This non-convexity means
-that standard gradient-based algorithms can not be used to compute the
-optimal solution. Nonetheless, the optimal solution can be computed in
-$O(KN^2)$ time using the classic dynamic programming algorithm (\R\
-package \pkg{changepoint}), or in $O(KN\log N)$ time using dynamic
-programming with functional pruning (\R\ package \pkg{jointseg}). Both
-solvers return the optimal $u_k,t_k$ values for
-problem~(\ref{min:ut}), which can be easily converted to the optimal
-$m_i$ values for problem~(\ref{min:m}), via
-$m_i=u_k \forall i\in (t_{k-1},t_k]$.
 
 \subsection{Unconstrained Optimal Partitioning problem}
 
-The Optimal Partitioning problem moves the term from the constraint in
-problem~(\ref{min:m}) to the objective
-function:
+Define our loss function to be the Poisson loss, $\ell(m,z)=m-z\log m$, and $\lambda>0$ to be a penalty for adding a changepoint. Then we can infer the number of segments and the location of the changes by solving
+the Optimal Partitioning problem
 \begin{align}
   \label{min:op}
   \minimize_{
@@ -465,10 +418,9 @@ function:
   } &\ \ 
       \sum_{i=1}^N \ell(m_i, z_i) + \lambda \sum_{i=1}^{N-1} I(m_i\neq m_{i+1}).
 \end{align}
-The first term in the objective function is the Poisson loss, which
-encourages data fitting. The second term is the the number of
-changepoints, which encourages a regularized mean vector $\mathbf
-m$. The non-negative penalty $\lambda\in\RR_+$ controls the tradeoff
+The first term measures fit to the data, and the second term measures model complexity, which is proportional to the number of
+changepoints. 
+The non-negative penalty $\lambda\in\RR_+$ controls the tradeoff
 between the two objectives (it is a tuning parameter that must be
 fixed before solving the problem). Larger penalty $\lambda$ values
 result in models with fewer changepoints/segments. The extreme penalty
@@ -504,11 +456,6 @@ possible values of state variables $s_i$ and edges represent possible
 changepoints $c_i\neq 0$. Each edge/changepoint corresponds to a
 constraint such as (\ref{eq:change-constraint}).
 
-The optimal solution to problems~(\ref{min:op}) and (\ref{min:op-c})
-can be computed in $O(N^2)$ time using the classic dynamic programming
-algorithm (not currently implemented in \R), or in $O(N\log N)$ time
-using Functional Pruning Optimal Partitioning (\R\ package
-\pkg{fpop}).
 
 \subsection{Optimal Partitioning problem with up-down constraints between
   adjacent segment means}
