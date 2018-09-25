@@ -104,8 +104,7 @@ ggplot()+
     data=data.table(slope=2, intercept=0, algorithm="Segment\nNeighborhood"))+
   coord_equal()+
   scale_x_continuous(breaks=seq(0, 10, by=2))+
-  scale_y_continuous("Number of $O(N \\log N)$
-DP iterations (log scale)", breaks=seq(0, 20, by=2))+
+  scale_y_continuous("Number of DP iterations (log scale)", breaks=seq(0, 20, by=2))+
   scale_color_manual(values=algo.colors)
 
 ggplot()+
@@ -120,8 +119,7 @@ ggplot()+
     data=evals.tall[peaks <= 10])+
   coord_equal()+
   scale_x_continuous(breaks=seq(0, 10, by=2))+
-  scale_y_continuous("Number of $O(N \\log N)$
-DP iterations (log scale)", breaks=seq(0, 20, by=2))+
+  scale_y_continuous("Number of DP iterations (log scale)", breaks=seq(0, 20, by=2))+
   scale_color_manual(values=algo.colors)
 
 op.evals <- evals.tall[algo=="OP"]
@@ -159,8 +157,7 @@ gg <- ggplot()+
     df
   })+
   scale_x_log10("Number of peaks $P$ (log scale)")+
-  scale_y_log10("Number of $O(N \\log N)$
-DP iterations (log scale)")+
+  scale_y_log10("Number of DP iterations (log scale)")+
   geom_point(aes(
     peaks, evaluations),
     color=op.color,
@@ -183,7 +180,7 @@ gg.zoom <- ggplot()+
   scale_x_continuous(
     "Number of peaks $P$",
     breaks=seq(0, 10, by=2))+
-  scale_y_continuous("Number of $O(N \\log N)$ DP iterations",
+  scale_y_continuous("Number of DP iterations",
 breaks=seq(0, 20, by=2))+
   geom_point(aes(
     peaks, evaluations),
@@ -212,7 +209,7 @@ gg <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
   scale_x_log10("Number of peaks $P$")+
-  scale_y_log10("Number of $O(N \\log N)$ DP iterations")+
+  scale_y_log10("Number of DP iterations")+
   geom_point(aes(
     peaks, evaluations),
     color=op.color,

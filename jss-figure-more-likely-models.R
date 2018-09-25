@@ -261,7 +261,16 @@ gg <- ggplot()+
 one <- function(dt){
   dt[sample.id=="McGill0104"]
 }
+xmin <- 118122000
+xmax <- 118124000
 gg <- ggplot()+
+  ## penaltyLearning::geom_tallrect(
+  ##   aes(xmin=xmin, xmax=xmax),
+  ##   fill=NA,
+  ##   size=0.5,
+  ##   color="red",
+  ##   data=data.table(xmin, xmax)
+  ##   )+
   geom_text(aes(
     118120000, max, label=sprintf(
       "logLik=%.1f\n%d peak%s",
@@ -292,6 +301,7 @@ gg <- ggplot()+
     segStart, mean,
     xend=segEnd, yend=mean),
     color="green",
+    alpha=0.5,
     size=1,
     data=one(segs))+
   xlab("position on chromosome")+
@@ -302,11 +312,24 @@ gg <- ggplot()+
     xintercept=position,
     linetype=constraint),
     data=changes,
-    size=0.5,
+    alpha=0.5,
+    size=0.4,
     color="green")+
   ylab("aligned read coverage")
 png("jss-figure-more-likely-models-three-peaks.png",
-    units="in", res=200, width=6, height=3)
-print(gg)
+    units="in", res=300, width=4, height=3)
+print(gg+guides(linetype="none"))
 dev.off() 
 ##system("display jss-figure-more-likely-models-three-peaks.png")
+
+gg.zoom <- gg+coord_cartesian(xlim=c(xmin, xmax))+
+  ggtitle("Zoom to right peak")+
+  scale_x_continuous(breaks=NULL)+
+  theme(
+    legend.position="bottom",
+    text=element_text(size=8))
+png("jss-figure-more-likely-models-three-peaks-zoom.png",
+    units="in", res=300, width=2.5, height=3)
+print(gg.zoom)
+dev.off() 
+##system("display jss-figure-more-likely-models-three-peaks-zoom.png")

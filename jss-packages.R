@@ -3,7 +3,7 @@ works_with_R(
   data.table="1.11.4",
   directlabels="2018.5.22",
   ggplot2="3.0.0",
-  ggrepel="0.8.0",
+  ##ggrepel="0.8.0",
   tikzDevice="0.12")
 library(grid)
 options(

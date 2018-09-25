@@ -8,6 +8,20 @@ bench.models[, minutes := seconds/60]
 bench.models[, hours := minutes/60]
 bench.models[, gigabytes := megabytes/1024]
 
+max.err <- bench.models[, list(
+  max.errors=max(errors)
+), by=list(prob.dir, bedGraph.lines)]
+
+gg <- ggplot()+
+  geom_point(aes(
+    bedGraph.lines, max.errors),
+    data=max.err)+
+  scale_x_log10()+
+  scale_y_log10()
+pdf("jss-figure-data-peaks-max-errors.pdf")
+print(gg)
+dev.off()
+
 min.err.ranges <- bench.models[, .SD[errors==min(errors), list(
   min.penalty=min(penalty),
   max.penalty=max(penalty),
