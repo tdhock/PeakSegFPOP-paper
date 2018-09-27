@@ -1,5 +1,7 @@
-% -*- compile-command: "make jss-paper.pdf" -*-
-\documentclass[article]{jss}
+% -*- compile-command: "make jss-arxiv.pdf" -*-
+\documentclass{article}
+
+\usepackage{fullpage}
 
 \newcommand{\R}{\proglang{R}}
 % For algorithms
@@ -74,18 +76,20 @@
 \newcommand{\class}[1]{`\code{#1}'}
 \newcommand{\fct}[1]{\code{#1()}}
 
-
+\newcommand{\proglang}[1]{#1}
+\newcommand{\pkg}[1]{\textbf{#1}}
+\newcommand{\code}[1]{\texttt{#1}}
 %% -- Article metainformation (author, title, ...) -----------------------------
 
 %% - \author{} with primary affiliation
 %% - \Plainauthor{} without affiliations
 %% - Separate authors by \And or \AND (in \author) or by comma (in \Plainauthor).
 %% - \AND starts a new line, \And does not.
-\author{Toby Dylan Hocking\\Northern Arizona University
-   \And Guillem Rigaill\\INRA
-   \And Paul Fearnhead\\Lancaster University
-   \And Guillaume Bourque\\McGill University}
-\Plainauthor{Toby Dylan Hocking, Guillem Rigaill, Paul Fearnhead, Guillaume Bourque} 
+\author{Toby Dylan Hocking, \code{Toby.Hocking@nau.edu} \\
+    Guillem Rigaill, \code{Guillem.Rigaill@inra.fr}\\
+    Paul Fearnhead, \code{p.fearnhead@lancaster.ac.uk}\\
+    Guillaume Bourque, \code{guil.bourque@mcgill.ca}
+ }
 
 %% - \title{} in title case
 %% - \Plaintitle{} without LaTeX markup (if any)
@@ -93,14 +97,12 @@
 \title{Generalized Functional Pruning Optimal Partitioning (GFPOP)
   for Constrained Changepoint Detection in Genomic Data}
 
-\Plaintitle{Generalized Functional Pruning Optimal Partitioning (GFPOP) for
-  Constrained Changepoint Detection in Genomic Data}
+\begin{document}
 
-%\Shorttitle{A Short Demo Article in \proglang{R}}
-\Shorttitle{Constrained Optimal Changepoint Detection in Genomic Data}
+\maketitle
 
-%% - \Abstract{} almost as usual
-\Abstract{We describe a new algorithm and \proglang{R} package for
+\begin{abstract}
+We describe a new algorithm and \proglang{R} package for
   peak detection in genomic data sets using constrained
   changepoint algorithms. These detect changes from background to peak
   regions by imposing the constraint that the mean should alternately
@@ -118,56 +120,9 @@
   implementation in the \pkg{PeakSegPipeline} \R\ package can be used
   to quickly compute constrained optimal models with many changepoints,
   which are needed to analyze typical genomic data sets
-  that have tens of millions of observations.}
+  that have tens of millions of observations.
+\end{abstract}
 
-%% - \Keywords{} with LaTeX markup, at least one required
-%% - \Plainkeywords{} without LaTeX markup (if necessary)
-%% - Should be comma-separated and in sentence case.
-\Keywords{Dynamic programming, optimal changepoint detection, peak
-  detection, genomic data, \proglang{R}} 
-
-\Plainkeywords{Dynamic programming, optimal changepoint detection, peak
-  detection, genomic data, R} 
-
-%% - \Address{} of at least one author
-%% - May contain multiple affiliations for each author
-%%   (in extra lines, separated by \emph{and}\\).
-%% - May contain multiple authors for the same affiliation
-%%   (in the same first line, separated by comma).
-\Address{
-  Toby Dylan Hocking\\
-  Northern Arizona University\\
-  School of Informatics, Computing, and Cyber Systems\\
-  Flagstaff, AZ, USA\\
-  E-mail: \email{Toby.Hocking@nau.edu}\\
-  %URL: \url{https://eeecon.uibk.ac.at/~zeileis/}
-\\ \\
-  Guillem Rigaill\\
-  Laboratoire de Math\'ematiques at Mod\'elisation d'Evry (LaMME), Universit\'e
-d'Evry Val d'Essonne, UMR CNRS 8071, ENSIIE, USC INRA,
-Institute of Plant Sciences Paris-Saclay (IPS2), UMR 9213/UMR1403, CNRS, INRA,
-Universit\'e Paris-Sud, Universit\'e d'Evry, Universit\'e Paris-Diderot, Sorbonne
-Paris-Cit\'e,\\
-  Evry, France\\
-  E-mail: \email{Guillem.Rigaill@inra.fr}\\
-  %URL: \url{https://eeecon.uibk.ac.at/~zeileis/}
-  \\ \\
-  Paul Fearnhead\\
-  Lancaster University\\
-  Lancaster, UK\\
-  E-mail: \email{p.fearnhead@lancaster.ac.uk}\\
-  %URL: \url{https://eeecon.uibk.ac.at/~zeileis/}
-  \\ \\
-  Guillaume Bourque\\
-  McGill University\\
-  Montr\'eal, Qu\'ebec, Canada\\
-  E-mail: \email{guil.bourque@mcgill.ca}\\
-  %URL: \url{https://eeecon.uibk.ac.at/~zeileis/}
-}
-
-\begin{document}
-
-\newpage
 
 \section[Introduction]{Introduction} \label{sec:intro}
 
@@ -1124,7 +1079,7 @@ fit <- PeakSegPipeline::problem.sequentialSearch(data.dir, 17L)
 
 If you want to see how many iterations/penalties the algorithm
 required in order to compute the optimal model with 17 peaks, you can
-look at the \code{fit$others} component:
+look at the \verb|fit$others| component:
 
 <<>>=
 
@@ -1348,15 +1303,14 @@ for genomic data in $O(N\log N)$ space/time.
 \subsection{Disk storage is slower than memory by a constant
   factor}
 
-In the previous section, we discussed how tens of gigabytes of storage
-are required to run GFPOP when $N=10^7$. Since typical computers may
-not have enough memory, our implementation uses disk-based storage. We
-compared our disk-based implementation (\pkg{PeakSegPipeline} package)
-to another memory-based implementation (\pkg{PeakSegOptimal} package),
-in terms of computation time on small data sets for which GFPOP uses
-$<1$GB of storage. We observed that disk storage is slower than memory
-storage by a constant factor (1.7--2.3$\times$,
-Figure~\ref{fig:disk-memory-compare-speed}), which was expected.
+In the previous section, we discussed how tens of gigabytes of
+storage are required to run GFPOP when $N=10^7$. Since typical
+computers may not have enough memory, our implementation uses
+disk-based storage. We compared our disk-based implementation to
+another memory-based implementation, in terms of computation time on
+small data sets for which GFPOP uses $<1$GB of storage. We observed
+that disk storage is slower than memory storage by a constant factor
+(1.7--2.3$\times$, Figure~\ref{fig:disk-memory-compare-speed}), which was expected. 
 
 \begin{figure}[t!]
 \centering
@@ -1392,16 +1346,15 @@ Figure~\ref{fig:disk-memory-compare-speed}), which was expected.
 \label{sec:op-faster-than-sn}
 In this section we compare the number of $O(N\log N)$ dynamic
 programming iterations required for the proposed sequential search
-(Algorithm~\ref{algo:seq-search}, \pkg{PeakSegPipeline} package) and
-the previous Generalized Pruned Dynamic Programming Algorithm (GPDPA)
-of \citet{Hocking-constrained-changepoint-detection}
-(\pkg{PeakSegOptimal} package). Both algorithms compute the solution
-to the Segment Neighborhood problem (optimal model with at most $P$
-peaks). The GPDPA requires exactly $2P$ iterations of dynamic
-programming, each of which is an $O(N\log N)$ operation. In contrast,
-the proposed sequential search (Algorithm~\ref{algo:seq-search}) needs
-to solve for a sequence of penalties, each of which is done via GFPOP
-in $O(N\log N)$ time.
+(Algorithm~\ref{algo:seq-search}) and the previous Generalized Pruned
+Dynamic Programming Algorithm (GPDPA) of
+\citet{Hocking-constrained-changepoint-detection}. Both algorithms
+compute the solution to the Segment Neighborhood problem (optimal
+model with at most $P$ peaks). The GPDPA requires exactly $2P$ iterations of
+dynamic programming, each of which is an $O(N\log N)$ operation. In
+contrast, the proposed sequential search
+(Algorithm~\ref{algo:seq-search}) needs to solve for a sequence of
+penalties, each of which is done via GFPOP in $O(N\log N)$ time. 
 
 For two data sets with $N\approx 10^6$ we therefore recorded the
 empirical number of times GFPOP was called by the sequential search
@@ -1494,8 +1447,9 @@ with $O(\sqrt N)$ peaks achieve zero label errors.
 \end{figure}
   
 Computing the optimal model with $O(\sqrt N)$ peaks is computationally
-expensive using Segment Neighborhood algorithms, because the overall
-complexity would be $O(N\sqrt N\log N)$. For example in $N=10^7$ data,
+expensive using the Segment Neighborhood algorithm
+(\pkg{PeakSegOptimal} package), because the overall complexity would
+be $O(N\sqrt N\log N)$. For example in $N=10^7$ data,
 $P=O(\sqrt N)=1414$ peaks achieves zero label errors. Computing the
 optimal model with Segment Neighborhood would thus require 2828
 $O(N\log N)$ DP iterations. If we assume that each iteration would
@@ -1511,8 +1465,8 @@ $O(\sqrt N)$ peaks. In our empirical tests, we observed that only
 $O(\log N)$ GFPOP calls are required to compute $O(\sqrt N)$ peaks
 (Figure~\ref{fig:evaluations}, left). In particular for $N=10^7$ data
 only 10--15 GFPOP calls are required, which is significantly fewer
-than the 2828 DP iterations that would be required for Segment
-Neighborhood solvers. 
+than the 2828 DP iterations that would be required for the Segment
+Neighborhood solver in the \pkg{PeakSegOptimal} package. 
 
 We also observed that the empirical timings of the sequential search
 are only a log-factor slower than solving for one penalty
@@ -1520,8 +1474,9 @@ are only a log-factor slower than solving for one penalty
 the sequential search takes on the order of hours, which is much less
 than the weeks that would be required to solve the Segment
 Neighborhood problem. Overall these empirical results indicate that
-the sequential search algorithm can be used to compute a zero-error
-model with $O(\sqrt N)$ peaks in $O(N(\log N)^2)$ time.
+the sequential search algorithm in the \pkg{PeakSegPipeline} package
+can be used to compute a model with $O(\sqrt N)$ peaks in
+$O(N(\log N)^2)$ time.
 
 \begin{figure}[t!]
 \centering
@@ -1699,7 +1654,6 @@ for genomic data sets.
 \paragraph{Reproducible research statement.} The source code and data used to create this manuscript (including all figures) is available at \url{https://github.com/tdhock/PeakSegFPOP-paper}
 
 
-
 %% -- Optional special unnumbered sections -------------------------------------
 
 
@@ -1739,6 +1693,7 @@ for genomic data sets.
 %% - Titles in the .bib should be in title case.
 %% - DOIs should be included where available.
 
+\bibliographystyle{abbrvnat}
 \bibliography{jss-refs}
  
 

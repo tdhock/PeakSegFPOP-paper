@@ -1,3 +1,11 @@
+jss-arxiv.pdf: jss-arxiv.Rnw
+	rm -rf *.aux *.bbl
+	R CMD Sweave jss-arxiv.Rnw
+	pdflatex jss-arxiv
+	bibtex jss-arxiv
+	pdflatex jss-arxiv
+	pdflatex jss-arxiv
+	rm jss-arxiv.tex
 jss-slides.pdf: jss-slides.tex jss-paper.pdf
 	pdflatex jss-slides
 jss-paper.pdf: jss-paper.Rnw jss-figure-more-likely-models-three-peaks.png jss-figure-target-intervals-models.pdf jss-figure-disk-memory-compare-speed.pdf jss-figure-data-peaks.tex jss-figure-label-error.pdf jss-figure-evaluations.tex jss-figure-variable-peaks.tex jss-refs.bib
@@ -7,6 +15,7 @@ jss-paper.pdf: jss-paper.Rnw jss-figure-more-likely-models-three-peaks.png jss-f
 	bibtex jss-paper
 	pdflatex jss-paper
 	pdflatex jss-paper
+	rm jss-paper.tex
 jss.evaluations.rds: jss.evaluations.R
 	R --no-save < $<
 jss.variable.peaks.rds: jss.variable.peaks.R
