@@ -28,7 +28,9 @@ jss-figure-label-error.pdf: jss-figure-label-error.R
 	R --no-save < $<
 jss-figure-data-peaks.tex: jss-figure-data-peaks.R
 	R --no-save < $<
-jss-figure-disk-memory-compare-speed.pdf: jss-figure-disk-memory-compare-speed.R
+jss.disk.memory.rds: jss.disk.memory.R
+	R --vanilla < $<
+jss-figure-disk-memory-compare-speed.pdf: jss-figure-disk-memory-compare-speed.R jss.disk.memory.rds
 	R --no-save < $<
 jss-figure-target-intervals-models.pdf: jss-figure-target-intervals-models.R target.intervals.models.csv
 	R --no-save < $<

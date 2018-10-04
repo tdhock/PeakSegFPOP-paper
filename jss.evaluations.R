@@ -1,9 +1,4 @@
-source("findPeaks.R")
-library(data.table)
-library(ggplot2)
-library(directlabels)
-library(PeakSegPipeline)
-library(penaltyLearning)
+source("jss-packages.R")
 
 target.intervals.models <- fread("target.intervals.models.csv")
 labeled_problems_features <- fread("labeled_problems_features.csv")
@@ -20,21 +15,9 @@ min.err <- bench.models[, list(
   ), by=list(bedGraph.lines, prob.dir)]
 
 zero.err <- min.err[min.errors==0 & max.gigabytes < 30 & 0 < max.fp & 0 < max.fn][order(bedGraph.lines)]
-##OLD -- picking a number of peaks which we have already computed --
-##this makes the binary search iterations plot look constant because
-##we artificially pick a model which is early on the iterations.
-picked.models <- bench.models[zero.err, {
-  i.zero <- which(errors==0)
-  first <- min(i.zero)
-  last <- max(i.zero)
-  mid <- (first+last)/2
-  i.pick <- i.zero[which.min(abs(i.zero-mid))]
-  .SD[i.pick]
-}, by=list(prob.dir, bedGraph.lines), on=list(bedGraph.lines, prob.dir)]
-
-##NEW -- picking the number of peaks in the middle of the zero-error
-##interval -- this makes the binary search iterations plot looks O(log
-##N) like it should be.
+## picking the number of peaks in the middle of the zero-error
+## interval -- this makes the sequential search iterations plot looks
+## O(log N) like it should be.
 picked.models <- bench.models[zero.err, {
   .SD[errors==0, list(peaks=as.integer((min(peaks)+max(peaks))/2))]
 }, by=list(prob.dir, bedGraph.lines), on=list(bedGraph.lines, prob.dir)]
@@ -80,13 +63,19 @@ gg <- ggplot()+
   scale_x_log10()+
   scale_y_log10()
 
+data.dir <- "data"
+if(!dir.exists(data.dir)){
+  download.file("https://archive.ics.uci.edu/ml/machine-learning-databases/00439/peak-detection-data.tar.xz", "peak-detection-data.tar.xz")
+  system("tar xvf peak-detection-data.tar.xz")
+}
+
 prob.i.vec <- 1:nrow(some.probs)
 ##prob.i.vec <- 1:16
 jss.evaluations.list <- list()
 for(prob.i in prob.i.vec){
   prob <- some.probs[prob.i]
   cat(sprintf("%4d / %4d problems\n", prob.i, length(prob.i.vec)))
-  pdir <- file.path("~/projects/feature-learning-benchmark/data", prob$prob.dir)
+  pdir <- file.path(data.dir, prob$prob.dir)
   system(paste("gunzip", file.path(pdir, "coverage.bedGraph.gz")))
   match.df <- namedCapture::str_match_named(pdir, paste0(
     "(?<chrom>chr[^:]+)",
@@ -99,7 +88,7 @@ for(prob.i in prob.i.vec){
   fwrite(
     match.df, file.path(pdir, "problem.bed"),
     quote=FALSE, sep="\t", col.names=FALSE, row.names=FALSE)
-  fit.list <- problem.betterPeaks(pdir, prob$peaks, verbose=1)
+  fit.list <- problem.sequentialSearch(pdir, prob$peaks, verbose=1)
   jss.evaluations.list[[prob.i]] <- data.table(
     prob,
     loss=fit.list$loss,

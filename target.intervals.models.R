@@ -8,3 +8,4 @@ if(!file.exists("target.intervals.models.csv")){
     "http://members.cbio.ensmp.fr/~thocking/data/target.intervals.models.csv",
     "target.intervals.models.csv")
 }
+system("touch target.intervals.models.csv labeled_problems_features.csv")

@@ -1,9 +1,6 @@
-source("findPeaks.R")
-library(data.table)
-library(ggplot2)
+source("jss-packages.R")
 
-chunk.name <- "H3K4me3_TDH_immune/5"
-chunk.dir <- file.path("data", chunk.name)
+chunk.dir <- "jss-figure-more-likely-models"
 counts.RData <- file.path(chunk.dir, "counts.RData")
 load(counts.RData)
 counts.dt <- data.table(counts)
@@ -16,7 +13,7 @@ sample.num.vec <- c(#101,
 sample.id.vec <- sprintf("McGill%04d", sample.num.vec)
 some.counts <- counts.dt[sample.id %in% sample.id.vec]
 
-peaks.RData <- file.path(chunk.dir, "peaks", "macs.default.RData")
+peaks.RData <- file.path(chunk.dir, "macs.default.RData")
 load(peaks.RData)
 peaks.dt <- data.table(peaks[[1]])
 some.peaks <- peaks.dt[sample.id %in% sample.id.vec]
@@ -107,7 +104,7 @@ for(sample.i in seq_along(sample.id.vec)){
   segs.list[[paste(sample.id, "macs2")]] <- data.table(
     sample.id, model="macs2", seg.means)
   for(n.peaks in n.peaks.vec){
-    better.list <- PeakSegPipeline::problem.sequentialSearch(problem.dir, n.peaks)
+    better.list <- PeakSegDisk::problem.sequentialSearch(problem.dir, n.peaks)
     loss.list[[paste(sample.id, n.peaks)]] <- data.table(
       sample.id, 
       model=n.peaks,
@@ -124,6 +121,7 @@ for(sample.i in seq_along(sample.id.vec)){
     )
   }
 }
+
 segs <- do.call(rbind, segs.list)
 loss <- do.call(rbind, loss.list)
 logLik <- segs[, {

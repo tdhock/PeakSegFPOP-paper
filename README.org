@@ -1,10 +1,8 @@
-PeakSeg Functional Pruning Optimal Partitioning paper
-
-This repository contains the source code for our [[https://arxiv.org/abs/1703.03352][arXiv paper]] that
-describes a log-linear time algorithm for solving the PeakSeg
+This repository contains the source code for our papers
+describing log-linear time algorithms for solving the PeakSeg
 constrained changepoint detection problem.
 
-** Reproducibility info
+** [[https://arxiv.org/abs/1703.03352][arXiv:1703.03352]] A log-linear segmentation algorithm for peak detection in genomic data
 
 The labeled data we used to compute peak detection accuracy are
 http://members.cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/
@@ -13,31 +11,44 @@ The fold IDs that we used in our four-fold cross-validation experiment
 to compute test AUC/accuracy are listed in
 http://members.cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/4foldcv-test-folds.csv
 
-** Figures
+To recompute the figures from the arXiv paper, execute the code in the
+following R scripts.
 
-To recompute the figures from the paper, execute the code in the
-following R scripts. 
+- Figure 1: [[file:figure-compare-unconstrained.R]]
+- Figure 2: [[file:figure-2-min-envelope.R]]
+- Figure 3: [[file:figure-PDPA-intervals.R]] and
+  [[file:figure-PDPA-timings.R]], =make figure-PDPA-interals.png= and
+  =make figure-PDPA-timings.pdf=
+- Figure 4: [[file:figure-test-error-dots.R]], =make figure-test-error-dots.pdf=
 
+To recompute other figures:
 - [[file:figure-data-models.R]]
-- [[file:figure-compare-unconstrained.R]]
-- [[file:figure-2-min-envelope.R]]
 - [[file:figure-good-bad.R]]
-- [[file:figure-PDPA-intervals.R]] and [[file:figure-PDPA-timings.R]], =make
-  figure-PDPA-interals.png= and =make figure-PDPA-timings.pdf=
-- [[file:figure-test-error-dots.R]], =make figure-test-error-dots.pdf=
 
-For the last two figures, use the [[file:Makefile]] to re-make some
+Note that the [[file:Makefile]] shows how to re-make some
 intermediate RData files based on the [[http://members.cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/][ChIP-seq benchmark data]].
 
-** JSS paper
+** [[https://arxiv.org/abs/1810.00117][arXiv:1810.00117]] Generalized Functional Pruning Optimal Partitioning (GFPOP) for Constrained Changepoint Detection in Genomic Data
 
-- LaTeX source: [[file:jss-paper.tex]]
-- Figure showing that disk-based storage is not much slower than
-  memory-based storage. [[file:jss-figure-disk-memory-compare-speed.R]]
-- Figure showing that PeakSegFPOP can be used to compute more likely
-  models than the default MACS2
-  model. [[file:jss-figure-more-likely-models.R]]
-- Figure showing that [[file:jss-figure-target-intervals-models.R]]
+The [[https://github.com/tdhock/feature-learning-benchmark][benchmark data we used in this paper]] are much larger than the
+previous paper. To re-compile the figures and paper you can type "make
+jss-paper.pdf"
+
+- Sweave/LaTeX source: [[file:jss-paper.Rnw]]
+- Figures 3 (concave G function we maximize to find the model with P
+  peaks) and 10 (time complexity of computing sqrt N peaks):
+  [[file:jss-figure-evaluations.R]]
+- Figure 4 (PeakSegFPOP can be used to compute more likely models than
+  the default MACS2 model): [[file:jss-figure-more-likely-models.R]]
+- Figure 5 (number of intervals is log N and time/space complexity is
+  N log N): [[file:jss-figure-target-intervals-models.R]]
+- Figure 6 (disk-based storage is a constant factor slower than
+  memory-based storage, about 2x):
+  [[file:jss-figure-disk-memory-compare-speed.R]]
+- Figure 7 (number of DP iterations using OP is much lower than
+  SN to compute a large number of peaks): [[file:jss-figure-variable-peaks.R]]
+- Figure 8 (label error): [[file:jss-figure-label-error.R]]
+- Figure 9 (N genomic data have sqrt N peaks): [[file:jss-figure-data-peaks.R]]
 
 ** TODOs
 

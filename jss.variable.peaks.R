@@ -1,6 +1,4 @@
-source("findPeaks.R")
-library(data.table)
-library(PeakSegPipeline)
+source("jss-packages.R")
 
 target.intervals.models <- fread("target.intervals.models.csv")
 labeled_problems_features <- fread("labeled_problems_features.csv")
@@ -35,11 +33,17 @@ some.probs <- data.table(target.N=10^seq(log10.range[1], log10.range[2], l=10))[
   close.models[order(abs(target.N-bedGraph.lines))][1:2]
 }, by=list(target.N)][order(bedGraph.lines)]
 
+data.dir <- "data"
+if(!dir.exists(data.dir)){
+  download.file("https://archive.ics.uci.edu/ml/machine-learning-databases/00439/peak-detection-data.tar.xz", "peak-detection-data.tar.xz")
+  system("tar xvf peak-detection-data.tar.xz")
+}
+
 prob.i.vec <- c(1, 2, 7, 8, 13, 14)
 jss.variable.peaks.list <- list()
 for(prob.i in prob.i.vec){
   prob <- some.probs[prob.i]
-  pdir <- file.path("~/projects/feature-learning-benchmark/data", prob$prob.dir)
+  pdir <- file.path(data.dir, prob$prob.dir)
   system(paste("gunzip", file.path(pdir, "coverage.bedGraph.gz")))
   match.df <- namedCapture::str_match_named(pdir, paste0(
     "(?<chrom>chr[^:]+)",
@@ -52,7 +56,7 @@ for(prob.i in prob.i.vec){
   fwrite(
     match.df, file.path(pdir, "problem.bed"),
     quote=FALSE, sep="\t", col.names=FALSE, row.names=FALSE)
-  trivial <- problem.betterPeaks(pdir, 0L, verbose=1)
+  trivial <- problem.sequentialSearch(pdir, 0L, verbose=1)
   most.peaks <- trivial$others$peaks[1]
   most.peaks <- prob$target.N/2
   peak.vec <- as.integer(c(
@@ -66,7 +70,7 @@ for(prob.i in prob.i.vec){
       peak.i, length(peak.vec),
       peaks
     ))
-    fit.list <- problem.betterPeaks(pdir, peaks, verbose=1)
+    fit.list <- problem.sequentialSearch(pdir, peaks, verbose=1)
     jss.variable.peaks.list[[paste(pdir, peaks)]] <- data.table(
       prob,
       loss=fit.list$loss,

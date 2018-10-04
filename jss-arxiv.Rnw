@@ -117,7 +117,7 @@ We describe a new algorithm and \proglang{R} package for
   sequential search algorithm that finds the best solution with $K$
   segments in $O(\log(K) N\log(N))$ time, which is much faster than
   the previous $O(K N\log(N))$ algorithm. We show that our disk-based
-  implementation in the \pkg{PeakSegPipeline} \R\ package can be used
+  implementation in the \pkg{PeakSegDisk} \R\ package can be used
   to quickly compute constrained optimal models with many changepoints,
   which are needed to analyze typical genomic data sets
   that have tens of millions of observations.
@@ -330,7 +330,7 @@ $K$ segments    & Sub-optimal,  $O(KN^2)$ & Optimal, $O(KN\log N)$\\
     Optimal Partitioning &  & Generalized FPOP \\
     Penalty $\lambda$&  & Optimal, $O(N\log N)$\\
     &  & \textbf{This work}\\
-    & & \pkg{PeakSegPipeline}\\
+    & & \pkg{PeakSegDisk}\\
     \hline
   \end{tabular}
   \caption{Algorithms for optimal changepoint detection with up-down 
@@ -355,8 +355,8 @@ This paper presents two new algorithms for constrained optimal
 changepoint detection (Section~\ref{sec:algorithms}), along with an
 analysis of their empirical time/space complexity in a benchmark of
 genomic data (Section~\ref{sec:results}). The algorithms are
-implemented in the \R\ package \pkg{PeakSegPipeline} on
-GitHub.\footnote{ \url{https://github.com/tdhock/PeakSegPipeline} }
+implemented in the \R\ package \pkg{PeakSegDisk} on
+GitHub.\footnote{ \url{https://github.com/tdhock/PeakSegDisk} }
 
 First, we present a new algorithm for solving the Optimal Partitioning
 problem with up-down constraints between adjacent segment means
@@ -795,13 +795,13 @@ disk, $O(\log N)$ memory.
 
 \paragraph{Usage in \R.} We implemented the disk-based version of Algorithm~\ref{algo:GFPOP} in
 \proglang{C++} code with an interface in the \R\ package
-\pkg{PeakSegPipeline}. To illustrate its usage we first load a set of
+\pkg{PeakSegDisk}. To illustrate its usage we first load a set of
 genomic data,
 
 <<loadData>>=
 
-library(PeakSegPipeline)
-data(Mono27ac, package="PeakSegPipeline")
+library(PeakSegDisk)
+data(Mono27ac, package="PeakSegDisk")
 Mono27ac$coverage
 
 @ 
@@ -842,7 +842,7 @@ below:
 <<problemPeakSegFPOP>>=
 
 ## Compute one model with penalty=10000
-fit <- PeakSegPipeline::problem.PeakSegFPOP(data.dir, "10000")
+fit <- PeakSegDisk::problem.PeakSegFPOP(data.dir, "10000")
 
 @ 
 
@@ -1073,7 +1073,7 @@ complexity of $O(N\log(N)\log(P^*))$.
 <<seq-search>>=
 
 ## Compute the optimal model with 17 peaks.
-fit <- PeakSegPipeline::problem.sequentialSearch(data.dir, 17L)
+fit <- PeakSegDisk::problem.sequentialSearch(data.dir, 17L)
 
 @ 
 
@@ -1474,7 +1474,7 @@ are only a log-factor slower than solving for one penalty
 the sequential search takes on the order of hours, which is much less
 than the weeks that would be required to solve the Segment
 Neighborhood problem. Overall these empirical results indicate that
-the sequential search algorithm in the \pkg{PeakSegPipeline} package
+the sequential search algorithm in the \pkg{PeakSegDisk} package
 can be used to compute a model with $O(\sqrt N)$ peaks in
 $O(N(\log N)^2)$ time.
 
@@ -1692,6 +1692,8 @@ for genomic data sets.
 %% - JSS-specific markup (\proglang, \pkg, \code) should be used in the .bib.
 %% - Titles in the .bib should be in title case.
 %% - DOIs should be included where available.
+
+
 
 \bibliographystyle{abbrvnat}
 \bibliography{jss-refs}

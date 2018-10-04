@@ -1,6 +1,4 @@
-library(data.table)
-library(ggplot2)
-library(directlabels)
+source("jss-packages.R")
 
 target.intervals.models <- fread("target.intervals.models.csv")
 labeled_problems_features <- fread("labeled_problems_features.csv")

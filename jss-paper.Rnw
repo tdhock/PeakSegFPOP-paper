@@ -115,7 +115,7 @@
   sequential search algorithm that finds the best solution with $K$
   segments in $O(\log(K) N\log(N))$ time, which is much faster than
   the previous $O(K N\log(N))$ algorithm. We show that our disk-based
-  implementation in the \pkg{PeakSegPipeline} \R\ package can be used
+  implementation in the \pkg{PeakSegDisk} \R\ package can be used
   to quickly compute constrained optimal models with many changepoints,
   which are needed to analyze typical genomic data sets
   that have tens of millions of observations.}
@@ -375,7 +375,7 @@ $K$ segments    & Sub-optimal,  $O(KN^2)$ & Optimal, $O(KN\log N)$\\
     Optimal Partitioning &  & Generalized FPOP \\
     Penalty $\lambda$&  & Optimal, $O(N\log N)$\\
     &  & \textbf{This work}\\
-    & & \pkg{PeakSegPipeline}\\
+    & & \pkg{PeakSegDisk}\\
     \hline
   \end{tabular}
   \caption{Algorithms for optimal changepoint detection with up-down 
@@ -400,8 +400,8 @@ This paper presents two new algorithms for constrained optimal
 changepoint detection (Section~\ref{sec:algorithms}), along with an
 analysis of their empirical time/space complexity in a benchmark of
 genomic data (Section~\ref{sec:results}). The algorithms are
-implemented in the \R\ package \pkg{PeakSegPipeline} on
-GitHub.\footnote{ \url{https://github.com/tdhock/PeakSegPipeline} }
+implemented in the \R\ package \pkg{PeakSegDisk} on
+GitHub.\footnote{ \url{https://github.com/tdhock/PeakSegDisk} }
 
 First, we present a new algorithm for solving the Optimal Partitioning
 problem with up-down constraints between adjacent segment means
@@ -840,13 +840,13 @@ disk, $O(\log N)$ memory.
 
 \paragraph{Usage in \R.} We implemented the disk-based version of Algorithm~\ref{algo:GFPOP} in
 \proglang{C++} code with an interface in the \R\ package
-\pkg{PeakSegPipeline}. To illustrate its usage we first load a set of
+\pkg{PeakSegDisk}. To illustrate its usage we first load a set of
 genomic data,
 
 <<loadData>>=
 
-library(PeakSegPipeline)
-data(Mono27ac, package="PeakSegPipeline")
+library(PeakSegDisk)
+data(Mono27ac, package="PeakSegDisk")
 Mono27ac$coverage
 
 @ 
@@ -887,7 +887,7 @@ below:
 <<problemPeakSegFPOP>>=
 
 ## Compute one model with penalty=10000
-fit <- PeakSegPipeline::problem.PeakSegFPOP(data.dir, "10000")
+fit <- PeakSegDisk::problem.PeakSegFPOP(data.dir, "10000")
 
 @ 
 
@@ -1118,13 +1118,13 @@ complexity of $O(N\log(N)\log(P^*))$.
 <<seq-search>>=
 
 ## Compute the optimal model with 17 peaks.
-fit <- PeakSegPipeline::problem.sequentialSearch(data.dir, 17L)
+fit <- PeakSegDisk::problem.sequentialSearch(data.dir, 17L)
 
 @ 
 
 If you want to see how many iterations/penalties the algorithm
 required in order to compute the optimal model with 17 peaks, you can
-look at the \code{fit$others} component:
+look at the \verb|fit$others| component:
 
 <<>>=
 
@@ -1348,15 +1348,14 @@ for genomic data in $O(N\log N)$ space/time.
 \subsection{Disk storage is slower than memory by a constant
   factor}
 
-In the previous section, we discussed how tens of gigabytes of storage
-are required to run GFPOP when $N=10^7$. Since typical computers may
-not have enough memory, our implementation uses disk-based storage. We
-compared our disk-based implementation (\pkg{PeakSegPipeline} package)
-to another memory-based implementation (\pkg{PeakSegOptimal} package),
-in terms of computation time on small data sets for which GFPOP uses
-$<1$GB of storage. We observed that disk storage is slower than memory
-storage by a constant factor (1.7--2.3$\times$,
-Figure~\ref{fig:disk-memory-compare-speed}), which was expected.
+In the previous section, we discussed how tens of gigabytes of
+storage are required to run GFPOP when $N=10^7$. Since typical
+computers may not have enough memory, our implementation uses
+disk-based storage. We compared our disk-based implementation to
+another memory-based implementation, in terms of computation time on
+small data sets for which GFPOP uses $<1$GB of storage. We observed
+that disk storage is slower than memory storage by a constant factor
+(1.7--2.3$\times$, Figure~\ref{fig:disk-memory-compare-speed}), which was expected. 
 
 \begin{figure}[t!]
 \centering
@@ -1392,16 +1391,15 @@ Figure~\ref{fig:disk-memory-compare-speed}), which was expected.
 \label{sec:op-faster-than-sn}
 In this section we compare the number of $O(N\log N)$ dynamic
 programming iterations required for the proposed sequential search
-(Algorithm~\ref{algo:seq-search}, \pkg{PeakSegPipeline} package) and
-the previous Generalized Pruned Dynamic Programming Algorithm (GPDPA)
-of \citet{Hocking-constrained-changepoint-detection}
-(\pkg{PeakSegOptimal} package). Both algorithms compute the solution
-to the Segment Neighborhood problem (optimal model with at most $P$
-peaks). The GPDPA requires exactly $2P$ iterations of dynamic
-programming, each of which is an $O(N\log N)$ operation. In contrast,
-the proposed sequential search (Algorithm~\ref{algo:seq-search}) needs
-to solve for a sequence of penalties, each of which is done via GFPOP
-in $O(N\log N)$ time.
+(Algorithm~\ref{algo:seq-search}) and the previous Generalized Pruned
+Dynamic Programming Algorithm (GPDPA) of
+\citet{Hocking-constrained-changepoint-detection}. Both algorithms
+compute the solution to the Segment Neighborhood problem (optimal
+model with at most $P$ peaks). The GPDPA requires exactly $2P$ iterations of
+dynamic programming, each of which is an $O(N\log N)$ operation. In
+contrast, the proposed sequential search
+(Algorithm~\ref{algo:seq-search}) needs to solve for a sequence of
+penalties, each of which is done via GFPOP in $O(N\log N)$ time. 
 
 For two data sets with $N\approx 10^6$ we therefore recorded the
 empirical number of times GFPOP was called by the sequential search
@@ -1494,8 +1492,9 @@ with $O(\sqrt N)$ peaks achieve zero label errors.
 \end{figure}
   
 Computing the optimal model with $O(\sqrt N)$ peaks is computationally
-expensive using Segment Neighborhood algorithms, because the overall
-complexity would be $O(N\sqrt N\log N)$. For example in $N=10^7$ data,
+expensive using the Segment Neighborhood algorithm
+(\pkg{PeakSegOptimal} package), because the overall complexity would
+be $O(N\sqrt N\log N)$. For example in $N=10^7$ data,
 $P=O(\sqrt N)=1414$ peaks achieves zero label errors. Computing the
 optimal model with Segment Neighborhood would thus require 2828
 $O(N\log N)$ DP iterations. If we assume that each iteration would
@@ -1511,8 +1510,8 @@ $O(\sqrt N)$ peaks. In our empirical tests, we observed that only
 $O(\log N)$ GFPOP calls are required to compute $O(\sqrt N)$ peaks
 (Figure~\ref{fig:evaluations}, left). In particular for $N=10^7$ data
 only 10--15 GFPOP calls are required, which is significantly fewer
-than the 2828 DP iterations that would be required for Segment
-Neighborhood solvers. 
+than the 2828 DP iterations that would be required for the Segment
+Neighborhood solver in the \pkg{PeakSegOptimal} package. 
 
 We also observed that the empirical timings of the sequential search
 are only a log-factor slower than solving for one penalty
@@ -1520,8 +1519,9 @@ are only a log-factor slower than solving for one penalty
 the sequential search takes on the order of hours, which is much less
 than the weeks that would be required to solve the Segment
 Neighborhood problem. Overall these empirical results indicate that
-the sequential search algorithm can be used to compute a zero-error
-model with $O(\sqrt N)$ peaks in $O(N(\log N)^2)$ time.
+the sequential search algorithm in the \pkg{PeakSegDisk} package
+can be used to compute a model with $O(\sqrt N)$ peaks in
+$O(N(\log N)^2)$ time.
 
 \begin{figure}[t!]
 \centering
@@ -1699,7 +1699,6 @@ for genomic data sets.
 \paragraph{Reproducible research statement.} The source code and data used to create this manuscript (including all figures) is available at \url{https://github.com/tdhock/PeakSegFPOP-paper}
 
 
-
 %% -- Optional special unnumbered sections -------------------------------------
 
 
@@ -1738,6 +1737,7 @@ for genomic data sets.
 %% - JSS-specific markup (\proglang, \pkg, \code) should be used in the .bib.
 %% - Titles in the .bib should be in title case.
 %% - DOIs should be included where available.
+
 
 \bibliography{jss-refs}
  
