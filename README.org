@@ -14,6 +14,7 @@ http://members.cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/4foldcv-test-
 To recompute the figures from the arXiv paper, execute the code in the
 following R scripts.
 
+- LaTeX source: [[file:arxiv-paper.tex]]
 - Figure 1: [[file:figure-compare-unconstrained.R]]
 - Figure 2: [[file:figure-2-min-envelope.R]]
 - Figure 3: [[file:figure-PDPA-intervals.R]] and
@@ -57,6 +58,20 @@ jss-paper.pdf"
   [[file:figure-min-train-error.R]]
 - big model labels in [[file:figure-test-error-dots.R]]
 
+** 18 Oct 2018
+
+- new scheme for [[file:PDPA.infeasible.R]]: for background segments with
+  the same mean either before or after, join peaks before and
+  after. Before this file was using the small peaks in these
+  infeasible models. Contrast with [[file:PDPA.peaks.R]] which simply
+  ignores infeasible models.
+- new file [[file:PDPA.infeasible.error.compare.R]] which compares the
+  label error of the two PDPA models with the CDPA
+  model. Theoretically the PDPA.infeasible model with new join scheme
+  should have more true positives and false positives than the
+  PDPA.peaks model which simply ignores infeasible models. This file
+  also shows that it reduces the min train error to be similar with
+  CDPA.
 
 ** 28 Mar 2017
 - [[file:PDPA.timings.small.R]] runs the PeakSegPDPA algorithm for each

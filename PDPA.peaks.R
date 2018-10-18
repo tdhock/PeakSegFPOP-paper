@@ -1,33 +1,13 @@
 source("packages.R")
 
-files <- Sys.glob("data/H*/*/PDPA.model.RData")
-
-## Parse the first occurance of pattern from each of several strings
-## using (named) capturing regular expressions, returning a matrix
-## (with column names).
-str_match_perl <- function(string,pattern){
-  stopifnot(is.character(string))
-  stopifnot(is.character(pattern))
-  stopifnot(length(pattern)==1)
-  parsed <- regexpr(pattern,string,perl=TRUE)
-  captured.text <- substr(string,parsed,parsed+attr(parsed,"match.length")-1)
-  captured.text[captured.text==""] <- NA
-  captured.groups <- do.call(rbind,lapply(seq_along(string),function(i){
-    st <- attr(parsed,"capture.start")[i,]
-    if(is.na(parsed[i]) || parsed[i]==-1)return(rep(NA,length(st)))
-    substring(string[i],st,st+attr(parsed,"capture.length")[i,]-1)
-  }))
-  result <- cbind(captured.text,captured.groups)
-  colnames(result) <- c("",attr(parsed,"capture.names"))
-  result
-}
+files <- Sys.glob("../chip-seq-paper/chunks/H*/*/PDPA.model.RData")
 
 pattern <-
-  paste0("data/",
+  paste0("chunks/",
          "(?<set_name>.+?)",
          "/",
          "(?<chunk_id>[0-9]+)")
-matched <- str_match_perl(files, pattern)
+matched <- str_match_named(files, pattern)
 PDPA.peaks <- list()
 for(file.i in seq_along(files)){
   r <- matched[file.i, ]

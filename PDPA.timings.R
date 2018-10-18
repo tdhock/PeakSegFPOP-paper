@@ -1,9 +1,9 @@
 source("packages.R")
 
 library(data.table)
-library(coseg)
+library(PeakSegOptimal)
 
-count.files <- Sys.glob("data/H*/*/counts.RData")
+count.files <- Sys.glob("../chip-seq-paper/chunks/H*/*/counts.RData")
 max.segments <- 19L
 PDPA.timings.list <- list()
 file.i <- 42
@@ -55,7 +55,6 @@ for(file.i in file.i.vec){
             print(should.be.positive)
             print(compare.mat)
             stop("dp model more likely than pdpa model")
-            
             fit <- cDPA(data.vec, bases.vec, 19L)
             all.loss <- data.table(
               dp=as.numeric(fit$loss),
@@ -64,7 +63,6 @@ for(file.i in file.i.vec){
               data=as.integer(col(fit$loss)))
             all.loss[, should.be.positive := dp - pdpa]
             all.loss[should.be.positive < -1e-8,]
-            
           }
         }
       }

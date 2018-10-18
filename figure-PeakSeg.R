@@ -130,19 +130,19 @@ gg <- ggplot()+
   scale_x_continuous(
     "",
     ##"position on chr11 (kilo bases)",
-    breaks=three.segs[, c(chromStart, chromEnd[.N])]/1e3,
+    breaks=three.segs[, c(chromStart, chromEnd[.N])],
     labels=sprintf("$t_%s$", paste0(0:3, c("=0", "", "", "=n")))
   )+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "cm"))+
-  geom_step(aes(chromStart/1e3, count),
+  geom_step(aes(chromStart, count),
             data=compressed, color="grey40")+
-  geom_segment(aes((chromStart-1/2)/1e3, mean,
-                   xend=(chromEnd+1/2)/1e3, yend=mean),
+  geom_segment(aes((chromStart-1/2), mean,
+                   xend=(chromEnd+1/2), yend=mean),
                data=three.segs,
                color="green", alpha=3/4, size=2)+
   geom_text(aes(
-    ifelse(seg.i==1, chromStart, chromEnd)/1e3,
+    ifelse(seg.i==1, chromStart, chromEnd),
                 mean,
                 hjust=ifelse(seg.i==1, 1, 0),
     label=sprintf("$u_%d$", seg.i)),
@@ -150,17 +150,79 @@ gg <- ggplot()+
             color="green",
     data=three.segs)+
   geom_text(aes(x, y, label="$S=3$ segments"),
-            data=data.frame(x=118090, y=50),
+            data=data.frame(x=118090000, y=50),
             hjust=0,
             size=3,
             color="green")+
   geom_vline(aes(
-    xintercept=chromEnd/1e3),
+    xintercept=chromEnd),
     data=three.breaks,
     color="green",
-    size=0.5)
+    size=0.5)+
+  geom_text(aes(
+    ifelse(seg.i==1, chromStart, chromEnd),
+    20,
+    label=sprintf("$z_%s$", ifelse(seg.i==1, 1, "n"))),
+    data=three.segs[seg.i != 2])
 library(tikzDevice)
 tikz("figure-PeakSeg.tex", 4, 1)
+print(gg)
+dev.off()
+gg <- ggplot()+
+  scale_fill_manual("label", values=ann.colors, 
+                    breaks=names(ann.colors))+
+  scale_linetype_manual("error type", 
+                        values=c(correct=0,
+                          "false negative"=3,
+                          "false positive"=1))+
+  scale_y_continuous(
+    ##"read count",
+    "Data $z_i$
+Mean $u_k$
+aligned DNA
+sequences",
+    breaks=seq(0, 50, by=25),
+    minor_breaks=NULL)+
+  scale_x_continuous(
+    "Position on chromosome",
+    ##"position on chr11 (kilo bases)",
+    breaks=three.segs[, c(chromStart, chromEnd[.N])],
+    labels=sprintf("$t_%s$", paste0(0:3, c("=0", "", "", "=N")))
+  )+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "cm"))+
+  geom_step(aes(chromStart, count),
+            data=compressed, color="grey40")+
+  geom_segment(aes((chromStart-1/2), mean,
+                   xend=(chromEnd+1/2), yend=mean),
+               data=three.segs,
+               color="blue", alpha=3/4, size=2)+
+  geom_text(aes(
+    ifelse(seg.i==1, chromStart, chromEnd),
+                mean,
+                hjust=ifelse(seg.i==1, 1, 0),
+    label=sprintf("$u_%d$", seg.i)),
+    vjust=0,
+            color="blue",
+    data=three.segs)+
+  geom_text(aes(x, y, label="$K=3$ segments"),
+            data=data.frame(x=118090000, y=60),
+            hjust=0,
+            size=3,
+            color="blue")+
+  geom_vline(aes(
+    xintercept=chromEnd),
+    data=three.breaks,
+    color="blue",
+    linetype="dashed",
+    size=0.5)+
+  geom_text(aes(
+    ifelse(seg.i==1, chromStart, chromEnd),
+    20,
+    label=sprintf("$z_%s$", ifelse(seg.i==1, 1, "N"))),
+    color="grey40",
+    data=three.segs[seg.i != 2])
+tikz("figure-PeakSeg-big.tex", 6, 1.5)
 print(gg)
 dev.off()
 
