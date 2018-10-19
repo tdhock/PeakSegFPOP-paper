@@ -16,7 +16,7 @@ levs <- c(
   Segmentor="PDPA(unconstrained baseline)",
   PeakSegDP="CDPA(previous best)",
   ##coseg.inf="GPDPAinf",
-  coseg="GPDPA(proposed)")
+  coseg.inf="GPDPA(proposed)")
 test.error[, algorithm := levs[algorithm] ]
 roc[, algorithm := levs[algorithm] ]
 
@@ -60,27 +60,25 @@ roc.total[, TPR := tp/possible.tp]
 roc.total[, FPR := fp/possible.fp]
 roc.ord <- roc.total[order(param.i),]
 
-algo.colors <-
-  c(hmcan="#A6CEE3",
-    HMCanBroad="#1F78B4",
-    triform="#B2DF8A",
-    PeakSegDP="#33A02C",
-    CDPA="#33A02C",
-    "#FB9A99",
-    coseg="black",
-    GPDPA="black",
-    GPDPAinf="grey",
-    PeakSegJoint="grey40",
-    "#E31A1C",
-    MACS="#FDBF6F",
-    macs.broad="#FF7F00",
-    ccat.tf="#CAB2D6", #lite purple
-    "#6A3D9A",#dark purple
-    "#FFFF99", #yellow
-    PDPA="#B15928", #brown
-    Segmentor="#B15928") #brown
-
-## TODO: compute AUC?
+algo.colors <- c(
+  hmcan="#A6CEE3",
+  HMCanBroad="#1F78B4",
+  triform="#B2DF8A",
+  PeakSegDP="#33A02C",
+  CDPA="#33A02C",
+  "#FB9A99",
+  coseg="black",
+  GPDPA="black",
+  GPDPAinf="grey",
+  PeakSegJoint="grey40",
+  "#E31A1C",
+  MACS="#FDBF6F",
+  macs.broad="#FF7F00",
+  ccat.tf="#CAB2D6", #lite purple
+  "#6A3D9A",#dark purple
+  "#FFFF99", #yellow
+  PDPA="#B15928", #brown
+  Segmentor="#B15928") #brown
 
 ggplot()+
   theme_bw()+
@@ -113,6 +111,32 @@ auc <- roc.not.cvx[, list(
   auc=geometry::polyarea(FPR, TPR)
   ), by=.(set.name, set.i, algorithm)]
 auc.wide <- dcast(auc, set.name + set.i ~ algorithm, value.var="auc")
+
+ggplot()+
+  theme_bw()+
+  geom_abline(slope=1, intercept=0, color="grey")+
+  geom_point(aes(`CDPA(previous best)`, `GPDPA(proposed)`), data=auc.wide)+
+  coord_equal()
+
+err.wide <- dcast(test.counts[train.type=="supervised"], set.name+set.i ~ algorithm, value.var="percent.accuracy")
+ggplot()+
+  theme_bw()+
+  geom_abline(slope=1, intercept=0, color="grey")+
+  geom_point(aes(`CDPA(previous best)`, `GPDPA(proposed)`), data=err.wide)+
+  coord_equal()
+
+ggplot()+
+  theme_bw()+
+  geom_abline(slope=1, intercept=0, color="grey")+
+  geom_point(aes(`PDPA(unconstrained baseline)`, `GPDPA(proposed)`), data=err.wide)+
+  coord_equal()
+
+ggplot()+
+  theme_bw()+
+  geom_abline(slope=1, intercept=0, color="grey")+
+  geom_point(aes(`PDPA(unconstrained baseline)`, `CDPA(previous best)`), data=err.wide)+
+  coord_equal()
+
 if(FALSE){
 auc.wide[, {
   L <- t.test(`CDPA(previous best)`, `GPDPA(proposed)`, paired=TRUE)
@@ -371,7 +395,7 @@ viz <- list(
                data=test.counts))
 ##print(viz$error)
 ##print(viz$auc)
-animint2dir(viz, "figure-test-error-dots")
+##animint2dir(viz, "figure-test-error-dots")
 
 dots <- ggplot()+
   geom_vline(aes(xintercept=min.auc),

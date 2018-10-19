@@ -28,6 +28,7 @@ pattern <-
 matched <- str_match_perl(files, pattern)
 
 Segmentor.peaks.error.list <- list()
+Segmentor.peaks.list <- list()
 for(file.i in seq_along(files)){
   r <- matched[file.i, ]
   set.name <- r[["set_name"]]
@@ -36,6 +37,7 @@ for(file.i in seq_along(files)){
   f <- files[[file.i]]
   cat(sprintf("%4d / %4d %s\n", file.i, length(files), f))
   load(f)
+  Segmentor.model.list[[chunk.name]] <- Segmentor.model
   regions.RData <- sprintf("../chip-seq-paper/chunks/%s/regions.RData", chunk.name)
   load(regions.RData)
   regions.by.sample <- split(regions, regions$sample.id, drop=TRUE)
@@ -55,4 +57,4 @@ for(file.i in seq_along(files)){
   }
 }
 Segmentor.peaks.error <- do.call(rbind, Segmentor.peaks.error.list)
-save(Segmentor.peaks.error, file="Segmentor.peaks.error.RData")
+save(Segmentor.model.list, Segmentor.peaks.error, file="Segmentor.peaks.error.RData")

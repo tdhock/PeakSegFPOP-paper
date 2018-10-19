@@ -2,13 +2,10 @@ source("packages.R")
 
 load("PDPA.infeasible.error.RData")
 load("dp.peaks.error.RData")
-load("PDPA.peaks.error.RData")
+##load("PDPA.peaks.error.RData")
 load("Segmentor.peaks.error.RData")
-setkey(PDPA.peaks.error, chunk.name)
-setkey(PDPA.infeasible.error, chunk.name)
-setkey(Segmentor.peaks.error, chunk.name)
 
-set.names <- unique(sub("/.*", "", names(dp.peaks.error)))
+set.names <- grep("^H", unique(sub("/.*", "", names(dp.peaks.error))), value=TRUE)
 dp.peaks.matrices <- list()
 dp.peaks.matrices.fp <- list()
 dp.peaks.matrices.tp <- list()
@@ -29,27 +26,27 @@ for(set.i in seq_along(set.names)){
         possible.fp=sum(possible.fp),
         possible.tp=sum(possible.tp),
         regions=.N), by=.(sample.id, param.num)]
-      pdpa <- PDPA.peaks.error[chunk.name, list(
-        errors=sum(fp+fn),
-        fp=sum(fp),
-        tp=sum(tp),
-        possible.fp=sum(possible.fp),
-        possible.tp=sum(possible.tp),
-        regions=.N), by=.(sample.id, peaks)]
+      ## pdpa <- PDPA.peaks.error[chunk.name, list(
+      ##   errors=sum(fp+fn),
+      ##   fp=sum(fp),
+      ##   tp=sum(tp),
+      ##   possible.fp=sum(possible.fp),
+      ##   possible.tp=sum(possible.tp),
+      ##   regions=.N), by=.(sample.id, peaks)]
       pdpa.inf <- PDPA.infeasible.error[chunk.name, list(
         errors=sum(fp+fn),
         fp=sum(fp),
         tp=sum(tp),
         possible.fp=sum(possible.fp),
         possible.tp=sum(possible.tp),
-        regions=.N), by=.(sample.id, peaks)]
+        regions=.N), by=.(sample.id, peaks), on=list(chunk.name)]
       Seg <- Segmentor.peaks.error[chunk.name, list(
         errors=sum(fp+fn),
         fp=sum(fp),
         tp=sum(tp),
         possible.fp=sum(possible.fp),
         possible.tp=sum(possible.tp),
-        regions=.N), by=.(sample.id, peaks)]
+        regions=.N), by=.(sample.id, peaks), on=list(chunk.name)]
       long.list <- split(long, long$sample.id, drop=TRUE)
       err.mat <- fp.mat <- tp.mat <-
         Seg.mat <- Seg.fp <- Seg.tp <- 
@@ -72,13 +69,13 @@ for(set.i in seq_along(set.names)){
         inf.fp[paste(peaks.dt$sample.id), peaks.str] <- peaks.dt$fp
         inf.tp[paste(peaks.dt$sample.id), peaks.str] <- peaks.dt$tp
       }
-      pdpa.by.peaks <- split(pdpa, pdpa$peaks)
-      for(peaks.str in names(pdpa.by.peaks)){
-        peaks.dt <- pdpa.by.peaks[[peaks.str]]
-        pdpa.mat[paste(peaks.dt$sample.id), peaks.str] <- peaks.dt$errors
-        pdpa.fp[paste(peaks.dt$sample.id), peaks.str] <- peaks.dt$fp
-        pdpa.tp[paste(peaks.dt$sample.id), peaks.str] <- peaks.dt$tp
-      }
+      ## pdpa.by.peaks <- split(pdpa, pdpa$peaks)
+      ## for(peaks.str in names(pdpa.by.peaks)){
+      ##   peaks.dt <- pdpa.by.peaks[[peaks.str]]
+      ##   pdpa.mat[paste(peaks.dt$sample.id), peaks.str] <- peaks.dt$errors
+      ##   pdpa.fp[paste(peaks.dt$sample.id), peaks.str] <- peaks.dt$fp
+      ##   pdpa.tp[paste(peaks.dt$sample.id), peaks.str] <- peaks.dt$tp
+      ## }
       Seg.by.peaks <- split(Seg, Seg$peaks)
       for(peaks.str in names(Seg.by.peaks)){
         peaks.dt <- Seg.by.peaks[[peaks.str]] 
@@ -88,19 +85,19 @@ for(set.i in seq_along(set.names)){
       }
       err.list <-
         list(PeakSegDP=err.mat,
-             coseg=pdpa.mat,
+             ##coseg=pdpa.mat,
              coseg.inf=inf.mat,
              Segmentor=Seg.mat,
              regions=sapply(long.list, function(x)x$regions[[1]]))
       fp.list <-
         list(PeakSegDP=fp.mat,
-             coseg=pdpa.fp,
+             ##coseg=pdpa.fp,
              coseg.inf=inf.fp,
              Segmentor=Seg.fp,
              possible.fp=sapply(long.list, function(x)x$possible.fp[[1]]))
       tp.list <-
         list(PeakSegDP=tp.mat,
-             coseg=pdpa.tp,
+             ##coseg=pdpa.tp,
              coseg.inf=inf.tp,
              Segmentor=Seg.tp,
              possible.tp=sapply(long.list, function(x)x$possible.tp[[1]]))
