@@ -3,7 +3,7 @@ source("packages.R")
 ## TODO: check problematic sample H3K4me3_XJ_immune/1 McGill0024 where
 ## PDPA loss is bigger than cDPA loss.
 
-PDPA.RData.vec <- Sys.glob("data/H3K*/*/PDPA.model/*")
+PDPA.RData.vec <- Sys.glob("../chip-seq-paper/chunks/H3K*/*/PDPA.model/*")
 "H3K4me3_PGP_immune/10/"
 "H3K4me3_PGP_immune/2/"
 "H3K4me3_XJ_immune/1/"
@@ -22,7 +22,7 @@ for(PDPA.i in seq_along(PDPA.RData.vec)){
   cat(sprintf("%4d / %4d %s\n", PDPA.i, length(PDPA.RData.vec), PDPA.RData))
   (objs <- load(PDPA.RData))
   chunk.dir <- dirname(dirname(PDPA.RData))
-  chunk.name <- sub("^data/", "", chunk.dir)
+  chunk.name <- sub("^chunks/", "", chunk.dir)
   counts.RData <- file.path(chunk.dir, "counts.RData")
   load(counts.RData)
   sid <- sub("[.]RData$", "", basename(PDPA.RData))

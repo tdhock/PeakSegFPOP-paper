@@ -3,7 +3,7 @@ source("packages.R")
 library(data.table)
 library(coseg)
 
-count.files <- Sys.glob("data/H*/*/counts.RData")
+count.files <- Sys.glob("../chip-seq-paper/chunks/H*/*/counts.RData")
 max.segments <- 19L
 PDPA.timings.list <- list()
 file.i <- 42

@@ -1,6 +1,6 @@
 source("packages.R")
 
-files <- Sys.glob("data/H*/*/Segmentor.model.RData")
+files <- Sys.glob("../chip-seq-paper/chunks/H*/*/Segmentor.model.RData")
 ## Parse the first occurance of pattern from each of several strings
 ## using (named) capturing regular expressions, returning a matrix
 ## (with column names).
@@ -21,7 +21,7 @@ str_match_perl <- function(string,pattern){
   result
 }
 pattern <-
-  paste0("data/",
+  paste0("../chip-seq-paper/chunks/",
          "(?<set_name>.+?)",
          "/",
          "(?<chunk_id>[0-9]+)")
@@ -36,7 +36,7 @@ for(file.i in seq_along(files)){
   f <- files[[file.i]]
   cat(sprintf("%4d / %4d %s\n", file.i, length(files), f))
   load(f)
-  regions.RData <- sprintf("data/%s/regions.RData", chunk.name)
+  regions.RData <- sprintf("../chip-seq-paper/chunks/%s/regions.RData", chunk.name)
   load(regions.RData)
   regions.by.sample <- split(regions, regions$sample.id, drop=TRUE)
   for(sample.id in names(Segmentor.model)){

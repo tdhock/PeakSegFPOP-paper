@@ -1,6 +1,6 @@
 source("packages.R")
 
-regions.RData.vec <- Sys.glob("data/*/*/regions.RData")
+regions.RData.vec <- Sys.glob("../chip-seq-paper/chunks/*/*/regions.RData")
 all.dt.list <- list()
 for(regions.RData in regions.RData.vec){
   set.name <- basename(dirname(dirname(regions.RData)))

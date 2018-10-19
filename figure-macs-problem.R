@@ -1,6 +1,6 @@
 source("packages.R")
 
-chunk.path <- "data/H3K4me3_TDH_immune/5"
+chunk.path <- "../chip-seq-paper/chunks/H3K4me3_TDH_immune/5"
 peaks.path <- file.path(chunk.path, "peaks", "macs.trained.RData")
 load(peaks.path)
 counts.path <- file.path(chunk.path, "counts.RData")

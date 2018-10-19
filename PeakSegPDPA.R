@@ -621,7 +621,7 @@ PeakSegPDPA <- function(input.dt, maxPeaks=9L){
 
 if(FALSE){
 
-  load("data/H3K4me3_XJ_immune/2/counts.RData")
+  load("../chip-seq-paper/chunks/H3K4me3_XJ_immune/2/counts.RData")
   counts$bases <- with(counts, chromEnd-chromStart)
   counts$count <- counts$coverage
   sample.list <- split(counts, counts$sample.id)

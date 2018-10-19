@@ -1,6 +1,6 @@
 source("packages.R")
 
-PDPA.RData.vec <- Sys.glob("data/H*/*/PDPA.model.RData")
+PDPA.RData.vec <- Sys.glob("../chip-seq-paper/chunks/H*/*/PDPA.model.RData")
 
 seg.vec <- seq(1, 19, by=2)
 PDPA.model.check.list <- list()
@@ -9,7 +9,7 @@ for(file.i in seq_along(PDPA.RData.vec)){
   cat(sprintf("%4d / %4d %s\n", file.i, length(PDPA.RData.vec), PDPA.RData))
   load(PDPA.RData)
   chunk.path <- dirname(PDPA.RData)
-  chunk <- sub("data/", "", chunk.path)
+  chunk <- sub("../chip-seq-paper/chunks/", "", chunk.path)
   other.vec <- c(
     fwd="dp.model.RData",
     rev="dp.model.reverse.RData")

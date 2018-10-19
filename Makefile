@@ -136,7 +136,9 @@ unsupervised.pdpa.RData: unsupervised.pdpa.R
 	R --no-save < $<
 unsupervised.RData: unsupervised.R
 	R --no-save < $<
-test.error.RData: test.error.R unsupervised.RData unsupervised.pdpa.RData dp.peaks.matrices.RData dp.peaks.sets.RData unsupervised.Segmentor.RData
+unsupervised.inf.RData: unsupervised.inf.R
+	R --no-save < $<
+test.error.RData: test.error.R unsupervised.RData unsupervised.inf.RData unsupervised.pdpa.RData dp.peaks.matrices.RData dp.peaks.sets.RData unsupervised.Segmentor.RData
 	R --no-save < $<
 dp.peaks.sets.RData: dp.peaks.sets.R dp.peaks.matrices.RData
 	R --no-save < $<

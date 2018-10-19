@@ -1,6 +1,6 @@
 source("packages.R")
 
-load("data/H3K36me3_AM_immune/2/counts.RData")
+load("../chip-seq-paper/chunks/H3K36me3_AM_immune/2/counts.RData")
 counts$count <- counts$coverage
 by.sample <- split(counts, counts$sample.id)
 sapply(by.sample, nrow)

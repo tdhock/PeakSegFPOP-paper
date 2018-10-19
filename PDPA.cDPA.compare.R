@@ -1,6 +1,6 @@
 source("packages.R")
 
-PDPA.RData.vec <- Sys.glob("data/H3K*/*/PDPA.model.RData")
+PDPA.RData.vec <- Sys.glob("../chip-seq-paper/chunks/H3K*/*/PDPA.model.RData")
 loss.list <- list()
 pdpa.list <- list()
 all.loss.list <- list()

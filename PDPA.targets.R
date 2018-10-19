@@ -5,12 +5,12 @@ library(penaltyLearning)
 load("PDPA.peaks.error.RData")
 
 selection.list <- list()
-model.files <- Sys.glob("data/H*/*/PDPA.model.RData")
+model.files <- Sys.glob("../chip-seq-paper/chunks/H*/*/PDPA.model.RData")
 i.vec <- seq_along(model.files)
 ##i.vec <- 1:2
 selected <- data.table(model.file.i=i.vec)[, {
   model.file <- model.files[[model.file.i]]
-  chunk.name <- sub("data/", "", dirname(model.file))
+  chunk.name <- sub("../chip-seq-paper/chunks/", "", dirname(model.file))
   cat(sprintf("%4d / %4d %s\n", model.file.i, length(model.files), chunk.name))
   load(model.file)
   data.table(sample.id=names(PDPA.model))[, {

@@ -105,7 +105,7 @@ for(set.i in seq_along(set.names)){
              Segmentor=Seg.tp,
              possible.tp=sapply(long.list, function(x)x$possible.tp[[1]]))
       for(algorithm in c("macs.trained", "hmcan.broad.trained")){
-        load(sprintf("data/%s/error/%s.RData", chunk.name, algorithm))
+        load(sprintf("../chip-seq-paper/chunks/%s/error/%s.RData", chunk.name, algorithm))
         error.subset <- data.table(error)[sample.id %in% rownames(err.mat),]
         error.subset[, param.num := as.numeric(as.character(param.name))]
         a.df <- error.subset[, list(

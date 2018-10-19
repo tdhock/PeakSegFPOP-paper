@@ -1,6 +1,6 @@
 source("packages.R")
 
-files <- Sys.glob("data/H*/*/dp.model.RData")
+files <- Sys.glob("../chip-seq-paper/data/H*/*/dp.model.RData")
 
 ## Parse the first occurance of pattern from each of several strings
 ## using (named) capturing regular expressions, returning a matrix
@@ -22,11 +22,11 @@ str_match_perl <- function(string,pattern){
   result
 }
 
-pattern <-
-  paste0("data/",
-         "(?<set_name>.+?)",
-         "/",
-         "(?<chunk_id>[0-9]+)")
+pattern <- paste0(
+  "chunks/",
+  "(?<set_name>.+?)",
+  "/",
+  "(?<chunk_id>[0-9]+)")
 matched <- str_match_perl(files, pattern)
 dp.peaks <- list()
 for(file.i in seq_along(files)){

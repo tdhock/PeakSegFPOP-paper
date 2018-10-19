@@ -240,34 +240,37 @@ PoissonLik <- function(count, bases, end.mat){
 
 unsupervised.inf <- list()
 oracle.inf <- list()
-model.files <- Sys.glob("data/H*/*/PDPA.model.RData")
+model.files <- Sys.glob("../chip-seq-paper/chunks/H*/*/PDPA.model.RData")
 i.vec <- seq_along(model.files)
 ##i.vec <- 1:2
 for(model.file.i in i.vec){
   model.file <- model.files[[model.file.i]]
-  chunk.name <- sub("data/", "", dirname(model.file))
+  chunk.name <- sub("../chip-seq-paper/chunks/", "", dirname(model.file))
   cat(sprintf("%4d / %4d %s\n", model.file.i, length(model.files), chunk.name))
   load(model.file)
+  load(sub("PDPA.model", "counts", model.file))
   segments.list <- list()
   oseg.list <- list()
   for(sample.id in names(PDPA.model)){
     fit <- PDPA.model[[sample.id]]
+    sample.counts <- data.table(counts)[sample.id, on=list(sample.id)]
     lik.vec <- rep(NA, 19L)
     force.na <- rep(FALSE, 19L)
     for(n.segments in seq_along(lik.vec)){
       seg.mean.vec <- fit$mean.mat[n.segments, 1:n.segments]
-      ends.vec <- c(fit$ends.mat[n.segments, 1:n.segments], fit$n.data)
+      ends.vec <- c(fit$ends.mat[n.segments, 1:n.segments], nrow(sample.counts))
       is.feasible <- all(diff(seg.mean.vec) != 0)
       lik.vec[[n.segments]] <- if(n.segments %% 2){
         data.mean.vec <- rep(seg.mean.vec, diff(ends.vec))
-        data.lik.vec <- dpois(fit$count.vec, data.mean.vec, log=TRUE)
-        last.lik <- -sum(data.lik.vec)
+        w <- sample.counts[, chromEnd-chromStart]
+        data.lik.vec <- dpois(sample.counts$coverage, data.mean.vec, log=TRUE)
+        last.lik <- -sum(data.lik.vec*w)
       }else{
         force.na[[n.segments]] <- TRUE
         last.lik
       }
     }
-    n.bases <- sum(fit$weight.vec)
+    n.bases <- sum(w)
     sample.oracle <- alice.oracle(n.bases, lik.vec)
     oseg.list[[sample.id]] <- my.oracle(n.bases, lik.vec)
     segSeq <- seq(1, 19, by=2)

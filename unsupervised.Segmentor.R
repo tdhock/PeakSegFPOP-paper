@@ -240,12 +240,12 @@ PoissonLik <- function(count, bases, end.mat){
 
 unsupervised.Segmentor <- list()
 oracle.Segmentor <- list()
-model.files <- Sys.glob("data/H*/*/Segmentor.model.RData")
+model.files <- Sys.glob("../chip-seq-paper/chunks/H*/*/Segmentor.model.RData")
 i.vec <- seq_along(model.files)
 ##i.vec <- 1:2
 for(model.file.i in i.vec){
   model.file <- model.files[[model.file.i]]
-  chunk.name <- sub("data/", "", dirname(model.file))
+  chunk.name <- sub("../chip-seq-paper/chunks/", "", dirname(model.file))
   cat(sprintf("%4d / %4d %s\n", model.file.i, length(model.files), chunk.name))
   load(model.file)
   segments.list <- list()

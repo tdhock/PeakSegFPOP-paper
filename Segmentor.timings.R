@@ -1,6 +1,6 @@
 source("packages.R")
 
-count.files <- Sys.glob("data/H*/*/counts.RData")
+count.files <- Sys.glob("../chip-seq-paper/chunks/H*/*/counts.RData")
 max.segments <- 19L
 Segmentor.timings.list <- list()
 file.i <- 42

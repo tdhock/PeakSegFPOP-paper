@@ -17,7 +17,7 @@ for(file.i in 1:nrow(files.dt)){
   }
   reads.dt <- fread(paste0("zcat ", bed.gz, "|grep ^", f$chrom), select=2:3)
   setnames(reads.dt, c("chromStart", "chromEnd"))
-  load(paste0("data/", f$chunk, "/counts.RData"))
+  load(paste0("../chip-seq-paper/chunks/", f$chunk, "/counts.RData"))
   sample.dt <- data.table(counts)[sample.id==f$sample.id]
   first <- sample.dt$chromStart[1]
   last <- sample.dt[, chromEnd[.N] ]

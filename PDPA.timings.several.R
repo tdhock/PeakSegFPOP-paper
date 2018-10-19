@@ -1,5 +1,5 @@
 proj.dir <- getwd()
-counts.RData.vec <- Sys.glob("data/H*/*/counts.RData")
+counts.RData.vec <- Sys.glob("../chip-seq-paper/chunks/H*/*/counts.RData")
 path.to.R <- R.home(file.path("bin","R"))
 commands <-
   sprintf("%s --vanilla --args '%s' < %s",

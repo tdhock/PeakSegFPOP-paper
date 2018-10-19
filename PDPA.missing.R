@@ -7,13 +7,13 @@ options(warn=2)
 for(row.i in 1:nrow(dp.peaks.NA)){
   sample.info <- dp.peaks.NA[row.i,]
   model.RData <- sample.info[, paste0(
-    "data/", chunk.name,
+    "../chip-seq-paper/chunks/", chunk.name,
     "/PDPA.missing/", sample.id,
     ".RData")]
   if(!file.exists(model.RData)){
     PDPA.missing.dir <- dirname(model.RData)
     dir.create(PDPA.missing.dir, showWarnings=FALSE)
-    counts.RData <- paste0("data/", sample.info$chunk.name, "/counts.RData")
+    counts.RData <- paste0("../chip-seq-paper/chunks/", sample.info$chunk.name, "/counts.RData")
     (objs <- load(counts.RData))
     counts$bases <- with(counts, chromEnd-chromStart)
     counts$count <- counts$coverage

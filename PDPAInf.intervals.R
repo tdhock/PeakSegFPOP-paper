@@ -5,7 +5,7 @@ library(coseg)
 
 PDPA.intervals.list <- list()
 for(algo.type in c("PDPA", "PDPAInf")){
-  model.file.vec <- Sys.glob(paste0("data/H*/*/", algo.type, ".model.RData"))
+  model.file.vec <- Sys.glob(paste0("../chip-seq-paper/chunks/H*/*/", algo.type, ".model.RData"))
   file.i <- 42
   sample.i <- 24
   file.i.vec <- seq_along(model.file.vec)

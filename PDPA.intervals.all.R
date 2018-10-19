@@ -3,7 +3,7 @@ source("packages.R")
 library(data.table)
 library(coseg)
 
-model.file.vec <- Sys.glob("data/H*/*/PDPA.model.RData")
+model.file.vec <- Sys.glob("../chip-seq-paper/chunks/H*/*/PDPA.model.RData")
 PDPA.intervals.list <- list()
 PDPA.intervals.raw <- list()
 file.i <- 42

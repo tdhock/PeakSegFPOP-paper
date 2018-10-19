@@ -17,8 +17,8 @@ default.params <-
     hmcan.broad.trained="2.30258509299405")
 
 seg.mat.list <- list(
-  coseg=oracle.pdpa,
-  coseg.inf=oracle.inf,
+  GPDPA=oracle.pdpa,
+  GPDPA.inf=oracle.inf,
   Segmentor=oracle.Segmentor,
   PeakSegDP=oracle.segments)
 
@@ -78,8 +78,8 @@ for(set.name in names(dp.peaks.sets)){
         unsupervised=list(
           PeakSegDP=unsupervised[[test.chunk]][, "oracle"],
           Segmentor=unsupervised.Segmentor[[test.chunk]][, "oracle"],
-          coseg=unsupervised.pdpa[[test.chunk]][, "oracle"],
-          coseg.inf=unsupervised.inf[[test.chunk]][, "oracle"]))
+          GPDPA=unsupervised.pdpa[[test.chunk]][, "oracle"],
+          GPDPA.inf=unsupervised.inf[[test.chunk]][, "oracle"]))
       for(algorithm in names(best.list)){
         best.beta <- best.list[[algorithm]]
         pred.seg.list[["supervised"]][[algorithm]] <-

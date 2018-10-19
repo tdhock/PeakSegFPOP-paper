@@ -4,10 +4,11 @@ library(data.table)
 library(PeakSegOptimal)
 
 count.files <- Sys.glob("../chip-seq-paper/chunks/H*/*/counts.RData")
+##max.segments <- 199L
 max.segments <- 19L
 PDPA.timings.list <- list()
-file.i <- 42
-sample.i <- 24
+file.i <- 63
+sample.i <- 20
 file.i.vec <- seq_along(count.files)
 for(file.i in file.i.vec){
   local.f <- count.files[[file.i]]
@@ -23,6 +24,10 @@ for(file.i in file.i.vec){
     load(time.f)
   }else{
     load(local.f) #counts
+    if(FALSE){
+      load(sub("counts", "regions", local.f))
+      regions.dt <- data.table(regions)
+    }
     counts$bases <- with(counts, chromEnd-chromStart)
     counts$count <- counts$coverage
     sample.list <- split(counts, counts$sample.id, drop=TRUE)
@@ -42,6 +47,40 @@ for(file.i in file.i.vec){
       seconds <- system.time({
         model.list <- PeakSegPDPA(data.vec, bases.vec, max.segments)
       })[["elapsed"]]
+      if(FALSE){
+        fit <- model.list
+        n.segments <- max.segments
+        mean.vec <- fit$mean.mat[n.segments, 1:n.segments]
+        diff.vec <- diff(mean.vec)
+        break.vec <- if(n.segments==1){
+          c()
+        }else{
+          fit$ends.mat[n.segments, 2:n.segments]
+        }
+        first <- c(1, break.vec+1)
+        last <- c(break.vec, nrow(compressed))
+        status.str <- rep(c("background", "peak"), l=n.segments)
+        peak.dt <- data.table(
+          mean=mean.vec,
+          first,
+          last,
+          is.peak=(seq_along(mean.vec)-1) %% 2,
+          diff.before=c(Inf, diff.vec),
+          diff.after=c(diff.vec, Inf))
+        peak.dt[is.peak==0 & (diff.after==0|diff.before==0), is.peak := 1]
+        peak.dt[, peak.i := cumsum(is.peak==0)]
+        only.peaks <- peak.dt[is.peak==1, list(
+          chromStart=compressed$chromStart[min(first)],
+          chromEnd=compressed$chromEnd[max(last)]),
+          by=list(peak.i)]
+        ggplot()+
+          geom_segment(aes(
+            chromStart, peak.i,
+            xend=chromEnd, yend=peak.i),
+            data=only.peaks)
+        sample.regions <- regions.dt[sample.id, on=list(sample.id)]
+        PeakError::PeakErrorChrom(only.peaks, sample.regions)
+      }
       dp.file <- sub("counts", "dp.model", local.f)
       if(file.exists(dp.file)){
         load(dp.file)

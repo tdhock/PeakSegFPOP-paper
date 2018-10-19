@@ -1,6 +1,6 @@
 source("packages.R")
 
-files <- Sys.glob("data/H*/*/counts.RData")
+files <- Sys.glob("../chip-seq-paper/chunks/H*/*/counts.RData")
 str_match_perl <- function(string,pattern){
   stopifnot(is.character(string))
   stopifnot(is.character(pattern))
@@ -19,7 +19,7 @@ str_match_perl <- function(string,pattern){
 }
 
 pattern <-
-  paste0("data/",
+  paste0("../chip-seq-paper/chunks/",
          "(?<set_name>.+?)",
          "/",
          "(?<chunk_id>[0-9]+)")

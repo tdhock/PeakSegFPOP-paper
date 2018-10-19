@@ -1,12 +1,12 @@
 ##          chunk.name  sample.id peaks      PDPA cDPA.forward cDPA.reverse
 ## H3K4me3_XJ_immune/1 McGill0024     9  -25744.2    -25903.03    -25903.03
 source("packages.R")
-load("data/H3K4me3_XJ_immune/1/counts.RData")
-(objs <- load("data/H3K4me3_XJ_immune/1/PDPA.model/McGill0024.RData"))
+load("../chip-seq-paper/chunks/H3K4me3_XJ_immune/1/counts.RData")
+(objs <- load("../chip-seq-paper/chunks/H3K4me3_XJ_immune/1/PDPA.model/McGill0024.RData"))
 input.dt <- data.table(counts)[sample.id=="McGill0024",]
 input.dt[, weight := chromEnd-chromStart]
 input.dt[, count := coverage]
-(objs <- load("data/H3K4me3_XJ_immune/1/dp.model.RData"))
+(objs <- load("../chip-seq-paper/chunks/H3K4me3_XJ_immune/1/dp.model.RData"))
 (loss.mat <- rbind(
   cDPA=dp.model$McGill0024$error$error,
   PDPA=result$model$models$min.cost,

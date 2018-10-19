@@ -243,11 +243,11 @@ unsupervised <- list()
 oracle.segments <- list()
 loss.segments <- list()
 lik.segments <- list()
-model.files <- Sys.glob("data/H*/*/dp.model.RData")
+model.files <- Sys.glob("../chip-seq-paper/chunks/H*/*/dp.model.RData")
 for(model.file.i in seq_along(model.files)){
   model.file <- model.files[[model.file.i]]
   count.file <- sub("dp.model", "counts", model.file)
-  chunk.name <- sub("data/", "", dirname(model.file))
+  chunk.name <- sub("../chip-seq-paper/chunks/", "", dirname(model.file))
   cat(sprintf("%4d / %4d %s\n", model.file.i, length(model.files), chunk.name))
   load(model.file)
   load(count.file)

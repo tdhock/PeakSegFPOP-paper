@@ -1,9 +1,9 @@
 source("packages.R")
 
-load("data/H3K4me3_XJ_immune/2/dp.model.reverse.RData")
-load("data/H3K4me3_XJ_immune/2/counts.RData")
+load("../chip-seq-paper/chunks/H3K4me3_XJ_immune/2/dp.model.reverse.RData")
+load("../chip-seq-paper/chunks/H3K4me3_XJ_immune/2/counts.RData")
 dp.model.reverse <- dp.model
-load("data/H3K4me3_XJ_immune/2/dp.model.RData")
+load("../chip-seq-paper/chunks/H3K4me3_XJ_immune/2/dp.model.RData")
 sid <- "McGill0102"
 load("H3K4me3_XJ_immune_chunk2_McGill0102_PDPA_result.RData")
 one.sample <- data.table(counts)[sample.id==sid,]

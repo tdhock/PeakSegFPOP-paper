@@ -202,7 +202,7 @@ setkey(error.regions, chunk.name, sample.id)
 setkey(error.counts, chunk.name, sample.id)
 for(show.row.i in 1:nrow(show.dt)){
   show.row <- show.dt[show.row.i,]
-  counts.file <- paste0("data/", show.row$chunk.name, "/counts.RData")
+  counts.file <- paste0("../chip-seq-paper/chunks/", show.row$chunk.name, "/counts.RData")
   load(counts.file)
   counts.by.sample <- split(counts, counts$sample.id)
   sample.counts <- data.table(counts.by.sample[[paste(show.row$sample.id)]])

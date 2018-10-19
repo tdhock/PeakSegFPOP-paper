@@ -527,7 +527,7 @@ MinEnvelope <- function(dt1, dt2){
 one.bins$weight <- with(one.bins, chromEnd-chromStart)
 input.dt <- data.table(one.bins)#[1:20]
 
-load("data/H3K4me3_XJ_immune/1/counts.RData")
+load("../chip-seq-paper/chunks/H3K4me3_XJ_immune/1/counts.RData")
 input.dt <- data.table(counts)[sample.id=="McGill0024",]
 input.dt[, weight := chromEnd-chromStart]
 input.dt[, count := coverage]
