@@ -1,13 +1,13 @@
 source("packages.R")
 
 files <- Sys.glob("../chip-seq-paper/chunks/H*/*/PDPA.model.RData")
-
 pattern <-
   paste0("chunks/",
          "(?<set_name>.+?)",
          "/",
          "(?<chunk_id>[0-9]+)")
-matched <- str_match_named(files, pattern)
+(matched <- str_match_named(files, pattern))
+
 PDPA.peaks <- list()
 for(file.i in seq_along(files)){
   r <- matched[file.i, ]

@@ -58,6 +58,7 @@ works_with_R <- function(Rvers,...){
 suppressPackageStartupMessages({
   works_with_R(
     "3.5.1",
+    "tdhock/penaltyLearning@5a615d0fa79c4f7f9ddbb2a0002fb6ecc2bae797",
     tikzDevice="0.12",
     LambertW="0.6.4",
     microbenchmark="1.4.5",
@@ -69,6 +70,7 @@ suppressPackageStartupMessages({
     PeakSegOptimal="2018.5.25",
     PeakSegDP="2017.8.15",
     namedCapture="2017.6.1",
+    future.apply="1.0.1",
     "tdhock/memtime@8b80d7d2b151cf5e877b27138c2791eca365e7b1",
     ##"tdhock/coseg@4a996702eb6988ad253fdfd2510df3feb392ff3e",
     "tdhock/PeakError@b0f0b4edc413176ebb183fc68f1504c9d86e3ef7",

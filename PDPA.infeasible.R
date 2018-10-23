@@ -9,6 +9,7 @@ pattern <- paste0(
   "(?<chunk_id>[0-9]+)")
 matched <- str_match_named(files, pattern)
 PDPA.infeasible <- list()
+PDPA.loss.list <- list()
 for(file.i in seq_along(files)){
   r <- matched[file.i, ]
   set.name <- r[["set_name"]]
@@ -28,6 +29,9 @@ for(file.i in seq_along(files)){
       segments=seg.vec,
       peaks=(seg.vec-1)/2,
       PoissonLoss=fit$loss.vec[seg.vec])
+    PDPA.loss.list[[paste(regions.str, sample.id)]] <- data.table(
+      set.name, chunk.id, chunk.name=regions.str, sample.id,
+      loss.df)
     peaks.list <- list()
     for(n.segments in loss.df$segments){
       n.peaks <- (n.segments-1)/2
@@ -36,7 +40,6 @@ for(file.i in seq_along(files)){
       }else{
         mean.vec <- fit$mean.mat[n.segments, 1:n.segments]
         diff.vec <- diff(mean.vec)
-        data.table(mean=mean.vec, is.peak=(seq_along(mean.vec)-1) %% 2, diff.before=c(Inf, diff.vec), diff.after=c(diff.vec, Inf))[diff.before!=0 & diff.after!=0]
         break.vec <- if(n.segments==1){
           c()
         }else{
@@ -65,5 +68,6 @@ for(file.i in seq_along(files)){
     PDPA.infeasible[[regions.str]][[sample.id]] <- peaks.list
   }
 }
+PDPA.loss <- do.call(rbind, PDPA.loss.list)
 
-save(PDPA.infeasible, file="PDPA.infeasible.RData")
+save(PDPA.loss, PDPA.infeasible, file="PDPA.infeasible.RData")

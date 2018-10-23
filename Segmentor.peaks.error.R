@@ -1,34 +1,16 @@
 source("packages.R")
 
 files <- Sys.glob("../chip-seq-paper/chunks/H*/*/Segmentor.model.RData")
-## Parse the first occurance of pattern from each of several strings
-## using (named) capturing regular expressions, returning a matrix
-## (with column names).
-str_match_perl <- function(string,pattern){
-  stopifnot(is.character(string))
-  stopifnot(is.character(pattern))
-  stopifnot(length(pattern)==1)
-  parsed <- regexpr(pattern,string,perl=TRUE)
-  captured.text <- substr(string,parsed,parsed+attr(parsed,"match.length")-1)
-  captured.text[captured.text==""] <- NA
-  captured.groups <- do.call(rbind,lapply(seq_along(string),function(i){
-    st <- attr(parsed,"capture.start")[i,]
-    if(is.na(parsed[i]) || parsed[i]==-1)return(rep(NA,length(st)))
-    substring(string[i],st,st+attr(parsed,"capture.length")[i,]-1)
-  }))
-  result <- cbind(captured.text,captured.groups)
-  colnames(result) <- c("",attr(parsed,"capture.names"))
-  result
-}
 pattern <-
   paste0("../chip-seq-paper/chunks/",
          "(?<set_name>.+?)",
          "/",
          "(?<chunk_id>[0-9]+)")
-matched <- str_match_perl(files, pattern)
+(matched <- str_match_named(files, pattern))
 
 Segmentor.peaks.error.list <- list()
-Segmentor.peaks.list <- list()
+Segmentor.model.list <- list()
+Segmentor.loss.list <- list()
 for(file.i in seq_along(files)){
   r <- matched[file.i, ]
   set.name <- r[["set_name"]]
@@ -43,9 +25,14 @@ for(file.i in seq_along(files)){
   regions.by.sample <- split(regions, regions$sample.id, drop=TRUE)
   for(sample.id in names(Segmentor.model)){
     sample.regions <- regions.by.sample[[sample.id]]
-    sample.peaks <- Segmentor.model[[sample.id]]$peaks
-    for(peaks.str in names(sample.peaks)){
-      peak.df <- sample.peaks[[peaks.str]]
+    fit <- Segmentor.model[[sample.id]]
+    seg.vec <- seq(1, 19, by=2)
+    Segmentor.loss.list[[paste(chunk.name, sample.id)]] <- data.table(
+      set.name, chunk.id, chunk.name, sample.id,
+      loss=fit$Likelihood[seg.vec],
+      segments=seg.vec)[as.integer(names(fit$peaks))+1L]
+    for(peaks.str in names(fit$peaks)){
+      peak.df <- fit$peaks[[peaks.str]]
       if(is.null(peak.df)){
         cat(paste(chunk.name, sample.id, peaks.str, "peaks\n"))
         peak.df <- Peaks()
@@ -57,4 +44,6 @@ for(file.i in seq_along(files)){
   }
 }
 Segmentor.peaks.error <- do.call(rbind, Segmentor.peaks.error.list)
-save(Segmentor.model.list, Segmentor.peaks.error, file="Segmentor.peaks.error.RData")
+Segmentor.loss <- do.call(rbind, Segmentor.loss.list)
+
+save(Segmentor.loss, Segmentor.model.list, Segmentor.peaks.error, file="Segmentor.peaks.error.RData")
