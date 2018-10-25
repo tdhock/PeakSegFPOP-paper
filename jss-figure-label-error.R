@@ -1,14 +1,11 @@
 source("jss-packages.R")
 
-ann.colors <-
-  c(noPeaks="#f6f4bf",
-    peakStart="#ffafaf",
-    peakEnd="#ff4c4c",
-    peaks="#a445ee")
-target.intervals.models <- fread("target.intervals.models.csv")
-labeled_problems_features <- fread("labeled_problems_features.csv")
-select.dt <- labeled_problems_features[, data.table(prob.dir)]
-bench.models <- target.intervals.models[select.dt, on=list(prob.dir)][log(bedGraph.lines) < penalty & penalty < bedGraph.lines & 1000 < bedGraph.lines]
+ann.colors <- c(
+  noPeaks="#f6f4bf",
+  peakStart="#ffafaf",
+  peakEnd="#ff4c4c",
+  peaks="#a445ee")
+bench.models <- fread("jss.bench.models.csv")
 bench.models[prob.dir=="H3K4me3_TDH_immune/samples/tcell/McGill0008/problems/chr11:96437584-134946516"]
 
 prob.dir <- "jss-figure-label-error"
@@ -27,7 +24,7 @@ peak.dt.list <- list()
 for(i in seq_along(model.i.vec)){
   model.name <- names(model.i.vec)[[i]]
   model.i <- model.i.vec[[i]]
-  cat(sprintf("%4d %s\n", model.i, length(model.i.vec), model.name))
+  cat(sprintf("%4d %s\n", model.i, model.name))
   model <- some.models[model.i]
   pen.str <- paste(model$penalty)
   fit <- PeakSegDisk::problem.PeakSegFPOP(prob.dir, pen.str)

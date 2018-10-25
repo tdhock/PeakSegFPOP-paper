@@ -1,12 +1,9 @@
 source("jss-packages.R")
 
-target.intervals.models <- fread("target.intervals.models.csv")
-labeled_problems_features <- fread("labeled_problems_features.csv")
-select.dt <- labeled_problems_features[, data.table(prob.dir)]
-bench.models <- target.intervals.models[select.dt, on=list(prob.dir)][log(bedGraph.lines) < penalty & penalty < bedGraph.lines & 1000 < bedGraph.lines]
+bench.models <- fread("jss.bench.models.csv")
 bench.models[, gigabytes := megabytes/1024]
 prob.dir.vec <- c(
-  "Most bases"=bench.models[which.max(bases), prob.dir],
+  ##"Most bases"=bench.models[which.max(bases), prob.dir],
   "Most weighted data"=bench.models[which.max(bedGraph.lines), prob.dir],
   "Largest mean intervals"=bench.models[which.max(mean.intervals), prob.dir],
   "Largest max intervals"=bench.models[which.max(max.intervals), prob.dir],

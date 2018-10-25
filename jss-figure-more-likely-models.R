@@ -104,7 +104,15 @@ for(sample.i in seq_along(sample.id.vec)){
   segs.list[[paste(sample.id, "macs2")]] <- data.table(
     sample.id, model="macs2", seg.means)
   for(n.peaks in n.peaks.vec){
-    better.list <- PeakSegDisk::problem.sequentialSearch(problem.dir, n.peaks)
+    better.list <- NULL
+    while(is.null(better.list)){
+      better.list <- tryCatch({
+        PeakSegDisk::problem.sequentialSearch(problem.dir, n.peaks)
+      }, error=function(e){
+        print("trying again")
+        NULL
+      })
+    }
     loss.list[[paste(sample.id, n.peaks)]] <- data.table(
       sample.id, 
       model=n.peaks,

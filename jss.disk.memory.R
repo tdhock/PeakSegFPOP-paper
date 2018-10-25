@@ -1,14 +1,11 @@
 source("jss-packages.R")
 
-target.intervals.models <- fread("target.intervals.models.csv")
-target.intervals.models[, minutes := seconds/60]
-target.intervals.models[, hours := minutes/60]
-target.intervals.models[, gigabytes := megabytes/1024]
-target.intervals.models[, sum(hours)/24/30]#months of computation time
+bench.models <- fread("jss.bench.models.csv")
+bench.models[, minutes := seconds/60]
+bench.models[, hours := minutes/60]
+bench.models[, gigabytes := megabytes/1024]
+bench.models[, sum(hours)/24/30]#months of computation time
 
-labeled_problems_features <- fread("labeled_problems_features.csv")
-select.dt <- labeled_problems_features[, data.table(prob.dir)]
-bench.models <- target.intervals.models[select.dt, on=list(prob.dir)][log(bedGraph.lines) < penalty & penalty < bedGraph.lines & 1000 < bedGraph.lines]
 gigabyte.ranges <- bench.models[0 < gigabytes, list(
   min.gigabytes=min(gigabytes),
   max.gigabytes=max(gigabytes),
