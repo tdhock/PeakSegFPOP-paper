@@ -21,7 +21,11 @@ for(file.i in seq_along(PDPA.infeasible)){
       }
       err.df <- PeakErrorChrom(peak.df, sample.regions)
       PDPA.infeasible.error.list[[paste(chunk.name, sample.id, peaks.str)]] <- 
-        data.table(chunk.name, sample.id, peaks=peaks.str, err.df)
+        data.table(
+          chunk.name, sample.id,
+          peaks=nrow(peak.df),
+          segments=as.integer(peaks.str)*2+1,
+          err.df)
     }
   }
 }

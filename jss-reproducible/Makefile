@@ -13,9 +13,7 @@ jss.evaluations.rds: jss.evaluations.R
 	R --vanilla < $<
 jss.variable.peaks.rds: jss.variable.peaks.R
 	R --vanilla < $<
-target.intervals.models.csv: target.intervals.models.R
-	R --vanilla < $<
-jss.bench.models.csv: jss.bench.models.R target.intervals.models.csv
+jss.bench.models.csv: jss.bench.models.R 
 	R --vanilla < $<
 clean:
 	rm ${FIGURES}
@@ -29,7 +27,7 @@ jss-figure-data-peaks.tex: jss-figure-data-peaks.R
 	R --vanilla < $<
 jss-figure-disk-memory-compare-speed.pdf: jss-figure-disk-memory-compare-speed.R jss.disk.memory.rds
 	R --vanilla < $<
-jss-figure-target-intervals-models.pdf: jss-figure-target-intervals-models.R target.intervals.models.csv
+jss-figure-target-intervals-models.pdf: jss-figure-target-intervals-models.R jss.bench.models.csv
 	R --vanilla < $<
 jss-figure-more-likely-models-three-peaks.png: jss-figure-more-likely-models.R
 	R --vanilla < $<

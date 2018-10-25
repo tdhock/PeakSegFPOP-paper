@@ -16,10 +16,40 @@ There are several different levels of reproducibility.
   then run the algo with various parameters on some of them.
 - The final level of reproducibility consists of re-running the algo
   with a grid of penalty values in (log N, N) for each of the chipseq
-  data sets. I initially did this on a compute cluster and saved the
-  results to target.intervals.models.csv. However I don't provide a
-  reproducibility script, because re-doing that using one processor
-  would probably take several months/years.
+  data sets, in order to re-do the (fp,fn,errors) computations in
+  jss.bench.models.csv. I initially did this on a compute cluster, and
+  it took 1.7 years of computation time. I provided the R script
+  jss.bench.models.one.R which can re-do the computation of one line
+  of the jss.bench.models.csv file. There are 115925 lines total in
+  this file. The script should be invoked on the command line via
+  "Rscript jss.bench.models.one.R N" where N is an integer between 1
+  and 115925, which specifies which line of the sorted file to
+  re-compute. (smaller N for smaller data/penalty values, and quicker
+  computation time) The script will print the line in
+  jss.bench.models.csv and the newly computed data, and then it will
+  save the newly computed data to a 1-line csv file,
+  jss.bench.models.one/N.csv. So the entire CSV file could be
+  re-created by running the script for all N, and then concatenating
+  the jss.bench.models.one/*.csv files. For example one run yields the
+  following output (note there are insignificant differences in
+  megabytes/seconds/mean.intervals, which is expected due to
+  differences in hardware).
+
+```
+tdhock@recycled:~/projects/PeakSegFPOP-paper/jss-reproducible(master*)$ Rscript jss.bench.models.one.R 1
+...
+       data
+1:   stored
+2: computed
+...
+   bedGraph.lines  penalty megabytes seconds peaks   bases mean.pen.cost
+1:           2173 277.5592  2.187500   0.867   391 1413146     0.1902719
+2:           2173 277.5592  1.992188   0.396   391 1413146     0.1902719
+   total.loss mean.intervals max.intervals fn fp errors
+1:   160356.4       4.439254            11  0  4      4
+2:   160356.4       4.439715            11  0  4      4
+tdhock@recycled:~/projects/PeakSegFPOP-paper/jss-reproducible(master*)$ 
+```
 
 The script should take care of installing all the necessary R packages
 for you. You need to install R and Berkeley DB STL Development

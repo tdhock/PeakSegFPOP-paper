@@ -58,7 +58,6 @@ works_with_R <- function(Rvers,...){
 suppressPackageStartupMessages({
   works_with_R(
     "3.5.1",
-    "tdhock/penaltyLearning@5a615d0fa79c4f7f9ddbb2a0002fb6ecc2bae797",
     tikzDevice="0.12",
     LambertW="0.6.4",
     microbenchmark="1.4.5",
@@ -76,6 +75,8 @@ suppressPackageStartupMessages({
     "tdhock/PeakError@b0f0b4edc413176ebb183fc68f1504c9d86e3ef7",
     ##"tdhock/PeakSegDP@4e476f1ddf8b6252179b73dfec8c4cd616e9b5ad",
     "faizan-khan-iit/ggplot2@5fb99d0cece13239bbbc09c6b8a7da7f86ac58e2",
+    ## needs to be after ggplot2:
+    "tdhock/penaltyLearning@5a615d0fa79c4f7f9ddbb2a0002fb6ecc2bae797",
     "tdhock/animint@c0db9f34c525bec35c797ccdf8be9564b67c578c",
     "tdhock/directlabels@dcf34672129bf99a79ddfaceaef73236ae0f696d")
 })
