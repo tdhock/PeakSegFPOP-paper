@@ -2,7 +2,8 @@ source("packages.R")
 
 load("PDPA.infeasible.RData")
 load("PDPA.infeasible.error.RData")
-load("Segmentor.peaks.error.RData")
+##load("Segmentor.peaks.error.RData")
+load("Segmentor.infeasible.error.RData")
 load("dp.peaks.RData")
 load("dp.peaks.error.RData")
 
@@ -19,9 +20,11 @@ for(chunk.name in names(dp.peaks.error)){
 }
 CDPA.error <- do.call(rbind, CDPA.error.list) 
 
+col.name.vec <- names(PDPA.infeasible.error)
+CDPA.error[, segments := as.integer(paste(peaks))*2+1]
 all.error <- rbind(
-  data.table(algo="CDPA", CDPA.error),
-  data.table(algo="PDPA", Segmentor.peaks.error),
+  data.table(algo="CDPA", CDPA.error[, ..col.name.vec]),
+  data.table(algo="PDPA", Segmentor.infeasible.error),
   data.table(algo="GPDPA", PDPA.infeasible.error))
 
 all.totals <- all.error[, list(
@@ -31,22 +34,18 @@ all.totals <- all.error[, list(
   possible.fp=sum(possible.fp),
   possible.fn=sum(possible.tp),
   labels=.N
-  ), by=list(algo, chunk.name, sample.id, segments=as.integer(paste(peaks))*2+1)]
-
-cbind(PDPA.loss[chunk.name=="H3K4me3_TDH_immune/1" & sample.id=="McGill0322", PoissonLoss],
-Segmentor.loss[chunk.name=="H3K4me3_TDH_immune/1" & sample.id=="McGill0322", loss],
-dp.loss[chunk.name=="H3K4me3_TDH_immune/1" & sample.id=="McGill0322", error])
+  ), by=list(algo, chunk.name, sample.id, segments, peaks)]
 
 all.loss <- rbind(
   PDPA.loss[, data.table(
     set.name, chunk.id, chunk.name, sample.id,
-    algo="GPDPA", segments, loss=PoissonLoss)],
+    algo="GPDPA", segments, peaks, loss=PoissonLoss)],
   Segmentor.loss[, data.table(
     set.name, chunk.id, chunk.name, sample.id,
-    algo="PDPA", segments, loss)],
+    algo="PDPA", segments, peaks, loss)],
   dp.loss[, data.table(
     set.name, chunk.id, chunk.name, sample.id,
-    algo="CDPA", segments, loss=error)])[all.totals, on=list(
+    algo="CDPA", segments, peaks, loss=error)])[all.totals, on=list(
       algo, chunk.name, sample.id, segments)]
 
 all.modelSelection <- all.loss[, {
