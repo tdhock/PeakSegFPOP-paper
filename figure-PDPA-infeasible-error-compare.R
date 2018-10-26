@@ -179,6 +179,7 @@ gg <- ggplot()+
     data=count.tall)+
   geom_text(aes(
     diff.int, comp.fac, label=N),
+    size=3,
     data=count.tall)+
   scale_fill_gradient(
     "log10(
@@ -187,7 +188,7 @@ problems)",
 low="white", high="red")+
   scale_x_continuous(
     "Difference in minimum number of incorrect labels per segmentation problem",
-    limits=c(-10, 5),
+    limits=c(-11.5, 7),
     breaks=unique(count.tall$diff.int))+
   scale_y_discrete("Comparison")+
   geom_text(aes(
@@ -201,7 +202,7 @@ low="white", high="red")+
     hjust=hjust),
     size=3,
     data=better.dt)
-pdf("figure-PDPA-infeasible-error-compare.pdf", 12, 4)
+pdf("figure-PDPA-infeasible-error-compare.pdf", 9, 4)
 print(gg)
 dev.off()
 

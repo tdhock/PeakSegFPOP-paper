@@ -1,28 +1,11 @@
-% Template for the submission to:
-%   The Annals of Probability           [aop]
-%   The Annals of Applied Probability   [aap]
-%   The Annals of Statistics            [aos] 
-%   The Annals of Applied Statistics    [aoas]
-%   Stochastic Systems                  [ssy]
-%
-%Author: In this template, the places where you need to add information
-%        (or delete line) are indicated by {???}.  Mostly the information
-%        required is obvious, but some explanations are given in lines starting
-%Author:
-%All other lines should be ignored.  After editing, there should be
-%no instances of ??? after this line.
-
-% use option [preprint] to remove info line at bottom
-% journal options: aop,aap,aos,aoas,ssy
-% natbib option: authoryear
-\documentclass[aoas]{imsart}
-
+\documentclass[twoside,11pt]{article}
+\usepackage{jmlr2e}
 \usepackage{tikz}
 %\usepackage{stfloats}
 \usetikzlibrary{arrows}
-\usepackage{amsthm,amsmath,amssymb,natbib}
+\usepackage{natbib}
 %\usepackage{hyperref}
-\newcommand{\url}[1]{#1}
+%\newcommand{\url}[1]{#1}
 %\RequirePackage[colorlinks,citecolor=blue,urlcolor=blue]{hyperref}
 % For algorithms
 \usepackage{algorithm}
@@ -31,21 +14,16 @@
 \VerbatimFootnotes
 
 % provide arXiv number if available:
-\arxiv{arXiv:1703.03352}
+%\arxiv{arXiv:1703.03352}
 
 % put your definitions there:
-\startlocaldefs
 \usepackage{xcolor}
 \definecolor{Ckt}{HTML}{E41A1C}
 \definecolor{Min}{HTML}{4D4D4D}%grey30
 %{B3B3B3}%grey70
 \definecolor{MinMore}{HTML}{377EB8}
 \definecolor{Data}{HTML}{984EA3}
-\newtheorem{proposition}{Proposition}
-\newtheorem{remark}{Remark}
-\newtheorem{lemma}{Lemma}
-\newtheorem{theorem}{Theorem}
-\newtheorem{definition}{Definition}
+\usepackage{amsmath}
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\sign}{sign}
 \DeclareMathOperator*{\Lik}{Lik}
@@ -63,57 +41,37 @@
 \newcommand{\ZZ}{\mathbb Z}
 \newcommand{\NN}{\mathbb N}
 \newcommand{\RR}{\mathbb R}
-\endlocaldefs
 
 \begin{document}
 
-\begin{frontmatter}
+\title{Constrained dynamic programming and supervised
+penalty learning algorithms for 
+peak detection in genomic data}
 
-% "Title of the paper"
-\title{A log-linear segmentation algorithm for peak detection in genomic data}
-\runtitle{Log-linear peak detection in genomic data}
+\author{
+  \name Toby Dylan Hocking \email toby.hocking@nau.edu \\
+  \addr School of Informatics, Computing, and Cyber Systems\\
+  Northern Arizona University\\
+  Flagstaff, AZ, USA
+  \AND
+  \name Guillem Rigaill \email guillem.rigaill@inra.fr \\
+  \addr Laboratoire de Math\'ematiques at Mod\'elisation d'Evry (LaMME)\\
+  Universit\'e d'Evry Val d'Essonne, INRA\\
+  Evry, France
+  \AND
+  \name Paul Fearnhead \email p.fearnhead@lancaster.ac.uk \\
+  \addr Department of Mathematics and Statistics\\
+  Lancaster University\\
+  Lancaster, UK
+  \AND
+  \name Guillaume Bourque \email guil.bourque@mcgill.ca\\
+  \addr Department of Human Genetics\\
+  McGill University\\
+  Montr\'eal, Qu\'ebec, Canada}
 
-\begin{aug}
-  \author{\fnms{Toby Dylan} \snm{Hocking}\ead[label=e1]{toby.hocking@mail.mcgill.ca}},
-  \author{\fnms{Guillem} \snm{Rigaill}\ead[label=e2]{guillem.rigaill@inra.fr}},
-  \author{\fnms{Paul} \snm{Fearnhead}\ead[label=e3]{p.fearnhead@lancaster.ac.uk}}
-    \and
-  \author{\fnms{Guillaume} \snm{Bourque}\ead[label=e4]{guil.bourque@mcgill.ca}}
+\editor{TBD}
 
-
-  \runauthor{TD Hocking et al.}
-
-%   \address{McGill University, Montreal, Canada\\ 
-%           \printead{e1,e4}}
-%   \address{(1)
-% Laboratoire de Math\'ematiques at Mod\'elisation d'Evry (LaMME), Universit\'e
-% d'Evry Val d'Essonne, UMR CNRS 8071, ENSIIE, USC INRA
-% and
-% (2) Institute of Plant Sciences Paris-Saclay, UMR 9213/UMR1403, CNRS, INRA,
-% Universit\'e Paris-Sud, Universit\'e d'Evry, Universit\'e Paris-Diderot, Sorbonne
-% Paris-Cit\'e
-%           \printead{e2}}
-%   \address{Lancaster University, UK\\
-%           \printead{e3}}
-  \affiliation{
-(1)
-Laboratoire de Math\'ematiques at Mod\'elisation d'Evry (LaMME), Universit\'e
-d'Evry Val d'Essonne, UMR CNRS 8071, ENSIIE, USC INRA,
-(2) Institute of Plant Sciences Paris-Saclay, UMR 9213/UMR1403, CNRS, INRA,
-Universit\'e Paris-Sud, Universit\'e d'Evry, Universit\'e Paris-Diderot, Sorbonne
-Paris-Cit\'e,
-(3) McGill University,
-(4) Lancaster University
-}
-
-  \address{McGill University, Montreal, Canada\\ 
-          \printead{e1,e4}}
-  \address{University of Evry, France\\
-          \printead{e2}}
-  \address{Lancaster University, UK\\
-          \printead{e3}}
-
-\end{aug}
+\maketitle
 
 \begin{abstract}
   Peak detection is a central problem for genomic data, and involves
@@ -145,19 +103,6 @@ Paris-Cit\'e,
   common. Our implementation is available in the PeakSegOptimal
   package on CRAN.
 \end{abstract}
-
-%\begin{keyword}[class=MSC]
-%\kwd[Primary ]{}
-%\kwd{}
-%\kwd[; secondary ]{}
-%\end{keyword}
-
-%\begin{keyword}
-%\kwd{}
-%\kwd{}
-%\end{keyword}
-
-\end{frontmatter}
 
 \section{Introduction}
 
@@ -1296,6 +1241,7 @@ small data sets (up to 9 peak start/end labels per count data vector).
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{figure-PDPA-infeasible-error-compare}
+  \vspace{-1cm}
   \caption{Distribution of differences in min label error among the
     2752 labeled segmentation problems in the ChIP-seq benchmark.}
   \label{fig:min-train-error}

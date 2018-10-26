@@ -148,7 +148,7 @@ d'Evry Val d'Essonne, UMR CNRS 8071, ENSIIE, USC INRA,
 Institute of Plant Sciences Paris-Saclay (IPS2), UMR 9213/UMR1403, CNRS, INRA,
 Universit\'e Paris-Sud, Universit\'e d'Evry, Universit\'e Paris-Diderot, Sorbonne
 Paris-Cit\'e,\\
-  Evry, France\\
+Evry, France\\
   E-mail: \email{Guillem.Rigaill@inra.fr}\\
   %URL: \url{https://eeecon.uibk.ac.at/~zeileis/}
   \\ \\
