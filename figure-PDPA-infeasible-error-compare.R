@@ -116,8 +116,8 @@ count.tall <- min.wide[, rbind(
   g(G.jo-MACS, "GPDPAjoin-MACS\n"),
   g(G.jo-HMCanBroad, "GPDPAjoin-HMCanBroad\n"),
   g(G.jo-CDPA, "GPDPAjoin-CDPA\n"),
-  g(G.jo-S.jo, "GPDPA-PDPA\n(Join post-processing)"),
-  g(G.ig-S.ig, "GPDPA-PDPA\n(Ignore post-processing)"))]
+  g(G.jo-S.jo, "GPDPA-PDPA\n(Join rule)"),
+  g(G.ig-S.ig, "GPDPA-PDPA\n(Ignore rule)"))]
 count.tall[, diff.fac := factor(diff, (-10):2)]
 (count.wide <- dcast(count.tall, Comparison ~diff.fac, value.var="N"))
 ## library(xtable)
@@ -145,7 +145,7 @@ count.tall[, panel := ifelse(
   first=="Join-Ignore",
   "Comparing
 post-processing
-methods", ifelse(
+rules", ifelse(
   first=="GPDPA-PDPA",
   "Comparing
 constrained/

@@ -48,7 +48,7 @@
 penalty learning algorithms for 
 peak detection in genomic data}
 
-\author{
+\author{%
   \name Toby Dylan Hocking \email toby.hocking@nau.edu \\
   \addr School of Informatics, Computing, and Cyber Systems\\
   Northern Arizona University\\
@@ -126,7 +126,7 @@ size.
 
 \begin{figure}[t!]
   \centering
-  \includegraphics[width=\textwidth]{figure-data-models}
+  \includegraphics[width=0.8\textwidth]{figure-data-models}
   \vskip -0.5cm
   \caption{ChIP-seq read count data (grey lines) for one sample on a
     subset of chromosome~11. \textbf{Top:} the maximum likelihood
@@ -499,8 +499,7 @@ must be less than or equal to the current segment mean $u_k$. The
 min-less operator is used in the following theorem, which states the
 update rules used in our proposed algorithm.
 
-\begin{theorem}[Generalized Pruned Dynamic Programming Algorithm
-  for reduced isotonic regression]
+\begin{theorem}[Dynamic programming for reduced isotonic regression]
 \label{thm:gpdpa}
   The optimal cost functions $C_{k,t}$ can be recursively computed
   using the following update rules.
@@ -1243,7 +1242,12 @@ small data sets (up to 9 peak start/end labels per count data vector).
   \includegraphics[width=\textwidth]{figure-PDPA-infeasible-error-compare}
   \vspace{-1cm}
   \caption{Distribution of differences in min label error among the
-    2752 labeled segmentation problems in the ChIP-seq benchmark.}
+    2752 labeled segmentation problems in the ChIP-seq benchmark.
+    \textbf{Top:} the up-down constrained GPDPA is more accurate than
+    the unconstrained PDPA.  \textbf{Middle:} the GPDPA with Join rule
+    is more accurate than baseline MACS and HMCanBroad methods; it is
+    just as accurate as the CDPA. \textbf{Bottom:} the Join rule is
+    always at least as accurate as the Ignore rule.}
   \label{fig:min-train-error}
 \end{figure}
 
@@ -1320,7 +1324,7 @@ and then ROC curves and AUC were computed for each fold ID.
 % (PDPA) of \citet{pruned-dp} as a baseline
 % (Table~\ref{tab:contribution}). We also compare against two popular
 % heuristics from the bioinformatics literature (MACS, \citet{MACS};
-% HMCanBroad, \citet{HMCan}), in order to demonstrate that constrained
+% HMCanBroad, \citet{HMCan}), in order to demonstrate that constrained 
 % optimization algorithms such as the CDPA and GPDPA are more accurate.
 
 \begin{figure*}[t!]

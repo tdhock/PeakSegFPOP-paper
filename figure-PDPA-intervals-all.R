@@ -2,35 +2,6 @@ source("packages.R")
 
 load("PDPA.intervals.all.RData")
 
-med.color <- "black"
-max.color <- med.color
-ggplot()+
-  ggtitle(paste(
-    "2752 segmentation problems",
-    "max segments = 19",
-    sep=", "))+
-  geom_text(aes(3, 200, label="max(intervals)"),
-            color=max.color)+
-  geom_text(aes(4, 0, label="median and inter-quartile range"),
-            color=med.color)+
-  geom_point(aes(log10(n.data), `100%`),
-             color=max.color,
-             shape=21,
-             data=PDPA.intervals.all)+
-  geom_ribbon(aes(log10(n.data), ymin=`25%`, ymax=`75%`),
-              alpha=0.5,
-              fill=med.color,
-              data=PDPA.intervals.all)+
-  geom_line(aes(log10(n.data), `50%`),
-              color=med.color,
-            data=PDPA.intervals.all)+
-  theme_bw()+
-  theme(panel.margin=grid::unit(0, "lines"))+
-  scale_x_continuous(
-    "log10(data points to segment)")+
-  scale_y_continuous(
-    "intervals stored by the algorithm")
-
 PDPA.intervals.all[, log10.data := log10(n.data)]
 PDPA.intervals.all[, log10.data1 := log10(n.data)]
 log.range.vec <- range(PDPA.intervals.all$log10.data)
@@ -48,59 +19,25 @@ stopifnot(nrow(over.dt)==nrow(PDPA.intervals.all))
 
 median.dt <- over.dt[, list(
   problems=.N,
-  q25=quantile(`50%`, 0.25),
-  min=quantile(`50%`, 0),
-  max=quantile(`50%`, 1),
-  median=median(`50%`),
-  q75=quantile(`50%`, 0.75)
-  ), by=mid]
-ggplot()+
-  geom_ribbon(aes(mid, ymin=min, ymax=max),
-              alpha=0.5,
-              data=median.dt)+
-  geom_line(aes(mid, median),
-            data=median.dt)+
-  theme_bw()+
-  theme(panel.margin=grid::unit(0, "lines"))+
-  scale_x_continuous(
-    "log10(data points to segment)")+
-  scale_y_continuous("median(intervals)")
+  q25=quantile(mean.intervals, 0.25),
+  min=quantile(mean.intervals, 0),
+  max=max(max.intervals),
+  median=median(mean.intervals),
+  q75=quantile(mean.intervals, 0.75)
+), by=list(mid, n.data=10^mid)]
 
-smooth.dt <- over.dt[, list(
-  problems=.N,
-  q25=median(`25%`),
-  min=min(`100%`),
-  max=max(`100%`),
-  median=median(`50%`),
-  q75=median(`75%`)
-  ), by=mid]
-smooth.dt[, n.data := 10^mid]
-ggplot()+
-  geom_line(aes(mid, max), data=smooth.dt)+
-  geom_ribbon(aes(mid, ymin=q25, ymax=q75),
-              alpha=0.5,
-              data=smooth.dt)+
-  geom_line(aes(mid, median),
-            data=median.dt)+
-  theme_bw()+
-  theme(panel.margin=grid::unit(0, "lines"))+
-  scale_x_continuous(
-    "log10(data points to segment)")+
-  scale_y_log10("median(intervals)")
-
+max.color <- "black"
+med.color <- "black"
 gg <- ggplot()+
   geom_text(aes(3, 200, label="max"),
             color=max.color)+
   geom_text(aes(4, 0, label="median and inter-quartile range"),
             color=med.color)+
-  geom_point(aes(log10(n.data), `100%`),
+  geom_point(aes(log10(n.data), max.intervals),
              color=max.color,
              shape=21,
              data=PDPA.intervals.all)+
-  geom_ribbon(aes(log10(n.data), ymin=`25%`, ymax=`75%`),
-              alpha=0.5,
-              data=PDPA.intervals.all)+
-  geom_line(aes(log10(n.data), `50%`),
+  geom_line(aes(log10(n.data), mean.intervals),
             data=PDPA.intervals.all)+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
@@ -115,50 +52,18 @@ dev.off()
 gg <- ggplot()+
   geom_text(aes(10^3, 10^2.3, label="max"),
             color=max.color)+
-  geom_text(aes(10^4, 10^0.6, label="median, inter-quartile range"),
-            color=med.color)+
-  geom_point(aes(n.data, `100%`),
-             color=max.color,
-             shape=21,
-             data=PDPA.intervals.all)+
-  geom_ribbon(aes(n.data, ymin=`25%`, ymax=`75%`),
-              alpha=0.5,
-              data=PDPA.intervals.all)+
-  geom_line(aes(n.data, `50%`),
-            data=PDPA.intervals.all)+
-  theme_bw()+
-  theme(
-    plot.margin=grid::unit(c(6, 12, 6, 6), "pt"),
-    panel.margin=grid::unit(0, "lines"))+
-  scale_x_log10(
-    "data points to segment",
-    breaks=c(
-      1e3, 1e4, 
-      range(PDPA.intervals.all$n.data))
-    )+
-  scale_y_log10(
-    "intervals stored",
-    breaks=c(
-      10, 100, 
-      max(PDPA.intervals.all[["100%"]]),
-      min(PDPA.intervals.all[["25%"]])
-      )
-    )
-gg <- ggplot()+
-  geom_text(aes(10^3, 10^2.3, label="max"),
-            color=max.color)+
-  geom_text(aes(10^4, 6, label="median, quartiles"),
+  geom_text(aes(10^4, 8, label="median, quartiles"),
             color=med.color)+
   geom_line(aes(n.data, max),
              color=max.color,
-             data=smooth.dt)+
+             data=median.dt)+
   geom_ribbon(aes(n.data, ymin=q25, ymax=q75),
               alpha=0.5,
               fill=med.color,
-              data=smooth.dt)+
+              data=median.dt)+
   geom_line(aes(n.data, median),
             color=med.color,
-            data=smooth.dt)+
+            data=median.dt)+
   theme_bw()+
   theme(
     plot.margin=grid::unit(c(6, 12, 6, 6), "pt"),
@@ -173,11 +78,13 @@ gg <- ggplot()+
     "$I$ = intervals stored",
     breaks=c(
       10, 100, 
-      max(PDPA.intervals.all[["100%"]]),
-      min(PDPA.intervals.all[["25%"]])
+      max(PDPA.intervals.all$max.intervals),
+      min(PDPA.intervals.all$mean.intervals)
       )
-    )
-tikz("figure-PDPA-intervals-log-log.tex", w=2.3, h=1.8)
+  )
+print(gg)
+
+tikz("figure-PDPA-intervals-log-log.tex", w=3, h=1.8)
 print(gg)
 dev.off()
 pdf("figure-PDPA-intervals-log-log.pdf", w=3.3, h=1.8)

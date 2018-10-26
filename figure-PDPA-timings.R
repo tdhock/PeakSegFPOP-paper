@@ -1,13 +1,20 @@
-source("packages.R")
+library(data.table)
+library(directlabels)
+library(ggplot2)
+library(tikzDevice)
+options(
+  tikzDocumentDeclaration=paste(
+    "\\documentclass[twoside,11pt]{article}"),
+  tikzMetricsDictionary="tikzMetrics")
 
 load("../PeakSeg-paper/dp.timings.RData")
 load("PDPA.timings.RData")
 load("Segmentor.timings.RData")
-(objs <- load("dp.timings.reverse.RData"))
+##(objs <- load("dp.timings.reverse.RData"))
 stopifnot(nrow(Segmentor.timings)==2752)
 stopifnot(nrow(PDPA.timings)==2752)
 stopifnot(nrow(dp.timings)==2752)
-stopifnot(nrow(dp.timings.reverse)==2752)
+##stopifnot(nrow(dp.timings.reverse)==2752)
 
 
 algo <- function(algorithm, ...){
@@ -103,6 +110,8 @@ algo.colors <- c("#66C2A5", "#FC8D62",
 names(algo.colors) <- totex(c(PDPA.name, CDPA.name, GPDPA.name))
 gg.log <- ggplot()+
   theme_bw()+
+  theme(
+    panel.grid.minor=element_blank())+
   geom_hline(aes(yintercept=seconds),
              data=lab.df,
              color="grey")+
@@ -146,7 +155,7 @@ my.polygons <- list("last.points", "calc.boxes",
 dl.log <- direct.label(gg.log, list(cex=0.75, "my.polygons"))+
   coord_cartesian(xlim=c(min(all.timings$data), 5e6))
 print(dl.log)
-tikz("figure-PDPA-timings-log-log.tex", 2.5, 1.8)
+tikz("figure-PDPA-timings-log-log.tex", 3, 1.8)
 print(dl.log)
 dev.off()
 pdf("figure-PDPA-timings-log-log.pdf", 3.3, 1.8)

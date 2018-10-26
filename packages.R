@@ -82,7 +82,6 @@ suppressPackageStartupMessages({
 })
 options(
   tikzDocumentDeclaration=paste(
-    "\\documentclass[12pt]{article}",
-    "\\usepackage{amsmath,amssymb,amsthm}"),
+    "\\documentclass[twoside,11pt]{article}"),
   tikzMetricsDictionary="tikzMetrics")
 

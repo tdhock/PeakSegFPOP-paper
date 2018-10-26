@@ -1,8 +1,5 @@
 source("packages.R")
 
-library(data.table)
-library(coseg)
-
 model.file.vec <- Sys.glob("../chip-seq-paper/chunks/H*/*/PDPA.model.RData")
 PDPA.intervals.list <- list()
 PDPA.intervals.raw <- list()
@@ -20,16 +17,19 @@ for(file.i in file.i.vec){
     stop("run PDPA.timings.R first")
   }else{
     load(model.file) #counts
+    load(sub("PDPA.model", "counts", model.file))
     for(sample.id in names(PDPA.model)){
       model.list <- PDPA.model[[sample.id]]
-      q.vec <- quantile(model.list$intervals.mat[, -(1:19)])
-      PDPA.intervals.list[[paste(model.file, sample.id)]] <- data.table(
-        n.data=model.list$n.data, t(q.vec))
-      ## PDPA.intervals.raw[[paste(model.file, sample.id)]] <- with(model.list, {
-      ##   data.table(
-      ##     n.data,
-      ##     intervals=as.integer(intervals.mat),
-      ##     as.integer(row(intervals.mat)
+      n.data <- sum(counts$sample.id==sample.id)
+      PDPA.intervals.list[[paste(model.file, sample.id)]] <- with(model.list, {
+        data.table(
+          set.name,
+          chunk.id,
+          sample.id,
+          n.data,
+          max.intervals,
+          mean.intervals)
+      })
     }
   }
 }
