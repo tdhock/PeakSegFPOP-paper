@@ -1286,11 +1286,20 @@ algorithm (CDPA, PDPA, GDPDA) with a maximum of $K=19$ segments. Note
 that 19 segments (9 peaks) is more than enough in these relatively
 small data sets (up to 9 peak start/end labels per count data vector).
 
-\begin{table}
-  \centering \input{PDPA-infeasible-error-compare}
-  \caption{Comparison}
-  \label{tab:min-train-error}
-\end{table}
+% \begin{table}
+%   \centering
+%   \input{PDPA-infeasible-error-compare}
+%   \caption{Comparison}
+%   \label{tab:min-train-error}
+% \end{table}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{figure-PDPA-infeasible-error-compare}
+  \caption{Distribution of differences in min label error among the
+    2752 labeled segmentation problems in the ChIP-seq benchmark.}
+  \label{fig:min-train-error}
+\end{figure}
 
 \subsection{Choice of evaluation metric: area under ROC curve}
 

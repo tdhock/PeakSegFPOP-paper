@@ -6,6 +6,7 @@ load("Segmentor.infeasible.error.RData")
 load("PDPA.infeasible.error.RData")
 load("PDPA.peaks.error.RData")
 load("dp.peaks.error.RData")
+load("dp.peaks.matrices.RData")
 
 CDPA.error.list <- list()
 for(chunk.name in names(dp.peaks.error)){
@@ -19,6 +20,28 @@ for(chunk.name in names(dp.peaks.error)){
   }
 }
 CDPA.error <- do.call(rbind, CDPA.error.list)
+
+baseline.vec <- c(
+  macs.trained="MACS",
+  hmcan.broad.trained="HMCanBroad")
+baseline.error.list <- list()
+for(set.name in names(dp.peaks.matrices)){
+  set.chunks <- dp.peaks.matrices[[set.name]]
+  for(chunk.name in names(set.chunks)){
+    chunk.algos <- set.chunks[[chunk.name]]
+    for(algo.name in names(baseline.vec)){
+      algo <- baseline.vec[[algo.name]]
+      algo.mat <- chunk.algos[[algo.name]]
+      min.vec <- apply(algo.mat, 1, min)
+      baseline.error.list[[paste(set.name, chunk.name, algo.name)]] <- data.table(
+        algo,
+        chunk.name,
+        sample.id=names(min.vec),
+        min.errors=min.vec)
+    }
+  }
+}
+baseline.error <- do.call(rbind, baseline.error.list)
 
 CDPA.error[, segments := as.integer(paste(peaks))*2+1]
 PDPA.peaks.error[, segments := as.integer(paste(peaks))*2+1]
@@ -47,9 +70,9 @@ all.totals <- all.error[, list(
 
 all.totals[, table(chunk.name, algo)]
 
-all.min <- all.totals[, list(
+all.min <- rbind(baseline.error, all.totals[, list(
   min.errors=min(total.errors)
-  ), by=list(algo, chunk.name, sample.id)]
+  ), by=list(algo, chunk.name, sample.id)])
 
 all.min[, table(chunk.name, algo)]
 
@@ -60,23 +83,6 @@ min.wide <- dcast(all.min, chunk.name+sample.id~algo)
 ## equality constraints.
 min.wide[G.jo < G.ig]
 min.wide[G.ig < G.jo]
-
-## Figure for illustrating infeasible.
-some.diff <- min.wide[G.jo==0 & 0<G.ig & 0<CDPA]
-big.diff <- min.wide[G.jo==0 & 2==G.ig & 2==CDPA]
-small.peaks <- dcast(
-  min.models[some.diff, on=list(chunk.name, sample.id)],
-  chunk.name+sample.id~algo,
-  value.var="range")[order(G.jo)][6:10]
-big.diff.tall <- all.totals[small.peaks, on=list(chunk.name, sample.id)]
-(big.diff.wide <- dcast(
-  big.diff.tall,
-  chunk.name+sample.id+peaks~algo,
-  value.var="total.errors"))
-##24: H3K4me3_TDH_immune/11 McGill0009     3    2          NA         0
-chunk.name <- "H3K4me3_TDH_immune/11"
-sample.id <- "McGill0009"
-peaks <- 3
 
 ## Somewhat strangely there are 35 problems when CDPA gets fewer label
 ## errors, and also 35 problems when GPDPA with join when infeasible
@@ -107,18 +113,19 @@ g <- function(x, Comparison){
 count.tall <- min.wide[, rbind(
   g(G.jo-G.ig, "Join-Ignore\nGPDPA"),
   g(S.jo-S.ig, "Join-Ignore\nPDPA"),
-  g(CDPA-G.jo, "CDPA-GPDPAjoin\n"),
-  g(G.jo-S.jo, "GPDPA-PDPA\n(both Join)"),
-  g(G.ig-S.ig, "GPDPA-PDPA\n(both Ignore)"))]
+  g(G.jo-MACS, "GPDPAjoin-MACS\n"),
+  g(G.jo-HMCanBroad, "GPDPAjoin-HMCanBroad\n"),
+  g(G.jo-CDPA, "GPDPAjoin-CDPA\n"),
+  g(G.jo-S.jo, "GPDPA-PDPA\n(Join post-processing)"),
+  g(G.ig-S.ig, "GPDPA-PDPA\n(Ignore post-processing)"))]
 count.tall[, diff.fac := factor(diff, (-10):2)]
 (count.wide <- dcast(count.tall, Comparison ~diff.fac, value.var="N"))
-library(xtable)
-xt <- xtable(count.wide, align="lrrrrrrrrrr", digits=0)
-print(
-  xt,
-  file="PDPA-infeasible-error-compare.tex",
-  include.rownames=FALSE, floating=FALSE)
-
+## library(xtable)
+## xt <- xtable(count.wide, align="lrrrrrrrrrr", digits=0)
+## print(
+##   xt,
+##   file="PDPA-infeasible-error-compare.tex",
+##   include.rownames=FALSE, floating=FALSE)
 library(namedCapture)
 pattern <- paste0(
   "(?<before>[^-]+)",
@@ -138,16 +145,25 @@ count.tall[, panel := ifelse(
   first=="Join-Ignore",
   "Comparing
 post-processing
-methods",
-"Comparing
-algorithms")]
+methods", ifelse(
+  first=="GPDPA-PDPA",
+  "Comparing
+constrained/
+unconstrained", "Comparing
+GPDPAjoin
+with baselines"))]
 better.dt <- count.tall[, {
   match.df <- str_match_named(paste(comp.fac), pattern)
   data.table(
     text=c(match.df[, "after"], match.df[, "before"]),
-    diff.int=c(2.5, -6.5),
+    total=c(sum(N[diff.int>0]), sum(N[diff.int<0])),
+    diff.int=c(3.5, -8.5),
     hjust=c(0, 1))
-}, by=list(comp.fac, panel, last)][!((text=="Ignore") | (last=="(both Ignore)"&text=="PDPA"))]
+}, by=list(comp.fac, panel, last)]
+##((text=="Ignore") | (last=="(Ignore post-processing)"&text=="PDPA"))
+better.dt[total==0, `:=`(
+  diff.int=0.5,
+  text="No difference")]
 gg <- ggplot()+
   theme_bw()+
   theme(
@@ -171,15 +187,21 @@ problems)",
 low="white", high="red")+
   scale_x_continuous(
     "Difference in minimum number of incorrect labels per segmentation problem",
-    limits=c(-8.5, 5),
-    breaks=seq(-6, 2, by=1))+
+    limits=c(-10, 5),
+    breaks=unique(count.tall$diff.int))+
   scale_y_discrete("Comparison")+
   geom_text(aes(
     diff.int, comp.fac,
-    label=paste(text, "better"),
+    label=ifelse(
+      grepl("difference", text),
+      ##text,
+      "",
+      paste0(text, " better
+", total, " problems")),
     hjust=hjust),
+    size=3,
     data=better.dt)
-pdf("PDPA-infeasible-error-compare.pdf", 9, 3)
+pdf("PDPA-infeasible-error-compare.pdf", 12, 4)
 print(gg)
 dev.off()
 
@@ -249,6 +271,23 @@ models.wide <- dcast(
   value.var="range")
 models.wide[grepl("9", G.jo)]
 models.wide[grepl("9", CDPA)]
+
+## Figure for illustrating infeasible.
+some.diff <- min.wide[G.jo==0 & 0<G.ig & 0<CDPA]
+big.diff <- min.wide[G.jo==0 & 2==G.ig & 2==CDPA]
+small.peaks <- dcast(
+  min.models[some.diff, on=list(chunk.name, sample.id)],
+  chunk.name+sample.id~algo,
+  value.var="range")[order(G.jo)][6:10]
+big.diff.tall <- all.totals[small.peaks, on=list(chunk.name, sample.id)]
+(big.diff.wide <- dcast(
+  big.diff.tall,
+  chunk.name+sample.id+peaks~algo,
+  value.var="total.errors"))
+##24: H3K4me3_TDH_immune/11 McGill0009     3    2          NA         0
+chunk.name <- "H3K4me3_TDH_immune/11"
+sample.id <- "McGill0009"
+peaks <- 3
 
 ## take a look at the models where CDPA is better.
 load("PDPA.infeasible.RData")
