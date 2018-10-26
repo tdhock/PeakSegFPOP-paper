@@ -105,11 +105,11 @@ g <- function(x, Comparison){
   dt
 }
 count.tall <- min.wide[, rbind(
-  g(G.jo-G.ig, "Join-ignore GPDPA"),
-  g(S.jo-S.ig, "Join-ignore PDPA"),
-  g(G.jo-S.jo, "GPDPA-PDPA Join"),
-  g(G.ig-S.ig, "GPDPA-PDPA Ignore"),
-  g(CDPA-G.jo, "CDPA-GPDPAjoin"))]
+  g(G.jo-G.ig, "Join-Ignore\nGPDPA"),
+  g(S.jo-S.ig, "Join-Ignore\nPDPA"),
+  g(CDPA-G.jo, "CDPA-GPDPAjoin\n"),
+  g(G.jo-S.jo, "GPDPA-PDPA\n(both Join)"),
+  g(G.ig-S.ig, "GPDPA-PDPA\n(both Ignore)"))]
 count.tall[, diff.fac := factor(diff, (-10):2)]
 (count.wide <- dcast(count.tall, Comparison ~diff.fac, value.var="N"))
 library(xtable)
@@ -118,6 +118,70 @@ print(
   xt,
   file="PDPA-infeasible-error-compare.tex",
   include.rownames=FALSE, floating=FALSE)
+
+library(namedCapture)
+pattern <- paste0(
+  "(?<before>[^-]+)",
+  "-",
+  "(?<after>[a-zA-Z]+)")
+levs <- rev(unique(count.tall$Comparison))
+count.tall[, comp.fac := factor(Comparison, levs)]
+count.tall[, comp.int := as.integer(comp.fac)]
+count.tall[, diff.int := as.integer(diff)]
+count.tall[, first := sub("\n.*", "", Comparison)]
+count.tall[, last := sub(".*\n", "", Comparison)]
+count.tall[, element := ifelse(
+  first=="Join-Ignore",
+  last,
+  Comparison)]
+count.tall[, panel := ifelse(
+  first=="Join-Ignore",
+  "Comparing
+post-processing
+methods",
+"Comparing
+algorithms")]
+better.dt <- count.tall[, {
+  match.df <- str_match_named(paste(comp.fac), pattern)
+  data.table(
+    text=c(match.df[, "after"], match.df[, "before"]),
+    diff.int=c(2.5, -6.5),
+    hjust=c(0, 1))
+}, by=list(comp.fac, panel, last)][!((text=="Ignore") | (last=="(both Ignore)"&text=="PDPA"))]
+gg <- ggplot()+
+  theme_bw()+
+  theme(
+    panel.margin=grid::unit(0, 'lines'),
+    panel.grid.minor=element_blank())+
+  facet_grid(panel ~ ., scales="free", space="free")+
+  geom_vline(aes(
+    xintercept=xint),
+    data=data.table(xint=0),
+    size=2)+
+  geom_tile(aes(
+    diff.int, comp.fac, fill=log10(N)),
+    data=count.tall)+
+  geom_text(aes(
+    diff.int, comp.fac, label=N),
+    data=count.tall)+
+  scale_fill_gradient(
+    "log10(
+segmentation
+problems)",
+low="white", high="red")+
+  scale_x_continuous(
+    "Difference in minimum number of incorrect labels per segmentation problem",
+    limits=c(-8.5, 5),
+    breaks=seq(-6, 2, by=1))+
+  scale_y_discrete("Comparison")+
+  geom_text(aes(
+    diff.int, comp.fac,
+    label=paste(text, "better"),
+    hjust=hjust),
+    data=better.dt)
+pdf("PDPA-infeasible-error-compare.pdf", 9, 3)
+print(gg)
+dev.off()
 
 ## compare total min error.
 [min.by.sample <- all.totals[, {
