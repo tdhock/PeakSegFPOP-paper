@@ -51,10 +51,58 @@ tdhock@recycled:~/projects/PeakSegFPOP-paper/jss-reproducible(master*)$ Rscript 
 tdhock@recycled:~/projects/PeakSegFPOP-paper/jss-reproducible(master*)$ 
 ```
 
-The script should take care of installing all the necessary R packages
-for you. You need to install R and Berkeley DB STL Development
-libraries (which is required to install PeakSegDisk -- it is used to
-write a large temporary file to disk).
+Note the following timings as a function of the row number:
+
+```
+> bench.models[, row := 1:.N];bench.models[seq(1, .N, l=10), list(row, minutes=seconds/60)]
+       row   minutes
+ 1:      1  0.014450
+ 2:  12881  1.208983
+ 3:  25761  1.389383
+ 4:  38642  2.593617
+ 5:  51522  3.409533
+ 6:  64403  6.896133
+ 7:  77283  7.883450
+ 8:  90164 10.041050
+ 9: 103044 14.364517
+10: 115925 52.412700
+> 
+```
+
+If you want to re-do all the computations, the best way would be to
+use a compute cluster. The jss.bench.models.several.R script can be
+used to create jss.bench.models.several.csv, which assigns a job ID to
+each row. For a job time limit of 24 hours there are 645 jobs. Each
+job can be run via `Rscript jss.bench.models.several.one.R JOB_ID`
+where `JOB_ID` is an integer from 1 to 645. Each runs several
+rows/models of different sizes:
+
+```
+> rand.models[, list(
++   rows=.N,
++   min.minutes=min(minutes),
++   max.minutes=max(minutes),
++   total.minutes=sum(minutes)
++ ), by=list(job)]
+     job rows min.minutes max.minutes total.minutes
+  1:   1  182  0.01741667    56.53437      1429.750
+  2:   2  195  0.02666667    50.84578      1434.791
+  3:   3  176  0.02061667   111.52672      1454.279
+  4:   4  163  0.01795000   109.11963      1438.732
+  5:   5  181  0.11725000   104.61587      1432.241
+ ---                                               
+641: 641  192  0.05641667    81.40693      1433.808
+642: 642  185  0.01698333    60.08692      1444.709
+643: 643  197  0.14301667    45.55493      1440.653
+644: 644  172  0.05743333   137.72985      1435.945
+645: 645  170  0.01878333    81.14487      1326.871
+> 
+```
+
+The jss-packages.R script should take care of installing all the
+necessary R packages for you. You need to install R and Berkeley DB
+STL Development libraries (which is required to install PeakSegDisk --
+it is used to write a large temporary file to disk).
 
 Installing BerkeleyDB STL
 

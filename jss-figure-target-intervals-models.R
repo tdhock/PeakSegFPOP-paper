@@ -21,6 +21,75 @@ ggplot()+
     shape=1,
     data=one.prob)
 
+## Plot time versus penalty for several data set sizes.
+near.tens <- data.table(N=10^(4:7))[, {
+  diff.vec <- abs(N-bench.models$bedGraph.lines)
+  bench.models[diff.vec==min(diff.vec)]
+}, by=list(N)]
+
+hist(log10(bench.models$bedGraph.lines))
+
+uniq.lines <- unique(bench.models[, list(prob.dir, bedGraph.lines)])
+gg <- ggplot()+
+  theme_bw()+
+  geom_histogram(aes(
+    bedGraph.lines),
+    data=uniq.lines)+
+  scale_x_log10("N = data to segment (log scale)")+
+  scale_y_continuous(
+    "Number of data sets of size N
+in chipseq benchmark",
+breaks=seq(0,600,by=200),limits=c(0,600))
+pdf("jss-figure-target-intervals-models-hist.pdf", 3.5, 3)
+print(gg)
+dev.off()
+
+ggplot()+
+  geom_point(aes(
+    log10(penalty), log10(seconds),
+    color=log10(N)),
+    data=near.tens)
+
+ggplot()+
+  geom_point(aes(
+    log10(N), log10(seconds),
+    color=log10(penalty)),
+    data=near.tens)+
+  scale_color_gradient(low="white", high="red")
+
+ggplot()+
+  geom_point(aes(
+    log10(bedGraph.lines), log10(seconds),
+    fill=log10(penalty)),
+    shape=21,
+    color="black",
+    data=bench.models)+
+  scale_fill_gradient(low="white", high="red")
+
+bench.models[, round.lines := 10^round(log10(bedGraph.lines))]
+bench.models[, round.penalty := 10^round(log10(penalty))]
+bench.tiles <- bench.models[, list(
+  mean.seconds=mean(seconds)
+  ), by=list(round.lines, round.penalty)]
+fit <- lm(log10(seconds)~log10(bedGraph.lines)+log10(penalty), bench.models)
+## > fit
+## Call:
+## lm(formula = log10(seconds) ~ log10(bedGraph.lines) + log10(penalty), 
+##     data = bench.models)
+## Coefficients:
+##           (Intercept)  log10(bedGraph.lines)         log10(penalty)  
+##              -3.84638                1.02447                0.02948  
+## >
+
+ggplot()+
+  theme_bw()+
+  geom_tile(aes(
+    log10(round.lines), log10(round.penalty),
+    fill=log10(mean.seconds)),
+    data=bench.tiles)+
+  scale_fill_gradient(low="white", high="red")+
+  coord_equal()
+
 one.prob.intervals <- melt(
   one.prob[0 < megabytes], measure.vars=c("mean.intervals", "max.intervals"))
 one.prob.intervals[, stat := sub(".intervals", "", variable)]
