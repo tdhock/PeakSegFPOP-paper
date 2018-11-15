@@ -14,18 +14,22 @@ for(file.i in seq_along(PDPA.infeasible)){
     sample.regions <- regions.by.sample[[sample.id]]
     sample.peaks <- peaks.by.sample[[sample.id]]
     for(peaks.str in names(sample.peaks)){
-      peak.df <- sample.peaks[[peaks.str]]
-      if(nrow(peak.df)==0){
-        ##cat(paste(chunk.name, sample.id, peaks.str, "peaks\n"))
-        peak.df <- Peaks()
+      for(rule in c("join", "remove")){
+        peak.dt <- sample.peaks[[peaks.str]]
+        rule.peaks <- if(nrow(peak.dt)==0){
+          Peaks()
+        }else{
+          peak.dt[rule, on=list(rule)]
+        }
+        err.dt <- PeakErrorChrom(rule.peaks, sample.regions)
+        PDPA.infeasible.error.list[[paste(chunk.name, sample.id, peaks.str,rule)]] <- 
+          data.table(
+            rule,
+            chunk.name, sample.id,
+            peaks=nrow(rule.peaks),
+            segments=as.integer(peaks.str)*2+1,
+            err.dt)
       }
-      err.df <- PeakErrorChrom(peak.df, sample.regions)
-      PDPA.infeasible.error.list[[paste(chunk.name, sample.id, peaks.str)]] <- 
-        data.table(
-          chunk.name, sample.id,
-          peaks=nrow(peak.df),
-          segments=as.integer(peaks.str)*2+1,
-          err.df)
     }
   }
 }

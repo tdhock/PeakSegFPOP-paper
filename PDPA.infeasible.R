@@ -53,16 +53,24 @@ for(file.i in seq_along(files)){
           first,
           last,
           is.peak=(seq_along(mean.vec)-1) %% 2,
+          chromStart=count.df$chromStart[first],
+          chromEnd=count.df$chromEnd[last],
           diff.before=c(Inf, diff.vec),
           diff.after=c(diff.vec, Inf),
           peaks=n.peaks,
           segments=n.segments)
+        remove.dt <- peak.dt[is.peak==1 & diff.before != 0 & diff.after != 0]
         peak.dt[is.peak==0 & (diff.after==0|diff.before==0), is.peak := 1]
         peak.dt[, peak.i := cumsum(is.peak==0)]
-        peak.dt[is.peak==1, list(
-          chromStart=count.df$chromStart[min(first)],
-          chromEnd=count.df$chromEnd[max(last)]),
-          by=list(peak.i, peaks, segments)]
+        join.dt <- peak.dt[is.peak==1, list(
+          chromStart=min(chromStart),
+          chromEnd=max(chromEnd)
+        ), by=list(peak.i, peaks, segments)]
+        rbind(
+          join.dt[, data.table(
+            rule="join", segments, chromStart, chromEnd)],
+          remove.dt[, data.table(
+            rule="remove", segments, chromStart, chromEnd)])
       }
     }
     PDPA.infeasible[[regions.str]][[sample.id]] <- peaks.list
