@@ -110,24 +110,41 @@ for(n.segments in seg.vec){
     status.str <- rep(c("background", "peak"), l=n.segments)
     peak.dt[is.peak==0 & (diff.after==0|diff.before==0), is.peak := 1]
     peak.dt[, peak.i := cumsum(is.peak==0)]
-    peak.dt[is.peak==1, list(
+    rbind(peak.dt[is.peak==1, list(
+      rule="join",
       chromStart=counts.dt$chromStart[min(first)],
       chromEnd=counts.dt$chromEnd[max(last)]),
-      by=list(peak.i, peaks, segments)]
+      by=list(peak.i, peaks, segments)],
+      peak.dt[diff.after != 0 & diff.before != 0 & is.peak==1, list(
+        rule="remove",
+        chromStart,
+        chromEnd,
+        peak.i=NA, peaks, segments)])
   }
 }
 peaks.dt <- do.call(rbind, peaks.list)
 segs.dt <- do.call(rbind, segs.list)
-changes.dt <- segs[1 < first]
+changes.dt <- segs.dt[1 < first]
 changes.dt[, constraint := ifelse(diff.before==0, "equality", "inequality")]
 
-peak.y <- -10
+peak.y <- c(
+  join=-20,
+  remove=-60)
 h <- 3
 some <- function(dt){
   dt[1<segments]
 }
+peak.color <- "deepskyblue"
+text.dt <- peaks.dt[, .SD[chromEnd==max(chromEnd)], by=list(segments)]
+text.dt[, Rule := paste0(toupper(substr(rule, 1, 1)), substr(rule, 2, 100))]
 ggm <- ggplot()+
   theme_bw()+
+  geom_text(aes(
+    138312, peak.y[rule], label=paste0(Rule, " rule")),
+    color=peak.color,
+    hjust=1,
+    size=3.2,
+    data=text.dt)+
   ## geom_tallrect(aes(
   ##   xmin=chromStart/1e3, xmax=chromEnd/1e3,
   ##   fill=annotation),
@@ -160,14 +177,21 @@ ggm <- ggplot()+
     color="blue",
     data=some(segs.dt))+
   geom_segment(aes(
-    chromStart/1e3, peak.y,
-    xend=chromEnd/1e3, yend=peak.y),
-    color="deepskyblue",
+    chromStart/1e3, peak.y[rule],
+    xend=chromEnd/1e3, yend=peak.y[rule]),
+    color=peak.color,
     size=2,
-    data=some(peaks.dt))
+    data=some(peaks.dt))+
+  scale_x_continuous(
+    "Position on chromosome")+
+  scale_y_continuous(
+    "Aligned DNA sequence reads",
+    breaks=seq(0, 120, by=40),
+    limits=c(-70, 120))
   ## geom_rect(aes(
   ##   xmin=chromStart/1e3, xmax=chromEnd/1e3,
   ##   ymin=peak.y-h, ymax=peak.y+h),
   ##   data=sample.error)
-tikz("figure-infeasible")
+tikz("figure-infeasible-error.tex", 6, 3)
 print(ggm)
+dev.off()

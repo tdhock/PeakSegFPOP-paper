@@ -1237,19 +1237,32 @@ small data sets (up to 9 peak start/end labels per count data vector).
 %   \label{tab:min-train-error}
 % \end{table}
 
+\begin{figure} 
+  \centering
+  \input{figure-infeasible-error}
+  \vspace{-1cm} 
+  \caption{For models with active equality constraints ($K\in\{7,9\}$
+    segments in these data), two different rules are used to define
+    peaks. \textbf{Join:} segments adjacent to each equality
+    constraint are joined to form a single peak. \textbf{Remove:}
+    segments adjacent to each equality constraint are removed from the
+    list of predicted peaks. }
+  \label{fig:infeasible-error}
+\end{figure}
+
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{figure-PDPA-infeasible-error-compare}
   \vspace{-1cm}
   \caption{Distribution of differences in min label error among the
-    2752 labeled segmentation problems in the ChIP-seq benchmark.
-    \textbf{Top:} the up-down constrained GPDPA is more accurate than
-    the unconstrained PDPA.  \textbf{Middle:} the GPDPA with Join rule
-    is more accurate than baseline MACS and HMCanBroad methods; it is
-    just as accurate as the CDPA. \textbf{Bottom:} the Join rule is
-    always at least as accurate as the Ignore rule.}
-  \label{fig:min-train-error}
-\end{figure}
+    2752 labeled segmentation problems in the ChIP-seq benchmark. 
+    \textbf{Top:} up-down constrained GPDPA is more accurate than
+    unconstrained PDPA. \textbf{Middle:} GPDPA with Remove
+    rule is more accurate than baseline methods MACS, HMCanBroad,
+    CDPA. \textbf{Bottom:} Remove rule is more accurate than 
+    Join, which is more accurate than Ignore.}
+  \label{fig:PDPA-infeasible-error-compare}
+\end{figure} 
 
 \subsection{Choice of evaluation metric: area under ROC curve}
 
@@ -1722,8 +1735,8 @@ Guillem Rigaill acknowledges an ATIGE grant from G\'enopole.
 %   \sdescription{Some text}
 % \end{supplement}
 
-
-\bibliographystyle{abbrvnat}
+ 
+%\bibliographystyle{abbrvnat}
 \bibliography{refs}
  
 
