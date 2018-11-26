@@ -33,20 +33,28 @@ for(set.i in seq_along(set.names)){
       ##   possible.fp=sum(possible.fp),
       ##   possible.tp=sum(possible.tp),
       ##   regions=.N), by=.(sample.id, peaks)]
-      pdpa.inf <- PDPA.infeasible.error[chunk.name, list(
+      PDPA.select.dt <- data.table(chunk.name, rule="remove")
+      pdpa.inf <- PDPA.infeasible.error[PDPA.select.dt, list(
         errors=sum(fp+fn),
         fp=sum(fp),
         tp=sum(tp),
         possible.fp=sum(possible.fp),
         possible.tp=sum(possible.tp),
-        regions=.N), by=.(sample.id, peaks), on=list(chunk.name)]
+        regions=.N), by=.(
+          sample.id, peaks
+        ), on=list(
+          chunk.name, rule)]
+      ##Seg.select.dt <- data.table(chunk.name, rule="rm")
       Seg <- Segmentor.peaks.error[chunk.name, list(
         errors=sum(fp+fn),
         fp=sum(fp),
         tp=sum(tp),
         possible.fp=sum(possible.fp),
         possible.tp=sum(possible.tp),
-        regions=.N), by=.(sample.id, peaks), on=list(chunk.name)]
+        regions=.N), by=.(
+          sample.id, peaks
+        ), on=list(
+          chunk.name)]
       long.list <- split(long, long$sample.id, drop=TRUE)
       err.mat <- fp.mat <- tp.mat <-
         Seg.mat <- Seg.fp <- Seg.tp <- 

@@ -20,12 +20,15 @@ for(chunk.name in names(dp.peaks.error)){
 }
 CDPA.error <- do.call(rbind, CDPA.error.list) 
 
-col.name.vec <- names(PDPA.infeasible.error)
+col.name.vec <- c(
+  "chunk.name", "sample.id", "peaks", "segments", "chromStart", 
+  "chromEnd", "annotation", "tp", "possible.tp", "fp", "possible.fp", 
+  "fp.status", "fn", "fn.status", "status")
 CDPA.error[, segments := as.integer(paste(peaks))*2+1]
 all.error <- rbind(
   data.table(algo="CDPA", CDPA.error[, ..col.name.vec]),
-  data.table(algo="PDPA", Segmentor.infeasible.error),
-  data.table(algo="GPDPA", PDPA.infeasible.error))
+  data.table(algo="PDPA", Segmentor.infeasible.error[rule=="rm", ..col.name.vec]),
+  data.table(algo="GPDPA", PDPA.infeasible.error[rule=="remove", ..col.name.vec]))
 
 all.totals <- all.error[, list(
   total.fp=sum(fp),

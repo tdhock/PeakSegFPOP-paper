@@ -1,7 +1,9 @@
 library(data.table)
 library(ggplot2)
 
-load("Segmentor.peaks.error.RData")
+(objs <- load("Segmentor.peaks.error.RData"))
+rm(Segmentor.model.list)
+gc()
 load("Segmentor.infeasible.error.RData")
 load("PDPA.infeasible.error.RData")
 load("PDPA.peaks.error.RData")
@@ -46,16 +48,21 @@ baseline.error <- do.call(rbind, baseline.error.list)
 CDPA.error[, segments := as.integer(paste(peaks))*2+1]
 PDPA.peaks.error[, segments := as.integer(paste(peaks))*2+1]
 Segmentor.peaks.error[, segments := as.integer(paste(peaks))*2+1]
-col.name.vec <- names(PDPA.infeasible.error)
+col.name.vec <- c(
+  "chunk.name", "sample.id", "peaks", "segments", "chromStart", 
+  "chromEnd", "annotation", "tp", "possible.tp", "fp", "possible.fp", 
+  "fp.status", "fn", "fn.status", "status")
 DT <- function(algo, dt){
   data.table(algo, dt[, ..col.name.vec])
 }
 all.error <- rbind(
   DT("CDPA", CDPA.error),
   DT("G.ig", PDPA.peaks.error),
-  DT("G.jo", PDPA.infeasible.error),
+  DT("G.jo", PDPA.infeasible.error[rule=="join"]),
+  DT("G.rm", PDPA.infeasible.error[rule=="remove"]),
   DT("S.ig", Segmentor.peaks.error),
-  DT("S.jo", Segmentor.infeasible.error))
+  DT("S.jo", Segmentor.infeasible.error[rule=="join"]),
+  DT("S.rm", Segmentor.infeasible.error[rule=="rm"]))
 
 all.error[, table(chunk.name, algo)]
 
@@ -84,6 +91,10 @@ min.wide <- dcast(all.min, chunk.name+sample.id~algo)
 min.wide[G.jo < G.ig]
 min.wide[G.ig < G.jo]
 
+## 18 problems where join<rm, 51 problems where rm<join.
+min.wide[G.jo < G.rm]
+min.wide[G.rm < G.jo]
+
 ## Somewhat strangely there are 35 problems when CDPA gets fewer label
 ## errors, and also 35 problems when GPDPA with join when infeasible
 ## gets fewer label errors.
@@ -100,9 +111,10 @@ min.wide[, table(set.name, CDPA-G.jo)]
 ##    3   32 2682   32    3 
 ## >
 
-min.wide[, list(
-  count=.N),
-  by=list(GPDPA.jo.ig=G.jo-G.ig)]
+## 15 problems where CDPA<rm, 48 problems where rm<CDPA.
+min.wide[CDPA < G.rm]
+min.wide[G.rm < CDPA]
+min.wide[, table(CDPA-G.rm)]
 
 ## ignore vs join
 g <- function(x, Comparison){
@@ -111,11 +123,14 @@ g <- function(x, Comparison){
   dt
 }
 count.tall <- min.wide[, rbind(
+  g(G.rm-G.jo, "Remove-Join\nGPDPA"),
+  ##g(S.rm-S.jo, "Remove-Join\nPDPA"),
   g(G.jo-G.ig, "Join-Ignore\nGPDPA"),
-  g(S.jo-S.ig, "Join-Ignore\nPDPA"),
-  g(G.jo-MACS, "GPDPAjoin-MACS\n"),
-  g(G.jo-HMCanBroad, "GPDPAjoin-HMCanBroad\n"),
-  g(G.jo-CDPA, "GPDPAjoin-CDPA\n"),
+  ##g(S.jo-S.ig, "Join-Ignore\nPDPA"),
+  g(G.rm-MACS, "GPDPAremove-MACS\n"),
+  g(G.rm-HMCanBroad, "GPDPAremove-HMCanBroad\n"),
+  g(G.rm-CDPA, "GPDPAremove-CDPA\n"),
+  g(G.rm-S.rm, "GPDPA-PDPA\n(Remove rule)"),
   g(G.jo-S.jo, "GPDPA-PDPA\n(Join rule)"),
   g(G.ig-S.ig, "GPDPA-PDPA\n(Ignore rule)"))]
 count.tall[, diff.fac := factor(diff, (-10):2)]
@@ -138,11 +153,11 @@ count.tall[, diff.int := as.integer(diff)]
 count.tall[, first := sub("\n.*", "", Comparison)]
 count.tall[, last := sub(".*\n", "", Comparison)]
 count.tall[, element := ifelse(
-  first=="Join-Ignore",
+  first %in% c("Join-Ignore", "Remove-Join"),
   last,
   Comparison)]
 count.tall[, panel := ifelse(
-  first=="Join-Ignore",
+  first %in% c("Join-Ignore", "Remove-Join"),
   "Comparing
 post-processing
 rules", ifelse(
@@ -150,7 +165,7 @@ rules", ifelse(
   "Comparing
 constrained/
 unconstrained", "Comparing
-GPDPAjoin
+GPDPAremove
 with baselines"))]
 better.dt <- count.tall[, {
   match.df <- str_match_named(paste(comp.fac), pattern)
@@ -188,9 +203,15 @@ problems)",
 low="white", high="red")+
   scale_x_continuous(
     "Difference in minimum number of incorrect labels per segmentation problem",
-    limits=c(-11.5, 7),
+    limits=c(-11.75, 6.5),
     breaks=unique(count.tall$diff.int))+
-  scale_y_discrete("Comparison")+
+  scale_y_discrete(
+    "Comparison",
+    labels=function(x){
+      x <- sub("\n$", "", x)
+      ifelse(grepl("\n", x), x, sub("-", "\n-", x))
+    }
+  )+
   geom_text(aes(
     diff.int, comp.fac,
     label=ifelse(
@@ -202,7 +223,7 @@ low="white", high="red")+
     hjust=hjust),
     size=3,
     data=better.dt)
-pdf("figure-PDPA-infeasible-error-compare.pdf", 9, 4)
+pdf("figure-PDPA-infeasible-error-compare.pdf", 9, 4.2)
 print(gg)
 dev.off()
 
