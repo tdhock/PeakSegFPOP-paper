@@ -1,3 +1,13 @@
+jmlr-paper.pdf: figure-all-cv.pdf
+	rm -rf *.aux *.bbl
+	pdflatex jmlr-paper
+	bibtex jmlr-paper
+	pdflatex jmlr-paper
+	pdflatex jmlr-paper
+figure-all-cv.pdf: figure-all-cv.R all.cv.RData
+	R --vanilla < $<
+all.cv.RData: all.cv.R all.modelSelection.RData
+	R --vanilla < $<
 jss-arxiv.pdf: jss-arxiv.Rnw
 	rm -rf *.aux *.bbl
 	R CMD Sweave jss-arxiv.Rnw

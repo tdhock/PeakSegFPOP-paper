@@ -15,7 +15,7 @@ ggplot()+
     shape=1,
     data=roc.tall)
 
-ggplot()+
+gg <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
   facet_grid(set.name ~ variable, scales="free")+
@@ -23,4 +23,6 @@ ggplot()+
     value, algo),
     data=roc.tall)
 
-save(roc, roc.thresh, file="all.cv.RData")
+pdf("figure-all-cv.pdf")
+print(gg)
+dev.off()
