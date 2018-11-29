@@ -55,9 +55,29 @@ auc <- roc.not.cvx[, list(
   auc=geometry::polyarea(FPR, TPR)
 ), by=.(set.name, set.i, algorithm)]
 
-(objs <- load("all.cv.RData"))
+several <- "305-321"
 algo.map <- levs
 names(algo.map) <- sub("[(].*", "", levs)
+both.roc <- rbind(
+  roc.total[, data.table(
+    parameters="1", set.name, fold.i=set.i, algorithm, FPR, TPR)],
+  roc[, data.table(
+    parameters=several, set.name, fold.i, algorithm=algo.map[algo], FPR, TPR)])
+
+select.dt <- data.table(
+  set.name="H3K36me3_TDH_immune",
+  algorithm="PDPA(unconstrained)")
+ggplot()+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  facet_grid(. ~ fold.i)+
+  geom_path(aes(
+    FPR, TPR, color=parameters),
+    data=both.roc[select.dt, on=list(set.name, algorithm)])+
+  coord_equal(xlim=c(0,1), ylim=c(0,1))
+all.auc[select.dt, on=list(set.name, algorithm)]
+
+(objs <- load("all.cv.RData"))
 roc.thresh[, algorithm := algo.map[algo] ]
 roc.tall <- melt(
   roc.thresh[threshold=="predicted"],
@@ -65,8 +85,8 @@ roc.tall <- melt(
   id.vars=c("set.name", "fold.i", "algorithm"))
 all.auc <- rbind(
   roc.thresh[threshold=="predicted", data.table(
-    set.name, set.i=fold.i, algorithm, auc)],
-  auc[grepl("baseline", algorithm)])
+    parameters=several, set.name, set.i=fold.i, algorithm, auc)],
+  data.table(parameters="1", auc))
 all.auc[, algo.fac := factor(algorithm, levs)]
 
 mean.auc <- all.auc[, list(
@@ -77,18 +97,30 @@ mean.auc <- all.auc[, list(
   q75=quantile(auc, 0.75)
   ), by=.(set.name, algo.fac)]
 
-ggplot()+
-  theme_bw()+
-  theme(panel.margin=grid::unit(0, "lines"))+
-  facet_grid(. ~ set.name, scales="free")+
-  geom_point(aes(
-    med, algo.fac),
-    shape=1,
-    data=mean.auc)+
-  geom_segment(aes(
-    q25, algo.fac,
-    xend=q75, yend=algo.fac),
-    data=mean.auc)
+if(FALSE){
+  
+  ggplot()+
+    theme_bw()+
+    theme(panel.margin=grid::unit(0, "lines"))+
+    facet_grid(. ~ set.name, scales="free")+
+    geom_point(aes(
+      med, algo.fac),
+      shape=1,
+      data=mean.auc)+
+    geom_segment(aes(
+      q25, algo.fac,
+      xend=q75, yend=algo.fac),
+      data=mean.auc)
+
+  ggplot()+
+    theme_bw()+
+    theme(panel.margin=grid::unit(0, "lines"))+
+    facet_grid(set.name ~ variable, scales="free")+
+    geom_point(aes(
+      value, algorithm),
+      data=roc.tall)
+
+}
 
 gg <- ggplot()+
   theme_bw()+
@@ -104,7 +136,7 @@ gg <- ggplot()+
     df
   })+
   geom_point(aes(
-    auc, algo.fac),
+    auc, algo.fac, color=parameters),
     shape=1,
     data=all.auc)+
   scale_y_discrete(
@@ -112,15 +144,7 @@ gg <- ggplot()+
   scale_x_continuous(
     "Test AUC (larger values indicate more accurate peak detection)",
     breaks=seq(0.6, 1, by=0.2))
-
-
-ggplot()+
-  theme_bw()+
-  theme(panel.margin=grid::unit(0, "lines"))+
-  facet_grid(set.name ~ variable, scales="free")+
-  geom_point(aes(
-    value, algorithm),
-    data=roc.tall)
+print(gg)
 
 pdf("figure-all-cv.pdf", 8, 2.2)
 print(gg)
