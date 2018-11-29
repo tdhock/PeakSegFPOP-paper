@@ -259,7 +259,6 @@ for(model.file.i in i.vec){
     for(n.segments in seq_along(lik.vec)){
       seg.mean.vec <- fit$mean.mat[n.segments, 1:n.segments]
       ends.vec <- c(fit$ends.mat[n.segments, 1:n.segments], nrow(sample.counts))
-      is.feasible <- all(diff(seg.mean.vec) != 0)
       lik.vec[[n.segments]] <- if(n.segments %% 2){
         data.mean.vec <- rep(seg.mean.vec, diff(ends.vec))
         w <- sample.counts[, chromEnd-chromStart]

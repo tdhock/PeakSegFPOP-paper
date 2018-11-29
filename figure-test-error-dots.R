@@ -138,21 +138,22 @@ ggplot()+
   coord_equal()
 
 if(FALSE){
-auc.wide[, {
-  L <- t.test(`CDPA(previous best)`, `GPDPA(proposed)`, paired=TRUE)
-  res <- L[c("statistic", "p.value")]
-  res$mean.cdpa <- mean(`CDPA(previous best)`)
-  res$mean.gpdpa <- mean(`GPDPA(proposed)`)
-  res
-}, by=list(set.name)][order(p.value)]
-auc.wide[, {
-  L <- t.test(`PDPA(unconstrained baseline)`, `GPDPA(proposed)`, paired=TRUE)
-  res <- L[c("statistic", "p.value")]
-  res$mean.pdpa <- mean(`PDPA(unconstrained baseline)`)
-  res$mean.gpdpa <- mean(`GPDPA(proposed)`)
-  res
-}, by=list(set.name)][order(p.value)]
+  auc.wide[, {
+    L <- t.test(`CDPA(previous best)`, `GPDPA(proposed)`, paired=TRUE)
+    res <- L[c("statistic", "p.value")]
+    res$mean.cdpa <- mean(`CDPA(previous best)`)
+    res$mean.gpdpa <- mean(`GPDPA(proposed)`)
+    res
+  }, by=list(set.name)][order(p.value)]
+  auc.wide[, {
+    L <- t.test(`PDPA(unconstrained baseline)`, `GPDPA(proposed)`, paired=TRUE)
+    res <- L[c("statistic", "p.value")]
+    res$mean.pdpa <- mean(`PDPA(unconstrained baseline)`)
+    res$mean.gpdpa <- mean(`GPDPA(proposed)`)
+    res
+  }, by=list(set.name)][order(p.value)]
 }
+
 roc.cvx <- roc.not.cvx[, {
   fit <- chull(FPR, TPR)
   data.table(FPR, TPR)[fit,]

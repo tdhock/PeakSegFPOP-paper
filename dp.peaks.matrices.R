@@ -3,7 +3,7 @@ source("packages.R")
 load("PDPA.infeasible.error.RData")
 load("dp.peaks.error.RData")
 ##load("PDPA.peaks.error.RData")
-load("Segmentor.peaks.error.RData")
+load("Segmentor.infeasible.error.RData")
 
 set.names <- grep("^H", unique(sub("/.*", "", names(dp.peaks.error))), value=TRUE)
 dp.peaks.matrices <- list()
@@ -44,8 +44,8 @@ for(set.i in seq_along(set.names)){
           sample.id, peaks
         ), on=list(
           chunk.name, rule)]
-      ##Seg.select.dt <- data.table(chunk.name, rule="rm")
-      Seg <- Segmentor.peaks.error[chunk.name, list(
+      Seg.select.dt <- data.table(chunk.name, rule="rm")
+      Seg <- Segmentor.infeasible.error[Seg.select.dt, list(
         errors=sum(fp+fn),
         fp=sum(fp),
         tp=sum(tp),
@@ -54,6 +54,7 @@ for(set.i in seq_along(set.names)){
         regions=.N), by=.(
           sample.id, peaks
         ), on=list(
+          rule,
           chunk.name)]
       long.list <- split(long, long$sample.id, drop=TRUE)
       err.mat <- fp.mat <- tp.mat <-
