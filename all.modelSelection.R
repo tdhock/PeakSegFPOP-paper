@@ -58,4 +58,10 @@ all.modelSelection <- all.loss[, {
     complexity="segments")
 }, by=list(set.name, chunk.id, chunk.name, sample.id, algo)]
 
+class.vec <- sapply(all.modelSelection, class)
+if(any(class.vec=="list")){
+  print(class.vec)
+  stop("list column!")
+}
+
 save(all.modelSelection, file="all.modelSelection.RData")
