@@ -1,8 +1,10 @@
 source("packages.R")
 
 set.seed(1)
-N <- 250 
-x <- rpois(10*N, rep(c(8,1,5,3,16,33,2,12,7,1),each=N))
+N <- 250
+sim.vec <- c(8,1,5,3,16,33,2,12,7,1)
+mu.vec <- rep(sim.vec,each=N)
+x <- rpois(length(sim.vec)*N, mu.vec)
 Kmax <- 40
 res <- Segmentor(data=x, model=1, Kmax=Kmax)
 Cr <- SelectModel(res, penalty='oracle', keep=TRUE)
@@ -209,35 +211,6 @@ stopifnot(all.equal(as.numeric(crit.info$crit), as.numeric(Cr$criterion)))
 mBIC.info <- alice.mBIC(res@breaks, res@likelihood)
 stopifnot(all.equal(as.numeric(mBIC.info$crit), as.numeric(Cr.mBIC$criterion)))
 
-PoissonLik <- function(count, bases, end.mat){
-  Kmax <- nrow(end.mat)
-  lik <- rep(NA, Kmax)
-  loss <- rep(NA, Kmax)
-  for(segments in 1:Kmax){
-    seg.lik <- rep(NA, segments)
-    seg.loss <- rep(NA, segments)
-    ends <- end.mat[segments, 1:segments]
-    if(all(!is.na(ends))){
-      breaks <- ends[-length(ends)]
-      starts <- c(1, breaks+1)
-      for(segment.i in 1:segments){
-        first <- starts[segment.i]
-        last <- ends[segment.i]
-        seg.data <- count[first:last]
-        seg.bases <- bases[first:last]
-        seg.mean <- sum(seg.data * seg.bases)/sum(seg.bases)
-        loglik.vec <- dpois(seg.data, seg.mean, log=TRUE)
-        seg.lik[segment.i] <- -sum(loglik.vec * seg.bases)
-        seg.loss[segment.i] <- PoissonLoss(seg.data, seg.mean, seg.bases)
-      }
-      lik[segments] <- sum(seg.lik)
-      loss[segments] <- sum(seg.loss)
-    }
-  }
-  attr(lik, "loss") <- loss
-  lik
-}
-
 unsupervised.Segmentor <- list()
 oracle.Segmentor <- list()
 model.files <- Sys.glob("../chip-seq-paper/chunks/H*/*/Segmentor.model.RData")
@@ -257,20 +230,29 @@ for(model.file.i in i.vec){
     for(n.segments in seq_along(lik.vec)){
       seg.df <- fit$segments[[n.segments]]
       seg.mean.vec <- seg.df$mean
-      peak.indicator <- cumsum(sign(diff(seg.mean.vec)))
-      is.feasible <- all(peak.indicator %in% c(0, 1))
-      lik.vec[[n.segments]] <- if(is.feasible && n.segments %% 2){
+      lik.vec[[n.segments]] <- if(n.segments %% 2){
         data.mean.vec <- rep(seg.mean.vec, c(seg.df$last[1], diff(seg.df$last)))
         data.lik.vec <- dpois(fit$Data, data.mean.vec, log=TRUE)
-        last.lik <- -sum(data.lik.vec)
+        last.lik <- -sum(data.lik.vec*fit$DataComp)
       }else{
         force.na[[n.segments]] <- TRUE
         last.lik
       }
     }
+    ## Segmentor uses the Poisson loss (negative log likelihood
+    ## without the constant)
+    if(FALSE){
+      big.data.vec <- rep(fit$Data, fit$DataComp)
+      rbind(
+        Seg.lik.vec <- fit$Likelihood+sum(lgamma(big.data.vec+1)),
+        lik.vec)[,seq(1, 19, by=2)]
+      Seg.lik.vec[seq(2, 18, by=2)] <- Seg.lik.vec[seq(1, 17, by=2)]
+      my.oracle(n.bases, Seg.lik.vec)
+      alice.oracle(n.bases, Seg.lik.vec)
+    }
     n.bases <- sum(fit$DataComp)
-    sample.oracle <- alice.oracle(n.bases, lik.vec)
-    oseg.list[[sample.id]] <- my.oracle(n.bases, lik.vec)
+    (sample.oracle <- alice.oracle(n.bases, lik.vec))
+    (oseg.list[[sample.id]] <- my.oracle(n.bases, lik.vec))
     segSeq <- seq(1, 19, by=2)
     write.na <- force.na[segSeq]
     penalty.mat <-  #peaks x penalties

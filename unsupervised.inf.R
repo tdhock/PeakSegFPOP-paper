@@ -209,35 +209,6 @@ stopifnot(all.equal(as.numeric(crit.info$crit), as.numeric(Cr$criterion)))
 mBIC.info <- alice.mBIC(res@breaks, res@likelihood)
 stopifnot(all.equal(as.numeric(mBIC.info$crit), as.numeric(Cr.mBIC$criterion)))
 
-PoissonLik <- function(count, bases, end.mat){
-  Kmax <- nrow(end.mat)
-  lik <- rep(NA, Kmax)
-  loss <- rep(NA, Kmax)
-  for(segments in 1:Kmax){
-    seg.lik <- rep(NA, segments)
-    seg.loss <- rep(NA, segments)
-    ends <- end.mat[segments, 1:segments]
-    if(all(!is.na(ends))){
-      breaks <- ends[-length(ends)]
-      starts <- c(1, breaks+1)
-      for(segment.i in 1:segments){
-        first <- starts[segment.i]
-        last <- ends[segment.i]
-        seg.data <- count[first:last]
-        seg.bases <- bases[first:last]
-        seg.mean <- sum(seg.data * seg.bases)/sum(seg.bases)
-        loglik.vec <- dpois(seg.data, seg.mean, log=TRUE)
-        seg.lik[segment.i] <- -sum(loglik.vec * seg.bases)
-        seg.loss[segment.i] <- PoissonLoss(seg.data, seg.mean, seg.bases)
-      }
-      lik[segments] <- sum(seg.lik)
-      loss[segments] <- sum(seg.loss)
-    }
-  }
-  attr(lik, "loss") <- loss
-  lik
-}
-
 unsupervised.inf <- list()
 oracle.inf <- list()
 model.files <- Sys.glob("../chip-seq-paper/chunks/H*/*/PDPA.model.RData")
