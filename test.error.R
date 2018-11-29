@@ -59,9 +59,6 @@ for(set.name in names(dp.peaks.sets)){
       train.mat <- do.call(rbind, train.list)
       train.err <- colSums(train.mat)
       plot(train.err)
-      if(algorithm=="Segmentor" && set.name=="H3K36me3_TDH_immune"){
-        stop("check")
-      }
       picked <- pick.best.index(train.err)
       abline(v=picked)
       best.list[[algorithm]] <- picked

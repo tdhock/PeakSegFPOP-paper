@@ -65,7 +65,7 @@ suppressPackageStartupMessages({
     lpSolveAPI="5.5.2.0.17",
     quadmod="2017.8.17",
     geometry="0.4.0",
-    data.table="1.11.4",
+    data.table="1.11.8",
     PeakSegOptimal="2018.5.25",
     PeakSegDP="2017.8.15",
     namedCapture="2017.6.1",

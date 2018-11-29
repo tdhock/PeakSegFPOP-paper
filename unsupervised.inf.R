@@ -245,9 +245,9 @@ for(model.file.i in i.vec){
     oseg.list[[sample.id]] <- my.oracle(n.bases, lik.vec)
     segSeq <- seq(1, 19, by=2)
     write.na <- force.na[segSeq]
-    penalty.mat <-  #peaks x penalties
-      cbind(oracle=sample.oracle$crit[segSeq],
-            none=lik.vec[segSeq])
+    penalty.mat <- cbind(
+      oracle=sample.oracle$crit[segSeq],
+      none=lik.vec[segSeq])
     rownames(penalty.mat) <- segSeq
     penalty.mat[write.na, ] <- NA
     selected.rows <- apply(penalty.mat, 2, which.min)

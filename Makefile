@@ -4,7 +4,9 @@ jmlr-paper.pdf: figure-all-cv.pdf figure-test-error-dots.pdf
 	bibtex jmlr-paper
 	pdflatex jmlr-paper
 	pdflatex jmlr-paper
-figure-all-cv.pdf: figure-all-cv.R all.cv.RData
+figure-all-cv.pdf: figure-all-cv.R all.cv.RData test.error.RData
+	R --vanilla < $<
+all.modelSelection.RData: all.modelSelection.R PDPA.infeasible.RData PDPA.infeasible.error.RData Segmentor.infeasible.error.RData dp.peaks.RData dp.peaks.error.RData
 	R --vanilla < $<
 all.cv.RData: all.cv.R all.modelSelection.RData
 	R --vanilla < $<

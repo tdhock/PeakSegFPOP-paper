@@ -42,13 +42,13 @@ all.totals <- all.error[, list(
 all.loss <- rbind(
   PDPA.loss[, data.table(
     set.name, chunk.id, chunk.name, sample.id,
-    algo="GPDPA", segments, peaks, loss=PoissonLoss)],
+    algo="GPDPA", segments, loss=PoissonLoss)],
   Segmentor.loss[, data.table(
     set.name, chunk.id, chunk.name, sample.id,
-    algo="PDPA", segments, peaks, loss)],
+    algo="PDPA", segments, loss)],
   dp.loss[, data.table(
     set.name, chunk.id, chunk.name, sample.id,
-    algo="CDPA", segments, peaks, loss=error)])[all.totals, on=list(
+    algo="CDPA", segments, loss=error)])[all.totals, on=list(
       algo, chunk.name, sample.id, segments)]
 
 all.modelSelection <- all.loss[, {
