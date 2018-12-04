@@ -235,7 +235,7 @@ in our empirical tests on real ChIP-seq data sets.}
 \label{tab:contribution}
 \end{table*}
 
-The previous approach suffers from two major issues, which we fix in
+The previously proposed CDPA suffers from two major issues, which we fix in
 this paper using a rigorous mathematical analysis of the constrained
 maximum likelihood changepoint detection problem. First, the CDPA does
 not necessarily compute the globally optimal model, because it does
@@ -246,98 +246,121 @@ data points, it can be too slow for use on large genomic data sets
 which are now common. In this paper we propose a new algorithm that
 resolves both of these issues (Table~\ref{tab:contribution}).
 
-In Section~\ref{sec:models} we define a natural class of cost functions for 
-measuring the quality of a segmentation, and consider the problem of finding the best segmentation
-via minimizing this cost. The problem of minimizing the cost can be split into two cases, the first
-is where there is no constraint between the segment-specific mean or parameter for different segments. The
-second is where we impose a constraint, such as our up-down constraint, between the segment-specific
-mean for neighboring segments. Whilst several efficient dynamic programming algorithms
-can solve the unconstrained minimization, we are unaware of equivalent dynamic programming
-algorithms for exactly solving the constrained version.  Our main contribution is described in 
-Section~\ref{sec:algorithms}, where we generalize the functional pruning
-technique of \citet{pruned-dp} so that it can be applied to the constrained minimization problem (Table~\ref{tab:contribution}), leading to a new algorithm which we call the Generalized
-Pruned Dynamic Programming Algorithm (GPDPA). In Section~\ref{sec:results} 
-we show that the GPDPA achieves state-of-the-art speed and peak detection accuracy in a benchmark of several ChIP-seq data sets. The paper ends with a discussion.
+\paragraph{Contributions and Organization.} In
+Section~\ref{sec:models} we define the optimal changepoint detection
+problems. The first problem is where there are no constraints between the
+segment-specific mean parameters. The second
+is where we impose a constraint, such as our up-down constraint,
+between the segment-specific mean for neighboring segments. Whilst
+several efficient dynamic programming algorithms can solve the
+unconstrained minimization, we are unaware of equivalent dynamic
+programming algorithms for exactly solving the constrained version.
+Our main contribution is described in Section~\ref{sec:algorithms},
+where we generalize the functional pruning technique of
+\citet{pruned-dp} so that it can be applied to the constrained
+minimization problem (Table~\ref{tab:contribution}), leading to a new
+algorithm which we call the Generalized Pruned Dynamic Programming
+Algorithm (GPDPA). In Section~\ref{sec:results} we show that the GPDPA
+achieves state-of-the-art speed and peak detection accuracy in a
+benchmark of several ChIP-seq data sets. The paper ends with a
+discussion.
 
 \section{Unconstrained and Constrained Changepoint Models}
 \label{sec:models}
 
-Assume our data consist of $n$ observations denoted by the random
-vector $\mathbf y = (y_1, \dots, y_n)$ with unknown mean
-$\mathbf m = (m_1,\dots, m_n)$ which is piecewise constant with $K-1$
-changes ($K$ distinct values). For concreteness, further assume
-real-valued data $y_t\in\RR$ with
-$y_t\stackrel{\text{iid}}{\sim}N(m_t,\sigma^2)$. Maximizing the
-likelihood is equivalent to minimizing the square loss
-$\ell(y_t,m_t)=(y_t-m_t)^2$,
-\begin{align}
-  \label{eq:optimal_segment_neighborhood}
-  \minimize_{\mathbf m\in\RR^n} &\ \ 
-  \sum_{t=1}^n \ell(y_t, m_t)\\
-  \text{subject to} &\ \  \sum_{t=1}^{n-1} I(m_t \neq m_{t+1}) = K-1,
-  \nonumber
-\end{align}
-and will give the optimal $K-1$ changepoints that segment the data into $K$
-contiguous regions with a common mean.  This optimization problem is non-convex since the model complexity is
-the number of changepoints, measured via the non-convex indicator
-function $I$. Nonetheless, the optimal solution can be computed in
-$O(K n^2)$ time using a dynamic programming algorithm
+\subsection{Unconstrained changepoint model with $K$ segments}
+
+The data consist of $n$ observations denoted by the random vector
+$\mathbf y = (y_1, \dots, y_n)$. 
+We assume a piecewise constant mean model with
+$K-1$ changes ($K$ distinct values). For each segment
+$k\in\{1\,\dots,K\}$, the real-valued mean parameter $u_k$ is assigned
+to data points $(t_{k-1},t_k]$. The first index, $t_0=0$, and last
+index, $t_K=n$, are fixed; the others, $t_1<\cdots<t_{K-1}$, are
+changepoint variables. 
+
+For real-valued data $y_t\in\RR$, the statistical model is for every
+segment $k\in\{1\,\dots,K\}$, each data point on that segment
+$\tau\in(t_{k-1},t_k]$ is
+$y_t\stackrel{\text{iid}}{\sim}N(u_k,\sigma^2)$.  Maximizing the
+likelihood in this Normal model is equivalent to minimizing the square
+loss $\ell(y_t,u_k)=(u_k-y_t)^2$. In the case of genomic count data,
+we have a sequence of non-negative integers $y_t\in\ZZ_+$, so we
+assume $y_t\stackrel{\text{iid}}{\sim}\text{Poisson}(u_k)$.
+Maximizing the likelihood in the Poisson model is equivalent to
+minimizing the Poisson loss $\ell(y_t,u_k)=u_k-y_t\log u_k$. In either
+case we can write the cost function for segment $k$ as
+\begin{equation}
+  \label{eq:h}
+  h_{t_{k-1}, t_k}(u_k) = \sum_{\tau=t_{k-1}+1}^{t_k} \ell(y_\tau, u_k)
+\end{equation}
+
+Inferring the maximum likelihood changepoints and segments means
+amounts to solving
+\begin{equation}
+  \label{eq:segment-neighborhood}
+\minimize_{\substack{
+u_1,\dots, u_{K}\in\RR
+\\
+0=t_0<t_1<\cdots<t_{K-1}<t_K=n
+}}
+  \sum_{k=1}^K
+h_{t_{k-1}, t_k}(u_k)
+\end{equation}
+This optimization problem is non-convex because the changepoint
+variables $t_k$ are integers. Nonetheless, the optimal solution can be
+computed in $O(K n^2)$ time using a dynamic programming algorithm
 \citep{segment-neighborhood}. By exploiting the structure of the
 convex loss function $\ell$, the pruned dynamic programming algorithm
-of \citet{pruned-dp} computes the same optimal solution much faster; empirically
-having a computational cost that is
-$O(K n \log n)$.
+of \citet{pruned-dp} computes the same optimal solution much faster;
+empirically having a computational cost that is $O(K n \log n)$.
+There are several other efficient algorithms that solve similar
+problems \citep{optimal-partitioning,flsa,phd-johnson,pelt,fpop}.
 
-The peak detection problem we are interested in can be formulated in a similar way, but with
-the addition of further constraints on the segment means. These constraints force the mean
-to alternate between increasing and decreasing at each changepoint. We will formally define the resulting
-optimization problem later.
 
-To simplify our discussion, we first introduce a closely related
-constrained optimization problem where we enforce the mean to increase
-at each changepoint. This is often called \emph{reduced} isotonic regression
-\citep{reduced-monotonic-regression}, to emphasize the connection with
-isotonic regression (which includes the increasing
-constraint but no constraint on the number of segments $K$). The
-reduced isotonic regression problem is defined as
+\subsection{Up-down constrained changepoint model with $K$ segments}
+
+The peak detection problem we are interested in can be formulated in a
+similar way, but with the addition of further constraints on the
+segment means. These constraints force the mean to alternate between
+increasing and decreasing at each changepoint. 
+Formally, the up-down constrained changepoint problem is defined as
 \begin{align}
-  \label{eq:reduced}
-  \minimize_{\mathbf m\in\RR^n} &\ \ 
-  \sum_{t=1}^n \ell(y_t, m_t)\\
-  \text{subject to} &\ \  \sum_{t=1}^{n-1} I(m_t \neq m_{t+1}) = K-1,
+  \label{eq:segment-neighborhood-up-down}
+\minimize_{\substack{
+u_1,\dots, u_{K}\in\RR
+\\
+0=t_0<t_1<\cdots<t_{K-1}<t_K=n
+}} & \ \
+  \sum_{k=1}^K
+h_{t_{k-1}, t_k}(u_k)\\
+      \text{subject to \hskip 0.8cm} &\ \ u_{k-1} \leq u_k\ \forall k\in\{2,4,\dots\},
   \nonumber\\
-  &\ \  m_t \leq m_{t+1},\, \forall t<n.
-  \nonumber 
+  &\ \ u_{k-1} \geq u_k\ \forall k\in\{3,5,\dots\}.
+  \nonumber
 \end{align}
-% To simplify description of our approach to solving the up-down constrained
-% changepoint detection problems, we will first explain how it solves
-% this special case (\ref{eq:reduced}).
 
-Whilst there are many algorithms that solve the unconstrained
-minization problem (\ref{eq:optimal_segment_neighborhood})
-\citep{segment-neighborhood,pruned-dp,phd-johnson} or related versions
-of it \citep{optimal-partitioning,pelt,fpop,flsa}, fewer algorithms
-exist for constrained minimization problems such as (\ref{eq:reduced})
-[though see \citet{hardwick2014optimal} for an approach for reduced
-isotonic regression]. Note that the well-known Pool-Adjacent-Violators
-Algorithm \citep{mair2009isotone} solves a simpler problem (isotonic
-regression), without the constraint on the number of segments $K$.
+It is worth noting the connection between the up-down constrained
+changepoint problem (\ref{eq:segment-neighborhood-up-down}) and
+several related problems that have been previously studied.The
+\emph{reduced} isotonic regression problem is similar
+\citep{reduced-monotonic-regression}, but uses only non-decreasing
+$u_{k-1}\leq u_k$ change constraints for all $k$. \citet{hardwick2014optimal} proposed an efficient algorithm for 
+reduced isotonic regression. Note that the well-known
+Pool-Adjacent-Violators Algorithm \citep{mair2009isotone} solves a
+simpler problem (isotonic regression), without the constraint on the
+number of segments $K$.
 
 Our contribution in this paper is proving
 that the functional pruning technique of \citet{pruned-dp} and
 \citet{fpop} can be generalized to constrained changepoint models such
-as reduced isotonic regression and the up-down constraint that appears
-in peak detection problems (Table~\ref{tab:contribution}). Our
+as (\ref{eq:segment-neighborhood-up-down}). Our
 resulting Generalized Pruned Dynamic Programming Algorithm (GPDPA)
 enjoys $O(Kn\log n)$ time complexity (on average in our empirical
 tests of real ChIP-seq data sets), and works for any changepoint model
 with affine constraints between adjacent segment means (including
-reduced isotonic regression and peak detection).
+reduced isotonic regression and alternating up/down changes).
 
-%%%% update rules
-%\newcommand{\FCC}{\widetilde{C}}
-\newcommand{\FCC}{C}
-\newcommand{\M}{\mathcal{M}}
 \section{Functional 
 pruning algorithms for constrained
   changepoint models}
@@ -350,60 +373,125 @@ pruning algorithms for constrained
 % case, the reduced isotonic regression problem
 % (\ref{eq:reduced}).
 
-We begin by discussing an algorithm for solving the reduced isotonic
-regression problem, then explain how the algorithm generalizes to
-the PeakSeg constraint.
 
-\subsection{Reformulation in terms of changepoint variables}
+\subsection{Classical dynamic programming approach}
 
-The reduced isotonic regression problem (\ref{eq:reduced}) has $n$
-segment mean variables $m_t$, one for each data point $t$. To derive
-our algorithm, we re-write the problem in terms of the mean
-$u_k\in\RR$ and endpoint $t_k\in\{1,\dots,n\}$ for each
-segment $k\in\{1,\dots, K\}$.
-\begin{definition}[Reduced isotonic regression optimization space]
-\label{def:Ibar}
-  Let $(\mathbf u, \mathbf t)\in{\mathcal I}^n_K$ be the set of
-  non-decreasing segment means $u_1\leq\cdots\leq u_K$ and
-  increasing changepoint indices $0=t_0<t_1<\cdots<t_{K-1}<t_K=n$.
-\end{definition}
-Each segment mean $u_k$ is assigned to data points
-$\tau\in(t_{k-1},t_k]$. The first index, $t_0=0$, and last index,
-$t_K=n$, are fixed; the others, $t_1<\cdots<t_{K-1}$, are
-changepoint variables to optimize. We define the following cost function for each
-segment $k\in\{1, \dots, K\}$,
-\begin{equation}
-  \label{eq:h}
-  h_{t_{k-1}, t_k}(u_k) = \sum_{\tau=t_{k-1}+1}^{t_k} \ell(y_\tau, u_k).
-\end{equation}
-The reduced isotonic regression problem (\ref{eq:reduced}) can be equivalently written as
-\begin{equation}
-  \label{eq:isotonic_ut}
-  \minimize_{(\mathbf u, \mathbf t)\in{\mathcal I}^n_K}
+In this section we review the Constrained Dynamic Programming
+Algorithm (CDPA), which we previously proposed
+\citep{HOCKING-PeakSeg}. The CDPA is a simple modification of the
+classical dynamic programming algorithm
+\citep{segment-neighborhood}. The classical algorithm recursively
+computes the optimal cost in $K$ segments up to $n$ data points via
+\begin{eqnarray}
+  \mathcal L_{K,n} 
+&=& \min_{\substack{
+u_1,\dots,u_{K}\in\RR
+\\
+0=t_0<t_1<\cdots<t_{K-1}<t_K=n
+}}
   \sum_{k=1}^K
-  h_{t_{k-1}, t_k}(u_k),
+  h_{t_{k-1}, t_k}(u_k)\\
+&=& \min_{t_{K-1}} 
+\underbrace{
+    \min_{\substack{
+    u_1,\dots,u_{K-1}
+  \\
+  t_1<\cdots<t_{K-2}
+  }} \sum_{k=1}^{K-1} h_{t_{k-1},t_k}(u_k)
+}_{\mathcal L_{K-1,t_{K-1}}}
++ \underbrace{
+  \min_{u_K} h_{t_{K-1,n}(u_K)}
+}_{h^*_{t_{K-1},n}}
+\label{eq:classic-dp-recursion}
+\end{eqnarray}
+The main idea of the dynamic programming recursion
+(\ref{eq:classic-dp-recursion}) is to separate the cost into two
+terms. The left term $\mathcal L_{K-1,t_{K-1}}$ is the previously
+computed cost of the best model in $K-1$ segments up to data point
+$t_{K-1}$. The right term $h^*_{t_{K-1},n}$ is the optimal cost of the
+$K$-th segment, which starts after the last changepoint $t_{K-1}$ and
+continues until the final data point $n$. The minimization in
+(\ref{eq:classic-dp-recursion}) over all possible last changepoints
+$t_{K-1}\in\{K-1, \dots, n-1\}$ can be computed in $O(n)$ time. Each
+$h^*_{t_{K-1,n}}$ can be computed in $O(1)$ time; the vector of
+$h^*_{K-1,n},\dots,h^*_{n-1,n}$ values can be computed in $O(n)$
+time. Computing the entire vector of
+$\mathcal L_{K,K},\dots,\mathcal L_{K,n}$ is therefore $O(n^2)$ using
+(\ref{eq:classic-dp-recursion}). 
+
+\paragraph{Modification for constraints.} In the CDPA we proposed to
+constrain the set of possible last changepoints $t_{K-1}$ used in the
+minimization (\ref{eq:classic-dp-recursion}). In the right side of
+(\ref{eq:classic-dp-recursion}) the min with respect to the last
+segment mean $u_K$ is achieved by
+\begin{equation}
+  u^*_{t_{K-1},n}=\argmin_{u_K\in\RR} h_{t_{K-1},n}(u_K),
 \end{equation}
-Rather than explicitly summing over data points as in problem
-(\ref{eq:reduced}), this problem uses the equivalent sum over segments. 
+which is the best mean value for the last segment starting after data
+point $t_{K-1}$. The main idea of the CDPA is to only consider last
+changepoints $t_{K-1}$ which result in a last segment mean
+$u^*_{t_{K-1},n}$ that jumps in the correct direction (up or
+down). More precisely, letting $\mathcal U_{K-1,\tau}$ be the best
+mean of the $K-1$-th segment up to data point $\tau$, we consider the
+reduced set of possible changepoints
+\begin{equation}
+\mathcal I_{K,n} = \begin{cases}
+\tau\in\{K-1, \dots, n-1\}\mid \mathcal U_{K-1,\tau}< u^*_{\tau,n} &\text{ if $K$ is even}\\
+\tau\in\{K-1, \dots, n-1\}\mid \mathcal U_{K-1,\tau}> u^*_{\tau,n} &\text{ if $K$ is odd}\\
+\end{cases}
+\end{equation}
+That yields the recursive update rule for the constrained  cost 
+\begin{eqnarray}
+%\mathcal T_{K,n} &=& \argmin_{\tau\in\mathcal I_{K,n}} 
+%\mathcal L_{K-1,\tau}
+%+h^*_{\tau,n}\\
+\label{eq:dp-recursion-constrained}
+\widehat{\mathcal L}_{K,n} &=& \min_{\tau\in\mathcal I_{K,n}} 
+\widehat{\mathcal L}_{K-1,\tau} + h^*_{\tau, n}
+%\mathcal L_{K-1,\mathcal T_{K,n}} + h^*_{\mathcal T_{K,n}, n}\\
+%\mathcal U_{K,n} &=& u^*_{\mathcal T_{K,n}, n}\\
+\end{eqnarray}
+Using this update rule, computing the entire matrix of constrained
+cost values $\widehat{\mathcal L}_{k,t}$ for all $k\in\{1,\dots, K\}$
+and $t\in\{1,\dots,n\}$ takes $O(Kn^2)$ time. Furthermore, this update
+rule does not compute the optimal solution to the constrained
+changepoint problem (\ref{eq:segment-neighborhood-up-down}). We
+therefore propose a new update rule in the next section which is both
+faster and optimal.
 
 \subsection{Functional pruning}
 \label{sec:functional-pruning}
 
 In this section we provide a summary of the main ideas of functional
 pruning for optimal changepoint detection; for a more complete
-discussion we refer the reader to \citep{fpop}. Optimization problem
-(\ref{eq:isotonic_ut}) has $K$ segment mean variables $u_k$ and $K-1$
-changepoint index variables $t_k$. The key idea of functional pruning
-is to recursively compute the minimum cost as a function of the last
-segment mean $u_K$.
+discussion we refer the reader to \citep{fpop}. The key insight of
+functional pruning is that the order of minimization can be reversed in
+(\ref{eq:classic-dp-recursion}). By taking out the minimization with
+respect to the last segment mean, we obtain the following equation for the optimal cost in $K$ segments up to data point $n$,
+\begin{equation}
+  \mathcal L_{K,n} = \min_{u_K} \underbrace{\min_{t_{K-1}} 
+\mathcal L_{K-1,t_{K-1}}
++  h_{t_{K-1,n}(u_K)}}_{C_{K,n}(u_K)}.
+\end{equation}
+The idea is to then recursively compute the $C_{K,n}$ functions via
+\begin{eqnarray}
+C_{K,n}(u_K) 
+&=& \min_{\tau\in\{K,\dots,n\}} \mathcal L_{K-1,\tau-1} + \sum_{i=\tau}^n \ell(u_K, y_i)\\
+&=& \ell(u_K, y_i) + \min\{\mathcal L_{K-1,n-1},\, 
+\min_{\tau\in\{K,\dots,n-1\}} \mathcal L_{K-1,\tau-1} + \sum_{i=\tau}^{n-1} \ell(u_K, y_i)
+\}\\
+&=& \ell(u_K, y_i) + \min\{\mathcal L_{K-1,n-1}, C_{K,n-1}(u_K)\}
+\end{eqnarray}
+
+\paragraph{Modification for constraints.} TODO
 
 \begin{definition}[Optimal cost with last segment mean $\mu$]
 \label{def:fcc}
-  Let $\FCC_{K,n}(\mu)$ be the optimal cost of the segmentation
+  Let $C_{K,n}(\mu)$ be the optimal cost of the segmentation
   with $K$ segments, up to data point $n$, with last segment mean
   $\mu$:
 \begin{equation}
-\FCC_{K,n}(\mu) = \min_{(\mathbf u, \mathbf t)\in{\mathcal I}^n_K \ | \ u_K = \mu} \
+C_{K,n}(\mu) = \min_{(\mathbf u, \mathbf t)\in{\mathcal I}^n_K \ | \ u_K = \mu} \
   \left\{ \sum_{k=1}^K
   h_{t_{k-1}, t_k}(u_k) \right\}.
 \end{equation}
@@ -505,21 +593,21 @@ update rules used in our proposed algorithm.
   using the following update rules.
 \begin{enumerate}
 \item For $k=1$ we have
-$\FCC_{1,1}(\mu)=\ell(y_1,\mu)$, and for the other data
+$C_{1,1}(\mu)=\ell(y_1,\mu)$, and for the other data
   points $t>1$ we have
 $
-\FCC_{1,t}(\mu)=\FCC_{1,t-1}(\mu)+\ell(y_t,\mu),
+C_{1,t}(\mu)=C_{1,t-1}(\mu)+\ell(y_t,\mu),
 $
 \item For $k>1$ and $t=k$ we have
 $
-  \FCC_{k,k}(\mu)=\ell(y_k, \mu)+\FCC_{k-1,k-1}^\leq(\mu),
+  C_{k,k}(\mu)=\ell(y_k, \mu)+C_{k-1,k-1}^\leq(\mu),
 $
 \item In all other cases ($k>1$ and $t>k$) we have
  $$
-  \FCC_{k,t}(\mu)=\ell(y_t,\mu)+
+  C_{k,t}(\mu)=\ell(y_t,\mu)+
   \min\{
-  \FCC_{k-1,t-1}^\leq(\mu),\,
-  \FCC_{k,t-1}(\mu)
+  C_{k-1,t-1}^\leq(\mu),\,
+  C_{k,t-1}(\mu)
   \}.
 $$
 \end{enumerate}
@@ -535,38 +623,38 @@ $$
 
 % We now
 %   focus on case 3.  First notice that by definition of
-%   $\FCC_{K,t+1}(u)$ we must have
-%   $\FCC_{K,t+1}(u) \leq \FCC_{K,t}(u) + \ell(y_t,u)$ and also
-%   $\FCC_{K,t+1}(u) \leq \FCC_{K-1,t}(u) + \ell(y_t,u)$ (TODO: should
+%   $C_{K,t+1}(u)$ we must have
+%   $C_{K,t+1}(u) \leq C_{K,t}(u) + \ell(y_t,u)$ and also
+%   $C_{K,t+1}(u) \leq C_{K-1,t}(u) + \ell(y_t,u)$ (TODO: should
 %   there be a $C^\leq$ here?). Thus we have
-%   $\FCC_{K,t+1}(u) \leq \min \{ \FCC_{K,t}(u) + \FCC_{K-1,t}(u) \} +
+%   $C_{K,t+1}(u) \leq \min \{ C_{K,t}(u) + C_{K-1,t}(u) \} +
 %   \ell(y_{t+1},u)$.
 
 % Now let us assume,
-% $$\FCC_{K,t+1}(u) < \min \{ \FCC_{K,t}(u) + \FCC_{K-1,t}(u) \} + \ell(y_{t+1},u).$$
+% $$C_{K,t+1}(u) < \min \{ C_{K,t}(u) + C_{K-1,t}(u) \} + \ell(y_{t+1},u).$$
 % We will show that this leads to a contradiction.
 
-% We consider the optimal segmentation $(\mathbf u, \mathbf t)\in\bar{\mathcal I}_{t+1}^K$ achieving the optimal $\FCC_{K,t+1}(u)$.
+% We consider the optimal segmentation $(\mathbf u, \mathbf t)\in\bar{\mathcal I}_{t+1}^K$ achieving the optimal $C_{K,t+1}(u)$.
 % We consider two possible cases:
 % \begin{description}
 % \item[Scenario 1: $t_K < t$.]
 % Define $\mathbf t'$ such that for all $i < K$, $t'_i = t_i$ and $t'_K = t$.
 % We have $(\mathbf u, \mathbf t')\in\bar{\mathcal I}_{t}^K$.
-% We can thus decompose $\FCC_{K,t+1}(u)$ as
-% $$\FCC_{K,t+1}(u) = \sum_{k=1}^K
+% We can thus decompose $C_{K,t+1}(u)$ as
+% $$C_{K,t+1}(u) = \sum_{k=1}^K
 %   h_{t'_{k-1}, t'_k}(u_k) + \ell(y_{t+1},u).$$ 
-% By assumption we would recover $\sum_{k=1}^K h_{t'_{k-1}, t'_k}(u_k) < \FCC_{K,t}(u)$ 
+% By assumption we would recover $\sum_{k=1}^K h_{t'_{k-1}, t'_k}(u_k) < C_{K,t}(u)$ 
 % which is a contradiction
-% by definition of $\FCC_{K,t}(u)$. 
+% by definition of $C_{K,t}(u)$. 
 % \item[Scenario 2: $t_K=t$.]
 % Define $\mathbf t'$ such that for all $i < K-1$ $t'_i = t_i$ and $t'_{K-1} = t$ as well as
 % $\mathbf u'$ such that for all $i \leq K-1$ $u'_i = u_i$.
 % We have $(\mathbf u', \mathbf t')\in\bar{\mathcal I}_{t}^{K-1}$.
-% We can then decompose $\FCC_{K,t+1}(u)$ as
-% $$\FCC_{K,t+1}(u) = \sum_{k=1}^K
+% We can then decompose $C_{K,t+1}(u)$ as
+% $$C_{K,t+1}(u) = \sum_{k=1}^K
 %   h_{t'_{k-1}, t'_k}(u'_k) + \ell(y_{t+1},u).$$ 
-% By assumption we would recover $\sum_{k=1}^{K-1} h_{t'_{k-1}, t'_k}(u'_k) < \FCC_{K-1,t}(u)$ which is a contradiction
-% by definition of $\FCC_{K-1,t}(u)$. 
+% By assumption we would recover $\sum_{k=1}^{K-1} h_{t'_{k-1}, t'_k}(u'_k) < C_{K-1,t}(u)$ which is a contradiction
+% by definition of $C_{K-1,t}(u)$. 
 % \end{description}
 \end{proof}
 
@@ -605,26 +693,26 @@ between these two values.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % \begin{definition}[Dynamic programming recursion]
 % \label{def:fcc}
-%   We refer to $\FCC_{k,n}(u)$ as the optimal cost of the segmentation
+%   We refer to $C_{k,n}(u)$ as the optimal cost of the segmentation
 %   with $k$ segments, up to data point $n$, with last segment mean
 %   $u$. For the first segment $k=1$, we define
-%   $\FCC_{1,1}(u)=\ell(y_1,u)$ for the first data point, and
-%   $\FCC_{1,t}(u)=\FCC_{1,t-1}(u)+\ell(y_t,u)$ for the other data
+%   $C_{1,1}(u)=\ell(y_1,u)$ for the first data point, and
+%   $C_{1,t}(u)=C_{1,t-1}(u)+\ell(y_t,u)$ for the other data
 %   points $t>1$. For $k>1$ segments, we define
-%   $\FCC_{k,k}(u)=\ell(y_k, u)+\FCC_{k-1,k-1}^\leq(u)$ for the $k$-th
+%   $C_{k,k}(u)=\ell(y_k, u)+C_{k-1,k-1}^\leq(u)$ for the $k$-th
 %   data point and for $t>k$ data points,
 %   \begin{equation}
 % \nonumber
-%   \FCC_{k,t}(u)=\ell(y_t,u)+
+%   C_{k,t}(u)=\ell(y_t,u)+
 %   \min\{
-%   \FCC_{k-1,t-1}^\leq(u),\,
-%   \FCC_{k,t-1}(u)
+%   C_{k-1,t-1}^\leq(u),\,
+%   C_{k,t-1}(u)
 %   \}.
 %   \end{equation}
 % \end{definition}
 % Note that in the original pruned dynamic programming algorithm for
 % solving the segment neighborhood problem \citep{pruned-dp}, the
-% min-less cost functions $\FCC_{k-1,t-1}^\leq:\RR\rightarrow\RR$ are
+% min-less cost functions $C_{k-1,t-1}^\leq:\RR\rightarrow\RR$ are
 % replaced by cost constants $C_{k-1,t-1}\in\RR$
 % (Figure~\ref{fig:compare-unconstrained}). The main novelty of our
 % proposed algorithm is the computation of the min-less functions in
@@ -636,32 +724,32 @@ between these two values.
 % \begin{lemma}[Dynamic programming minimizes with respect to all possible changepoints]
 % \label{lemma:t_change_points}
 %   For the cost up to any data point $t> K$, the recursive dynamic
-%   programming cost $\FCC_{K,t}(u)$ is equivalent to the minimum cost
+%   programming cost $C_{K,t}(u)$ is equivalent to the minimum cost
 %   over all possible change points
-%   $\min_{\tau\in[K-1,t)}\FCC_{K-1,\tau}^\leq(u)+h_{\tau,t}(u)$.
+%   $\min_{\tau\in[K-1,t)}C_{K-1,\tau}^\leq(u)+h_{\tau,t}(u)$.
 % \end{lemma}
 
 % \begin{proof}
 %   We proceed by induction on data points $t$. First, we show that the
 %   equivalence holds for $t=K+1$ data points. By definition, we have
 %   \begin{eqnarray}
-%     \FCC_{K,K+1}(u)
-%     &=&\label{eq:proof_fcc1}\ell(y_{K+1},u)+\min\{\FCC_{K-1,K}^\leq(u),\,\FCC_{K,K}(u)\}\\
+%     C_{K,K+1}(u)
+%     &=&\label{eq:proof_fcc1}\ell(y_{K+1},u)+\min\{C_{K-1,K}^\leq(u),\,C_{K,K}(u)\}\\
 %     &=&\min\label{eq:proof_fcc2}
 %         \begin{cases}
-%           \FCC_{K-1,K}^\leq(u)+\ell(y_{K+1},u)\\
-%           \FCC_{K-1,K-1}^\leq(u)+\ell(y_{K+1},u)+\ell(y_K,u)
+%           C_{K-1,K}^\leq(u)+\ell(y_{K+1},u)\\
+%           C_{K-1,K-1}^\leq(u)+\ell(y_{K+1},u)+\ell(y_K,u)
 %         \end{cases}\\
 %     &=&\min\label{eq:proof_h}
 %         \begin{cases}
-%           \FCC_{K-1,K}^\leq(u)+h_{K,K+1}(u)\\
-%           \FCC_{K-1,K-1}^\leq(u)+h_{K-1,K+1}(u)
+%           C_{K-1,K}^\leq(u)+h_{K,K+1}(u)\\
+%           C_{K-1,K-1}^\leq(u)+h_{K-1,K+1}(u)
 %         \end{cases}\\
 %     \label{eq:proof_tau}
-%     &=&\min_{\tau\in[K-1,K+1)} \FCC_{K-1,\tau}^\leq(u)+h_{\tau,K+1}(u)
+%     &=&\min_{\tau\in[K-1,K+1)} C_{K-1,\tau}^\leq(u)+h_{\tau,K+1}(u)
 %   \end{eqnarray}
 %   Equations (\ref{eq:proof_fcc1}-\ref{eq:proof_fcc2}) result by
-%   expanding $\FCC_{K,K+1}$ and $\FCC_{K,K}$ using
+%   expanding $C_{K,K+1}$ and $C_{K,K}$ using
 %   Definition~\ref{def:fcc}. Equation (\ref{eq:proof_h}) follows from
 %   the definition of $h_{K,K+1}$ and $h_{K-1,K+1}$ in
 %   (\ref{eq:h}). Finally, equation (\ref{eq:proof_tau}) results from
@@ -672,17 +760,17 @@ between these two values.
 %   assume that the equivalence holds for $t$ data points, and prove it to be true
 %   for $t+1$ data points.
 %   \begin{eqnarray}
-%     \FCC_{K,t+1}(u)\label{eq:proof_fcct1}
-%     &=&\ell(y_{t+1},u)+\min\{\FCC_{K-1,t}^\leq(u),\,\FCC_{K,t}(u)\}\\
+%     C_{K,t+1}(u)\label{eq:proof_fcct1}
+%     &=&\ell(y_{t+1},u)+\min\{C_{K-1,t}^\leq(u),\,C_{K,t}(u)\}\\
 %     &=&\min\label{eq:proof_induction_h}
 %         \begin{cases}
-%           \FCC_{K-1,t}^\leq(u)+h_{t,t+1}(u)\\
-%           \min_{\tau\in[K-1,t)} \FCC^\leq_{K-1,\tau}(u)+h_{\tau,t+1}(u)
+%           C_{K-1,t}^\leq(u)+h_{t,t+1}(u)\\
+%           \min_{\tau\in[K-1,t)} C^\leq_{K-1,\tau}(u)+h_{\tau,t+1}(u)
 %         \end{cases}\\
-%     &=&\min_{\tau\in[K-1,t+1)} \FCC^\leq_{K-1,\tau}(u)+h_{\tau,t+1}(u)
+%     &=&\min_{\tau\in[K-1,t+1)} C^\leq_{K-1,\tau}(u)+h_{\tau,t+1}(u)
 %         \label{eq:proof_tau2}
 %   \end{eqnarray}
-%   Equation (\ref{eq:proof_fcct1}) results by expanding $\FCC_{K,t+1}$
+%   Equation (\ref{eq:proof_fcct1}) results by expanding $C_{K,t+1}$
 %   using Definition~\ref{def:fcc}. Equation
 %   (\ref{eq:proof_induction_h}) follows from the definition of
 %   $h_{t,t+1}$ and the induction assumption. Finally, equation
@@ -696,7 +784,7 @@ between these two values.
 % programming solution.
 % \begin{theorem}[Dynamic programming recovers the segment neighborhood isotonic regression solution]
 %   For a data set $\mathbf y\in\RR^n$, and any number of segments $K\leq n$,
-%   the optimal dynamic programming cost $\min_u \FCC_{K,n}(u)$ is
+%   the optimal dynamic programming cost $\min_u C_{K,n}(u)$ is
 %   equivalent to the minimum value of the segment neighborhood isotonic
 %   regression problem (\ref{eq:isotonic_ut}).
 % \end{theorem}
@@ -720,7 +808,7 @@ between these two values.
 %   h^\leq_{0,t_1}(u_2)\\
 %   &=&
 %       \label{eq:u2}
-%   \min_{u_2} \FCC_{2, n}(u_2).
+%   \min_{u_2} C_{2, n}(u_2).
 % \end{eqnarray}
 % The first equality (\ref{eq:isotonic_ut_2}) follows from
 % expanding the optimization variables and the sum. The second equality
@@ -745,13 +833,13 @@ between these two values.
 %        \right]
 %        +\min_{u_{K+1}\geq u_K}
 %        h_{\tau, n} (u_{K+1})\\
-% &=& \min_\tau\min_{u_K} \FCC_{K,\tau}(u_K)\label{eq:proof_Ckt_induction}
+% &=& \min_\tau\min_{u_K} C_{K,\tau}(u_K)\label{eq:proof_Ckt_induction}
 %     +\min_{u_{K+1}\geq u_K} h_{\tau,n}(u_{K+1})\\
 % % &=& \min_\tau \min_{u_{K+1}} h_{\tau,n}(u_{K+1})
-% % +\min_{u_K\leq u_{K+1}} \FCC_{K,\tau}(u_K)\\
+% % +\min_{u_K\leq u_{K+1}} C_{K,\tau}(u_K)\\
 % &=& \min_\tau \min_{u_{K+1}} h_{\tau,n}(u_{K+1})\label{eq:proof_min_less_def_2}
-% +\FCC_{K,\tau}^\leq(u_{K+1})\\
-% &=& \min_{u_{K+1}} \FCC_{K+1,n}(u_{K+1}).\label{eq:proof_remove_tau}
+% +C_{K,\tau}^\leq(u_{K+1})\\
+% &=& \min_{u_{K+1}} C_{K+1,n}(u_{K+1}).\label{eq:proof_remove_tau}
 % \end{eqnarray}
 % Equation (\ref{eq:proof_hkexpand}) follows by removing the $k=K+1$
 % term from the sum, and (\ref{eq:proof_Ckt_induction}) follows from the
@@ -770,7 +858,7 @@ between these two values.
 \subsection{Computational complexity analysis}
 
 Our Generalized Pruned Dynamic Programming Algorithm (GPDPA) requires
-computing $O(Kn)$ cost functions $\FCC_{k,t}$. As in the original
+computing $O(Kn)$ cost functions $C_{k,t}$. As in the original
 pruned dynamic programming algorithm \citep{pruned-dp}, the average time
 complexity of the GPDPA is $O(K n I)$ where $I$ is the average number of
 intervals (convex function pieces; candidate changepoints) that are
@@ -800,7 +888,7 @@ $O(Kn\log n)$.
 %   $[\underline u, \overline u]$, and previous segment endpoint $t'$
 %   and mean $u'$.
 % \item FunctionPieceList: an ordered list of FunctionPiece objects,
-%   which exactly stores a cost function $\FCC_{k,t}(u)$ for all values
+%   which exactly stores a cost function $C_{k,t}(u)$ for all values
 %   of last segment mean $u$.
 % \item $\text{OnePiece}(y, \underline u, \overline u)$: initialize a
 %   FunctionPieceList with just one FunctionPiece $\ell(y, u)$ defined
@@ -837,17 +925,17 @@ $O(Kn\log n)$.
 % and ends $T\in\{1,\dots,n\}^{K\times K}$
 % \STATE Compute min $\underline y$ and max $\overline y$ of $\mathbf y$.
 % \label{line:min-max}
-% \STATE $\FCC_{1,1}\gets \text{OnePiece}(y_1, \underline y, \overline y)$
+% \STATE $C_{1,1}\gets \text{OnePiece}(y_1, \underline y, \overline y)$
 % \label{line:init-1}
 % \STATE for data points $t$ from 2 to $n$:
 % \begin{ALC@g}
-%   \STATE $\FCC_{1,t}\gets \text{OnePiece}(y_t, \underline y, \overline y) + \FCC_{1,t-1}$
+%   \STATE $C_{1,t}\gets \text{OnePiece}(y_t, \underline y, \overline y) + C_{1,t-1}$
 % \label{line:init-t}
 % \end{ALC@g}
 % \STATE for $k$ from 2 to $K$: for $t$ from $k$ to $n$: // DP
 % \label{line:for-k-t}
 % \begin{ALC@g}
-%   \STATE $\text{min\_prev}\gets \text{MinLess}(t-1, \FCC_{k-1,t-1})$ 
+%   \STATE $\text{min\_prev}\gets \text{MinLess}(t-1, C_{k-1,t-1})$ 
 %   \label{line:MinLess}
 %   % \STATE if $t=k$:
 %   % \begin{ALC@g}
@@ -856,18 +944,18 @@ $O(Kn\log n)$.
 %   % \end{ALC@g}
 %   % \STATE else:
 %   % \begin{ALC@g}
-%   %   \STATE $\text{min\_new}\gets\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
+%   %   \STATE $\text{min\_new}\gets\text{MinOfTwo}(\text{min\_prev}, C_{k, t-1})$
 %   % \end{ALC@g}
 %     \STATE $\text{min\_new}\gets\text{min\_prev}$ if $t=k$, 
-% else $\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
+% else $\text{MinOfTwo}(\text{min\_prev}, C_{k, t-1})$
 %   \label{line:MinOfTwo}
-%   \STATE $\FCC_{k,t}\gets \text{min\_new} + \text{OnePiece}(y_t, \underline y, \overline y)$
+%   \STATE $C_{k,t}\gets \text{min\_new} + \text{OnePiece}(y_t, \underline y, \overline y)$
 %   \label{line:AddNew}
 % \end{ALC@g}
 % \STATE for segments $k$ from 1 to $K$: // decoding
 % \label{line:for-k-decoding}
 % \begin{ALC@g}
-%   \STATE $u^*,t',u'\gets \text{ArgMin}(\FCC_{k,n})$
+%   \STATE $u^*,t',u'\gets \text{ArgMin}(C_{k,n})$
 %   \label{line:ArgMin}
 %   \STATE $U_{k,k}\gets u^*;\, T_{k,k}\gets t'$ 
 %   \label{line:decode-kk}
@@ -876,7 +964,7 @@ $O(Kn\log n)$.
 %   \begin{ALC@g}
 %     \STATE if $u' < \infty$: $u^*\gets u'$ // equality constraint active
 %     \label{line:equality-constraint-active}
-%     \STATE $t',u'\gets\text{FindMean}(u^*, \FCC_{s,t'})$
+%     \STATE $t',u'\gets\text{FindMean}(u^*, C_{s,t'})$
 %     \label{line:FindMean}
 %     \STATE $U_{k,s}\gets u^*;\, T_{k,s}\gets t'$ 
 %     \label{line:decode-ks}
@@ -888,26 +976,26 @@ $O(Kn\log n)$.
 
 % Algorithm~\ref{algo:GPDPA} begins by computing the min/max on
 % line~\ref{line:min-max}.  The main storage of the algorithm is
-% $\FCC_{k,t}$, which should be initialized as a $K\times n$ array of
-% empty FunctionPieceList objects. The computation of $\FCC_{1,t}$ for
+% $C_{k,t}$, which should be initialized as a $K\times n$ array of
+% empty FunctionPieceList objects. The computation of $C_{1,t}$ for
 % all $t$ occurs on lines~\ref{line:init-1}--\ref{line:init-t}. 
 % The dynamic programming updates occur in the for loops on
 % lines~\ref{line:for-k-t}--\ref{line:AddNew}. Line~\ref{line:MinLess}
 % uses the MinLess sub-routine to compute the temporary
 % FunctionPieceList min\_prev (which represents the function
-% $\FCC_{k-1,t-1}^\leq$). Line~\ref{line:MinOfTwo} sets the temporary
+% $C_{k-1,t-1}^\leq$). Line~\ref{line:MinOfTwo} sets the temporary
 % FunctionPieceList min\_new to the cost of the only possible
 % changepoint if $t=k$; otherwise, it uses the MinOfTwo sub-routine to
 % compute the cost of the best changepoint for every possible mean
 % value. Line~\ref{line:AddNew} adds the cost of data point $t$, and
-% stores the resulting FunctionPieceList in $\FCC_{k,t}$.
+% stores the resulting FunctionPieceList in $C_{k,t}$.
 
 % The decoding of the optimal segment mean $U$ (a $K\times K$ array of
 % real numbers) and end $T$ (a $K\times K$ array of integers) variables
 % occurs in the for loops on
 % lines~\ref{line:for-k-decoding}--\ref{line:decode-ks}. For a given
 % model size $k$, the decoding begins on line~\ref{line:ArgMin} by using
-% the ArgMin sub-routine to solve $u^* = \argmin_u \FCC_{k,n}(u)$ (the
+% the ArgMin sub-routine to solve $u^* = \argmin_u C_{k,n}(u)$ (the
 % optimal values for the previous segment end $t'$ and mean $u'$ are
 % also returned). Now we know that $u^*$ is the optimal mean of the last
 % ($k$-th) segment, which occurs from data point $t'+1$ to $n$. These
@@ -917,7 +1005,7 @@ $O(Kn\log n)$.
 % the equality constraint is active
 % (line~\ref{line:equality-constraint-active}). The decoding of the
 % other segments $s<k$ proceeds using the FindMean sub-routine
-% (line~\ref{line:FindMean}). It takes the cost $\FCC_{s,t'}$ of the
+% (line~\ref{line:FindMean}). It takes the cost $C_{s,t'}$ of the
 % best model in $s$ segments up to data point $t'$, finds the
 % FunctionPiece that stores the cost of $u^*$, and returns the new
 % optimal values of the previous segment end $t'$ and mean $u'$. The
@@ -941,7 +1029,7 @@ data (0,4) in order to bound the possible values of the segment
 mean $\mu$. Then the algorithm computes the optimal cost in $k=1$ segment up
 to data point $t=1$:
 \begin{equation}
-  \FCC_{1,1}(u_1) = (2-u_1)^2=4 - 4u_1 + u_1^2\text{ (for $u_1\in[0,4]$)}
+  C_{1,1}(u_1) = (2-u_1)^2=4 - 4u_1 + u_1^2\text{ (for $u_1\in[0,4]$)}
 \end{equation}
 This function can be stored for all values of $u_1$ via the three
 real-valued coefficients ($\text{constant}=4$, $\text{linear}=-4$,
@@ -949,8 +1037,8 @@ $\text{quadratic}=1$). We then compute the cost of a new segment with
 a non-decreasing mean after the first data point (red curve on left of
 Figure~\ref{fig:compare-unconstrained}),
 \begin{equation}
-  \FCC_{1,1}^\leq(u_2) =
-%\min_{u'\leq u}\FCC_{1,1}(u')=
+  C_{1,1}^\leq(u_2) =
+%\min_{u'\leq u}C_{1,1}(u')=
   \begin{cases}
     4 - 4 u_2 + u_2^2 &\text{ if }u_2\in[0,2],\, u_1=u_2,\\
     0 + 0 u_2 + 0 u_2^2 & \text{ if }u_2\in[2,4],\,  u_1=2.
@@ -964,16 +1052,16 @@ materials). Note that the first interval represents the cost of an
 active equality constraint ($u_1=u_2$) and the second interval
 represents the cost of a change up ($2=u_1<u_2$). In the unconstrained
 algorithm we would have computed the constant cost of any change (up
-or down) after the first data point, $\min_{u_1} \FCC_{1,1}(u_1) =0$
+or down) after the first data point, $\min_{u_1} C_{1,1}(u_1) =0$
 (grey curve on left of Figure~\ref{fig:compare-unconstrained}).
 
 By adding the cost of a non-decreasing change after the first data
-point $\FCC_{1,1}^\leq(u_2)$ to the cost of the second data point
+point $C_{1,1}^\leq(u_2)$ to the cost of the second data point
 $(u_2-1)^2$ we obtain the optimal cost in $K=2$ segments up to data
 point $t=2$,
 \begin{equation}
-  \FCC_{2,2}(u_2) = 
-%\FCC_{1,1}^\leq(u)+(1-u)^2 = 
+  C_{2,2}(u_2) = 
+%C_{1,1}^\leq(u)+(1-u)^2 = 
   \begin{cases}
     5 - 6 u_2 + 2 u_2^2 &\text{ if }u_2\in[0,2],\,  u_1=u_2,\\
     1 - 2 u_2 + 1 u_2^2 &\text{ if }u_2\in[2,4],\,  u_1=2.
@@ -1023,8 +1111,8 @@ programming updates for even $k\in\{2, 4, \dots\}$ are also the
 same. However, to constrain non-increasing changes, the updates for
 odd $k\in\{3, 5, \dots\}$ are
 \begin{equation}
-  \FCC_{k,t}(\mu) = \ell(y_t, \mu) + \min\{
-  \FCC_{k-1,t-1}^\geq(\mu),\, \FCC_{k,t-1}(\mu)
+  C_{k,t}(\mu) = \ell(y_t, \mu) + \min\{
+  C_{k-1,t-1}^\geq(\mu),\, C_{k,t-1}(\mu)
   \},
 \end{equation}
 where the min-more operator is defined for any function $f:\RR\rightarrow\RR$ as
@@ -1264,6 +1352,23 @@ small data sets (up to 9 peak start/end labels per count data vector).
   \label{fig:PDPA-infeasible-error-compare}
 \end{figure} 
 
+Each comparison shown in
+Figure~\ref{fig:PDPA-infeasible-error-compare} results in a
+statistically significant difference ($p<10^{-4}$, two-sided Wilcoxon
+signed rank test).
+
+% from figure-PDPA-infeasible-error-compare.R
+%                   Comparison      p.wilcox       p.prop     p.skellam
+% 1: GPDPA-PDPA\n(Remove rule)  1.951843e-68 2.949422e-36  1.088183e-33
+% 2:   GPDPA-PDPA\n(Join rule)  1.191972e-62 2.780887e-28  2.445545e-26
+% 3: GPDPA-PDPA\n(Ignore rule)  2.493754e-90 2.997466e-60  1.456916e-54
+% 4:        GPDPAremove-MACS\n  3.512020e-43 1.773443e-53  3.180890e-49
+% 5:  GPDPAremove-HMCanBroad\n 4.472252e-199 0.000000e+00 7.967436e-284
+% 6:        GPDPAremove-CDPA\n  2.248093e-05 3.222532e-01  3.281037e-01
+% 7:        Remove-Join\nGPDPA  4.630299e-05 3.222532e-01  3.281037e-01
+% 8:        Join-Ignore\nGPDPA  4.415176e-16 2.830037e-03  3.594214e-03
+
+
 \subsection{Choice of evaluation metric: area under ROC curve}
 
 We wanted to compare the peak detection accuracy of our proposed
@@ -1419,7 +1524,7 @@ vector $\mathbf y_i$, we ran each algorithm (CDPA, PDPA, GDPDA) with a
 maximum of $K=19$ segments, allowing at most 9 peaks (one for
 each even-numbered segment), which is more than enough in these
 relatively small data sets. To analyze the empirical time complexity,
-we recorded the number of intervals stored in the $\FCC_{k,t}$ cost
+we recorded the number of intervals stored in the $C_{k,t}$ cost
 functions (Section~\ref{sec:algorithms}), as well as the computation
 time in seconds.
 
@@ -1427,7 +1532,7 @@ time in seconds.
 % TODO: define I?
 As in the PDPA, the time complexity of our proposed GPDPA is
 $O(K n I)$, which depends on the number of intervals $I$ (candidate
-changepoints) stored in the $\FCC_{k,t}$ cost functions
+changepoints) stored in the $C_{k,t}$ cost functions
 \citep{pruned-dp-new}. We observed that the number of intervals stored
 by the GPDPA increases as a sub-linear function of the number of data
 points $n$ (left panel of Figure~\ref{fig:timings}). For the largest data

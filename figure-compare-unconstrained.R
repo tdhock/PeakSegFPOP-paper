@@ -39,7 +39,7 @@ C12minless <- rbind(
   funPiece(0, 0, 0.5, 1.5, 4))
 small.title <-   theme(plot.title=element_text(size=10))
 gg <- ggplot()+
-  ggtitle("Cost of 2 segments up to data point 2")+
+  ggtitle("Cost of 2 segments at data 2")+
   theme_bw()+small.title+
   xlab("segment mean $\\mu$")+
   geom_line(aes(mean, cost), data=getLines(C22), color="red", size=3)+
@@ -49,11 +49,12 @@ gg <- ggplot()+
   geom_text(aes(x=3,y=1.1,label="$(\\mu-1)^2$"),color="grey50", hjust=0.5, vjust=0)+
   geom_text(aes(x=3,y=0,label="unconstrained"),color="grey50", hjust=0.5, vjust=0)+
   geom_text(aes(x=1.5,y=5.5,label="$C^\\leq_{1,1}(\\mu)+(\\mu-1)^2$"),color="red")
-tikz("figure-compare-cost.tex", 2.3, h)
+w <- 2.5
+tikz("figure-compare-cost.tex", w, h)
 print(gg)
 dev.off()
 gg <- ggplot()+
-  ggtitle("Min-less computation for data point 1")+
+  ggtitle("Min-less at data 1")+
   scale_x_continuous("segment mean $\\mu$", limits=c(-0.5, 4))+
   geom_line(aes(mean, cost), data=getLines(C11minless), color="red", size=3)+
   geom_line(aes(mean, cost), data=getLines(C11min), color="grey50", size=1.5)+
@@ -63,7 +64,7 @@ gg <- ggplot()+
   geom_text(aes(x=2,y=2.6,label="$C^\\leq_{1,1}(\\mu)=$"),color="red")+
   geom_text(aes(x=2,y=2,label="$\\min_{x\\leq \\mu} C_{1,1}(x)$"),color="red")+
   theme_bw()+small.title
-tikz("figure-compare-unconstrained.tex", 2.3, h)
+tikz("figure-compare-unconstrained.tex", w, h)
 print(gg)
 dev.off()
 

@@ -1,5 +1,4 @@
-library(data.table)
-library(ggplot2)
+source("packages.R")
 
 (objs <- load("Segmentor.peaks.error.RData"))
 rm(Segmentor.model.list)
@@ -39,7 +38,8 @@ for(set.name in names(dp.peaks.matrices)){
         algo,
         chunk.name,
         sample.id=names(min.vec),
-        min.errors=min.vec)
+        min.errors=min.vec,
+        labels=chunk.algos$regions)
     }
   }
 }
@@ -78,12 +78,46 @@ all.totals <- all.error[, list(
 all.totals[, table(chunk.name, algo)]
 
 all.min <- rbind(baseline.error, all.totals[, list(
-  min.errors=min(total.errors)
-  ), by=list(algo, chunk.name, sample.id)])
+  min.errors=min(total.errors),
+  labels=labels[1]
+), by=list(algo, chunk.name, sample.id)])
+
+all.min[, algo.fac := factor(algo)]
+all.min[, row.fac := factor(paste(chunk.name, sample.id))]
+one.comparison <- all.min[c("G.rm", "G.jo"), on=list(algo)]
+## from ?family
+## For the ‘binomial’ and ‘quasibinomial’ families the response can
+## be specified in one of three ways:
+
+##   1. As a factor: ‘success’ is interpreted as the factor not
+##      having the first level (and hence usually of having the
+##      second level).
+
+##   2. As a numerical vector with values between ‘0’ and ‘1’,
+##      interpreted as the proportion of successful cases (with the
+##      total number of cases given by the ‘weights’).
+
+##   3. As a two-column integer matrix: the first column gives the
+##      number of successes and the second the number of failures.
+
+## fit <- glm(
+##   min.errors/labels ~ algo.fac + row.fac,
+##   "binomial", one.comparison, labels)
+
+## biglm::bigglm
 
 all.min[, table(chunk.name, algo)]
 
-min.wide <- dcast(all.min, chunk.name+sample.id~algo)
+labels.check <- all.min[, list(
+  min.labels=min(labels),
+  max.labels=max(labels)
+), by=list(chunk.name, sample.id)]
+labels.check[min.labels!=max.labels]
+
+min.wide <- dcast(
+  all.min,
+  chunk.name+sample.id+labels~algo,
+  value.var="min.errors")
 
 ## as expected there are some (81) problems where the peak joining
 ## achieves fewer errors than ignoring the infeasible models with
@@ -117,24 +151,67 @@ min.wide[G.rm < CDPA]
 min.wide[, table(CDPA-G.rm)]
 
 ## ignore vs join
-g <- function(x, Comparison){
+g <- function(pos, neg, Comparison){
+  x <- pos-neg
   dt <- data.table(table(x), Comparison)
   names(dt)[1] <- "diff"
   dt
 }
 count.tall <- min.wide[, rbind(
-  g(G.rm-G.jo, "Remove-Join\nGPDPA"),
+  g(G.rm, G.jo, "Remove-Join\nGPDPA"),
   ##g(S.rm-S.jo, "Remove-Join\nPDPA"),
-  g(G.jo-G.ig, "Join-Ignore\nGPDPA"),
+  g(G.jo, G.ig, "Join-Ignore\nGPDPA"),
   ##g(S.jo-S.ig, "Join-Ignore\nPDPA"),
-  g(G.rm-MACS, "GPDPAremove-MACS\n"),
-  g(G.rm-HMCanBroad, "GPDPAremove-HMCanBroad\n"),
-  g(G.rm-CDPA, "GPDPAremove-CDPA\n"),
-  g(G.rm-S.rm, "GPDPA-PDPA\n(Remove rule)"),
-  g(G.jo-S.jo, "GPDPA-PDPA\n(Join rule)"),
-  g(G.ig-S.ig, "GPDPA-PDPA\n(Ignore rule)"))]
-count.tall[, diff.fac := factor(diff, (-10):2)]
+  g(G.rm, MACS, "GPDPAremove-MACS\n"),
+  g(G.rm, HMCanBroad, "GPDPAremove-HMCanBroad\n"),
+  g(G.rm, CDPA, "GPDPAremove-CDPA\n"),
+  g(G.rm, S.rm, "GPDPA-PDPA\n(Remove rule)"),
+  g(G.jo, S.jo, "GPDPA-PDPA\n(Join rule)"),
+  g(G.ig, S.ig, "GPDPA-PDPA\n(Ignore rule)"))]
+count.tall[, dnum := as.integer(diff)]
+count.tall[, diff.fac := factor(diff, seq(min(dnum), max(dnum), by=1))]
+stopifnot(!is.na(count.tall$diff.fac))
 (count.wide <- dcast(count.tall, Comparison ~diff.fac, value.var="N"))
+
+l <- sum(min.wide$labels)
+two.labels <- c(l, l)
+g <- function(pos, neg, Comparison){
+  pos.total <- sum(pos)
+  neg.total <- sum(neg)
+  mean.est <- (pos.total+neg.total)/2
+  diff.total <- pos.total-neg.total
+  abs.total <- abs(diff.total)
+  t.res <- prop.test(
+    c(pos.total, neg.total),
+    two.labels)
+  p.value <- skellam::pskellam(-abs.total, mean.est, lower.tail=TRUE)*2
+  w.res <- wilcox.test(
+    pos,
+    neg,
+    paired=TRUE)
+  data.table(
+    Comparison, p.skellam=p.value, abs.total, mean.est,
+    p.wilcox=w.res$p.value,
+    p.prop=t.res$p.value)
+}
+(pval.dt <- min.wide[, rbind(
+  g(G.rm, S.rm, "GPDPA-PDPA\n(Remove rule)"),
+  g(G.jo, S.jo, "GPDPA-PDPA\n(Join rule)"),
+  g(G.ig, S.ig, "GPDPA-PDPA\n(Ignore rule)"),
+  g(G.rm, MACS, "GPDPAremove-MACS\n"),
+  g(G.rm, HMCanBroad, "GPDPAremove-HMCanBroad\n"),
+  g(G.rm, CDPA, "GPDPAremove-CDPA\n"),
+  ##g(G.jo, CDPA, "GPDPAjoin-CDPA\n"),
+  g(G.rm, G.jo, "Remove-Join\nGPDPA"),
+  ##g(S.rm-S.jo, "Remove-Join\nPDPA"),
+  g(G.jo, G.ig, "Join-Ignore\nGPDPA")
+  )])
+  ##g(S.jo-S.ig, "Join-Ignore\nPDPA"),
+  
+
+pval.dt[order(p.wilcox), list(Comparison, p.wilcox, p.prop, p.skellam)]
+pval.dt[, list(Comparison, p.wilcox, p.prop, p.skellam)]
+
 ## library(xtable)
 ## xt <- xtable(count.wide, align="lrrrrrrrrrr", digits=0)
 ## print(

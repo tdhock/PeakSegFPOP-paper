@@ -1,9 +1,11 @@
-jmlr-paper.pdf: figure-all-cv.pdf figure-test-error-dots.pdf
+jmlr-paper.pdf: figure-all-cv.pdf figure-test-error-dots.pdf figure-compare-unconstrained.tex figure-PDPA-infeasible-error-compare.pdf jmlr-paper.tex
 	rm -rf *.aux *.bbl
 	pdflatex jmlr-paper
 	bibtex jmlr-paper
 	pdflatex jmlr-paper
 	pdflatex jmlr-paper
+figure-compare-unconstrained.tex: figure-compare-unconstrained.R
+	R --vanilla < $<
 figure-all-cv.pdf: figure-all-cv.R all.cv.RData test.error.RData
 	R --vanilla < $<
 all.modelSelection.RData: all.modelSelection.R PDPA.infeasible.RData PDPA.infeasible.error.RData Segmentor.infeasible.error.RData dp.peaks.RData dp.peaks.error.RData
