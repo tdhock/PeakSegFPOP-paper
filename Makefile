@@ -4,6 +4,8 @@ jmlr-paper.pdf: figure-all-cv.pdf figure-test-error-dots.pdf figure-compare-unco
 	bibtex jmlr-paper
 	pdflatex jmlr-paper
 	pdflatex jmlr-paper
+figure-PDPA-infeasible-error-compare.pdf: figure-PDPA-infeasible-error-compare.R
+	R --vanilla < $<
 figure-compare-unconstrained.tex: figure-compare-unconstrained.R
 	R --vanilla < $<
 figure-all-cv.pdf: figure-all-cv.R all.cv.RData test.error.RData

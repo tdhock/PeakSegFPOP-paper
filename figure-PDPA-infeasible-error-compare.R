@@ -300,7 +300,7 @@ low="white", high="red")+
     hjust=hjust),
     size=3,
     data=better.dt)
-pdf("figure-PDPA-infeasible-error-compare.pdf", 9, 4.2)
+pdf("figure-PDPA-infeasible-error-compare.pdf", 9.3, 4.6)
 print(gg)
 dev.off()
 

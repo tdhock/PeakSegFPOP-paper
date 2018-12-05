@@ -494,10 +494,11 @@ functions via
 \end{eqnarray}
 The equation (\ref{eq:remove-last-data}) is obtained by removing the
 cost of the last data point $\ell(y_n, u_K)$ from the terms in the
-min. The recursion (\ref{eq:functional-recursion}) states that the
-functional cost $\tilde{C}_{K,n}(u_K)$ up to data point $n$ can be computed
-using the functional cost $\tilde{C}_{K,n-1}(u_K)$ up to the previous data
-point $n-1$. 
+min. The Pruned Dynamic Programming Algorithm (PDPA) recursion
+(\ref{eq:functional-recursion}) states that the functional cost
+$\tilde{C}_{K,n}(u_K)$ up to data point $n$ can be computed using the
+functional cost $\tilde{C}_{K,n-1}(u_K)$ up to the previous data point
+$n-1$.
 %This results in a faster algorithm because the $\min\{\}$ operation in the update rule (\ref{eq:functional-recursion}) involves only two terms
 
 \paragraph{Modification for constraints.} 
@@ -976,7 +977,81 @@ incorrect labels (for example see Figure~\ref{fig:good-bad}).
 
 \subsection{Algorithms to compare and rules for defining peaks}
 
-TODO
+We used the following changepoint detection algorithms to compute
+models with $K\in\{1,\dots,19\}$ segments (0 to 9 peaks) on each of
+the 2752 labeled ChIP-seq data sets:
+\begin{description}
+\item[Generalized Pruned Dynamic Programming Algorithm (GPDPA)]
+  Proposed algorithm that computes the optimal solution to the up-down
+  constrained problem~(\ref{eq:segment-neighborhood-up-down}). R
+  package PeakSegOptimal. 
+\item[Pruned Dynamic Programming Algorithm (PDPA)] Baseline that
+  computes the optimal solution to the unconstrained
+  problem~(\ref{eq:segment-neighborhood}) in $O(Kn\log n)$
+  time. R package Segmentor3IsBack.
+\item[Constrained Dynamic Programming Algorithm (CDPA)] Baseline that
+  computes an approximate solution to the up-down constrained
+  problem~(\ref{eq:segment-neighborhood-up-down}) in $O(Kn^2)$
+  time. R package PeakSegDP.
+\end{description}
+\begin{figure} 
+  \centering
+  \input{figure-infeasible-error}
+  \vspace{-1cm} 
+  \caption{For piecewise constant mean models (dark blue) with
+    active equality constraints, two different rules are used to define
+    peaks (light blue). \textbf{Join:} segments adjacent to each equality
+    constraint are joined to form a single peak. \textbf{Remove:}
+    segments adjacent to each equality constraint are removed from the
+    list of predicted peaks. }
+  \label{fig:infeasible-error}
+\end{figure}
+Although in the up-down constrained
+model~(\ref{eq:segment-neighborhood-up-down}), all even-numbered
+segments are supposed to be peaks (with a change up before and a
+change down after), it is possible that an equality constraint is
+active (with an equal segment mean before or after). One real data
+example of this is shown in Figure~\ref{fig:infeasible-error}, which
+effectively has two consecutive up changes for models with
+$K\in\{7,9\}$ segments. The unconstrained
+problem~(\ref{eq:segment-neighborhood}) also may result in a model
+with several consecutive up changes. In general, when the model does
+not satisfy the up-down constraint, we consider three rules for
+defining the predicted peaks:
+\begin{description}
+\item[Join] Peaks are defined by joining each segment with an
+  active equality constraint with the neighboring segment. Equivalent
+  to defining background on every segment with a change down before
+  and a change up after; and defining peaks everywhere else.
+\item[Remove] Peaks are defined by removing each peak segment with an
+  active equality constraint. Equivalent to defining a peak on every
+  segment with a change up before and a change down after; and
+  defining background everywhere else.
+\item[Ignore] Completely ignore any model that contains at least one
+  infeasible change (active equality constraints or consecutive
+  changes in the same direction).
+\end{description}
+Examples of peaks defined using these rules are shown in
+Figure~\ref{fig:infeasible-error}. Note that the Ignore rule would
+only consider peak models with $K\in\{3,5\}$ segments in these data,
+because the other $K$ have active equality constraints.
+
+We additionally compare with two unsupervised baseline algorithms from the
+bioinformatics literature. 
+\begin{description}
+\item[MACS] is a heuristic algorithm with unknown time complexity from
+  the bioinformatics literature \citep{MACS}. We consider it as a
+  baseline because it has been shown to achieve state-of-the-art peak
+  detection accuracy for sharp H3K4me3 histone mark data
+  \citep{HOCKING-PeakSeg}. We computed peaks using 53 different qvalue
+  parameters from 0 (few peaks) to 0.8 (many peaks).
+\item[HMCanBroad] is a another heuristic algorithm with unknown time
+  complexity \citep{HMCan}. We consider it as a baseline because it
+  has been shown to achieve state-of-the-art peak detection accuracy
+  for broad H3K36me3 histone mark data \citep{HOCKING-PeakSeg}. We
+  computed peaks using 112 different finalThreshold parameters from
+  $10^{-10}$ (few peaks) to $10^5$ (many peaks).
+\end{description}
 
 \subsection{Feasibility and optimality in ChIP-seq data}
 
@@ -1025,32 +1100,19 @@ for the up-down strict inequality constrants (but GPDPA does).
 
 \subsection{Comparison of minimum train error}
 
-The ChIP-seq benchmark contains 2752 labeled count data vectors
-$\mathbf y_i$ to segment, varying in size from $n=87$ to
-$n=263169$. For each count data vector $\mathbf y_i$, we ran each
-algorithm (CDPA, PDPA, GDPDA) with a maximum of $K=19$ segments. Note
-that 19 segments (9 peaks) is more than enough in these relatively
-small data sets (up to 9 peak start/end labels per count data vector).
+The ChIP-seq benchmark contains 2752 count data vectors $\mathbf y_i$ with
+corresponding labels $L_i$. We used the labels to compare the
+algorithms in terms of total minimum train error, as follows.
 
-% \begin{table}
-%   \centering
-%   \input{PDPA-infeasible-error-compare}
-%   \caption{Comparison}
-%   \label{tab:min-train-error}
-% \end{table}
-
-\begin{figure} 
-  \centering
-  \input{figure-infeasible-error}
-  \vspace{-1cm} 
-  \caption{For piecewise constant mean models (dark blue) with
-    active equality constraints, two different rules are used to define
-    peaks (light blue). \textbf{Join:} segments adjacent to each equality
-    constraint are joined to form a single peak. \textbf{Remove:}
-    segments adjacent to each equality constraint are removed from the
-    list of predicted peaks. }
-  \label{fig:infeasible-error}
-\end{figure}
+For each problem $i$, and a given algorithm $A$, we computed a
+sequence of $M$ peak models
+$c^A_1(\mathbf y_i),\dots,c^A_M(\mathbf y_i)$ (varying number of
+segments $K$ for changepoint algorithms, qvalue/finalThreshold for
+baselines). For each problem $i$ and peak model
+$m\in\{1,\dots,M\}$, we computed the number of incorrect labels
+$E[c^A_m(\mathbf y_i), L_i]$. For each problem $i$ we then compute
+the minimum number of incorrect labels over all parameters,
+$E^A_i=\min_m E[c^A_m(\mathbf y_i), L_i]$.  
 
 \begin{figure}
   \centering
@@ -1066,10 +1128,43 @@ small data sets (up to 9 peak start/end labels per count data vector).
   \label{fig:PDPA-infeasible-error-compare}
 \end{figure} 
 
-Each comparison shown in
-Figure~\ref{fig:PDPA-infeasible-error-compare} results in a
+We compare the distribution of min error differences $E_i^a-E_i^A$
+between pairs of algorithms $A,a$ in
+Figure~\ref{fig:PDPA-infeasible-error-compare}. Each comparison shown
+results in a
 statistically significant difference ($p<10^{-4}$, two-sided Wilcoxon
-signed rank test).
+signed rank test). 
+
+From the top panel of Figure~\ref{fig:PDPA-infeasible-error-compare},
+it is clear that the up-down constrained GPDPA is more accurate than
+the unconstrained PDPA, using any of the three peak definition rules
+(Ignore, Join, Remove). This is strong evidence that the up-down
+constraint is essential for accurate peak detection.
+
+From the middle panel of
+Figure~\ref{fig:PDPA-infeasible-error-compare}, it is clear that the
+proposed GPDPA (with Remove rule) is generally more accurate than the
+baselines (MACS, HMCanBroad, CDPA). For example, there are 590
+problems for which GPDPA achieves fewer incorrect labels than MACS,
+but only 204 problems for which MACS achieves fewer incorrect labels
+than GPDPA. This is strong evidence that the proposed GPDPA detects
+peaks more accurately than previous baseline algorithms.
+
+From the bottom panel of
+Figure~\ref{fig:PDPA-infeasible-error-compare}, it is clear that the
+Remove rule is more accurate than Join, which is more accurate than
+Ignore. This is strong evidence that the Remove rule should be used
+for accurate peak detection when the GPDPA solution contains active
+equality constraints.
+
+
+% \begin{table}
+%   \centering
+%   \input{PDPA-infeasible-error-compare}
+%   \caption{Comparison}
+%   \label{tab:min-train-error}
+% \end{table}
+
 
 % from figure-PDPA-infeasible-error-compare.R
 %                   Comparison      p.wilcox       p.prop     p.skellam
