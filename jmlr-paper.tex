@@ -164,7 +164,7 @@ Hidden Markov Models (HMMs) with common mean parameters for the peak
 or background regions could be used to model such sequence data, but
 we do not explore them in this paper for two reasons. First, we have
 observed in real ChIP-seq data that background and peak means are not
-constant throughout the genome (Supplementary Figure 4), so shared
+constant throughout the genome (Supplementary Figure~1), so shared
 mean parameters would not be a good fit. Second, inference algorithms
 for HMMs are only guaranteed to find a local maximum of the
 likelihood; we are more interested in changepoint detection models
@@ -725,6 +725,7 @@ candidate changepoints in real ChIP-seq data sets is $O(\log n)$.
 \end{figure*}
 
 \subsection{Implementation and computational complexity}
+\label{sec:implementation}
 
 To implement the Generalized Pruned Dynamic Programming Algorithm
 (GPDPA), we use an exact representation of the
@@ -732,7 +733,7 @@ $C_{k,t}:\RR\rightarrow\RR$ cost functions. Each $C_{k,t}(\mu)$ is
 represented as a piecewise function on intervals of $\mu$, one
 interval for each candidate changepoint. This is implemented as a
 linked list of FunctionPiece objects in C++ (for details see
-supplementary materials). Each element of the linked list represents a
+Supplementary Text 1). Each element of the linked list represents a
 convex cost function piece, and implementation details depend on the
 choice of the loss function $\ell$ (for an example using the square
 loss see Section~\ref{sec:example-comparison}). Whilst each
@@ -760,7 +761,7 @@ Our free/open-source C++ implementation is
 available as the PeakSegPDPA function in the PeakSegOptimal R package
 on
 CRAN.\footnote{\url{https://cran.r-project.org/package=PeakSegOptimal}}
-Implementation details can be found in the supplementary materials.
+Implementation details can be found in Supplementary Text 1.
 
 The GPDPA requires
 computing $O(Kn)$ cost functions $C_{k,t}$. As in the original
@@ -817,8 +818,8 @@ Figure~\ref{fig:compare-unconstrained}),
 This function can be stored as a list of two intervals of $\mu$
 values, each with associated real-valued coefficients. To facilitate
 recovery of the optimal parameters, we also store the previous segment
-mean $u_1$ and endpoint (for details see supplementary
-materials). Note that the first interval represents the cost of an
+mean $u_1$ and endpoint (for details see Supplementary
+Text 1). Note that the first interval represents the cost of an
 active equality constraint ($u_1=u_2$) and the second interval
 represents the cost of a change up ($2=u_1<u_2$). In the unconstrained
 algorithm we would have computed the constant cost of any change (up
@@ -949,6 +950,7 @@ incorrect labels (for example see Figure~\ref{fig:good-bad}).
 
 \subsection{Supervised learning algorithm 
 for predicting the penalty}
+\label{sec:supervised}
 
 For the optimal changepoint detection algorithms (CDPA, PDPA, GPDPA),
 predicting peaks simplifies to selecting the number of
@@ -966,6 +968,7 @@ problem $m$ and non-negative penalty parameter $\lambda$:
 where $\mathcal C$ is a function that measures model complexity. We consider using the simple linear model complexity function $\mathcal C(\mathbf{\hat y}^k_m)=k$ as well as the oracle model complexity
 proposed by \citet{cleynen2013segmentation},
 \begin{equation}
+\label{eq:oracle}
 \mathcal C(\mathbf{\hat y}^k_m) =
 k\left(
 1 + 4\sqrt{1.1 + \log( n_m/k)}
@@ -976,7 +979,7 @@ the constants (4, 1.1) may be sub-optimal in real genomic data, which
 is why we also investigate learned penalty functions.
 
 The main idea of penalty learning \citep{HOCKING-penalties} is to
-computed a fixed feature vector $\mathbf x_m\in\RR^p$ for each problem
+computed a fixed feature vector $\mathbf x_m\in\RR^d$ for each problem
 $m$, then learn a function $f(\mathbf x_m)\in\RR$ that predicts
 problem-specific $\log\lambda$ values:
 \begin{equation}
@@ -1034,11 +1037,13 @@ values evenly placed on the log scale between $10^{-2}$ and $10^{4}$.
 % baseline methods from the bioinformatics literature, which we also
 % trained using grid search.
 
-\subsection{Evaluation of peak predictions using labels}
+% \subsection{Evaluation of peak predictions using labels}
 
-We consider two accuracy metrics based on the labels. First we 
-
-
+% We consider two accuracy metrics based on the labels in 4-fold
+% cross-validation experiments. First we use percent test accuracy,
+% which is the percentage of correctly predicted labels in the test
+% set. Second, we use the area under the ROC curve (AUC) for the test
+% labels. This
 \section{Results on peak detection in ChIP-seq data}
 \label{sec:results-chip-seq}
 \label{sec:results}
@@ -1066,12 +1071,10 @@ a particular genomic region in tcell but not in monocyte samples).
 Labels in these data were determined
 by an expert biologist, who used visual inspection of the data to
 determine presence or absence of significant peaks in particular
-genomic regions. It has been shown that these types of labels are
-quite stable, and do not change much, even if we change the expert who
-determines the labels \citep{HOCKING2016-chipseq}. 
-
-
-
+genomic regions. 
+% It has been shown that these types of labels are
+% quite stable, and do not change much, even if we change the expert who
+% determines the labels \citep{HOCKING2016-chipseq}. 
 
 \subsection{Algorithms to compare and rules for defining peaks}
 
@@ -1085,12 +1088,10 @@ the 2752 labeled ChIP-seq data sets:
   package PeakSegOptimal. 
 \item[Pruned Dynamic Programming Algorithm (PDPA)] Baseline that
   computes the optimal solution to the unconstrained
-  problem~(\ref{eq:segment-neighborhood}) in $O(Kn\log n)$
-  time. R package Segmentor3IsBack.
+  problem~(\ref{eq:segment-neighborhood}). R package Segmentor3IsBack.
 \item[Constrained Dynamic Programming Algorithm (CDPA)] Baseline that
   computes an approximate solution to the up-down constrained
-  problem~(\ref{eq:segment-neighborhood-up-down}) in $O(Kn^2)$
-  time. R package PeakSegDP.
+  problem~(\ref{eq:segment-neighborhood-up-down}). R package PeakSegDP.
 \end{description}
 \begin{figure} 
   \centering
@@ -1113,15 +1114,15 @@ example of this is shown in Figure~\ref{fig:infeasible-error}, which
 effectively has two consecutive up changes for models with
 $K\in\{7,9\}$ segments. The unconstrained
 problem~(\ref{eq:segment-neighborhood}) also may result in a model
-with several consecutive up changes. In general, when the model does
+with several consecutive up changes (Figure~\ref{fig:data-models}). In general, when the model does
 not satisfy the up-down constraint, we consider three rules for
 defining the predicted peaks:
 \begin{description}
-\item[Join] Peaks are defined by joining each segment with an
-  active equality constraint with the neighboring segment. Equivalent
+\item[Join] Peaks are defined by joining segments with
+  active equality constraints. Equivalent
   to defining background on every segment with a change down before
   and a change up after; and defining peaks everywhere else.
-\item[Remove] Peaks are defined by removing each peak segment with an
+\item[Remove] A peak is removed if it occurs on a segment with an
   active equality constraint. Equivalent to defining a peak on every
   segment with a change up before and a change down after; and
   defining background everywhere else.
@@ -1148,10 +1149,12 @@ bioinformatics literature.
   has been shown to achieve state-of-the-art peak detection accuracy
   for broad H3K36me3 histone mark data \citep{HOCKING-PeakSeg}. We
   computed peaks using 112 different finalThreshold parameters from
-  $10^{-10}$ (few peaks) to $10^5$ (many peaks). We kept other parameters at default values.
+  $10^{-10}$ (few peaks) to $10^5$ (many peaks). We used
+  mergeDistance=1000 (recommended by authors for broad peaks), and
+  kept other parameters at default values.
 \end{description}
 
-\subsection{Feasibility and optimality in ChIP-seq data}
+\subsection{GPDPA is more often feasible/optimal than other algorithms}
 
 In this section we compare the changepoint algorithms (PDPA, CDPA,
 GPDPA) in terms of optimality and feasibility for the up-down
@@ -1196,23 +1199,23 @@ for the up-down strict inequality constrants (but GPDPA does).
 % the previous state-of-the-art PeakSegDP method.
 
 
-\subsection{Comparison of minimum train error}
+\subsection{GPDPA fits labels best in terms of minimum train error}
 
 In the last section we examined how the algorithms fit the data sets
 using the Poisson loss. However the more important
 measure of fit in these benchmark data is the number of incorrect
-labels $L_m$. We used the labels to compare the algorithms in terms
+labels $L_m$. We used the labels to compare the algorithms in terms of
 minimum train error, as follows.
 
-For each problem $i$, and a given algorithm $A$, we computed a
-sequence of $M$ peak models
-$c^A_1(\mathbf y_m),\dots,c^A_M(\mathbf y_m)$ (varying number of
+For each problem $m$, and a given algorithm $A$, we computed a
+sequence of $P$ peak models
+$c^A_1(\mathbf y_m),\dots,c^A_P(\mathbf y_m)$ (varying number of
 segments $K$ for changepoint algorithms, qvalue/finalThreshold for
-baselines). For each problem $i$ and peak model
-$m\in\{1,\dots,M\}$, we computed the number of incorrect labels
-$E[c^A_m(\mathbf y_m), L_m]$. For each problem $i$ we then compute
-the minimum number of incorrect labels over all parameters,
-$E^A_m=\min_m E[c^A_m(\mathbf y_m), L_m]$.  
+baselines). For each problem $m$ and peak model
+$p\in\{1,\dots,P\}$, we computed the number of incorrect labels
+$E[c^A_p(\mathbf y_m), L_m]$. For each problem $m$ we then compute
+the minimum incorrect labels over all parameters,
+$E^A_m=\min_p E[c^A_p(\mathbf y_m), L_m]$.  
 
 \begin{figure}
   \centering
@@ -1278,81 +1281,6 @@ equality constraints.
 % 8:        Join-Ignore\nGPDPA  4.415176e-16 2.830037e-03  3.594214e-03
 
 
-\subsection{Choice of evaluation metric: area under ROC curve}
-
-We wanted to compare the peak detection accuracy of our proposed
-algorithm with others from the bioinformatics literature, which
-typically report many false positive peaks using default parameter
-settings. 
-% Therefore, using the total number of incorrectly predicted
-% labels as the evaluation metric would not show all relevant differences between methods (see
-% Supplementary Figure 1). 
-In a typical analysis, to control the false
-positive rate, the default peak list is pruned by only considering the
-top $p$ peaks, according to some likelihood or significance
-threshold. For example, the MACS algorithm of \citet{MACS} uses a
-q-value threshold parameter, and the HMCanBroad algorithm of
-\citet{HMCan} uses a finalThreshold parameter (higher thresholds
-result in more false positives).
-
-To account for this pruning step in our evaluation, we used Receiver
-Operating Characteristic (ROC) curve analysis. For each threshold
-parameter, we computed the false positive rate and true positive rate
-using the labels, which results in one point on the ROC curve. The
-area under the curve (AUC) is computed by varying the threshold
-parameter over its entire range (from a complete list of peaks with
-many false and true positives, to a completely pruned/empty list of
-peaks with FPR=TPR=0, see Supplementary Figure 5 for an illustration).
-Because the largest peak list does not necessarily predict peaks in
-all positive labels, we linearly extrapolate each ROC curve to
-TPR=FPR=1 in order to compute AUC (see Supplementary Figure 5 for an
-illustration of how the ROC/AUC is computed). To estimate the variance
-of AUC on each data set, we use four-fold cross-validation. Each
-labeled count data vector was randomly assigned a fold ID from 1 to 4
-and then ROC curves and AUC were computed for each fold ID.
-
-% The total
-% number of incorrect labels can be un-informative in data sets with
-% unbalanced labels (unequal numbers of possible false positives and
-% false negatives). Because the ChIP-seq data sets we examined are
-% unbalanced (more possible false positives than false negatives), we
-% observed similar accuracy for some algorithms in terms of total number
-% of incorrect labels (see supplementary Figure~1). In order to see the
-% differences between such algorithms, we decided to use ROC/AUC
-% analysis for evaluation. This choice is also justified from an applied
-% perspective, in which genomic data analysts frequently vary the
-% significance threshold or penalty parameter in order to evaluate
-% models with different numbers of peaks. We compute Receiver Operating
-% Characteristic (ROC) curves by varying a significance/penalty
-% parameter that controls the number of peaks detected. As in binary
-% classification, Area Under the Curve (AUC) can be used to evaluate the
-% overall accuracy of a particular model. For more details about how to
-% compute the number of incorrect labels and AUC in this context, see
-% \citep{HOCKING2016-chipseq}.
-
-
-% \subsection{Other algorithms to compare against}
- 
-% Most existing algorithms can be used for accurate peak detection in
-% either sharp H3K4me3 data, or broad H3K36me3 data, but not both. For
-% example, the HMCanBroad algorithm of \citet{HMCan} was shown to yield
-% accurate peak detection in broad H3K36me3 data, but not sharp H3K4me3
-% data \citep{HOCKING2016-chipseq}. In contrast, \citet{HOCKING-PeakSeg}
-% showed that a Constrained Dynamic Programming Algorithm (CDPA) for
-% approximately computing the PeakSeg model achieves state-of-the-art
-% peak detection accuracy in both sharp and broad data. However, the
-% quadratic $O(Kn^2)$ time complexity of the CDPA makes it too slow to
-% run on large ChIP-seq data sets.
-
-% In this section, we show that our proposed GPDPA can be used to
-% overcome this speed drawback, while maintaining state-of-the-art
-% accuracy. To show the importance of enforcing the up-down constraint,
-% we consider the unconstrained Pruned Dynamic Programming Algorithm
-% (PDPA) of \citet{pruned-dp} as a baseline
-% (Table~\ref{tab:contribution}). We also compare against two popular
-% heuristics from the bioinformatics literature (MACS, \citet{MACS};
-% HMCanBroad, \citet{HMCan}), in order to demonstrate that constrained 
-% optimization algorithms such as the CDPA and GPDPA are more accurate.
 
 \begin{figure*}[t!]
   \centering
@@ -1370,12 +1298,11 @@ and then ROC curves and AUC were computed for each fold ID.
     GPDPA with the up-down constraint and a max of $K=19$
     segments. The expected time complexity is $O(KnI)$ where $I$ is
     the average number of intervals (function pieces; candidate
-    changepoints) stored in the $C_{k,t}$ cost
-    functions. \textbf{Left}: number of intervals stored is
-    $I=O(\log n)$ (median, inter-quartile range, and maximum over all
-    data points $t$ and segments $k$).  \textbf{Right}: time
-    complexity of the GPDPA is $O(n\log n)$ (median line and min/max
-    band).}
+    changepoints) stored in the $C_{k,t}$ functions. \textbf{Left}:
+    number of intervals stored is $I=O(\log n)$ (median,
+    inter-quartile range, and maximum over all data sets of a given
+    size $n$).  \textbf{Right}: GPDPA time complexity is $O(n\log n)$  (median
+    line and min/max band).}
   \label{fig:timings}
 \end{figure*}
 
@@ -1424,17 +1351,16 @@ and then ROC curves and AUC were computed for each fold ID.
 \subsection{Empirical time complexity in ChIP-seq data}
 \label{sec:results_time}
 
-The ChIP-seq benchmark consists of seven labeled histone data
-sets.
-% \citep{HOCKING2016-chipseq}. 
 Overall there are 2752 labeled count data vectors $\mathbf y_m$ to segment,
 varying in size from $n=87$ to $n=263169$ data. For each count data
 vector $\mathbf y_m$, we ran each algorithm (CDPA, PDPA, GDPDA) with a
-maximum of $K=19$ segments, allowing at most 9 peaks (one for
-each even-numbered segment), which is more than enough in these
-relatively small data sets. To analyze the empirical time complexity,
+maximum of $K=19$ segments.
+% , allowing at most 9 peaks (one for
+% each even-numbered segment), which is more than enough in these
+% relatively small data sets.
+To analyze the empirical time complexity,
 we recorded the number of intervals stored in the $C_{k,t}$ cost
-functions (Section~\ref{sec:algorithms}), as well as the computation
+functions (Section~\ref{sec:implementation}), as well as the computation
 time in seconds.
 
 
@@ -1480,7 +1406,87 @@ $O(n\log n)$ time complexity in ChIP-seq data, which makes it possible
 to use for the very large data sets that are now common in the field of genomics.
 
 
-\subsection{Peak detection accuracy in ChIP-seq data}
+\subsection{GPDPA is more accurate than baselines in terms of test AUC}
+
+We wanted to compare the peak detection accuracy of our proposed
+algorithm with others from the bioinformatics literature, which
+typically report many false positive peaks using default parameter
+settings. 
+% Therefore, using the total number of incorrectly predicted
+% labels as the evaluation metric would not show all relevant differences between methods (see
+% Supplementary Figure 1). 
+In a typical analysis, to control the false positive rate, the default
+peak list is pruned by only considering the top $p$ peaks, according
+to some likelihood or significance threshold. For example, the MACS
+algorithm of \citet{MACS} uses a q-value threshold parameter, and the
+HMCanBroad algorithm of \citet{HMCan} uses a finalThreshold parameter
+(higher thresholds result in more false positives). For changepoint
+models with a learned penalty function $f$
+(Section~\ref{sec:supervised}), the threshold is a constant $\beta\in\RR$
+which is added when selecting the number of segments
+$\kappa_m(\exp(f(x_m)+\beta))$ (larger constants $\beta$ result in
+larger penalties, fewer segments, and fewer false positives). 
+
+To account for this pruning step in our evaluation, we used Receiver
+Operating Characteristic (ROC) curve analysis. For each threshold
+parameter, we computed the false positive rate and true positive rate
+using the labels, which results in one point on the ROC curve. The
+area under the curve (AUC) is computed by varying the threshold
+parameter over its entire range (from a complete list of peaks with
+many false and true positives, to a completely pruned/empty list of
+peaks with FPR=TPR=0, see Supplementary Figure 3 for an illustration).
+Because the largest peak list does not necessarily predict peaks in
+all positive labels, we linearly extrapolate each ROC curve to
+TPR=FPR=1 in order to compute AUC (see Supplementary Figure 5 for an
+illustration of how the ROC/AUC is computed). To estimate the variance
+of AUC on each data set, we use four-fold cross-validation. Each
+labeled count data vector was randomly assigned a fold ID from 1 to 4
+and then ROC curves and test AUC were computed for each fold ID.
+
+% The total
+% number of incorrect labels can be un-informative in data sets with
+% unbalanced labels (unequal numbers of possible false positives and
+% false negatives). Because the ChIP-seq data sets we examined are
+% unbalanced (more possible false positives than false negatives), we
+% observed similar accuracy for some algorithms in terms of total number
+% of incorrect labels (see supplementary Figure~1). In order to see the
+% differences between such algorithms, we decided to use ROC/AUC
+% analysis for evaluation. This choice is also justified from an applied
+% perspective, in which genomic data analysts frequently vary the
+% significance threshold or penalty parameter in order to evaluate
+% models with different numbers of peaks. We compute Receiver Operating
+% Characteristic (ROC) curves by varying a significance/penalty
+% parameter that controls the number of peaks detected. As in binary
+% classification, Area Under the Curve (AUC) can be used to evaluate the
+% overall accuracy of a particular model. For more details about how to
+% compute the number of incorrect labels and AUC in this context, see
+% \citep{HOCKING2016-chipseq}.
+
+
+% \subsection{Other algorithms to compare against}
+ 
+% Most existing algorithms can be used for accurate peak detection in
+% either sharp H3K4me3 data, or broad H3K36me3 data, but not both. For
+% example, the HMCanBroad algorithm of \citet{HMCan} was shown to yield
+% accurate peak detection in broad H3K36me3 data, but not sharp H3K4me3
+% data \citep{HOCKING2016-chipseq}. In contrast, \citet{HOCKING-PeakSeg}
+% showed that a Constrained Dynamic Programming Algorithm (CDPA) for
+% approximately computing the PeakSeg model achieves state-of-the-art
+% peak detection accuracy in both sharp and broad data. However, the
+% quadratic $O(Kn^2)$ time complexity of the CDPA makes it too slow to
+% run on large ChIP-seq data sets.
+
+% In this section, we show that our proposed GPDPA can be used to
+% overcome this speed drawback, while maintaining state-of-the-art
+% accuracy. To show the importance of enforcing the up-down constraint,
+% we consider the unconstrained Pruned Dynamic Programming Algorithm
+% (PDPA) of \citet{pruned-dp} as a baseline
+% (Table~\ref{tab:contribution}). We also compare against two popular
+% heuristics from the bioinformatics literature (MACS, \citet{MACS};
+% HMCanBroad, \citet{HMCan}), in order to demonstrate that constrained 
+% optimization algorithms such as the CDPA and GPDPA are more accurate.
+
+%\subsection{Peak detection accuracy in ChIP-seq data}
 
 % To compare the accuracy of the algorithms in the benchmark data sets,
 % we computed false negative and false positive rates using labels
@@ -1511,7 +1517,7 @@ to use for the very large data sets that are now common in the field of genomics
 %     available at
 %     \url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/}
   }
-  \label{fig:test-error-dots}
+  \label{fig:test-auc}
 \end{figure*}
 
 \begin{figure*}[t!]
@@ -1525,21 +1531,21 @@ to use for the very large data sets that are now common in the field of genomics
     (fp) and false negatives (fn). It is clear that supervised models
     are generally more accurate than unsupervised, and multi-parameter
     models are generally more accurate than single parameter models. }
-  \label{fig:test-error-dots}
+  \label{fig:test-accuracy}
 \end{figure*}
 
 
-To demonstrate that changepoint detection algorithms are more accurate
-than typical heuristics, we also
-compared with the MACS and HMCanBroad methods \citep{MACS,
-  HMCan}. MACS is a popular heuristic for data with a sharp peak
-pattern such as H3K4me3, and \mbox{HMCanBroad} is a popular heuristic
-for data with a broad peak pattern such as H3K36me3. Although they are
-not designed for supervised learning, we trained them by performing
-grid search over a single significance threshold parameter that
-controls the number of peaks detected (qvalue for MACS and
-finalThreshold for HMCanBroad). We computed ROC/AUC by varying these
-parameters.
+% To demonstrate that changepoint detection algorithms are more accurate
+% than typical heuristics, we also
+% compared with the MACS and HMCanBroad methods \citep{MACS,
+%   HMCan}. MACS is a popular heuristic for data with a sharp peak
+% pattern such as H3K4me3, and \mbox{HMCanBroad} is a popular heuristic
+% for data with a broad peak pattern such as H3K36me3. Although they are
+% not designed for supervised learning, we trained them by performing
+% grid search over a single significance threshold parameter that
+% controls the number of peaks detected (qvalue for MACS and
+% finalThreshold for HMCanBroad). We computed ROC/AUC by varying these
+% parameters.
 % Note that since these are not changepoint detection algorithms,
 % there is no parameter for we did not use these algorithms in the
 % speed comparison
@@ -1552,13 +1558,15 @@ In each of the seven data sets in the histone benchmark,
 %\citep{HOCKING2016-chipseq}, 
 we performed four-fold cross-validation and computed test AUC (area
 under the Receiver Operating Characteristic curve) to estimate the
-accuracy of each algorithm. The previous algorithm with
+accuracy of each algorithm. For the changepoint models, we learned
+penalty functions using the labels in each train set
+(Section~\ref{sec:supervised}). The previous algorithm with
 state-of-the-art accuracy on this benchmark was the CDPA, which
 enforces the up-down constraint on segment means. We expected our
 proposed GPDPA to perform just as well, since it also enforces that
 constraint. In agreement with our expectation, we observed that the
 CDPA and GPDPA yield comparable test AUC in all seven data sets
-(Figure~\ref{fig:test-error-dots}). 
+(Figure~\ref{fig:test-auc}).
 %               set.name    p.value      estimate      CDPA     GPDPA
 % 1:  H3K36me3_AM_immune 0.34399895 -0.0002065765 0.9808486 0.9810551
 % 2: H3K36me3_TDH_immune        NaN  0.0000000000 0.9999356 0.9999356
@@ -1587,7 +1595,6 @@ optimal peak detection accuracy.
 % 6:   H3K4me3_TDH_other 0.0076857759 -0.22943225 0.9858077 0.7563754
 % 7:   H3K4me3_XJ_immune 0.0368826308 -0.09290677 0.9125962 0.8196894
 
-
 Since the baseline HMCanBroad algorithm was designed for data with a
 broad peak pattern, we expected it to perform well in the H3K36me3
 data. In agreement with this expectation, HMCanBroad showed
@@ -1596,12 +1603,42 @@ pattern), but was very inaccurate in four H3K4me3 data sets (sharp
 peak pattern). We expected the baseline MACS algorithm to perform well
 in the H3K4me3 data sets, since it was designed for data with a sharp
 peak pattern. In contrast to this expectation, MACS had test AUC
-values much lower than the dynamic programming algorithms in all seven
-data sets (Figure~\ref{fig:test-error-dots}). These results suggest
-that for detecting peaks in ChIP-seq data, the constrained optimal
-changepoint detection algorithms are more accurate than the heuristics
-from the bioinformatics literature.
+values much lower than the optimal changepoint algorithms in all seven data
+sets (Figure~\ref{fig:test-auc}). These results suggest that for
+detecting peaks in ChIP-seq data, the optimal changepoint algorithms are more
+accurate than the heuristics from the bioinformatics literature.
 
+\subsection{Learned penalties have higher test AUC than oracle
+  penalties}
+
+In Section~\ref{sec:supervised} we proposed to select the number of
+segments in changepoint models using two kinds of model complexity
+functions $\mathcal C$. The oracle model complexity~(\ref{eq:oracle})
+of \citet{cleynen2013segmentation} is a relatively complex expression
+ motivated by statistical arguments; the linear model complexity
+simply measures the number of segments. In this section we compare
+these methods in terms of test AUC.
+
+We consider learning a one-parameter penalty function consisting of a
+constant penalty $\lambda$, given either the linear or oracle model
+complexity function. The second row of Supplementary Figure 4 plots
+the distribution of test AUC values for one model complexity function
+versus the other. For all three changepoint algorithms (CDPA, GPDPA,
+PDPA), the linear penalty has a slightly larger test AUC ($p>0.05$ in
+paired $t_{27}$-test). These data indicate that the linear model
+complexity function should be preferred for accurate peak
+detection in genomic data.
+
+We also compare learning a penalty function with either one or
+multiple parameters, given the linear model complexity function. The
+first row of Supplementary Figure 4 plots the distribution of test AUC
+values for one penalty function versus the other. For all three
+changepoint algorithms, the multi-parameter penalty function has a
+significantly larger test AUC ($p<0.07$). These data indicate that
+learning a multi-parameter penalty function should be preferred for
+accurate peak detection in genomic data.
+
+\subsection{TODO test accuracy}
 
 % \begin{table}[b!]
 %   \centering

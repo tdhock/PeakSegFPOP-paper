@@ -1,9 +1,15 @@
-jmlr-paper.pdf: figure-all-cv.pdf figure-test-error-dots.pdf figure-compare-unconstrained.tex figure-PDPA-infeasible-error-compare.pdf jmlr-paper.tex
+jmlr-paper.pdf: figure-all-cv.pdf figure-test-error-dots.pdf figure-compare-unconstrained.tex figure-PDPA-infeasible-error-compare.pdf jmlr-paper.tex figure-data-models.png figure-infeasible-error.tex figure-PDPA-intervals-all.pdf
 	rm -rf *.aux *.bbl
 	pdflatex jmlr-paper
 	bibtex jmlr-paper
 	pdflatex jmlr-paper
 	pdflatex jmlr-paper
+figure-PDPA-intervals-all.pdf: figure-PDPA-intervals-all.R
+	R --vanilla < $<
+figure-infeasible-error.tex: figure-infeasible-error.R
+	R --vanilla < $<
+figure-data-models.png: figure-data-models.R
+	R --vanilla < $<
 figure-PDPA-infeasible-error-compare.pdf: figure-PDPA-infeasible-error-compare.R
 	R --vanilla < $<
 figure-compare-unconstrained.tex: figure-compare-unconstrained.R

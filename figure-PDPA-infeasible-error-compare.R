@@ -236,7 +236,8 @@ count.tall[, element := ifelse(
 count.tall[, panel := ifelse(
   first %in% c("Join-Ignore", "Remove-Join"),
   "Comparing
-post-processing
+post-
+processing
 rules", ifelse(
   first=="GPDPA-PDPA",
   "Comparing
@@ -300,7 +301,7 @@ low="white", high="red")+
     hjust=hjust),
     size=3,
     data=better.dt)
-pdf("figure-PDPA-infeasible-error-compare.pdf", 9.3, 4.6)
+pdf("figure-PDPA-infeasible-error-compare.pdf", 9.3, 3.6)
 print(gg)
 dev.off()
 

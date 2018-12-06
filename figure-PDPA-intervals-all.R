@@ -26,6 +26,8 @@ median.dt <- over.dt[, list(
   q75=quantile(mean.intervals, 0.75)
 ), by=list(mid, n.data=10^mid)]
 
+text.dt <- median.dt[which.max(mid)][over.dt, on=list(mid), nomatch=0L][order(abs(mean.intervals-median))][1]
+
 max.color <- "black"
 med.color <- "black"
 gg <- ggplot()+
@@ -49,6 +51,7 @@ tikz("figure-PDPA-intervals-small.tex", w=3.3, h=2.5)
 print(gg)
 dev.off()
 
+text.color <- "red"
 gg <- ggplot()+
   geom_text(aes(10^3, 10^2.3, label="max"),
             color=max.color)+
@@ -65,6 +68,18 @@ gg <- ggplot()+
             color=med.color,
             data=median.dt)+
   theme_bw()+
+  geom_point(aes(
+    n.data, mean.intervals),
+    shape=1,
+    color=text.color,
+    data=text.dt)+
+  geom_text(aes(
+    n.data, mean.intervals,
+    label=sprintf("%.0f intervals", mean.intervals)),
+    color=text.color,
+    vjust=-1,
+    hjust=1,
+    data=text.dt)+
   theme(
     plot.margin=grid::unit(c(6, 12, 6, 6), "pt"),
     panel.margin=grid::unit(0, "lines"))+

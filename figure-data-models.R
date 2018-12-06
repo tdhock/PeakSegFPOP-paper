@@ -82,10 +82,9 @@ lik.dt <- show.segs[, {
     log.lik=sum(lik.vec * compressed$bases),
     loss=with(compressed, PoissonLoss(count, mean, bases)))
 }, by=list(model)]
+model.color <- "blue"
 segs.regions <-
   ggplot()+
-  scale_fill_manual("label", values=ann.colors, 
-                    breaks=names(ann.colors))+
   scale_linetype_manual("feasible\nfor up-down\nconstraint", 
                         values=c(yes="dotted", no="solid"))+
   scale_y_continuous(breaks=seq(0, 50, by=25), minor_breaks=NULL)+
@@ -103,10 +102,10 @@ segs.regions <-
   geom_segment(aes((chromStart-1/2)/1e3, mean,
                    xend=(chromEnd+1/2)/1e3, yend=mean),
                data=show.segs,
-               color="green", alpha=3/4, size=1)+
+               color=model.color, alpha=3/4, size=1)+
   geom_vline(aes(xintercept=(chromEnd+1/2)/1e3, linetype=feasible),
              data=show.breaks,
-             color="green")+
+             color=model.color)+
   ylab("count of aligned reads")
 print(segs.regions)
 png("figure-data-models.png",

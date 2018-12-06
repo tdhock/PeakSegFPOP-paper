@@ -179,7 +179,7 @@ dpa.tall <- melt(
   dpa.wide,
   id.vars=c("set.name", "set.i", "algorithm", "linear_1"))
 dpa.pvals <- dpa.tall[, {
-  with(t.test(linear_1, value, paired=TRUE), data.table(p.value))
+  with(t.test(value, linear_1, paired=TRUE), data.table(p.value, estimate, df=length(value)-1))
 }, by=list(algorithm, variable)]
 ggplot()+
   coord_equal()+
@@ -202,14 +202,16 @@ ggplot()+
   xlab("Test AUC of competitor")+
   ylab("Test AUC of baseline linear penalty with one parameter")
 
-ggplot()+
+gg <- ggplot()+
   coord_equal()+
   geom_abline(slope=1, intercept=0, color="grey")+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
   facet_grid(variable ~ algorithm, labeller=function(df){
     if("variable" %in% names(df)){
-      df$variable <- sub("_", " penalty\nparameters=", df$variable)
+      df$variable <- paste(
+        "Competitor:",
+        sub("_", " penalty\nparameters=", df$variable))
     }
     df
   })+
@@ -218,10 +220,14 @@ ggplot()+
     shape=1,
     data=dpa.tall)+
   geom_text(aes(
-    0.6, 0.9, label=sprintf("p=%.3f", p.value)),
+    0.67, 0.9, label=sprintf("diff=%.05f
+p=%.3f", estimate, p.value)),
     data=dpa.pvals)+
   ylab("Test AUC of competitor")+
   xlab("Test AUC of baseline linear penalty with one parameter")
+pdf("figure-all-cv-learned-oracle-compare.pdf", 10, 5)
+print(gg)
+dev.off()
 
 show.auc <- all.auc[
   ifelse(

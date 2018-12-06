@@ -1,7 +1,4 @@
-library(data.table)
-library(ggplot2)
-library(penaltyLearning)
-library(tikzDevice)
+source("packages.R")
 chunk.name <- "H3K4me3_TDH_immune/11";sample.id <- "McGill0009";peaks <- 3
 chunk.name <- "H3K4me3_PGP_immune/16";sample.id <- "McGill0005";peaks <- 3
 chunk.name <- "H3K4me3_TDH_immune/11";sample.id <- "McGill0008";peaks <- 3
@@ -143,7 +140,7 @@ ggm <- ggplot()+
     138312, peak.y[rule], label=paste0(Rule, " rule")),
     color=peak.color,
     hjust=1,
-    size=3.2,
+    size=3,
     data=text.dt)+
   ## geom_tallrect(aes(
   ##   xmin=chromStart/1e3, xmax=chromEnd/1e3,
@@ -158,7 +155,8 @@ ggm <- ggplot()+
     color="grey50",
     data=counts.dt)+
   facet_grid(segments ~ ., labeller=function(df){
-    df$segments <- sprintf("$K=%d$", df$segments)
+    df$segments <- sprintf("$K=%d$
+segments", df$segments)
     df
   })+
   theme(panel.margin=grid::unit(0, "lines"))+
@@ -192,6 +190,6 @@ ggm <- ggplot()+
   ##   xmin=chromStart/1e3, xmax=chromEnd/1e3,
   ##   ymin=peak.y-h, ymax=peak.y+h),
   ##   data=sample.error)
-tikz("figure-infeasible-error.tex", 6, 3)
+tikz("figure-infeasible-error.tex", 6, 2.75)
 print(ggm)
 dev.off()

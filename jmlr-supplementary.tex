@@ -1,0 +1,560 @@
+\documentclass{article}
+\usepackage{tikz}
+\usepackage{natbib}
+\usepackage{amssymb,amsmath,amsthm}
+\usepackage{fullpage}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\newcommand{\FCC}{C}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\maximize}{maximize}
+\DeclareMathOperator*{\minimize}{minimize}
+\newcommand{\ZZ}{\mathbb Z}
+\newcommand{\NN}{\mathbb N}
+\newcommand{\RR}{\mathbb R}
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+
+\title{Supplementary material for ``Constrained dynamic programming and supervised
+penalty learning algorithms for 
+peak detection in genomic data''}
+
+\begin{document}
+
+\maketitle
+
+\section*{Supplementary Figure 1: background level varies across a sample}
+
+\parbox{0.55\textwidth}{
+\includegraphics[width=\linewidth]{figure-background}
+}\parbox{0.4\textwidth}{
+\includegraphics[width=\linewidth]{figure-background-peak-mean-density-scatter}
+}
+
+Hidden Markov Models have a uniform background/noise mean
+level, rather than a new segment mean for every background segment (as
+in the model we proposed). We have observed different mean levels in
+different background/noise regions in the same ChIP-seq sample, which
+suggests that the uniform background/noise mean model would not be
+appropriate in these data.  \textbf{Left}: we computed mean coverage
+in each sample and genomic region with the noPeaks label (which means
+a biologist has observed that there are no peaks in that region, so it
+must only contain background noise), and observed that the mean is
+highly variable between regions of the genome. For example in sample
+McGill0028, the mean coverage in background/noise regions ranges from
+1.78 to 6.76, which suggests that a uniform/constant mean would not be
+a good model of these data. \textbf{Right}: for one sample, we
+computed peaks throughout the genome, then computed mean coverage in
+each peak and mean coverage in nearby background. We observed that the
+mean of the nearby background increases as the mean of the peak
+increases, which suggests that a uniform/constant mean would not be a
+good model of these data.
+
+\section*{Supplementary Figure 2: details of example where CDPA fails}
+
+Consider computing the 5 segment up-down constrained model for the set
+of 6 data points $\mathbf y = [3, 9, 18, 15, 20, 2]$ using the Poisson loss
+$\ell(y_i, m)=m-y_i\log m$. 
+\begin{itemize}
+\item The unconstrained PDPA computes the model $\mathbf m = [3, 9, 16.5, 16.5, 20,
+  2]$ which has a total Poisson loss of $\approx -109.8827$. Its two increasing
+  changes followed by two decreasing changes are not feasible for the
+  up-down constrained problem.
+\item The up-down constrained GPDPA computes the model $\mathbf m = [6, 6, 18, 15,
+  20, 2]$ which has a total Poisson Loss of $\approx -108.4495$. Each
+  up change is followed by a down change, so it is feasible for the
+  up-down constrained problem.
+\item The CDPA returns no feasible model with 5 segments.
+\end{itemize}
+
+To see why the CDPA fails, we give the detailed calculations of the
+GPDPA and CDPA below. The first cost function computed by the GPDPA is
+the Poisson loss of the first data point:
+\begin{equation}
+  C_{1,1}(u_1)=\ell(3, u_1) = u_1 -3\log u_1
+\end{equation}
+The minimum of $C_{1,1}$ is at 3, so its min-less operator is
+convex for $u_2\leq 3$, and constant for $u_2\geq 3$:
+\begin{equation}
+    C^\leq_{1,1}(u_2) =
+  \begin{cases}
+    C_{1,1}(u_2) = u_2 -3\log u_2 & \text{ if } u_2 \in [2,3],\  u_1=u_2\\
+    C_{1,1}(3) = -0.296 & \text{ if } u_2 \in [3,20],\  u_1=3\\
+  \end{cases}
+\end{equation}
+The second cost function is the total Poisson loss of the first two
+data points:
+\begin{equation}
+    C_{1,2}(u_1)=\ell(9, u_1)+C_{1,1}(u_1)=2u_1 -12\log u_1
+\end{equation}
+The minimum of $C_{1,2}$ is at 6, so its min-less operator is
+convex for $u_2\leq 6$, and constant for $u_2\geq 6$:
+\begin{equation}
+    C^\leq_{1,2}(u_2)=
+                     \begin{cases}
+                       C_{1,2}(u_2)=2u_2 -12\log u_2 & \text{ if } u_2 \in[2, 6],\ u_1=u_2\\
+                       C_{1,2}(6)=-9.501 &\text{ if } u_2\in [6,20],\ u_1=6
+                     \end{cases}
+\end{equation}
+The best cost in 2 segments up to data point 2 is:
+\begin{equation}
+    C_{2,2}(u_2)=\ell(9, u_2) + C^\leq_{1,1}(u_2)   =
+  \begin{cases}
+    2u_2 -12\log u_2 & \text{ if } u_2 \in [2,3],\ u_1=u_2\\
+    u_2 - 9\log u_2 -0.296 & \text{ if } u_2 \in [3, 20],\ u_1=3
+  \end{cases}
+\end{equation}
+Note in the equation above that a non-decreasing change between data points 1 and 2 is enforced by the min-less operator $C_{1,1}^\leq$.
+
+The best cost in 2 segments up to data point 3 is defined as:
+\begin{equation}
+    C_{2,3}(u_2)=\ell(18, u_2) + \min
+                \begin{cases}
+                  C_{2,2}(u_2) & \text{ if } t_1=1\\
+                  C^\leq_{1,2}(u_2) & \text{ if } t_1=2
+                \end{cases}
+\end{equation}
+The GPDPA computes the roots of $C_{2,2}(u_2)-C^\leq_{1,2}(u_2)$ in
+order to find their intersection at $u_2\approx15.41$, so the best
+cost in 2 segments up to data point 3 simplifies to:
+\begin{eqnarray}
+C_{2,3}(u_2)  &=&\ell(18, u_2) + 
+                \begin{cases}
+                  C_{2,2}(u_2) & \text{ if }u_2\in[2, 15.41],\ t_1=1\\
+                  C^\leq_{1,2}(u_2)& \text{ if }u_2\in[15.41, 20],\ t_1=2
+                \end{cases}\\
+            &=&
+                \begin{cases}
+                  3u_2 -30 \log u_2 & \text{ if } u_2\in[2,3],\ u_1=u_2,\ t_1=1\\
+                  2u_2 -27 \log u_2 -0.296 & \text{ if } u_2\in[3, 15.41],\ u_1=3,\ t_1=1\\\
+                  u_2 -18 \log u_2 -9.501  & \text{ if } u_2\in[15.41, 20],\ u_1=6,\ t_1=2\\
+                \end{cases}
+\end{eqnarray}
+This cost function is shown as the black curve in the figure
+below. The part on the left ($u_2\leq 15.41$) in blue is the cost of a
+non-decreasing change after the first data point ($t_1=1$). The part
+on the right in violet ($u_2\geq 15.41$) is the cost of a
+non-decreasing change after the second data point ($t_2=2$). 
+
+\input{figure-CDPA-fails}
+
+The GPDPA then computes the functional min cost $C^\geq_{2,3}(u_3)$ for all
+possible values of the mean parameter $u_3$ (shown as grey function in plot
+above):
+\begin{equation}
+C^\geq_{2,3}(u_3)  =
+\begin{cases}
+  -43.57 & \text{ if } u_3\in[2, 13.5],\ u_2=13.5,\ t_1=1\\
+  2u_3 -27 \log u_3 -0.296 & \text{ if } u_3\in[13.5, 14.25],\ u_2=u_3,\ t_1=1\\
+  -43.53 & \text{ if } u_3\in[14.25, 18],\ u_2=18,\, t_1=2\\
+  u_3 -18 \log u_3 -9.501  & \text{ if } u_3\in[18, 20],\ u_2=u_3,\ t_1=2\\
+\end{cases}
+\end{equation}
+Since the optimal cost is computed for both possible changepoints, and
+all possible mean values, the GPDPA is able to compute the optimal
+solution (which occurs at $u_3=15, u_2=18, u_1=6, t_1=2$, but is
+unknown until the algorithm computes the total cost of all the data
+points $C_{5,6}$). In contrast, the CDPA computes a scalar min cost of
+a non-decreasing change after the first data point (red circle in the
+plot above, $u_2=13.5, u_1=3, t_1=1$), and discards the possibility of
+a non-decreasing change after the second data point (which ends up
+being optimal).
+
+% \section*{Supplementary Figure 3: constrained changepoint detection is insensitive to spatial correlation}
+
+% There is spatial correlation in typical ChIP-seq data, due to the
+% usual ``coverage'' representation which counts a sequence
+% read at \textbf{each genomic position} where it aligns. For example if a read
+% of size 100 bases aligns on chr1:1-100 and another read aligns on
+% chr1:51-150, then the typical coverage representation is a count of 1
+% aligned read on chr1:1-50, a count of 2 aligned reads on chr1:51-100,
+% and a count of 1 aligned read on chr1:101-150, which leads to spatial
+% correlation between nearby positions (top panels of figure
+% below). Another representation with no spatial correlation would be to
+% count a sequence read at \textbf{only the last genomic position} where it
+% aligns (bottom panels of figure below). In the example above that
+% would be counting 1 at chr1:100 and 1 at chr1:150, and 0 elsewhere. 
+
+% We have tried the proposed GPDPA on both representations of the data,
+% and we have observed that the detected peaks are highly consistent
+% (with some variation on the order of the read size, 100 bases). In the
+% following figure we represent two datasets (left:H3K36 and right:H3K4)
+% using the coverage representation (top) and last position
+% representation (bottom). The peaks in the model with 2 peaks ($K=5$
+% segments) are shown as blue horizontal bars, which are highly
+% consistent between the top and bottom plots. This illustrates that
+% the proposed method is highly insensitive to spatial correlation.
+
+% \includegraphics[width=\textwidth]{figure-spatial-correlation}
+
+\section*{Supplementary Figure 3: ROC curves for peak detection accuracy}
+  
+We wanted to compare the peak detection accuracy of our proposed
+algorithm with others from the bioinformatics literature, which
+typically report many false positive peaks using default parameter
+settings. Therefore in a typical analysis, to control
+the false positive rate, the default peak list is pruned by only
+considering the top $p$ peaks, according to some likelihood or
+significance threshold. For example, the MACS algorithm of
+\citet{MACS} uses a q-value threshold parameter, and the HMCanBroad
+algorithm of \citet{HMCan} uses a finalThreshold parameter (higher
+thresholds result in more false positives). 
+
+To account for this pruning step is our evaluation, we used Receiver
+Operating Characteristic (ROC) curve analysis. For each threshold
+parameter, we computed the false positive rate and true positive rate
+using the labels, which results in one point on the ROC curve. The
+area under the curve (AUC) is computed by varying the threshold
+parameter over its entire range (from a complete list of peaks with
+many false and true positives, to a completely pruned/empty list of
+peaks with FPR=TPR=0).
+Because the largest peak list does not necessarily predict peaks in
+all positive labels, we linearly extrapolate each ROC curve to
+TPR=FPR=1 in order to compute AUC (dotted lines in plot below). 
+In particular note that the unconstrained PDPA finds about 80\% of the true positive peaks
+without making any false positives, but because it lacks the up-down constraint, 
+it is unable to find the remaining $\approx 20\%$ true positive peaks.
+
+\includegraphics[width=\textwidth]{figure-test-error-dots-ROC-supp.pdf}
+
+Also note that the ROC curves are not necessarily monotonic, because
+the peak pruning is not necessarily hierarchical. For example the
+GPDPA computes optimal models from 0 to 9 peaks for each count data
+vector; the peak present in the optimal model with 1 peak may not be
+present in the optimal model with 2 or more peaks.
+
+\section*{Supplementary Figure 4: test AUC comparison between penalty functions}
+
+\includegraphics[width=\textwidth]{figure-all-cv-learned-oracle-compare}
+
+\section*{Supplementary Figure XXX: test error in cross-validation experiments}
+\includegraphics[width=\textwidth]{figure-test-error-dots-supp}
+Four-fold cross-validation was used in each of seven data sets to
+estimate peak detection accuracy, in terms of percent incorrect
+labels. For unsupervised learning, default significance thresholds
+were used for HMCanBroad (finalThreshold=10) and MACS (qvalue=0.05);
+elbow/hinge heuristic for oracle penalty was used for PDPA/CDPA/GPDPA,
+as implemented in Segmentor3IsBack R package (Cleynen and Lebarbier,
+2014). For supervised learning, thresholds and penalty constants were
+as described in the main text. Counts of possible fp and fn are for
+all labels in that data set (possible fp are any labels which could
+possibly have a false positive, etc); possible fp is always greater
+than possible fn, indicating that all data sets are unbalanced in the
+same direction (more negative labels than positive labels).
+
+\newpage
+
+
+\section{Supplementary Text 1}
+
+\subsection{GPDPA for reduced isotonic regression}
+In this section we give pseudocode for our proposed Generalized Pruned
+Dynamic Programming Algorithm (GPDPA) for the reduced isotonic
+regression problem. We propose the following data structures and
+sub-routines for the computation:
+\begin{itemize}
+\item FunctionPiece: a data structure which represents one piece of a
+  $C_{k,t}(u)$ cost function (for one interval of mean values $u$). It
+  has coefficients which depend on the convex loss function $\ell$
+  (for the square loss it has three real-valued coefficients $a,b,c$
+  which define a function $au^2 + bu + c$). It also has two
+  real-valued elements for min/max mean values
+  $[\underline u, \overline u]$ of this interval, meaning the function
+  $C_{k,t}(u)=au^2 + bu + c$ for all
+  $u\in[\underline u, \overline u]$. Finally it stores a previous
+  segment endpoint $t'$ (integer) and mean $u'$ (real).
+\item FunctionPieceList: an ordered list of FunctionPiece objects,
+  which exactly stores a cost function $\FCC_{k,t}(u)$ for all values
+  of last segment mean $u$.
+\item $\text{OnePiece}(y, \underline u, \overline u)$: a sub-routine
+  that initializes a FunctionPieceList with just one FunctionPiece
+  $\ell(y, u)$ defined on $[\underline u, \overline u]$.
+\item $\text{MinLess}(t, f)$: an algorithm that inputs a changepoint
+  and a FunctionPieceList, and outputs the corresponding min-less
+  operator $f^\leq$ (another FunctionPieceList), with the previous
+  changepoint set to $t'=t$ for each of its pieces. This algorithm
+  also needs to store the previous mean value $u'$ for each of the
+  function pieces (see pseudocode below). 
+\item $\text{MinOfTwo} (f_1, f_2)$: an algorithm that inputs two
+  FunctionPieceList objects, and outputs another FunctionPieceList
+  object which is their minimum. 
+\item $\text{ArgMin}(f)$: an algorithm that inputs a FunctionPieceList
+  and outputs three values: the optimal mean $u^*=\argmin_u f(u)$, the
+  previous segment end $t'$ and mean $u'$.
+\item $\text{FindMean}(u, f)$ an algorithm that inputs a mean value
+  and a FunctionPieceList. It finds the FunctionPiece in $f$ with mean
+  $u\in[\underline u, \overline u]$ contained in its interval, then
+  outputs the previous segment end $t'$ and mean $u'$ stored in that
+  FunctionPiece.
+\end{itemize}
+The above data structures and sub-routines are used in the following
+pseudo-code, which describes the GPDPA for solving the reduced
+isotonic regression problem.
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE Input: data set $\mathbf y\in\RR^n$, maximum number of segments $K\in\{2,\dots, n\}$.
+\STATE Output: matrices of optimal segment means $U\in\RR^{K\times K}$ 
+and ends $T\in\{1,\dots,n\}^{K\times K}$
+\STATE Compute min $\underline y$ and max $\overline y$ of $\mathbf y$.
+\label{line:min-max}
+\STATE $\FCC_{1,1}\gets \text{OnePiece}(y_1, \underline y, \overline y)$
+\label{line:init-1}
+\STATE for data points $t$ from 2 to $n$:
+\begin{ALC@g}
+  \STATE $\FCC_{1,t}\gets \text{OnePiece}(y_t, \underline y, \overline y) + \FCC_{1,t-1}$
+\label{line:init-t}
+\end{ALC@g}
+\STATE for segments $k$ from 2 to $K$: for data points $t$ from $k$ to $n$: // dynamic programming
+\label{line:for-k-t}
+\begin{ALC@g}
+  \STATE $\text{min\_prev}\gets \text{MinLess}(t-1, \FCC_{k-1,t-1})$ // this is $\FCC_{k-1,t-1}^\leq$
+  \label{line:MinLess}
+  % \STATE if $t=k$:
+  % \begin{ALC@g}
+  %   \STATE $\text{min\_new}\gets\text{min\_prev}$ // there is only one
+  %   possible changepoint, before $t$
+  % \end{ALC@g}
+  % \STATE else:
+  % \begin{ALC@g}
+  %   \STATE $\text{min\_new}\gets\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
+  % \end{ALC@g}
+    \STATE $\text{min\_new}\gets\text{min\_prev}$ if $t=k$, 
+else $\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
+  \label{line:MinOfTwo}
+  \STATE $\FCC_{k,t}\gets \text{min\_new} + \text{OnePiece}(y_t, \underline y, \overline y)$
+  \label{line:AddNew}
+\end{ALC@g}
+\STATE for segments $k$ from 1 to $K$: // decoding for every model size $k$
+\label{line:for-k-decoding}
+\begin{ALC@g}
+  \STATE $u^*,t',u'\gets \text{ArgMin}(\FCC_{k,n})$
+  \label{line:ArgMin}
+  \STATE $U_{k,k}\gets u^*;\, T_{k,k}\gets t'$ // store mean of segment $k$ and end of segment $k-1$
+  \label{line:decode-kk}
+  \STATE for segment $s$ from $k-1$ to $1$: // decoding for every segment $s<k$
+  \label{line:for-s-decoding}
+  \begin{ALC@g}
+    \STATE if $u' < \infty$: $u^*\gets u'$ // equality constraint active, $u_s = u_{s+1}$
+    \label{line:equality-constraint-active}
+    \STATE $t',u'\gets\text{FindMean}(u^*, \FCC_{s,t'})$
+    \label{line:FindMean}
+    \STATE $U_{k,s}\gets u^*;\, T_{k,s}\gets t'$ // store mean of segment $s$ and end of segment $s-1$
+    \label{line:decode-ks}
+  \end{ALC@g}
+\end{ALC@g}
+\caption{\label{algo:SNIR}Generalized Pruned Dynamic Programming
+  Algorithm (GPDPA) for solving the reduced isotonic regression
+  problem.}
+\end{algorithmic}
+\end{algorithm}
+
+Algorithm~\ref{algo:SNIR} begins by computing the min/max on
+line~\ref{line:min-max}.  The main storage of the algorithm is
+$\FCC_{k,t}$, which should be initialized as a $K\times n$ array of
+empty FunctionPieceList objects. The computation of $\FCC_{1,t}$ for
+all $t$ occurs on lines~\ref{line:init-1}--\ref{line:init-t}. 
+
+The dynamic programming updates occur in the for loops on
+lines~\ref{line:for-k-t}--\ref{line:AddNew}. Line~\ref{line:MinLess}
+uses the MinLess sub-routine to compute the temporary
+FunctionPieceList min\_prev (which represents the function
+$\FCC_{k-1,t-1}^\leq$). Line~\ref{line:MinOfTwo} sets the temporary
+FunctionPieceList min\_new to the cost of the only possible
+changepoint if $t=k$; otherwise, it uses the MinOfTwo sub-routine to
+compute the cost of the best changepoint for every possible mean
+value. Line~\ref{line:AddNew} adds the cost of data point $t$, and
+stores the resulting FunctionPieceList in $\FCC_{k,t}$.
+
+The decoding of the optimal segment mean $U$ (a $K\times K$ array of
+real numbers) and end $T$ (a $K\times K$ array of integers) variables
+occurs in the for loops on
+lines~\ref{line:for-k-decoding}--\ref{line:decode-ks}. For a given
+model size $k$, the decoding begins on line~\ref{line:ArgMin} by using
+the ArgMin sub-routine to solve $u^* = \argmin_u \FCC_{k,n}(u)$ (the
+optimal values for the previous segment end $t'$ and mean $u'$ are
+also returned). Now we know that $u^*$ is the optimal mean of the last
+($k$-th) segment, which occurs from data point $t'+1$ to $n$. These
+values are stored in $U_{k,k}$ and $T_{k,k}$
+(line~\ref{line:decode-kk}). And we already know that the optimal mean
+of segment $k-1$ is $u'$.  Note that the $u'=\infty$ flag means that
+the equality constraint is active
+(line~\ref{line:equality-constraint-active}). The decoding of the
+other segments $s<k$ proceeds using the FindMean sub-routine
+(line~\ref{line:FindMean}). It takes the cost $\FCC_{s,t'}$ of the
+best model in $s$ segments up to data point $t'$, finds the
+FunctionPiece that stores the cost of $u^*$, and returns the new
+optimal values of the previous segment end $t'$ and mean $u'$. The
+mean of segment $s$ is stored in $U_{k,s}$ and the end of segment
+$s-1$ is stored in $T_{k,s}$ (line~\ref{line:decode-ks}).
+
+The time complexity of Algorithm~\ref{algo:SNIR} is $O(K n I)$ where
+$I$ is the complexity of the MinLess and MinOfTwo sub-routines, which
+is linear in the number of intervals (FunctionPiece objects) that are
+used to represent the cost functions. There are pathological synthetic
+data sets for which the number of intervals $I=O(n)$, implying a
+time complexity of $O(K n^2)$. However, the average number
+of intervals in real data sets is empirically $I=O(\log n)$, so the
+average time complexity of Algorithm~\ref{algo:SNIR} is
+$O(K n \log n)$.
+
+\subsection{Min-less algorithm}
+
+The following sub-routines are used to implement the MinLess algorithm.
+
+\begin{itemize}
+\item $\text{GetCost}(p, u)$: an algorithm that takes a FunctionPiece
+  object $p$, and a mean value $u$, and computes the cost at $u$. For
+  a square loss FunctionPiece $p$ with coefficients $a,b,c\in\RR$, we
+  have $\text{GetCost}(p,u)=au^2+bu+c$.
+\item $\text{OptimalMean}(p)$: an algorithm that takes one
+  FunctionPiece object, and computes the optimal mean value. For a
+  square loss FunctionPiece $p$ we have
+  $\text{OptimalMean}(p)=-b/(2a)$.
+\item $\text{ComputeRoots}(p, d)$: an algorithm that takes one
+  FunctionPiece object, and computes the solutions to $p(u)=d$. For
+  the square loss we propose to use the quadratic formula. For other
+  convex losses that do not have closed form expressions for their
+  roots, we propose to use Newton's root finding method. Note that for
+  some constants $d$ there are no roots, and the algorithm needs to
+  report that.
+\item $f.\text{push\_piece}(\underline u, \overline u, p, u')$: push a
+  new FunctionPiece at the end of FunctionPieceList $f$, with
+  coefficients defined by FunctionPiece $p$, on interval
+  $[\underline u, \overline u]$, with previous segment mean set to
+  $u'$.
+\item $\text{ConstPiece}(c)$: sub-routine that initializes a
+  FunctionPiece $p$ with constant cost $c$ (for the square loss it
+  sets $a=b=0$ in $au^2 + bu + c$).
+\end{itemize}
+
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\STATE Input: The previous segment end $t_{\text{prev}}$ (an integer), 
+ and $f_{\text{in}}$ (a FunctionPieceList).
+\STATE Output: FunctionPieceList $f_{\text{out}}$, initialized as an empty list.
+\STATE $\text{prev\_cost} \gets\infty$
+\STATE $\text{new\_lower\_limit}\gets \text{LowerLimit}(f_{\text{in}}[0])$.
+\STATE $i\gets 0$; // start at FunctionPiece on the left
+\STATE while $i < $ Length($f_{\text{in}}$): // continue until FunctionPiece on the right
+\begin{ALC@g}
+  \STATE FunctionPiece $p\gets f_{\text{in}}[i]$
+  \STATE if prev\_cost = $\infty$: // look for min in this interval.
+  \begin{ALC@g}
+    \STATE $\text{candidate\_mean}\gets \text{OptimalMean}(p)$ 
+    \STATE if $\text{LowerLimit}(p)< \text{candidate\_mean} < \text{UpperLimit}(p)$:
+    \begin{ALC@g}
+      \STATE $\text{new\_upper\_limit}\gets \text{candidate\_mean}$ // Minimum found in this interval.
+      \STATE $\text{prev\_cost}\gets \text{GetCost}(p, \text{candidate\_mean})$
+      \STATE $\text{prev\_mean}\gets \text{candidate\_mean}$
+    \end{ALC@g}
+    \STATE else: // No minimum in this interval.
+    \begin{ALC@g}
+      \STATE 
+      $\text{new\_upper\_limit}\gets
+ \text{UpperLimit}(p)$
+    \end{ALC@g}
+    \STATE $f_{\text{out}}\text{.push\_piece}(\text{new\_lower\_limit},\text{new\_upper\_limit},p,\infty)$
+    \STATE $\text{new\_lower\_limit}\gets\text{new\_upper\_limit}$
+    \STATE $i\gets i+1$
+  \end{ALC@g}
+  \STATE else: // look for equality of $p$ and prev\_cost
+  \begin{ALC@g}
+    \STATE $(\text{small\_root},\text{large\_root})\gets\text{ComputeRoots}(p, \text{prev\_cost})$
+    \STATE if $\text{LowerLimit}(p) < \text{small\_root} < \text{UpperLimit}(p)$:
+    \begin{ALC@g}
+      \STATE $f_{\text{out}}\text{.push\_piece}(
+      \text{new\_lower\_limit}, 
+      \text{small\_root}, 
+      \text{ConstPiece}(\text{prev\_cost}), 
+      \text{prev\_mean})$
+      \STATE $\text{new\_lower\_limit}\gets \text{small\_root}$
+      \STATE $\text{prev\_cost}\gets \infty$ 
+    \end{ALC@g}
+    \STATE else: // no equality in this interval
+    \begin{ALC@g}
+      \STATE $i\gets i+1$ // continue to next FunctionPiece
+    \end{ALC@g}
+  \end{ALC@g}
+\end{ALC@g}
+  \STATE if $\text{prev\_cost} < \infty$: // ending on constant piece
+  \begin{ALC@g}
+    \STATE $f_{\text{out}}\text{.push\_piece}(
+    \text{new\_lower\_limit}, 
+    \text{UpperLimit}(p), 
+    \text{ConstPiece}(\text{prev\_cost}), 
+    \text{prev\_mean})$
+  \end{ALC@g}
+\STATE Set all previous segment end $t'=t_{\text{prev}}$  for all FunctionPieces in $f_{\text{out}}$
+\caption{\label{algo:minless}MinLess algorithm.}
+\end{algorithmic}
+\end{algorithm}
+
+Consider Algorithm~\ref{algo:minless} which contains pseudocode for
+the computation of the min-less operator. The algorithm initializes
+prev\_cost (line~3), which is a state variable that is used on line~8
+to decide whether the algorithm should look for a local minimum or an
+intersection with a finite cost. Since prev\_cost is initially set to
+$\infty$, the algorithm begins by following the convex function pieces
+from left to right until finding a local minimum. If no minimum is found in
+a given convex FunctionPiece (line~15), it is simply pushed on to the
+end of the new FunctionPieceList (line~16). If a minimum occurs within
+an interval (line~10), the cost and mean are stored (lines 11--12),
+and a new convex FunctionPiece is created with upper limit ending at
+that mean value (line~16). Then the algorithm starts looking for
+another FunctionPiece with the same cost, by computing the smaller
+root of the convex loss function (line~20). When a FunctionPiece is
+found with a root in the interval (line~21), a new constant
+FunctionPiece is pushed (line~22), and the algorithm resumes searching
+for a minimum. At the end of the algorithm, a constant FunctionPiece
+is pushed if necessary (line~28). The complexity of this algorithm is
+$O(I)$ where $I$ is the number of FunctionPiece objects in
+$f_\text{in}$.
+
+The algorithm which implements the min-more operator is
+analogous. Rather than searching from left to right, it searches from
+right to left. Rather than using the small root (line~21), it uses the
+large root.
+
+\subsection{Implementation details}
+
+Some implementation details that we found to be important:
+\begin{description}
+\item[Weights] for data sequences that contain repeats it is
+  computationally advantageous to use a run-length encoding of the
+  data, and a corresponding loss function. For example if the data
+  sequence 5,1,1,1,0,0,5,5 is encoded as $n=4$ counts $y_t$ 5,1,0,5 with
+  corresponding weights $w_t$ 1,3,2,2 then the Poisson loss function
+  for mean $\mu$ is $\ell(y_t, w_t, \mu) = w_t(\mu- y_t\log \mu)$.
+\item[Mean cost] The text defines $C_{k,t}$ functions as the total
+  cost. However for very large data sets the cost values will be very
+  large, resulting in numerical instability. To overcome this issue we
+  instead implemented update rules using the mean cost.  For weights
+  $W_{t}=\sum_{i=1}^t w_i$, the update rule to compute the mean cost is
+$$  C_{k,t}(\mu) = \frac{1}{W_{t}} \left[\ell(y_t, \mu) + 
+W_{t-1}
+\min\{ C_{k,t-1}(\mu),\, C_{k-1,t-1}^\leq(\mu)  \}\right]$$
+\item[Intervals in log(mean) space] For the Poisson model of
+  non-negative count data $y_t\in\{0,1,2,\dots\}$ there is no possible
+  mean $\mu$ value less than 0. We thus used $\log(\mu)$ values to
+  implement intervals in FunctionPiece objects. For example rather
+  than storing $\mu\in[0,1]$ we store $\log\mu\in[-\infty, 0]$.
+\item[Root finding] For the ComputeRoots sub-routine for the Poisson
+  loss, we used Newton root finding. For the larger root we solve
+  $a\log\mu + b\mu + c = 0$ (linear as $\mu\rightarrow\infty$) and for
+  the smaller root we solve $a x + be^x + c = 0$ ($x=\log \mu$, linear
+  as $x\rightarrow -\infty$ and $\mu\rightarrow 0$). We stop the root
+  finding when the cost is near zero (absolute cost value less
+  than $10^{-12}$).
+\item[Storage] Since the dynamic programming update rule for $C_{k,t}$
+  only depends on $C_{k-1,t-1}^\geq$ and $C_{k,t-1}$, these are the
+  only functions that need to be in memory, and the rest of the cost
+  functions can be stored on disk (until the decoding step). We used
+  the Berkeley DB Standard Template Library to store all the $C_{k,t}$
+  as a vector of FunctionPieceList objects.
+\end{description}
+
+\bibliographystyle{abbrvnat}
+\bibliography{refs}
+
+\end{document}
