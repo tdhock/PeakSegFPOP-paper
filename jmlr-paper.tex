@@ -11,6 +11,12 @@
 \usepackage{algorithm}
 \usepackage{algorithmic}
 \usepackage{fancyvrb}
+\definecolor{good}{HTML}{6A3D9A}
+\definecolor{bad}{HTML}{1F78B4}
+\definecolor{noPeaks}{HTML}{F6F4BF}
+\definecolor{peakStart}{HTML}{FFAFAF}
+\definecolor{peakEnd}{HTML}{FF4C4C}
+\definecolor{peaks}{HTML}{A445EE}
 \VerbatimFootnotes
 
 % provide arXiv number if available:
@@ -76,26 +82,21 @@ peak detection in genomic data}
 \begin{abstract}
   Peak detection is a central problem for genomic data, and involves
   segmenting counts of DNA sequence reads that are aligned to
-  different locations of a chromosome.  The goal is to detect peaks
+  different locations of a chromosome. The goal is to detect peaks
   with higher counts, and filter out background noise with lower
-  counts.  Most existing algorithms for this problem are heuristics
-  which are optimized for speed on
-  these large data sets, but which suffer from sub-optimal peak
-  detection accuracy.  In this paper we propose a new peak detection
-  method for large data, based on a maximum likelihood segmentation model with
-  %non-strict 
+  counts.  Most existing algorithms for this problem are unsupervised
+  heuristics which are optimized for speed on these large data sets,
+  but which suffer from sub-optimal peak detection accuracy.  In this
+  paper we propose a new peak detection method for large data, based
+  on a maximum likelihood segmentation model with
   inequality constraints between adjacent segment means.
-  % Previous dynamic programming algorithms for solving the
-  % unconstrained problem are based on the assumption that the mean of
-  % each segment is independent, so can not be used to solve the
-  % constrained problem.  
   We propose the first dynamic
   programming algorithm that is guaranteed compute the optimal
   solution to such constrained problems, despite the dependence
-  between mean parameters in neighboring segments.  We compared our
-  algorithm to several others in an analysis of ChIP-seq data sets,
+  between mean parameters in neighboring segments. We also propose a supervised learning algorithm for predicting the crucial penalty parameter, which determines the number of segments. We compare our
+  algorithms to several others in an analysis of ChIP-seq data sets,
   for which computation time and peak detection accuracy are primary
-  concerns. Our algorithm showed state-of-the-art peak detection
+  concerns. Our dynamic programming algorithm shows state-of-the-art peak detection
   accuracy, and log-linear timings (orders of magnitude faster than a
   previous quadratic time heuristic). Our work demonstrates that
   exact optimization algorithms for rigorous statistical changepoint
@@ -111,14 +112,17 @@ improving at a rapid pace, resulting in progressively bigger genomic
 data sets. Two common genome-wide assays are ChIP-seq, a genome-wide
 assay for histone modifications or transcription factor binding sites
 \citep{chip-seq}; and ATAC-seq, an Assay for Transposase-Accessible
-Chromatin which measures open chromatin \citep{ATACseq}. Briefly, each
+Chromatin which measures open chromatin \citep{ATACseq}. These
+experiments have been used to characterize the epigenome of samples in
+large-scale mapping projects such as ENCODE \citep{ENCODE}. Briefly, each
 assay yields a set of DNA sequence reads which are aligned to a
 reference genome, and then the number of aligned reads are counted at
-each genomic position (Figure~\ref{fig:data-models}).
+each genomic position (Figure~\ref{fig:data-models}). This results in
+a vector of non-negative integer counts $\mathbf y\in\ZZ_+^n$ over $n$
+positions.
 
-The size of these aligned read count data depends on the size of the
-chromosomes in the reference genome. For example, the largest
-chromosome in the human genome (hg19) is chr1, which has 249,250,621
+The size $n$ of these aligned read count data depends on the size of contiguous regions on chromosomes in the reference genome. For example, the largest
+chromosome in the human genome (hg19) is chr1, which has $n=249,250,621$
 bases (distinct positions at which the number of aligned reads is
 measured). Analysis of such data thus requires computationally
 efficient algorithms which scale to data sets of arbitrarily large
@@ -145,12 +149,12 @@ size.
 Although these read counts can be interpreted as quantitative data,
 they are most often interpreted using one of the many available peak
 detection algorithms \citep{evaluation2010, rye2010manually,
-  chip-seq-bench}. A peak detection algorithm is a binary classifier
+  chip-seq-bench}. A peak detection algorithm is a binary classifier $c(\mathbf y)\in\{0,1\}^n$
 for each genomic position, where peaks are the positive class, and
 background noise is the negative class. Importantly, peaks and
 background occur in long contiguous segments across the
 genome. Typical algorithms from the bioinformatics literature such as
-MACS \citep{MACS} and HMCan \citep{HMCan} are heuristics with several
+MACS \citep{MACS} and HMCan \citep{HMCan} are unsupervised heuristics with several
 parameters that affect peak detection accuracy (window/bin sizes,
 p-value thresholds, etc). Although such algorithms are fast for large
 data sets, they typically yield sub-optimal peak detection accuracy
@@ -169,9 +173,7 @@ global maximum of the corresponding likelihood.
 
 Recently \citet{cleynen2013segmentation} proposed a Pruned Dynamic
 Programming Algorithm (PDPA) for computing the most likely $K$ segment
-means (and $K-1$ changepoints) using a Poisson model for 
-%$n$ non-negative count
-data. This is computed for a range
+means (and $K-1$ changepoints) using a Poisson model. This is computed for a range
 of segments $K$, which acts as a regularization parameter. Small
 values of $K$ result in too few segments/peaks (false negative peak detections, underfitting), and
 large values of $K$ result in too many (false positive peak detections, overfitting). Oracle penalties
@@ -250,18 +252,17 @@ resolves both of these issues (Table~\ref{tab:contribution}).
 Section~\ref{sec:models} we define the optimal changepoint detection
 problems. The first problem is where there are no constraints between the
 segment-specific mean parameters. The second
-is where we impose a constraint, such as our up-down constraint,
-between the segment-specific mean for neighboring segments. Whilst
+is where we impose the up-down constraint
+between the means of neighboring segments. Whilst
 several efficient dynamic programming algorithms can solve the
 unconstrained minimization, we are unaware of equivalent dynamic
 programming algorithms for exactly solving the constrained version.
 Our main contribution is described in Section~\ref{sec:algorithms},
 where we generalize the functional pruning technique of
 \citet{pruned-dp} so that it can be applied to the constrained
-minimization problem (Table~\ref{tab:contribution}), leading to a new
-algorithm which we call the Generalized Pruned Dynamic Programming
-Algorithm (GPDPA). In Section~\ref{sec:results} we show that the GPDPA
-achieves state-of-the-art speed and peak detection accuracy in a
+minimization problem (Table~\ref{tab:contribution}), leading to the fast and optimal Generalized Pruned Dynamic Programming
+Algorithm (GPDPA). In Section~\ref{sec:labeled-supervised} we describe the labeled data sets and we propose a supervised learning algorithm for predicting the crucial penalty parameter, which determines the number of segments $K$. In Section~\ref{sec:results} we show that our proposed algorithms
+achieve state-of-the-art speed and peak detection accuracy in a
 benchmark of several ChIP-seq data sets. The paper ends with a
 discussion.
 
@@ -320,8 +321,10 @@ computed in $O(K n^2)$ time using a dynamic programming algorithm
 convex loss function $\ell$, the pruned dynamic programming algorithm
 of \citet{pruned-dp} computes the same optimal solution much faster;
 empirically having a computational cost that is $O(K n \log n)$.
-There are several other efficient algorithms that solve similar
-problems \citep{optimal-partitioning,flsa,phd-johnson,pelt,fpop}.
+Efficient algorithms exist for solving similar problems such
+as Optimal Partitioning
+\citep{optimal-partitioning,phd-johnson,pelt,fpop} and the Fused Lasso
+\citep{flsa}.
 
 
 \subsection{Up-down constrained changepoint model with $K$ segments}
@@ -359,12 +362,10 @@ number of segments $K$.
 Our contribution in this paper is proving
 that the functional pruning technique of \citet{pruned-dp} and
 \citet{fpop} can be generalized to constrained changepoint models such
-as (\ref{eq:segment-neighborhood-up-down}). Our
+as (\ref{eq:segment-neighborhood-up-down}). The
 resulting Generalized Pruned Dynamic Programming Algorithm (GPDPA)
-enjoys $O(Kn\log n)$ time complexity (on average in our empirical
-tests of real ChIP-seq data sets), and works for any changepoint model
-with affine constraints between adjacent segment means (including
-reduced isotonic regression and alternating up/down changes).
+computes the optimal solution to the up-down constrained changepoint model, and enjoys $O(Kn\log n)$ time complexity (on average in our empirical
+tests of real ChIP-seq data sets).
 
 \section{Dynamic programming algorithms for constrained
   changepoint models}
@@ -452,7 +453,7 @@ That yields the recursive update rule for the constrained  cost
 %\mathcal T_{K,n} &=& \argmin_{\tau\in\mathcal I_{K,n}} 
 %\mathcal L_{K-1,\tau}
 %+h^*_{\tau,n}\\
-\label{eq:dp-recursion-constrained}
+\label{eq:cdpa-recursion}
 c^*_{K,n} &=& \min_{\tau\in\mathcal I_{K,n}} 
 c^*_{K-1,\tau} + h^*_{\tau, n}
 %\mathcal L_{K-1,\mathcal T_{K,n}} + h^*_{\mathcal T_{K,n}, n}\\
@@ -468,9 +469,7 @@ update rule in the next section which is both faster and optimal.
 \subsection{Dynamic programming with functional pruning}
 \label{sec:functional-pruning}
 
-In this section we provide a summary of the main ideas of functional
-pruning for optimal changepoint detection; for a more complete
-discussion we refer the reader to \citep{fpop}. The key insight of
+The key insight of
 functional pruning is that the order of minimization can be reversed in
 (\ref{eq:classic-dp-recursion}). By taking out the minimization with
 respect to the last segment mean $u_K$, we obtain the following equation for the optimal cost in $K$ segments up to data point $n$,
@@ -502,7 +501,7 @@ $n-1$.
 %This results in a faster algorithm because the $\min\{\}$ operation in the update rule (\ref{eq:functional-recursion}) involves only two terms
 
 \paragraph{Modification for constraints.} 
-We begin by defining the functional cost for the up-down constrained problem,
+In this section we present our main contribution, which generalizes the functional pruning technique for the up-down constrained problem~(\ref{eq:segment-neighborhood-up-down}). We begin by defining the functional cost for the up-down constrained problem,
 \begin{align}
   \label{eq:segment-neighborhood-up-down-fun}
 C_{K,n}(u_K) = \min_{\substack{
@@ -533,13 +532,13 @@ h_{t_{K-1},n}(u_K)\\
   \end{cases}
   \nonumber
 \end{align}
-The equation above can be simplified using the min-less operator.
+We propose to simplify the equation above using the min-less operator:
 \begin{definition}[Min-less operator]
 \label{def:min-less}
   Given any real-valued function $f:\RR\rightarrow\RR$, we define its min-less
   operator as $f^\leq(\mu)=\min_{x\leq \mu} f(x)$.
 \end{definition}
-Let us consider the case of $K=2$. The equation above 
+Let us consider the case of $K=2$. The equation~(\ref{eq:segment-neighborhood-up-down-fun-recursion})
 simplifies to
 \begin{equation}
   \label{eq:segment-neighborhood-up-down-fun-recursion-K2}
@@ -605,7 +604,7 @@ $$
 C_{K-1,\tau}^\leq(u_{K}) + h_{\tau,n}(u_K),
   \end{equation}
   where the right term $h_{\tau,n}(u_K)$ is the cost of the last segment $K$,
-  and the left term $C_{K-1,\tau}^\leq(u_{K})$ is the  cost of all previous segments. Then taking out the cost of the last data point
+  and the left term $C_{K-1,\tau}^\leq(u_{K})$ is the  cost of all previous segments. Taking out the cost of the last data point
     $n$ results in
   \begin{eqnarray}
     C_{K,n}(u_K)&=&\ell(y_n, u_K) + \min
@@ -613,11 +612,12 @@ C_{K-1,\tau}^\leq(u_{K}) + h_{\tau,n}(u_K),
       C_{K-1,K-1}^\leq(u_{K}) + h_{K-1,n-1}(u_K),\, \dots,\\
       C_{K-1,n-2}^\leq(u_{K}) + h_{n-2,n-1}(u_K),\\
       C_{K-1,n-1}^\leq(u_{K})
-    \end{cases}\\
 \label{eq:many-min}
+    \end{cases}\\ 
 &=& \ell(y_n,u_K) + \min\{
-C_{K-1,n-1}^\leq(u_{K}),\,
-C_{K,n-1}(u_K)\}.
+C_{K,n-1}(u_K),\,
+C_{K-1,n-1}^\leq(u_{K})
+\}.
 \label{eq:last-equality}
   \end{eqnarray}
   The final equality~(\ref{eq:last-equality}) is obtained using the
@@ -647,7 +647,10 @@ C_{K,n-1}(u_K)\}.
   \label{fig:compare-unconstrained}
 \end{figure*}
 
-\paragraph{Intuition for speed of functional pruning.} To explain why
+\paragraph{Intuition for speed of functional pruning.} 
+In this section we provide a summary of the main ideas of functional
+pruning for optimal changepoint detection; for a more complete
+discussion we refer the reader to \citep{fpop}. To explain why
 the functional pruning approach results in a fast algorithm, we
 consider computing $C_{2,n}(u_2)$, the optimal cost up to data point
 $n$ with second segment mean $u_2$. Computing this function
@@ -667,15 +670,15 @@ by minimizing with respect to this reduced set of changepoints,
 \begin{equation}
   C_{2,n}(u_2) = 
 \min_{t_1\in\{1,\dots,n-1\}}
-\mathcal L_{2,n,t_1}(u_2)
+h_{t_1,n}(\mu)+C_{1,t_1}^\leq(\mu)
 =
 \min_{t_1\in\mathcal T_{2,n}}
-\mathcal L_{2,n,t_1}(u_2).
+h_{t_1,n}(\mu)+C_{1,t_1}^\leq(\mu).
 \end{equation}
 This pruning results in speed improvements because typically the
 number of candidate changepoints $|\mathcal T_{2,n}|$ is much smaller
 than $n$. For example in Figure~\ref{fig:min-envelope}, pruning at
-data point $t=35$ results in only one candidate changepoint. In
+data point $35$ results in only one candidate changepoint. In
 Section~\ref{sec:results_time}, we show that the empirical number of
 candidate changepoints in real ChIP-seq data sets is $O(\log n)$.
 
@@ -702,8 +705,8 @@ candidate changepoints in real ChIP-seq data sets is $O(\log n)$.
     % segments up to data point $t$ is computed using the min
     % $M_{k,t-1}$, which prunes intervals with sub-optimal cost (black
     % dots show interval limits). 
-    Demonstration of GPDPA for the peak detection model~(\ref{eq:PeakSeg-non-strict})
-    with $k=3$ segments. Cost functions are stored as piecewise
+    Demonstration of GPDPA for the up-down constrained model
+    with $3$ segments. Cost functions are stored as piecewise
     functions on intervals (black dots show limits between function
     pieces; each function piece represents a candidate changepoint). 
     \textbf{Left:} the min \textcolor{Min}{$M_{3,34}$} is the
@@ -845,16 +848,16 @@ Figure~\ref{fig:compare-unconstrained}), resulting in a change down
 from $u_1=2$.
 
 
-\subsection{Simple data for which GPDPA computes the optimal solution
-  but CDPA does not}
+\subsection{Simple data for which GPDPA is optimal
+  but CDPA is not} 
 
-The CDPA proposed by \citep{HOCKING-PeakSeg} is a heuristic for
+The CDPA update rule (\ref{eq:cdpa-recursion}) is a heuristic for
 solving the up-down constrained problem~(\ref{eq:segment-neighborhood-up-down}) because it is not
 guaranteed to compute the optimal solution. In this section we discuss
 two illustrative examples for which the CDPA does not compute the optimal
 solution, but our proposed GPDPA does.
 
-For the data set [1, 10, 14, 13] the CDPA fails to recover
+For the set of four data points [1, 10, 14, 13] the CDPA fails to recover
 the optimal solution for $K=3$ segments. In fact, the CDPA returns no
 model when run in the forward direction on this data set, and a
 sub-optimal model [5.5, 5.5, 14, 13] with Poisson loss of
@@ -870,45 +873,37 @@ lower cost.
 
 There are also data sets for which an optimum that satisfies the
 strict inequality constraints exists, but the CDPA does not recover
-it. See Supplementary Figure 2 for a detailed discussion of the data
-set [3, 9, 18, 15, 20, 2], for which the CDPA returns no model with
+it. See Supplementary Figure 2 for a detailed discussion of the 
+set of six data points [3, 9, 18, 15, 20, 2], for which the CDPA returns no model with
 $K=5$ segments. For these data, the optimal model [6, 6, 18, 15, 20,
 2] satisfies the strict inequality constraints, and is computed by our
 proposed GPDPA.
 
-\section{Results on peak detection in ChIP-seq data}
-\label{sec:results-chip-seq}
-\label{sec:results}
-
-\definecolor{good}{HTML}{6A3D9A}
-\definecolor{bad}{HTML}{1F78B4}
-\definecolor{noPeaks}{HTML}{F6F4BF}
-\definecolor{peakStart}{HTML}{FFAFAF}
-\definecolor{peakEnd}{HTML}{FF4C4C}
-\definecolor{peaks}{HTML}{A445EE}
-
+\section{Labeled data and supervised learning algorithm}
+\label{sec:labeled-supervised}
 
 The real data analysis problem that motivates this work is the
-detection of peaks in ChIP-seq data \citep{practical}. These
-experiments have been used to characterize the epigenome of samples in
-large-scale mapping projects such as ENCODE \citep{ENCODE}. ChIP-seq
-data measure histone modification or transcription factor binding
-throughout a genome, and are typically represented as a vector of
-non-negative counts $\mathbf y\in\ZZ_+^n$ of aligned sequence reads
-for $n$ continguous bases in a genome. Because the typical
-``coverage'' profile counts a sequence read at each genomic position
-where it aligns, the data usually have spatial correlation, but this
-does not significantly affect the peaks detected by our method (see
-Supplementary Figure 3). This is consistent with theoretical results
-of \citet{Lavielle-Moulines} which suggest that correlated noise does
-not have a large effect on changepoint model estimates (a larger
-penalty compensates for the spatial correlation). Typical data sizes are
-between $n=10^5$ (maximum of the benchmark we consider) and $n=10^8$
-(largest region with no gaps in the human genome hg19). Algorithms
-with sub-quadratic time complexity are thus essential for the analysis
-of such large data sets.
-
-The main challenge in ChIP-seq data analysis is peak detection, which
+detection of peaks in ChIP-seq data \citep{practical},
+% ChIP-seq
+% data measure histone modification or transcription factor binding
+% throughout a genome, and are typically represented as a vector of
+% non-negative counts $\mathbf y\in\ZZ_+^n$ of aligned sequence reads
+% for $n$ continguous bases in a genome. 
+% Because the typical
+% ``coverage'' profile counts a sequence read at each genomic position
+% where it aligns, the data usually have spatial correlation, but this
+% does not significantly affect the peaks detected by our method (see
+% Supplementary Figure 3). This is consistent with theoretical results
+% of \citet{Lavielle-Moulines} which suggest that correlated noise does
+% not have a large effect on changepoint model estimates (a larger
+% penalty compensates for the spatial correlation). 
+% Typical data sizes are
+% between $n=10^5$ (maximum of the benchmark we consider) and $n=10^8$
+% (largest region with no gaps in the human genome hg19). Algorithms
+% with sub-quadratic time complexity are thus essential for the analysis
+% of such large data sets.
+%The main challenge in ChIP-seq data analysis is peak detection, 
+which
 is essentially partitioning a noisy data vector $\mathbf y$ into peaks and
 background. Thus a peak detector can be represented as a function
 $c(\mathbf y)\in\{0,1\}^n$ for binary classification at every base
@@ -935,8 +930,120 @@ class is background noise (small values).
   \label{fig:good-bad}
 \end{figure*}
 
+\subsection{Peak region labels for genomic data sets}
 
-\subsection{Evaluating peak detection using labeled data sets}
+More specifically, we consider the \emph{supervised} peak detection problem,
+in which the peak prediction algorithm can be trained using manually
+determined labels that indicate presence/absence of peaks
+\citep{HOCKING2016-chipseq}. In this context, a data set
+consists of $M$ problems $\mathbf y_1,\dots,\mathbf y_M$
+along with labels $L_1,\dots, L_M$ that identify genomic regions with
+and without peaks (Figure~\ref{fig:good-bad}). 
+These labels can be
+used to compute an error rate $E[c(\mathbf y_m), L_m]$ which is the
+total of false positives (labels with too many predicted peaks) plus
+false negatives (labels with not enough predicted peaks) for a given
+labeled data vector $m$. Ideal peak predictions would yield zero
+incorrect labels (for example see Figure~\ref{fig:good-bad}).
+
+
+\subsection{Supervised learning algorithm 
+for predicting the penalty}
+
+For the optimal changepoint detection algorithms (CDPA, PDPA, GPDPA),
+predicting peaks simplifies to selecting the number of
+segments/changepoints. For a given problem $m$, let
+$\mathbf y_m\in\ZZ_+^{n_m}$ be the data, let
+$\mathbf{\hat y}^k\in\RR^{n_m}$ be the estimated mean vector with $k$
+segments, and let $\ell(\mathbf y_m, \mathbf{\hat y}^k_m)$ be the
+total Poisson loss (summed over all $n_m$ data). We use the following
+function to select the number of segments for a given
+problem $m$ and non-negative penalty parameter $\lambda$:
+\begin{equation}
+  \kappa_m(\lambda)=\argmin_{k} \ell(\mathbf y_m, \mathbf{\hat y}^k_m)
++ \lambda \mathcal C(\mathbf{\hat y}^k_m),
+\end{equation} 
+where $\mathcal C$ is a function that measures model complexity. We consider using the simple linear model complexity function $\mathcal C(\mathbf{\hat y}^k_m)=k$ as well as the oracle model complexity
+proposed by \citet{cleynen2013segmentation},
+\begin{equation}
+\mathcal C(\mathbf{\hat y}^k_m) =
+k\left(
+1 + 4\sqrt{1.1 + \log( n_m/k)}
+\right)^2.
+\end{equation}
+The oracle model complexity is motivated by statistical arguments, but
+the constants (4, 1.1) may be sub-optimal in real genomic data, which
+is why we also investigate learned penalty functions.
+
+The main idea of penalty learning \citep{HOCKING-penalties} is to
+computed a fixed feature vector $\mathbf x_m\in\RR^p$ for each problem
+$m$, then learn a function $f(\mathbf x_m)\in\RR$ that predicts
+problem-specific $\log\lambda$ values:
+\begin{equation}
+  \label{eq:learn-f}
+  \minimize_{f}
+  \sum_{m=1}^M E\left[
+    c(\mathbf y_m, \kappa_m(\exp f(\mathbf x_m))), 
+    L_m\right],
+\end{equation}
+where $c(\mathbf y_m, k)\in\{0,1\}^{n_m}$ is the peak prediction
+vector for the model with $k$ segments. The goal in~(\ref{eq:learn-f}) is to find the penalty function $f$ that
+minimizes the total number of incorrect labels. This problem is non-convex, so we learn $f$ using
+the L1-regularized linear model and convex relaxation previously
+described \citep{HOCKING-penalties}. We used the implementation in R
+package penaltyLearning, and $p=365$ features which depend on the data
+size $n_m$, mean, standard deviation, quantiles, etc.
+
+To compare with a baseline, we also consider learning a constant
+function $f(\mathbf x_m)=\log\lambda$ for all problems $m$:
+ \begin{equation}
+  \label{eq:learn-lambda}
+  \minimize_{\lambda}
+  \sum_{m=1}^M E\left[
+    c(\mathbf y_m, \kappa_m(\lambda)), 
+    L_m\right].
+\end{equation}
+In this case we perform the minimization using grid search over 200 $\lambda$
+values evenly placed on the log scale between $10^{-2}$ and $10^{4}$.
+
+% where $\mathcal K_m$ is the set of models which are feasible for the
+% strict inequality constraints, $\mathbf{\hat y}^k_m$ is the estimated
+% mean vector with $k$ segments, and $\lambda$ is a non-negative penalty
+% constant that controls the false positive rate (larger penalties
+% result in fewer peaks and thus fewer false positives). For a given
+% constant $\lambda$, let $c^{K_m^\lambda}(\mathbf y_m)\in\{0,1\}^{n_m}$
+% be the predicted peak vector. The problem thus simplifies to learning
+% a scalar penalty constant $\lambda$ (which is varied in order to
+% compute ROC/AUC),
+% \begin{equation}
+%   \label{eq:learn-lambda}
+%   \minimize_{\lambda}
+%   \sum_{i=1}^m E\left[
+%     c^{K_m^\lambda}(\mathbf y_m), 
+%     L_m\right].
+% \end{equation}
+% We performed the minimization in
+% (\ref{eq:learn-lambda}) via grid search (compute the total training error $E$
+% for a grid of $\lambda$ values, then choose the value which results in
+% the minimum). Multi-parameter affine penalty functions could further
+% increase prediction accuracy \citep{HOCKING-penalties}, but we
+% observed that learning a single penalty constant is sufficient for
+% state-of-the-art accuracy in these data sets
+% (Figure~\ref{fig:test-error-dots}). Another reason for using grid
+% search is that we wanted to perform a fair comparison with two
+% baseline methods from the bioinformatics literature, which we also
+% trained using grid search.
+
+\subsection{Evaluation of peak predictions using labels}
+
+We consider two accuracy metrics based on the labels. First we 
+
+
+\section{Results on peak detection in ChIP-seq data}
+\label{sec:results-chip-seq}
+\label{sec:results}
+
+\subsection{Benchmark data set}
 
 The seven labeled ChIP-seq data sets that we consider in this paper were originally
 described by \citet{HOCKING2016-chipseq}, and are freely available on
@@ -956,24 +1063,15 @@ samples, 5 monocyte samples, and 1 bcell sample). Accurate peak
 detection in these data is important in order to characterize active
 regions in each sample and cell type (e.g. H3K36me3 peak predicted at
 a particular genomic region in tcell but not in monocyte samples).
+Labels in these data were determined
+by an expert biologist, who used visual inspection of the data to
+determine presence or absence of significant peaks in particular
+genomic regions. It has been shown that these types of labels are
+quite stable, and do not change much, even if we change the expert who
+determines the labels \citep{HOCKING2016-chipseq}. 
 
-These ChIP-seq data sets are significant because they contain manually
-determined labels that can be used to compute error rates of peak
-detection algorithms, as described by \citet{HOCKING2016-chipseq}. In
-this context, a ChIP-seq data set consists of $m$ count data vectors
-$\mathbf y_1,\dots,\mathbf y_m$ along with labels $L_1,\dots, L_m$
-that identify genomic regions with and without peaks
-(Figure~\ref{fig:good-bad}). Labels were determined by an expert
-biologist, who used visual inspection of the data to determine
-presence or absence of significant peaks in particular genomic
-regions. It has been shown that these types of labels are quite
-stable, and do not change much, even if we change the expert who
-determines the labels \citep{HOCKING2016-chipseq}. These labels can
-be used to compute an error rate $E[c(\mathbf y_i), L_i]$ which is the
-total of false positives (labels with too many predicted peaks) plus
-false negatives (labels with not enough predicted peaks) for a given
-labeled data vector $i$. Ideal peak predictions would yield zero
-incorrect labels (for example see Figure~\ref{fig:good-bad}).
+
+
 
 \subsection{Algorithms to compare and rules for defining peaks}
 
@@ -1044,23 +1142,23 @@ bioinformatics literature.
   baseline because it has been shown to achieve state-of-the-art peak
   detection accuracy for sharp H3K4me3 histone mark data
   \citep{HOCKING-PeakSeg}. We computed peaks using 53 different qvalue
-  parameters from 0 (few peaks) to 0.8 (many peaks).
+  parameters from 0 (few peaks) to 0.8 (many peaks). We kept other parameters at default values.
 \item[HMCanBroad] is a another heuristic algorithm with unknown time
   complexity \citep{HMCan}. We consider it as a baseline because it
   has been shown to achieve state-of-the-art peak detection accuracy
   for broad H3K36me3 histone mark data \citep{HOCKING-PeakSeg}. We
   computed peaks using 112 different finalThreshold parameters from
-  $10^{-10}$ (few peaks) to $10^5$ (many peaks).
+  $10^{-10}$ (few peaks) to $10^5$ (many peaks). We kept other parameters at default values.
 \end{description}
 
 \subsection{Feasibility and optimality in ChIP-seq data}
 
+In this section we compare the changepoint algorithms (PDPA, CDPA,
+GPDPA) in terms of optimality and feasibility for the up-down
+constrained segmentation problem (with strict inequality constraints).
 For each of the 2752 labeled count data vectors, we attempt to compute
 models with 0, ..., 9 peaks, so there are a total of 27520 possible
-models for each algorithm (unconstrained PDPA, heuristic CDPA,
-proposed GPDPA). In this section we compare these models in terms of
-optimality and feasibility for the up-down constrained segmentation
-problem (with strict inequality constraints).
+models for each algorithm.
 
 The heuristic CDPA computed the most feasible models
 (27469/27520=99.8\%), followed by our proposed GPDPA
@@ -1100,19 +1198,21 @@ for the up-down strict inequality constrants (but GPDPA does).
 
 \subsection{Comparison of minimum train error}
 
-The ChIP-seq benchmark contains 2752 count data vectors $\mathbf y_i$ with
-corresponding labels $L_i$. We used the labels to compare the
-algorithms in terms of total minimum train error, as follows.
+In the last section we examined how the algorithms fit the data sets
+using the Poisson loss. However the more important
+measure of fit in these benchmark data is the number of incorrect
+labels $L_m$. We used the labels to compare the algorithms in terms
+minimum train error, as follows.
 
 For each problem $i$, and a given algorithm $A$, we computed a
 sequence of $M$ peak models
-$c^A_1(\mathbf y_i),\dots,c^A_M(\mathbf y_i)$ (varying number of
+$c^A_1(\mathbf y_m),\dots,c^A_M(\mathbf y_m)$ (varying number of
 segments $K$ for changepoint algorithms, qvalue/finalThreshold for
 baselines). For each problem $i$ and peak model
 $m\in\{1,\dots,M\}$, we computed the number of incorrect labels
-$E[c^A_m(\mathbf y_i), L_i]$. For each problem $i$ we then compute
+$E[c^A_m(\mathbf y_m), L_m]$. For each problem $i$ we then compute
 the minimum number of incorrect labels over all parameters,
-$E^A_i=\min_m E[c^A_m(\mathbf y_i), L_i]$.  
+$E^A_m=\min_m E[c^A_m(\mathbf y_m), L_m]$.  
 
 \begin{figure}
   \centering
@@ -1128,7 +1228,7 @@ $E^A_i=\min_m E[c^A_m(\mathbf y_i), L_i]$.
   \label{fig:PDPA-infeasible-error-compare}
 \end{figure} 
 
-We compare the distribution of min error differences $E_i^a-E_i^A$
+We compare the distribution of min error differences $E_m^a-E_m^A$
 between pairs of algorithms $A,a$ in
 Figure~\ref{fig:PDPA-infeasible-error-compare}. Each comparison shown
 results in a
@@ -1327,9 +1427,9 @@ and then ROC curves and AUC were computed for each fold ID.
 The ChIP-seq benchmark consists of seven labeled histone data
 sets.
 % \citep{HOCKING2016-chipseq}. 
-Overall there are 2752 labeled count data vectors $\mathbf y_i$ to segment,
+Overall there are 2752 labeled count data vectors $\mathbf y_m$ to segment,
 varying in size from $n=87$ to $n=263169$ data. For each count data
-vector $\mathbf y_i$, we ran each algorithm (CDPA, PDPA, GDPDA) with a
+vector $\mathbf y_m$, we ran each algorithm (CDPA, PDPA, GDPDA) with a
 maximum of $K=19$ segments, allowing at most 9 peaks (one for
 each even-numbered segment), which is more than enough in these
 relatively small data sets. To analyze the empirical time complexity,
@@ -1428,50 +1528,6 @@ to use for the very large data sets that are now common in the field of genomics
   \label{fig:test-error-dots}
 \end{figure*}
 
-For the optimal changepoint detection algorithms (CDPA, PDPA, GPDPA),
-the prediction problem for a count data vector
-$\mathbf y_i\in\ZZ_+^{n_i}$ simplifies to selecting the number of
-segments $K_i\in \{1, 3,\dots, 19\}$ for each data vector $i$.
-We select the number of segments
-using the oracle penalty proposed by \citet{cleynen2013segmentation},
-\begin{equation}
-  K_i^\lambda=\argmin_{k\in \mathcal K_i} \underbrace{\ell(\mathbf y_i, \mathbf{\hat y}^k_i)}_{\text{total Poisson loss}} 
-+ \lambda 
-\underbrace{
-k\left(
-1 + 4\sqrt{1.1 + \log( n_i/k)}
-\right)^2
-}_{\text{
-oracle model complexity
-}}
-\end{equation}
-where $\mathcal K_i$ is the set of models which are feasible for the
-strict inequality constraints, $\mathbf{\hat y}^k_i$ is the estimated
-mean vector with $k$ segments, and $\lambda$ is a non-negative penalty
-constant that controls the false positive rate (larger penalties
-result in fewer peaks and thus fewer false positives). For a given
-constant $\lambda$, let $c^{K_i^\lambda}(\mathbf y_i)\in\{0,1\}^{n_i}$
-be the predicted peak vector. The problem thus simplifies to learning
-a scalar penalty constant $\lambda$ (which is varied in order to
-compute ROC/AUC),
-\begin{equation}
-  \label{eq:learn-lambda}
-  \minimize_{\lambda}
-  \sum_{i=1}^m E\left[
-    c^{K_i^\lambda}(\mathbf y_i), 
-    L_i\right].
-\end{equation}
-We performed the minimization in
-(\ref{eq:learn-lambda}) via grid search (compute the total training error $E$
-for a grid of $\lambda$ values, then choose the value which results in
-the minimum). Multi-parameter affine penalty functions could further
-increase prediction accuracy \citep{HOCKING-penalties}, but we
-observed that learning a single penalty constant is sufficient for
-state-of-the-art accuracy in these data sets
-(Figure~\ref{fig:test-error-dots}). Another reason for using grid
-search is that we wanted to perform a fair comparison with two
-baseline methods from the bioinformatics literature, which we also
-trained using grid search.
 
 To demonstrate that changepoint detection algorithms are more accurate
 than typical heuristics, we also
