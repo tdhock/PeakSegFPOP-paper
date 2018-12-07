@@ -85,24 +85,22 @@ peak detection in genomic data}
   different locations of a chromosome. The goal is to detect peaks
   with higher counts, and filter out background noise with lower
   counts.  Most existing algorithms for this problem are unsupervised
-  heuristics which are optimized for speed on these large data sets,
-  but which suffer from sub-optimal peak detection accuracy.  In this
-  paper we propose a new peak detection method for large data, based
-  on a maximum likelihood segmentation model with
-  inequality constraints between adjacent segment means.
-  We propose the first dynamic
-  programming algorithm that is guaranteed compute the optimal
-  solution to such constrained problems, despite the dependence
-  between mean parameters in neighboring segments. We also propose a supervised learning algorithm for predicting the crucial penalty parameter, which determines the number of segments. We compare our
-  algorithms to several others in an analysis of ChIP-seq data sets,
-  for which computation time and peak detection accuracy are primary
-  concerns. Our dynamic programming algorithm shows state-of-the-art peak detection
-  accuracy, and log-linear timings (orders of magnitude faster than a
-  previous quadratic time heuristic). Our work demonstrates that
-  exact optimization algorithms for rigorous statistical changepoint
-  models can now be used on the large genomic data sets that are now
-  common. Our implementation is available in the PeakSegOptimal
-  package on CRAN.
+  heuristics tailored to patterns in specific data types. We propose a
+  supervised framework for this problem, using optimal changepoint
+  detection models with learned penalty functions. We propose the
+  first dynamic programming algorithm that is guaranteed compute the
+  optimal solution to changepoint detection problems with constraints
+  between adjacent segment mean parameters. We also propose a
+  supervised learning algorithm for predicting the crucial penalty
+  parameter, which determines the number of segments. We compare our
+  algorithm to several baselines in a benchmark of labeled ChIP-seq
+  data sets with two different patterns (broad H3K36me3 data and sharp
+  H3K4me3 data). Whereas baseline unsupervised methods only provide
+  accurate peak detection for a single pattern, our supervised method
+  achieves state-of-the-art accuracy in all data sets. The log-linear
+  timings of our proposed dynamic programming algorithm make it
+  scalable to the large genomic data sets that are now common. Our
+  implementation is available in the PeakSegOptimal R package on CRAN.
 \end{abstract}
 
 \section{Introduction}
@@ -157,7 +155,7 @@ genome. Typical algorithms from the bioinformatics literature such as
 MACS \citep{MACS} and HMCan \citep{HMCan} are unsupervised heuristics with several
 parameters that affect peak detection accuracy (window/bin sizes,
 p-value thresholds, etc). Although such algorithms are fast for large
-data sets, they typically yield sub-optimal peak detection accuracy
+data sets, they are typically accurate only for a specific data/pattern type (e.g. MACS works for sharp H3K4me3 but not broad H3K36me3 data)
 \citep{HOCKING2016-chipseq}.
 
 Hidden Markov Models (HMMs) with common mean parameters for the peak
@@ -194,9 +192,10 @@ interpreted as background, and even-numbered segments can be
 interpreted as peaks.
 %In contrast to heuristic algorithms such as MACS and HMCan, PeakSeg has only one parameter that affects peak detection accuracy (the number of segments $K$). 
 In a recent comparison study, \citet{HOCKING2016-chipseq} showed that
-this heuristic algorithm achieves state-of-the-art peak detection
-accuracy in a benchmark of several ChIP-seq data sets. This
-constrained model is further justified by the statistical arguments of
+this algorithm achieves state-of-the-art peak detection accuracy in a
+benchmark of ChIP-seq data sets which include both broad
+H3K36me3 and sharp H3K4me3 data/patterns. This constrained model is
+further justified by the statistical arguments of
 \citet{minimax-changepoint}, who show that using shape constraints can
 reduce the minimal risk bounds; with these being $O(\log \log n)$ for
 estimating changes in mean under a monotone constraint as compared to
@@ -227,7 +226,7 @@ $O(\log n)$ without the constraint.
     & \citet{HOCKING-PeakSeg} & \textbf{This paper} \\
     \hline
   \end{tabular}
-  \caption{Our contribution is 
+  \caption{Our main contribution is 
 the Generalized Pruned Dynamic Programming Algorithm (GPDPA), 
  which uses a functional pruning technique 
     to compute the constrained optimal $K-1$ changepoints 
@@ -263,7 +262,7 @@ where we generalize the functional pruning technique of
 minimization problem (Table~\ref{tab:contribution}), leading to the fast and optimal Generalized Pruned Dynamic Programming
 Algorithm (GPDPA). In Section~\ref{sec:labeled-supervised} we describe the labeled data sets and we propose a supervised learning algorithm for predicting the crucial penalty parameter, which determines the number of segments $K$. In Section~\ref{sec:results} we show that our proposed algorithms
 achieve state-of-the-art speed and peak detection accuracy in a
-benchmark of several ChIP-seq data sets. The paper ends with a
+benchmark of ChIP-seq data sets. The paper ends with a
 discussion.
 
 \section{Unconstrained and Constrained Changepoint Models}
@@ -532,7 +531,7 @@ h_{t_{K-1},n}(u_K)\\
   \end{cases}
   \nonumber
 \end{align}
-We propose to simplify the equation above using the min-less operator:
+A key new idea of our paper is that the equation~(\ref{eq:segment-neighborhood-up-down-fun-recursion}) can be simplified using the min-less operator:
 \begin{definition}[Min-less operator]
 \label{def:min-less}
   Given any real-valued function $f:\RR\rightarrow\RR$, we define its min-less
@@ -560,8 +559,7 @@ theorem, which states the update rules used in our proposed algorithm.
 
 \begin{theorem}[Generalized Pruned Dynamic Programming Algorithm/GPDPA]
 \label{thm:gpdpa}
-  The optimal cost functions $C_{K,n}$ can be recursively computed
-  using these update rules.
+  The constrained optimal cost functions $C_{K,n}$ can be recursively computed.
 \begin{enumerate}
 \item For $K=1$ we have
 $C_{1,1}(\mu)=\ell(y_1,\mu)$, and for the other data
@@ -736,16 +734,19 @@ linked list of FunctionPiece objects in C++ (for details see
 Supplementary Text 1). Each element of the linked list represents a
 convex cost function piece, and implementation details depend on the
 choice of the loss function $\ell$ (for an example using the square
-loss see Section~\ref{sec:example-comparison}). Whilst each
-$C_{k,t}(\mu)$ is defined for $\mu \in \RR$, we can show that the
-optimal choice of any segment mean must lie within the range of the
-data. Thus we first calculate the minimum and maximum of the data and
-then only calculate each $C_{k,t}(\mu)$ for $\mu$ between these two
-values.
+loss see Section~\ref{sec:example-comparison}). Importantly, the
+min-less $C_{k,t}^\leq$ and min-more $C_{k,t}^\geq$ operators (Definitions~\ref{def:min-less} and \ref{def:min-more}) can be efficiently computed using this
+representation.
+
+% Whilst each
+% $C_{k,t}(\mu)$ is defined for $\mu \in \RR$, we can show that the
+% optimal choice of any segment mean must lie within the range of the
+% data. Thus we first calculate the minimum and maximum of the data and
+% then only calculate each $C_{k,t}(\mu)$ for $\mu$ between these two
+% values.
 
 The functional pruning is accomplished by the
-$\min\{\}$ operation in update rule~3 of Theorem~\ref{thm:gpdpa}. In
-particular, $C_{k-1,t-1}^\leq(\mu)$ is the cost if segment $k-1$
+$\min\{\}$ operation in update rule~3 of Theorem~\ref{thm:gpdpa}. For example if $k$ is even, $C_{k-1,t-1}^\leq(\mu)$ is the cost if segment $k-1$
 ends on data point $t-1$, and $C_{k,t-1}(\mu)$ is the cost of a
 changepoint before that. In the $\min\{\}$ operation, these two
 functions are compared, and pruning occurs for any cost function
@@ -815,7 +816,7 @@ Figure~\ref{fig:compare-unconstrained}),
     0 + 0 u_2 + 0 u_2^2 & \text{ if }u_2\in[2,4],\,  u_1=2.
   \end{cases}
 \end{equation}
-This function can be stored as a list of two intervals of $\mu$
+This function can be stored as a list of two intervals of mean
 values, each with associated real-valued coefficients. To facilitate
 recovery of the optimal parameters, we also store the previous segment
 mean $u_1$ and endpoint (for details see Supplementary
@@ -905,7 +906,7 @@ detection of peaks in ChIP-seq data \citep{practical},
 % of such large data sets.
 %The main challenge in ChIP-seq data analysis is peak detection, 
 which
-is essentially partitioning a noisy data vector $\mathbf y$ into peaks and
+is essentially partitioning a noisy count data vector $\mathbf y\in\ZZ_+^n$ into peaks and
 background. Thus a peak detector can be represented as a function
 $c(\mathbf y)\in\{0,1\}^n$ for binary classification at every base
 position. The positive class is peaks (genomic regions with large
@@ -956,8 +957,8 @@ For the optimal changepoint detection algorithms (CDPA, PDPA, GPDPA),
 predicting peaks simplifies to selecting the number of
 segments/changepoints. For a given problem $m$, let
 $\mathbf y_m\in\ZZ_+^{n_m}$ be the data, let
-$\mathbf{\hat y}^k\in\RR^{n_m}$ be the estimated mean vector with $k$
-segments, and let $\ell(\mathbf y_m, \mathbf{\hat y}^k_m)$ be the
+$\mathbf{\hat y}_m^k\in\RR^{n_m}$ be the mean vector with $k$
+segments computed via dynamic programming, and let $\ell(\mathbf y_m, \mathbf{\hat y}^k_m)$ be the
 total Poisson loss (summed over all $n_m$ data). We use the following
 function to select the number of segments for a given
 problem $m$ and non-negative penalty parameter $\lambda$:
@@ -990,12 +991,15 @@ problem-specific $\log\lambda$ values:
     L_m\right],
 \end{equation}
 where $c(\mathbf y_m, k)\in\{0,1\}^{n_m}$ is the peak prediction
-vector for the model with $k$ segments. The goal in~(\ref{eq:learn-f}) is to find the penalty function $f$ that
-minimizes the total number of incorrect labels. This problem is non-convex, so we learn $f$ using
+vector for the model with $k$ segments. The goal in~(\ref{eq:learn-f})
+is to find the penalty function $f$ that minimizes the total number of
+incorrect labels. This problem is non-convex, so we learn $f$ using
 the L1-regularized linear model and convex relaxation previously
-described \citep{HOCKING-penalties}. We used the implementation in R
-package penaltyLearning, and $p=365$ features which depend on the data
-size $n_m$, mean, standard deviation, quantiles, etc.
+described \citep{HOCKING-penalties}. We used $d=365$ features which
+depend on the data size $n_m$, mean, standard deviation, quantiles,
+etc. Specifically, we used the penaltyLearning R
+package to compute the feature matrix and learn the L1-regularized
+linear model.
 
 To compare with a baseline, we also consider learning a constant
 function $f(\mathbf x_m)=\log\lambda$ for all problems $m$:
@@ -1077,7 +1081,7 @@ genomic regions.
 % determines the labels \citep{HOCKING2016-chipseq}. 
 
 \subsection{Algorithms to compare and rules for defining peaks}
-
+\label{sec:algos-rules}
 We used the following changepoint detection algorithms to compute
 models with $K\in\{1,\dots,19\}$ segments (0 to 9 peaks) on each of
 the 2752 labeled ChIP-seq data sets:
@@ -1115,7 +1119,7 @@ effectively has two consecutive up changes for models with
 $K\in\{7,9\}$ segments. The unconstrained
 problem~(\ref{eq:segment-neighborhood}) also may result in a model
 with several consecutive up changes (Figure~\ref{fig:data-models}). In general, when the model does
-not satisfy the up-down constraint, we consider three rules for
+not satisfy the strict up-down constraints, we consider three rules for
 defining the predicted peaks:
 \begin{description}
 \item[Join] Peaks are defined by joining segments with
@@ -1154,7 +1158,7 @@ bioinformatics literature.
   kept other parameters at default values.
 \end{description}
 
-\subsection{GPDPA is more often feasible/optimal than other algorithms}
+\subsection{GPDPA is more often feasible/optimal than other changepoint algorithms}
 
 In this section we compare the changepoint algorithms (PDPA, CDPA,
 GPDPA) in terms of optimality and feasibility for the up-down
@@ -1176,8 +1180,8 @@ sets, our proposed GPDPA is more accurate than the heuristic CPDA, in terms of t
 Furthermore, these results suggest
 that GPDPA is more useful than the unconstrained PDPA, since there are
 many cases for which PDPA does not compute models that are feasible
-for the up-down strict inequality constrants (but GPDPA does).
-%Numbers come from figure-PDPA-cDPA-compare.R
+for the strict up-down inequality constrants (but GPDPA does).
+%Numbers come from figure-PDPA-cDPA-compare.R 
 
 % \subsection{Minimum train error in ChIP-seq data}
 
@@ -1199,23 +1203,45 @@ for the up-down strict inequality constrants (but GPDPA does).
 % the previous state-of-the-art PeakSegDP method.
 
 
-\subsection{GPDPA fits labels best in terms of minimum train error}
+\subsection{GPDPA fits labels better than baselines in terms of minimum train error}
+\label{sec:min-train-error}
 
 In the last section we examined how the algorithms fit the data sets
 using the Poisson loss. However the more important
 measure of fit in these benchmark data is the number of incorrect
 labels $L_m$. We used the labels to compare the algorithms in terms of
 minimum train error, as follows.
-
 For each problem $m$, and a given algorithm $A$, we computed a
 sequence of $P$ peak models
 $c^A_1(\mathbf y_m),\dots,c^A_P(\mathbf y_m)$ (varying number of
 segments $K$ for changepoint algorithms, qvalue/finalThreshold for
-baselines). For each problem $m$ and peak model
-$p\in\{1,\dots,P\}$, we computed the number of incorrect labels
-$E[c^A_p(\mathbf y_m), L_m]$. For each problem $m$ we then compute
-the minimum incorrect labels over all parameters,
-$E^A_m=\min_p E[c^A_p(\mathbf y_m), L_m]$.  
+baselines). For each problem $m$ and peak model $p\in\{1,\dots,P\}$,
+we computed the number of incorrect labels
+$E[c^A_p(\mathbf y_m), L_m]$. For each problem $m$ we then compute the
+minimum incorrect labels over all parameters,
+$E^A_m=\min_p E[c^A_p(\mathbf y_m), L_m]$. 
+
+An algorithm $A$ with a perfect fit to the labels would be able to
+achieve $E^A_m=0$ errors for each problem $m$. This is not always
+possible in real data, due to the distribution of the labels, and the
+definition of the models. However, we were interested to determine
+which algorithms were able to achieve the fewest number of incorrect
+labels. In order to determine which algorithms were best able to fit
+the labels, we therefore compare the distribution of min error differences
+$E_m^a-E_m^A$ between pairs of algorithms $a,A$ in
+Figure~\ref{fig:PDPA-infeasible-error-compare}. Each comparison shown
+results in a statistically significant difference ($\text{p-value}<10^{-4}$,
+two-sided paired Wilcoxon signed rank test).
+% from figure-PDPA-infeasible-error-compare.R
+%                   Comparison      p.wilcox       p.prop     p.skellam
+% 1: GPDPA-PDPA\n(Remove rule)  1.951843e-68 2.949422e-36  1.088183e-33
+% 2:   GPDPA-PDPA\n(Join rule)  1.191972e-62 2.780887e-28  2.445545e-26
+% 3: GPDPA-PDPA\n(Ignore rule)  2.493754e-90 2.997466e-60  1.456916e-54
+% 4:        GPDPAremove-MACS\n  3.512020e-43 1.773443e-53  3.180890e-49
+% 5:  GPDPAremove-HMCanBroad\n 4.472252e-199 0.000000e+00 7.967436e-284
+% 6:        GPDPAremove-CDPA\n  2.248093e-05 3.222532e-01  3.281037e-01
+% 7:        Remove-Join\nGPDPA  4.630299e-05 3.222532e-01  3.281037e-01
+% 8:        Join-Ignore\nGPDPA  4.415176e-16 2.830037e-03  3.594214e-03
 
 \begin{figure}
   \centering
@@ -1231,35 +1257,42 @@ $E^A_m=\min_p E[c^A_p(\mathbf y_m), L_m]$.
   \label{fig:PDPA-infeasible-error-compare}
 \end{figure} 
 
-We compare the distribution of min error differences $E_m^a-E_m^A$
-between pairs of algorithms $A,a$ in
-Figure~\ref{fig:PDPA-infeasible-error-compare}. Each comparison shown
-results in a
-statistically significant difference ($p<10^{-4}$, two-sided Wilcoxon
-signed rank test). 
 
-From the top panel of Figure~\ref{fig:PDPA-infeasible-error-compare},
-it is clear that the up-down constrained GPDPA is more accurate than
-the unconstrained PDPA, using any of the three peak definition rules
-(Ignore, Join, Remove). This is strong evidence that the up-down
-constraint is essential for accurate peak detection.
 
-From the middle panel of
-Figure~\ref{fig:PDPA-infeasible-error-compare}, it is clear that the
-proposed GPDPA (with Remove rule) is generally more accurate than the
-baselines (MACS, HMCanBroad, CDPA). For example, there are 590
-problems for which GPDPA achieves fewer incorrect labels than MACS,
-but only 204 problems for which MACS achieves fewer incorrect labels
-than GPDPA. This is strong evidence that the proposed GPDPA detects
-peaks more accurately than previous baseline algorithms.
+Because it enforces the up-down constraints, we expected the GPDPA to
+be more accurate than the unconstrained PDPA. In agreement with our
+expectation, we observed that the up-down constrained GPDPA is indeed
+more accurate than the unconstrained PDPA (top panel of
+Figure~\ref{fig:PDPA-infeasible-error-compare}), using
+any of the three peak definition rules (Ignore, Join, Remove). This is
+strong evidence that the up-down constraint is essential for accurate
+peak detection.
 
-From the bottom panel of
-Figure~\ref{fig:PDPA-infeasible-error-compare}, it is clear that the
-Remove rule is more accurate than Join, which is more accurate than
-Ignore. This is strong evidence that the Remove rule should be used
-for accurate peak detection when the GPDPA solution contains active
-equality constraints.
+We expected the GPDPA to be just as accurate as the CDPA, and more
+accurate than the other baselines. In fact, we observed that the
+proposed GPDPA (with Remove rule) is generally more accurate than all
+the other algorithms (MACS, HMCanBroad, CDPA, middle panel of
+Figure~\ref{fig:PDPA-infeasible-error-compare}). The largest
+difference was for HMCanBroad (GPDPA better for 1219 problems, no
+difference for 1494 problems, HMCanBroad better for 39 problems). The
+smallest difference was for CDPA (GPDPA better for 48 problems, no
+difference for 2689 problems, HMCanBroad better for 39 problems). Overall these data provide strong evidence that the proposed GPDPA detects peaks more
+accurately than previous baseline algorithms.
 
+When the GPDPA model has active equality constraints, we proposed
+three rules for defining peaks (Ignore, Remove, Join, as discussed in
+Section~\ref{sec:algos-rules}), and we did not have any expectation as
+to which of these rules would be most accurate in real data. We
+observed that the Join rule is always at least as accurate as the
+Ignore rule (bottom panel of
+Figure~\ref{fig:PDPA-infeasible-error-compare}), which indicates that
+the Ignore rule should not be used in practice. Furthermore we
+observed that Remove is more accurate than Join (Remove better for 51
+problems, no difference for 2683 problems, Join better for 18
+problems). These data suggest that the Remove rule should be used for
+accurate peak detection when the GPDPA solution contains active
+equality constraints. So for the computational cross-validation
+experiments in the next sections, we used the Remove rule.
 
 % \begin{table}
 %   \centering
@@ -1268,17 +1301,6 @@ equality constraints.
 %   \label{tab:min-train-error}
 % \end{table}
 
-
-% from figure-PDPA-infeasible-error-compare.R
-%                   Comparison      p.wilcox       p.prop     p.skellam
-% 1: GPDPA-PDPA\n(Remove rule)  1.951843e-68 2.949422e-36  1.088183e-33
-% 2:   GPDPA-PDPA\n(Join rule)  1.191972e-62 2.780887e-28  2.445545e-26
-% 3: GPDPA-PDPA\n(Ignore rule)  2.493754e-90 2.997466e-60  1.456916e-54
-% 4:        GPDPAremove-MACS\n  3.512020e-43 1.773443e-53  3.180890e-49
-% 5:  GPDPAremove-HMCanBroad\n 4.472252e-199 0.000000e+00 7.967436e-284
-% 6:        GPDPAremove-CDPA\n  2.248093e-05 3.222532e-01  3.281037e-01
-% 7:        Remove-Join\nGPDPA  4.630299e-05 3.222532e-01  3.281037e-01
-% 8:        Join-Ignore\nGPDPA  4.415176e-16 2.830037e-03  3.594214e-03
 
 
 
@@ -1348,7 +1370,7 @@ equality constraints.
 % feasibility, and optimality of the three optimization-based
 % implementations (Segmentor, PeakSegDP, coseg).
 
-\subsection{Empirical time complexity in ChIP-seq data}
+\subsection{GPDPA has log-linear time complexity empirically}
 \label{sec:results_time}
 
 Overall there are 2752 labeled count data vectors $\mathbf y_m$ to segment,
@@ -1371,18 +1393,17 @@ changepoints) stored in the $C_{k,t}$ cost functions
 \citep{pruned-dp-new}. We observed that the number of intervals stored
 by the GPDPA increases as a sub-linear function of the number of data
 points $n$ (left panel of Figure~\ref{fig:timings}). For the largest data
-set ($n=263169$), the algorithm stored only median=16 and maximum=43
-intervals (median and maximium computed over all cost functions
+set ($n=263169$), the algorithm stored only mean=16 and maximum=43
+intervals (mean and maximium computed over all cost functions
 $C_{k,t}$ so is deterministic for a given data set). The most
-intervals stored was 253 for one data set with $n=7776$. These results
+intervals stored in any single $C_{k,t}$ function was 253 for one data set with $n=7776$. These results
 suggest that our proposed GPDPA stores on average only $O(\log n)$
 intervals (possible changepoints), as in the original PDPA. The
 overall empirical time complexity is thus $O(K n \log n)$ for $K$
 segments and $n$ data points.
 
 We recorded the timings of each algorithm for computing models with up
-to $K=19$ segments (a total of 10 peak models $k\in\{1,3,\dots,19\}$,
-from 0 to 9 peaks). Since $K$ is constant, the expected time
+to $K=19$ segments. Since $K$ is constant, the expected time
 complexity was $O(n^2)$ for the CDPA and $O(n \log n)$ for the PDPA
 and GPDPA. In agreement with these expectations, our proposed GPDPA
 shows $O(n\log n)$ asymptotic timings similar to the PDPA (right panel of
@@ -1407,6 +1428,7 @@ to use for the very large data sets that are now common in the field of genomics
 
 
 \subsection{GPDPA is more accurate than baselines in terms of test AUC}
+\label{sec:test-auc}
 
 We wanted to compare the peak detection accuracy of our proposed
 algorithm with others from the bioinformatics literature, which
@@ -1520,21 +1542,6 @@ and then ROC curves and test AUC were computed for each fold ID.
   \label{fig:test-auc}
 \end{figure*}
 
-\begin{figure*}[t!]
-  \centering 
-  \includegraphics[width=\textwidth]{figure-test-error-dots-parameters}
-  \vskip -0.5cm
-  \caption{Four-fold cross-validation was used to estimate peak
-    prediction accuracy. Each panel shows one of seven ChIP-seq data
-    sets, labeled by pattern/experiment (Broad H3K36me3), labeler
-    (AM), cell types (immune), and number of possible false positives
-    (fp) and false negatives (fn). It is clear that supervised models
-    are generally more accurate than unsupervised, and multi-parameter
-    models are generally more accurate than single parameter models. }
-  \label{fig:test-accuracy}
-\end{figure*}
-
-
 % To demonstrate that changepoint detection algorithms are more accurate
 % than typical heuristics, we also
 % compared with the MACS and HMCanBroad methods \citep{MACS,
@@ -1576,7 +1583,7 @@ CDPA and GPDPA yield comparable test AUC in all seven data sets
 % 6:   H3K4me3_TDH_other 0.25594687 -0.0016846727 0.9841230 0.9858077
 % 7:   H3K4me3_XJ_immune 0.01999439 -0.0159414879 0.8966547 0.9125962
 In five of the seven data sets,
-there was no significant difference in test AUC (p-value$>0.2$ in
+there was no significant difference in test AUC ($\text{p-value}>0.2$ in
 two-sided paired $t_3$-test). In one of the two other data sets
 (H3K4me3 PGP immune), the GPDPA (mean AUC=0.873) was slightly less
 accurate than the CDPA (mean AUC=0.887, p-value=0.056); in the other
@@ -1621,24 +1628,142 @@ these methods in terms of test AUC.
 
 We consider learning a one-parameter penalty function consisting of a
 constant penalty $\lambda$, given either the linear or oracle model
-complexity function. The second row of Supplementary Figure 4 plots
-the distribution of test AUC values for one model complexity function
-versus the other. For all three changepoint algorithms (CDPA, GPDPA,
-PDPA), the linear penalty has a slightly larger test AUC ($p>0.05$ in
-paired $t_{27}$-test). These data indicate that the linear model
-complexity function should be preferred for accurate peak
-detection in genomic data.
+complexity function. We expected the oracle model complexity to result
+in higher test AUC, because of its statistical motivation. The second
+row of Supplementary Figure 4 plots the distribution of test AUC
+values for one model complexity function versus the other. Contrary to
+our expectation, for all three changepoint algorithms (CDPA, GPDPA,
+PDPA), the linear penalty has a slightly larger test AUC (mean
+difference from 0.00004 to 0.0006 over all 28 test folds, not significant,
+$\text{p-value}>0.05$ in paired $t_{27}$-test). These data indicate
+that, despite the statistical arguments that motivate the oracle model
+complexity, it is not more accurate than the simple linear model
+complexity for peak detection in real genomic data.
 
 We also compare learning a penalty function with either one or
-multiple parameters, given the linear model complexity function. The
-first row of Supplementary Figure 4 plots the distribution of test AUC
-values for one penalty function versus the other. For all three
-changepoint algorithms, the multi-parameter penalty function has a
-significantly larger test AUC ($p<0.07$). These data indicate that
-learning a multi-parameter penalty function should be preferred for
-accurate peak detection in genomic data.
+multiple parameters, given the linear model complexity function. We
+expected higher test AUC for the penalty function with multiple
+parameters. The first row of Supplementary Figure 4 plots the
+distribution of test AUC values for one penalty function versus the
+other. In agreement with our expectation, for all three changepoint
+algorithms, the multi-parameter penalty function has a significantly
+larger test AUC (mean difference from 0.003 to 0.005,
+$\text{p-value}<0.07$). These data indicate that learning a
+multi-parameter penalty function should be preferred for accurate peak
+detection in genomic data.
 
-\subsection{TODO test accuracy}
+\subsection{Supervised is more accurate than unsupervised model traning}
+\label{sec:test-accuracy}
+Unsupervised algorithms are common for peak detection in genomic data,
+and our changepoint penalty learning method is to the best of our
+knowledge the first supervised method for this problem. We therefore
+wanted to demonstrate the superior accuracy of the supervised
+approach. In this section, we compare supervised and unsupervised
+algorithms in terms of percent correctly predicted labels in four-fold
+cross-validation experiments on each of the seven data sets.
+ 
+First, we compared supervised single-parameter learning (grid search
+on a peak detection threshold) with unsupervised
+learning (keeping that threshold at the suggested default value). For
+unsupervised learning, default significance thresholds were used for
+HMCanBroad (finalThreshold=10) and MACS (qvalue=0.05); elbow/hinge
+heuristic for oracle penalty was used for PDPA/CDPA/GPDPA, as
+implemented in Segmentor3IsBack R package
+\citep{cleynen2013segmentation}. We expected that supervised learning
+would result in more accurate peak predictions. In agreement with
+these expectations, we observed that supervised learning had
+significantly higher test accuracy than unsupervised learning for
+almost every algorithm and data set (Supplementary Figure~5). The only
+exception was in data set H3K36me3 TDH other, for which the
+unsupervised GPDPA and CDPA were slightly more accurate (mean
+difference of 6.9--8.2\% accuracy, not significant,
+$\text{p-value}>0.3$ in paired $t_3$-test). This makes sense because
+that data set has the fewest labels (200) to learn from, whereas the
+other data sets had at least three times as many labels
+(630--3834). Overall these data suggest that supervised learning
+should be preferred for accurate peak detection, especially when there
+are several hundred or more labels.
+% > pval.vised[order(estimate, p.value)]
+%                 algo.fac            set.name    estimate      p.value
+%  1:      GPDPA(proposed)  H3K36me3_TDH_other -8.24404762 0.3001819117
+%  2:  CDPA(previous best)  H3K36me3_TDH_other -6.90476190 0.4053890380
+%  3:       MACS(baseline)  H3K4me3_PGP_immune -0.18936515 0.1876193578
+%  4:       MACS(baseline)  H3K4me3_TDH_immune -0.18070685 0.6524463582
+%  5: HMCanBroad(baseline)  H3K4me3_PGP_immune -0.03056261 0.9483889468
+%  6:      GPDPA(proposed)  H3K4me3_TDH_immune  0.18909616 0.9105565797
+%  7: HMCanBroad(baseline)  H3K4me3_TDH_immune  0.49049867 0.4853719594
+%  8: HMCanBroad(baseline)   H3K4me3_XJ_immune  1.05251230 0.1304387805
+%  9:      GPDPA(proposed)  H3K4me3_PGP_immune  1.05292332 0.6062642662
+% 10:       MACS(baseline)   H3K4me3_XJ_immune  1.39147889 0.1754710720
+% 11:  CDPA(previous best)  H3K4me3_TDH_immune  1.45740287 0.6129652579
+% 12:       MACS(baseline)  H3K36me3_TDH_other  1.62202381 0.3445014627
+% 13:      GPDPA(proposed)   H3K4me3_TDH_other  1.70579331 0.4432551334
+% 14:  CDPA(previous best)   H3K4me3_TDH_other  2.31334667 0.4799962260
+% 15:  CDPA(previous best)  H3K4me3_PGP_immune  2.56645725 0.2106380401
+% 16:       MACS(baseline)  H3K36me3_AM_immune  2.63454943 0.0063024134
+% 17: HMCanBroad(baseline)   H3K4me3_TDH_other  4.67030993 0.0391255673
+% 18:       MACS(baseline)   H3K4me3_TDH_other  7.36696942 0.0123899067
+% 19: HMCanBroad(baseline)  H3K36me3_AM_immune 10.31913336 0.0065854723
+% 20:      GPDPA(proposed)   H3K4me3_XJ_immune 10.61857895 0.0304047826
+% 21:  PDPA(unconstrained)  H3K4me3_PGP_immune 11.00403038 0.0312535074
+% 22:      GPDPA(proposed)  H3K36me3_AM_immune 11.17811134 0.0006260584
+% 23:       MACS(baseline) H3K36me3_TDH_immune 11.92640693 0.0030592324
+% 24:  CDPA(previous best)  H3K36me3_AM_immune 11.94355564 0.0006525856
+% 25:  PDPA(unconstrained)  H3K4me3_TDH_immune 13.76208091 0.0686503988
+% 26:  CDPA(previous best)   H3K4me3_XJ_immune 15.08611759 0.0085225312
+% 27: HMCanBroad(baseline)  H3K36me3_TDH_other 16.50297619 0.0455251964
+% 28:  PDPA(unconstrained)   H3K4me3_TDH_other 17.18070094 0.0470722767
+% 29:  CDPA(previous best) H3K36me3_TDH_immune 18.60853432 0.0428782343
+% 30:      GPDPA(proposed) H3K36me3_TDH_immune 18.60853432 0.0428782343
+% 31:  PDPA(unconstrained)  H3K36me3_AM_immune 18.89105862 0.0400622259
+% 32:  PDPA(unconstrained)  H3K36me3_TDH_other 21.25000000 0.2237478578
+% 33:  PDPA(unconstrained)   H3K4me3_XJ_immune 21.37378054 0.0112876939
+% 34: HMCanBroad(baseline) H3K36me3_TDH_immune 23.78478664 0.0080498031
+% 35:  PDPA(unconstrained) H3K36me3_TDH_immune 34.11564626 0.0030426713
+%                 algo.fac            set.name    estimate      p.value
+% > 
+
+We also expected that learning multi-parameter penalty functions would
+result in higher percent accuracy rates than single-parameter penalty
+functions. In agreement with this expectation, we observed that
+multiple parameters was at least as accurate as single parameters for
+every data set and algorithm (Supplementary Figure~5). For example,
+the GPDPA with multiple penalty parameters was significantly more
+accurate on two data sets (mean difference of 1--3\% accuracy,
+$\text{p-value}<0.05$ in paired $t_3$-test). Overall these data
+suggest that the current state-of-the-art for peak detection in
+labeled genomic data sets is achieved by the GPDPA with
+multi-parameter supervised penalty learning.
+% > pval.params[p.value>0.05]
+%                algo.fac            set.name    estimate    p.value
+%  1: PDPA(unconstrained)  H3K4me3_PGP_immune -3.84720383 0.07839404
+%  2: CDPA(previous best)  H3K36me3_TDH_other -2.97619048 0.69442493
+%  3:     GPDPA(proposed)  H3K4me3_PGP_immune -2.90087267 0.08488953
+%  4: CDPA(previous best)   H3K4me3_XJ_immune -2.24078391 0.31281799
+%  5:     GPDPA(proposed)  H3K36me3_TDH_other -2.08333333 0.80102936
+%  6:     GPDPA(proposed)  H3K36me3_AM_immune -0.07837171 0.88889532
+%  7:     GPDPA(proposed)   H3K4me3_XJ_immune -0.01208668 0.99391432
+%  8: CDPA(previous best)  H3K36me3_AM_immune  0.03291194 0.95617200
+%  9: PDPA(unconstrained) H3K36me3_TDH_immune  0.17006803 0.87288857
+% 10: PDPA(unconstrained)   H3K4me3_XJ_immune  0.63357938 0.83302349
+% 11: CDPA(previous best) H3K36me3_TDH_immune  1.36672851 0.23630707
+% 12:     GPDPA(proposed) H3K36me3_TDH_immune  1.36672851 0.23630707
+% 13: PDPA(unconstrained)  H3K36me3_AM_immune  3.92990464 0.20069319
+% 14: PDPA(unconstrained)  H3K36me3_TDH_other 16.90476190 0.09957996
+% > pval.params[p.value<0.05]
+%               algo.fac           set.name   estimate     p.value
+% 1: PDPA(unconstrained) H3K4me3_TDH_immune -7.5930692 0.022333755
+% 2: PDPA(unconstrained)  H3K4me3_TDH_other -7.5023091 0.006671425
+% 3: CDPA(previous best) H3K4me3_TDH_immune -3.2080761 0.004810735
+% 4:     GPDPA(proposed) H3K4me3_TDH_immune -2.8750227 0.022657299
+% 5: CDPA(previous best) H3K4me3_PGP_immune -2.7905288 0.036023329
+% 6: CDPA(previous best)  H3K4me3_TDH_other -2.0295823 0.044339164
+% 7:     GPDPA(proposed)  H3K4me3_TDH_other -0.9593083 0.045158010
+% > 
+
+
+
+
 
 % \begin{table}[b!]
 %   \centering
@@ -1665,46 +1790,54 @@ Algorithms for changepoint detection can be classified in terms of
 time complexity, optimality, constraints, and pruning techniques
 (Table~1). In this paper, we investigated generalizing the functional
 pruning technique originally discovered by \citet{pruned-dp} and
-\citet{phd-johnson}. We showed that the functional pruning technique can
-be used to compute optimal changepoints subject to constraints
-on the directions of changes.
+\citet{phd-johnson}. Our main contribution was showing that the
+functional pruning technique can be used to compute optimal
+changepoints subject to constraints on the directions of changes
+(Section~\ref{sec:algorithms}, Theorem~\ref{thm:gpdpa}), which results in
+an efficient Generalized Pruned Dynamic Programming Algorithm (GPDPA).
 
-We showed that our proposed Generalized Pruned Dynamic Programming
-Algorithm (GPDPA) enjoys the same log-linear $O(Kn\log n)$ time
+We showed that the GPDPA enjoys the same log-linear $O(Kn\log n)$ time
 complexity as the original unconstrained PDPA, when applied to peak
-detection in ChIP-seq data sets (Figure~\ref{fig:timings}). However,
-we observed that the up-down constrained GPDPA is much more accurate
-than the unconstrained PDPA (Figure~\ref{fig:test-error-dots}). These
-results suggest that the up-down constraint is necessary for computing
-a changepoint model with optimal peak detection accuracy. Indeed, we
-observed that the GPDPA enjoys the same state-of-the-art accuracy as
-the previous best, the relatively slow quadratic $O(Kn^2)$ time
-CDPA.
+detection in ChIP-seq data sets (Section~\ref{sec:results_time},
+Figure~\ref{fig:timings}). We also observed that the up-down
+constrained GPDPA is much more accurate than the unconstrained PDPA,
+in terms of min train error (Section~\ref{sec:min-train-error},
+Figure~\ref{fig:PDPA-infeasible-error-compare}), test AUC
+(Section~\ref{sec:test-auc}, Figure~\ref{fig:test-auc}), and test
+accuracy (Section~\ref{sec:test-accuracy}, Supplementary
+Figure~5). These results suggest that the up-down constraint is
+necessary for computing a changepoint model with optimal peak
+detection accuracy. Indeed, we observed that the GPDPA enjoys the same
+state-of-the-art accuracy as the previous best, the relatively slow
+quadratic $O(Kn^2)$ time CDPA.
 
 We observed that the heuristic algorithms which are popular in the
-bioinformatics literature (MACS, HMCanBroad) are much less accurate peak detectors
-than the optimal changepoint detection algorithms (CDPA, PDPA,
-GPDPA). In the past these sub-optimal heuristics have been preferred
-because of their speed. For example, the CDPA took 2 hours to compute
-10 peak models in the largest data set in the ChIP-seq benchmark,
-whereas the GPDPA took 2 minutes, and the MACS heuristic took 1
-minute. Using our proposed GPDPA, it is now possible to compute highly
-accurate models in an amount of time that is comparable to heuristic
-algorithms. Our proposed GPDPA can now be used as an optimal
-alternative to heuristic algorithms, even for large data sets. 
-For \emph{any} model with $P$ peaks, our GPDPA with $K=2P+1$ segments can be used to compute 
-a more likely (or equally likely) set of peaks (in terms of the Poisson likelihood 
-of the piecewise constant model with a segment for each peak and background region).
+bioinformatics literature (MACS, HMCanBroad) are much less accurate
+than the proposed GPDPA, in terms of min train error, test AUC, and
+test accuracy. In the past these sub-optimal heuristics have been
+preferred because of their speed. For example, the CDPA took 2 hours
+to compute 10 peak models in the largest data set in the ChIP-seq
+benchmark, whereas the GPDPA took 2 minutes, and the MACS heuristic
+took 1 minute. Using our proposed GPDPA, it is now possible to compute
+highly accurate models in an amount of time that is comparable to
+heuristic algorithms. Our proposed GPDPA can now be used as an optimal
+alternative to heuristic algorithms, even for large data
+sets. Additionally, for \emph{any} model with $P$ peaks, due to the optimality of the GPDPA, it can be used 
+with $K=2P+1$ segments to compute a more likely (or
+equally likely) set of peaks (in terms of the Poisson likelihood of
+the piecewise constant model with a segment for each peak and
+background region).
 
 The framework we have introduced for estimating changepoints when
 there are constraints on parameters of neighboring segments can be
-applied more widely. For example, ideas from an early draft of this
-paper \citep{Hocking-constrained-changepoint-detection} have already
-been used to impose the constraint of positive changes that are
-observed in neuro spike train data \citep{Jewell2018}. More generally,
-constrained changepoint detection models will be interesting to
-explore in the context of other data such as time series and
-statistical process monitoring.
+applied in other fields than genomics. For example, ideas from an
+early draft of this paper
+\citep{Hocking-constrained-changepoint-detection} have already been
+used to obtain an efficient and optimal algorithm for computing a model with non-decreasing change constraints in
+neuro spike train data \citep{Jewell2018}. More generally, constrained
+changepoint detection models will be interesting to explore in the
+context of other data such as time series and statistical process
+monitoring.
  
 \section{Reproducible Research Statement}
 
@@ -1721,7 +1854,7 @@ sponsored by the Natural Sciences and Engineering Research Council
 (NSERC), Genome Canada (GC), the Canadian Institutes of Health
 Research (CIHR) and the Canada Foundation for Innovation (CFI). Paul
 Fearnhead acknowledges EPSRC grant EP/N031938/1 (StatScale).
-Guillem Rigaill acknowledges an ATIGE grant from G\'enopole.
+Guillem Rigaill acknowledges an ATIGE  grant from G\'enopole.
 
 % \begin{supplement}[id=suppA]
 %   \sname{Supplement A}

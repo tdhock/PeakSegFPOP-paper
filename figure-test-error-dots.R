@@ -26,7 +26,8 @@ test.counts[, FPR := fp/possible.fp]
 possible.counts <- test.counts[algorithm==algorithm[1] & train.type=="supervised", {
   list(
     possible.fn=sum(possible.tp),
-    possible.fp=sum(possible.fp)
+    possible.fp=sum(possible.fp),
+    labels=sum(labels)
     )
 }, by=list(set.name)]
 
@@ -190,8 +191,10 @@ leg <- ggplot()+
   theme(panel.margin=grid::unit(0, "cm"),
         legend.position=c(0.8, 0.3))+
   coord_equal(xlim=c(0,1.2))+
-  scale_x_continuous("FPR = False Positive Rate of predicted peaks relative to gold standard labels from biologist", breaks=seq(0, 1, by=0.2))+
-  scale_y_continuous("TPR = True Positive Rate of predicted peaks relative to gold standard labels from biologist", breaks=seq(0, 1, by=0.2))+
+  scale_x_continuous("FPR = False Positive Rate of predicted peaks
+relative to gold standard labels from biologist", breaks=seq(0, 1, by=0.2))+
+  scale_y_continuous("TPR = True Positive Rate of predicted peaks
+relative to gold standard labels from biologist", breaks=seq(0, 1, by=0.2))+
   geom_path(aes(
     FPR, TPR,
     color=algorithm,
@@ -217,7 +220,7 @@ leg <- ggplot()+
       data.table(x=0.37, xend=0.37, y=0.45, yend=0.6),
       data.table(x=0.25, xend=0.01, y=0.01, yend=0.01))
   })
-pdf("figure-test-error-dots-ROC-supp.pdf",8,8)
+pdf("figure-test-error-dots-ROC-supp.pdf",8,7)
 print(leg)
 dev.off()
 png("figure-test-error-dots-ROC-supp.png",800,800,res=100)
@@ -299,6 +302,22 @@ all.vised <- rbind(
     parameters="one",
     train.type,
     set.name, set.i, algo.fac, percent.accuracy)])
+wide.params <- dcast(
+  all.vised[train.type=="supervised" & grepl("DPA", algo.fac)],
+  algo.fac + set.name + set.i ~ parameters,
+  value.var="percent.accuracy")
+(pval.params <- wide.params[, { #negative estimate is better for several params
+  t.res <- t.test(one, several, paired=TRUE)
+  with(t.res, data.table(estimate, p.value))
+}, by=list(algo.fac, set.name)][order(estimate)])
+wide.vised <- dcast(
+  all.vised[parameters=="one"],
+  algo.fac + set.name + set.i ~ train.type,
+  value.var="percent.accuracy")
+(pval.vised <- wide.vised[, {
+  t.res <- t.test(supervised, unsupervised, paired=TRUE)
+  with(t.res, data.table(estimate, p.value))
+}, by=list(algo.fac, set.name)][order(set.name, algo.fac)])
 mean.vised <- all.vised[, list(
   mean.percent=mean(percent.accuracy),
   sd=sd(percent.accuracy),
@@ -384,8 +403,7 @@ gg.acc <- ggplot()+
     count.dt <- possible.counts[df$set.name]
     df$set.name <- paste0(
       gsub("_", "\n", df$set.name),
-      "\n", count.dt$possible.fp, " possible fp",
-      "\n", count.dt$possible.fn, " possible fn")
+      "\n", count.dt$labels, " labels")
     df
   })+
   scale_y_discrete(

@@ -50,7 +50,7 @@ each peak and mean coverage in nearby background. We observed that the
 mean of the nearby background increases as the mean of the peak
 increases, which suggests that a uniform/constant mean would not be a
 good model of these data.
-
+\newpage
 \section*{Supplementary Figure 2: details of example where CDPA fails}
 
 Consider computing the 5 segment up-down constrained model for the set
@@ -115,6 +115,10 @@ The best cost in 2 segments up to data point 3 is defined as:
                   C^\leq_{1,2}(u_2) & \text{ if } t_1=2
                 \end{cases}
 \end{equation}
+
+\newpage
+
+
 The GPDPA computes the roots of $C_{2,2}(u_2)-C^\leq_{1,2}(u_2)$ in
 order to find their intersection at $u_2\approx15.41$, so the best
 cost in 2 segments up to data point 3 simplifies to:
@@ -159,7 +163,7 @@ points $C_{5,6}$). In contrast, the CDPA computes a scalar min cost of
 a non-decreasing change after the first data point (red circle in the
 plot above, $u_2=13.5, u_1=3, t_1=1$), and discards the possibility of
 a non-decreasing change after the second data point (which ends up
-being optimal).
+being optimal). The CDPA is thus a greedy algorithm.
 
 % \section*{Supplementary Figure 3: constrained changepoint detection is insensitive to spatial correlation}
 
@@ -196,9 +200,7 @@ typically report many false positive peaks using default parameter
 settings. Therefore in a typical analysis, to control
 the false positive rate, the default peak list is pruned by only
 considering the top $p$ peaks, according to some likelihood or
-significance threshold. For example, the MACS algorithm of
-\citet{MACS} uses a q-value threshold parameter, and the HMCanBroad
-algorithm of \citet{HMCan} uses a finalThreshold parameter (higher
+significance threshold. For example, the MACS algorithm uses a q-value threshold parameter, and HMCanBroad uses a finalThreshold parameter (higher
 thresholds result in more false positives). 
 
 To account for this pruning step is our evaluation, we used Receiver
@@ -208,51 +210,95 @@ using the labels, which results in one point on the ROC curve. The
 area under the curve (AUC) is computed by varying the threshold
 parameter over its entire range (from a complete list of peaks with
 many false and true positives, to a completely pruned/empty list of
-peaks with FPR=TPR=0).
-Because the largest peak list does not necessarily predict peaks in
-all positive labels, we linearly extrapolate each ROC curve to
-TPR=FPR=1 in order to compute AUC (dotted lines in plot below). 
-In particular note that the unconstrained PDPA finds about 80\% of the true positive peaks
-without making any false positives, but because it lacks the up-down constraint, 
-it is unable to find the remaining $\approx 20\%$ true positive peaks.
+peaks with FPR=TPR=0). Note that even with the largest number of
+predicted peaks in each model, not all labels achieve their max
+possible TP and FP, because the largest peak list does not necessarily
+predict peaks in all labels. We therefore linearly extrapolate each
+ROC curve to TPR=FPR=1 in order to compute AUC (dotted lines in plot
+below). 
 
-\includegraphics[width=\textwidth]{figure-test-error-dots-ROC-supp.pdf}
+\begin{center}
+  \includegraphics[width=0.85\textwidth]{figure-test-error-dots-ROC-supp.pdf}
+\end{center}
 
-Also note that the ROC curves are not necessarily monotonic, because
-the peak pruning is not necessarily hierarchical. For example the
-GPDPA computes optimal models from 0 to 9 peaks for each count data
-vector; the peak present in the optimal model with 1 peak may not be
-present in the optimal model with 2 or more peaks.
+Note that the ROC curves are not necessarily monotonic, because the
+peak pruning is not necessarily hierarchical. For example the GPDPA
+computes optimal models from 0 to 9 peaks for each problem; the peak
+present in the optimal model with 1 peak may not be present in the
+optimal model with 2 or more peaks.
 
 \section*{Supplementary Figure 4: test AUC comparison between penalty functions}
 
 \includegraphics[width=\textwidth]{figure-all-cv-learned-oracle-compare}
 
-\section*{Supplementary Figure XXX: test error in cross-validation experiments}
-\includegraphics[width=\textwidth]{figure-test-error-dots-supp}
-Four-fold cross-validation was used in each of seven data sets to
-estimate peak detection accuracy, in terms of percent incorrect
-labels. For unsupervised learning, default significance thresholds
-were used for HMCanBroad (finalThreshold=10) and MACS (qvalue=0.05);
-elbow/hinge heuristic for oracle penalty was used for PDPA/CDPA/GPDPA,
-as implemented in Segmentor3IsBack R package (Cleynen and Lebarbier,
-2014). For supervised learning, thresholds and penalty constants were
-as described in the main text. Counts of possible fp and fn are for
-all labels in that data set (possible fp are any labels which could
-possibly have a false positive, etc); possible fp is always greater
-than possible fn, indicating that all data sets are unbalanced in the
-same direction (more negative labels than positive labels).
+We proposed to select the number of
+segments in changepoint models using two kinds of model complexity
+functions $\mathcal C$. The oracle model complexity
+is a relatively complex expression
+ motivated by statistical arguments; the linear model complexity
+simply measures the number of segments. In this section we compare
+these methods in terms of test AUC.
 
-\newpage
+We consider learning a one-parameter penalty function consisting of a
+constant penalty $\lambda$, given either the linear or oracle model
+complexity function. We expected the oracle model complexity to result
+in higher test AUC, because of its statistical motivation. The second
+row of Supplementary Figure 4 plots the distribution of test AUC
+values for one model complexity function versus the other. Contrary to
+our expectation, for all three changepoint algorithms (CDPA, GPDPA,
+PDPA), the linear penalty has a slightly larger test AUC (mean
+difference from 0.00004 to 0.0006, not significant, $\text{p-value}>0.05$ in paired
+$t_{27}$-test). These data indicate that, despite the statistical
+arguments that motivate the oracle model complexity, it is not more
+accurate than the simple linear model complexity for peak detection in
+real genomic data.
+
+We also compare learning a penalty function with either one or
+multiple parameters, given the linear model complexity function. We
+expected higher test AUC for the penalty function with multiple
+parameters. The first row of Supplementary Figure 4 plots the
+distribution of test AUC values for one penalty function versus the
+other. In agreement with our expectation, for all three changepoint
+algorithms, the multi-parameter penalty function has a significantly
+larger test AUC (mean difference from 0.003 to 0.005, $\text{p-value}<0.07$). These
+data indicate that learning a multi-parameter penalty function should
+be preferred for accurate peak detection in genomic data.
+
+\section*{Supplementary Figure 5: test accuracy for supervised and unsupervised models}
+
+\includegraphics[width=\textwidth]{figure-test-error-dots-parameters}
+
+Four-fold cross-validation was used to estimate peak prediction
+accuracy. Each panel shows one of seven ChIP-seq data sets, labeled by
+pattern/experiment (Broad H3K36me3), labeler (AM), cell types
+(immune), and number of labels. It is clear that supervised models are
+generally more accurate than unsupervised, and multi-parameter models
+are generally more accurate than single parameter models.
+
+% \section*{Supplementary Figure XXX: test error in cross-validation experiments}
+% \includegraphics[width=\textwidth]{figure-test-error-dots-supp}
+% Four-fold cross-validation was used in each of seven data sets to
+% estimate peak detection accuracy, in terms of percent incorrect
+% labels. For unsupervised learning, default significance thresholds
+% were used for HMCanBroad (finalThreshold=10) and MACS (qvalue=0.05);
+% elbow/hinge heuristic for oracle penalty was used for PDPA/CDPA/GPDPA,
+% as implemented in Segmentor3IsBack R package (Cleynen and Lebarbier,
+% 2014). For supervised learning, thresholds and penalty constants were
+% as described in the main text. Counts of possible fp and fn are for
+% all labels in that data set (possible fp are any labels which could
+% possibly have a false positive, etc); possible fp is always greater
+% than possible fn, indicating that all data sets are unbalanced in the
+% same direction (more negative labels than positive labels).
+
+% \newpage
 
 
 \section{Supplementary Text 1}
 
-\subsection{GPDPA for reduced isotonic regression}
+\subsection{GPDPA pseudocode}
 In this section we give pseudocode for our proposed Generalized Pruned
-Dynamic Programming Algorithm (GPDPA) for the reduced isotonic
-regression problem. We propose the following data structures and
-sub-routines for the computation:
+Dynamic Programming Algorithm (GPDPA). We propose the following data
+structures and sub-routines for the computation:
 \begin{itemize}
 \item FunctionPiece: a data structure which represents one piece of a
   $C_{k,t}(u)$ cost function (for one interval of mean values $u$). It
@@ -289,8 +335,8 @@ sub-routines for the computation:
   FunctionPiece.
 \end{itemize}
 The above data structures and sub-routines are used in the following
-pseudo-code, which describes the GPDPA for solving the reduced
-isotonic regression problem.
+pseudo-code, which describes the GPDPA for solving the up-down
+constrained changepoint problem with $K$ segments.
 \begin{algorithm}[H]
 \begin{algorithmic}[1]
 \STATE Input: data set $\mathbf y\in\RR^n$, maximum number of segments $K\in\{2,\dots, n\}$.
@@ -308,18 +354,10 @@ and ends $T\in\{1,\dots,n\}^{K\times K}$
 \STATE for segments $k$ from 2 to $K$: for data points $t$ from $k$ to $n$: // dynamic programming
 \label{line:for-k-t}
 \begin{ALC@g}
-  \STATE $\text{min\_prev}\gets \text{MinLess}(t-1, \FCC_{k-1,t-1})$ // this is $\FCC_{k-1,t-1}^\leq$
+  \STATE $\text{MinLessOrMore}\gets \text{MinLess}$ if $k$ is even, else MinMore
+  \STATE $\text{min\_prev}\gets \text{MinLessOrMore}(t-1, \FCC_{k-1,t-1})$
   \label{line:MinLess}
-  % \STATE if $t=k$:
-  % \begin{ALC@g}
-  %   \STATE $\text{min\_new}\gets\text{min\_prev}$ // there is only one
-  %   possible changepoint, before $t$
-  % \end{ALC@g}
-  % \STATE else:
-  % \begin{ALC@g}
-  %   \STATE $\text{min\_new}\gets\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
-  % \end{ALC@g}
-    \STATE $\text{min\_new}\gets\text{min\_prev}$ if $t=k$, 
+  \STATE $\text{min\_new}\gets\text{min\_prev}$ if $t=k$, 
 else $\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
   \label{line:MinOfTwo}
   \STATE $\FCC_{k,t}\gets \text{min\_new} + \text{OnePiece}(y_t, \underline y, \overline y)$
@@ -343,13 +381,12 @@ else $\text{MinOfTwo}(\text{min\_prev}, \FCC_{k, t-1})$
     \label{line:decode-ks}
   \end{ALC@g}
 \end{ALC@g}
-\caption{\label{algo:SNIR}Generalized Pruned Dynamic Programming
-  Algorithm (GPDPA) for solving the reduced isotonic regression
-  problem.}
+\caption{\label{algo:GPDPA}Generalized Pruned Dynamic Programming
+  Algorithm (GPDPA)}
 \end{algorithmic}
 \end{algorithm}
 
-Algorithm~\ref{algo:SNIR} begins by computing the min/max on
+Algorithm~\ref{algo:GPDPA} begins by computing the min/max on
 line~\ref{line:min-max}.  The main storage of the algorithm is
 $\FCC_{k,t}$, which should be initialized as a $K\times n$ array of
 empty FunctionPieceList objects. The computation of $\FCC_{1,t}$ for
@@ -357,9 +394,10 @@ all $t$ occurs on lines~\ref{line:init-1}--\ref{line:init-t}.
 
 The dynamic programming updates occur in the for loops on
 lines~\ref{line:for-k-t}--\ref{line:AddNew}. Line~\ref{line:MinLess}
-uses the MinLess sub-routine to compute the temporary
+uses the MinLess (or MinMore) sub-routine to compute the temporary
 FunctionPieceList min\_prev (which represents the function
-$\FCC_{k-1,t-1}^\leq$). Line~\ref{line:MinOfTwo} sets the temporary
+$\FCC_{k-1,t-1}^\leq$ or
+$\FCC_{k-1,t-1}^\geq$). Line~\ref{line:MinOfTwo} sets the temporary
 FunctionPieceList min\_new to the cost of the only possible
 changepoint if $t=k$; otherwise, it uses the MinOfTwo sub-routine to
 compute the cost of the best changepoint for every possible mean
@@ -388,19 +426,20 @@ optimal values of the previous segment end $t'$ and mean $u'$. The
 mean of segment $s$ is stored in $U_{k,s}$ and the end of segment
 $s-1$ is stored in $T_{k,s}$ (line~\ref{line:decode-ks}).
 
-The time complexity of Algorithm~\ref{algo:SNIR} is $O(K n I)$ where
+The time complexity of Algorithm~\ref{algo:GPDPA} is $O(K n I)$ where
 $I$ is the complexity of the MinLess and MinOfTwo sub-routines, which
 is linear in the number of intervals (FunctionPiece objects) that are
 used to represent the cost functions. There are pathological synthetic
 data sets for which the number of intervals $I=O(n)$, implying a
 time complexity of $O(K n^2)$. However, the average number
 of intervals in real data sets is empirically $I=O(\log n)$, so the
-average time complexity of Algorithm~\ref{algo:SNIR} is
+average time complexity of Algorithm~\ref{algo:GPDPA} is
 $O(K n \log n)$.
 
 \subsection{Min-less algorithm}
 
-The following sub-routines are used to implement the MinLess algorithm.
+The following sub-routines are used to implement the MinLess
+sub-routine.
 
 \begin{itemize}
 \item $\text{GetCost}(p, u)$: an algorithm that takes a FunctionPiece
@@ -427,6 +466,9 @@ The following sub-routines are used to implement the MinLess algorithm.
   FunctionPiece $p$ with constant cost $c$ (for the square loss it
   sets $a=b=0$ in $au^2 + bu + c$).
 \end{itemize}
+
+Pseudocode for the MinLess sub-routine is given below. The MinMore
+sub-routine is similar.
 
 \begin{algorithm}[H]
 \begin{algorithmic}[1]
@@ -549,12 +591,10 @@ W_{t-1}
 \item[Storage] Since the dynamic programming update rule for $C_{k,t}$
   only depends on $C_{k-1,t-1}^\geq$ and $C_{k,t-1}$, these are the
   only functions that need to be in memory, and the rest of the cost
-  functions can be stored on disk (until the decoding step). We used
-  the Berkeley DB Standard Template Library to store all the $C_{k,t}$
-  as a vector of FunctionPieceList objects.
+  functions can be stored on disk (until the decoding step). 
 \end{description}
 
-\bibliographystyle{abbrvnat}
-\bibliography{refs}
+% \bibliographystyle{abbrvnat}
+% \bibliography{refs}
 
 \end{document}
