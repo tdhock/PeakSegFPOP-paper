@@ -1,0 +1,107 @@
+JSS 3564:
+
+Toby Dylan Hocking, Guillem Rigaill, Paul Fearnhead, Guillaume Bourque
+
+Generalized Functional Pruning Optimal Partitioning (GFPOP) for Constrained Changepoint Detection in Genomic Data
+
+---------------------------------------------------------
+For further instructions on JSS style requirements please see the Style Files (in particular section 2.1 Style Checklist of jss.pdf) and FAQ at http://www.jstatsoft.org/about/submissions.
+
+For further examples please see RECENT JSS papers.
+---------------------------------------------------------
+
+From the editorial team:
+
+The authors introduce software for a novel constrained changepoint
+detection method for genomic data, implemented in the R package
+"PeakSegDisk". In principle, the submission appears to be of interest to
+JSS. However, we feel that various aspects need to be embellished before
+it can be considered for review.
+
+o The submission appears to be closely connected to the authors' 2017
+arXiv paper which is still under review. We feel it would likely be better
+to wait for acceptance of the other paper before proceeding with review in
+JSS. Otherwise the two independent review processes might lead to
+conflicting advice regarding method and software, respectively. If the 
+authors decide to pursue to have both papers simultaneously reviewed they 
+will have to convey clearly how/why reviewing the two related contributions 
+in parallel works. Thus, for the manuscript it would be even more important 
+than usual to state clearly what connects and what separates the two 
+contributions. And possibly explaining in a cover letter what aspects of 
+the other paper will likely change in the next review process after AOAS.
+
+o When resubmitting to JSS, please make package PeakSegDisk available from
+a standard repository, e.g., CRAN. (The availability on GitHub may, of
+course, be pointed out in addition.) In case this is not possible it needs 
+to be clearly explained why this was not possible and also installation 
+instructions need to be comprehensive and explain exactly how one needs to 
+proceed and which additional software is required.
+
+o The replication material is not complete. Even if running the code would
+take a long time, it is necessary to provide the code which would need to be
+run.
+
+o The replication material should be cleaned up and unnecessary files
+deleted. The replication material should also not contain the manuscript,
+but only the code. Thus everything should be reorganized to have only R
+scripts. It would be good to also better structure the material so it is
+clearer which are files which are necessary to reproduce results and which
+are already results, also for the different levels of reproducibility.
+
+o Rather than exporting everything in the NAMESPACE via
+exportPattern("^[[:alpha:]]+") it is recommended to export selectively
+(even if the package does not include that many R functions).
+
+o In the manuscript please avoid (sub)section titles that do not fit
+into a single line (within text width).
+
+
+Manuscript style comments:
+
+o Please only introduce an abbreviation within the abstract if it is needed again within the abstract. Otherwise, please introduce it within the body of the manuscript.
+
+o Please use "R>" as the command prompt, rather than ">".
+
+o The code presented in the manuscript should not contain comments within the verbatim code. Instead the comments should be made in the normal LaTeX text.
+
+o For the code layout in R publications, we typically distinguish input/output using Sinput/Soutput (or equivalently CodeInput/CodeOutput). Unless there are special reasons to format it differently, the input should use the text width (up to 76 or 77 characters) and be indented by two spaces, e.g.,
+
+begin{Sinput}
+R> example_model <- lm(response ~ variable1 + variable2 + variable3, 
++    weights = w, data = mydata)
+\end{Sinput}
+
+o Code should have enough spaces to facilitate reading.  Please include spaces before and after operators and after commas (unless spaces have syntactical meaning).
+
+o For R-related manuscripts: The first argument of data() and library() should always be quoted, e.g., library("foo").
+
+o If using "e.g." and "i.e." add a comma after the period to keep LaTeX from interpreting them as the end of a sentence, i.e.: "e.g., " and "i.e., ".
+
+o Figures, tables and equations should be marked with a \label and referred to by \ref, e.g., Figure~\ref{...}.
+
+o Equations should be marked with a \label and referred to by either
+	Equation~\ref{...} (with capitalization, without parentheses)
+		or
+	(\ref({...})
+with the former being preferred if the number of equation references is not too large.
+
+o Abbreviations should be spelled in upper-case letters without additional formatting (i.e., without periods, without small caps, italics, etc.).  All abbreviations should be introduced with their expansion where the expansion should not be capitalized.
+
+o Do not use additional formatting for specific words unless explicitly required by the JSS style guide, e.g.,
+
+o As a reminder, please make sure that:
+	- \proglang, \pkg and \code have been used for highlighting throughout the paper (including titles and references), except where explicitly escaped.
+
+
+References:
+
+
+
+o Please make sure that all software packages are \cite{}'d properly.
+o All references should be in title style.
+o See FAQ for specific reference instructions.
+
+
+Code:
+
+o Please make sure that the files needed to replicate all code/examples within the manuscript are included in a standalone replication script.
