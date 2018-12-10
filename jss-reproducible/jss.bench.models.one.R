@@ -29,38 +29,37 @@ seg.dt[, st := ifelse(
   0<diff.after & diff.before<0,
   "background", "peak")]
 seg.dt[, p.i := cumsum(st=="background")]
+join.or.norows <- function(DT, by.var){
+  if(nrow(DT)==0)return(DT)
+  DT[, list(
+    chromStart=min(chromStart),
+    chromEnd=max(chromEnd)
+  ), by=by.var]
+}
 peaks.list <- list(
   use=fit$segments[status=="peak"],
   remove=fit$segments[status=="peak" & diff.before != 0 & diff.after != 0],
-  join=seg.dt[status=="peak", list(
-    chromStart=min(chromStart),
-    chromEnd=max(chromEnd)
-  ), by=list(peak.i)],
-  join2=seg.dt[st=="peak", list(
-    chromStart=min(chromStart),
-    chromEnd=max(chromEnd)
-  ), by=list(p.i)])
-all.peaks.list <- list()
+  join=join.or.norows(seg.dt[status=="peak"], "peak.i"),
+  join2=join.or.norows(seg.dt[st=="peak"], "p.i"))
+rule.errors.list <- list()
 for(rule in names(peaks.list)){
-  all.peaks.list[[rule]] <- data.table(rule, peaks.list[[rule]][, list(
-    chromStart, chromEnd)])
+  peak.dt <- peaks.list[[rule]]
+  error.df <- PeakError::PeakErrorChrom(peak.dt, label.dt)
+  error.dt <- data.table(error.df)[, {
+    data.table(
+      fn=sum(fn),
+      fp=sum(fp),
+      errors=sum(fp+fn),
+      peaks=nrow(peak.dt))
+    }]
+  rule.errors.list[[rule]] <- data.table(rule, error.dt)
 }
-all.peaks <- do.call(rbind, all.peaks.list)
-
-error.dt <- all.peaks[, {
-  PeakError::PeakErrorChrom(.SD, label.dt)
-}, by=list(rule)]
-calc.dt <- error.dt[, data.table(
-  fn=sum(fn),
-  fp=sum(fp),
-  errors=sum(fp+fn)
-  ), by=list(rule)]
-peak.counts <- all.peaks[, list(peaks=.N), by=list(rule)]
+rule.errors <- do.call(rbind, rule.errors.list)
 col.names <- names(one.model)
 one.computed <- data.table(
   prob.dir=one.model$prob.dir,
   fit$loss,
-  calc.dt[rule=="use"])[, ..col.names]
+  rule.errors[rule=="use"])[, ..col.names]
 rbind(
   data.table(data="stored", one.model),
   data.table(data="computed", one.computed))
@@ -69,8 +68,7 @@ out.csv <- file.path("jss.bench.models.one", paste0(model.i, ".csv"))
 cat("writing", out.csv, "\n")
 fwrite(one.computed, out.csv)
 
-rule.errors <- calc.dt[peak.counts, on=list(rule)]
 dir.create("jss.bench.models.rules", showWarnings=FALSE)
 out.csv <- file.path("jss.bench.models.rules", paste0(model.i, ".csv"))
-cat("writing", out.csv, "\n")
 fwrite(rule.errors, out.csv)
+cat("wrote", out.csv, "\n")
