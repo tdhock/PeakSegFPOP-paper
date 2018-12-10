@@ -81,3 +81,22 @@ best.counts <- best.err[, list(
   total=.N
   ), by=list(rule)][order(n.best)]
 best.counts[, percent := n.best/total]
+
+## plot optimal peaks vs data size.
+min.err.ranges <- join.dt[, .SD[errors==min(errors), list(
+  min.peaks=min(peaks),
+  max.peaks=max(peaks)
+)], by=list(bedGraph.lines, prob.dir, rule)][order(bedGraph.lines)]
+min.err.ranges[, mid.peaks := (min.peaks+max.peaks)/2]
+
+library(ggplot2)
+
+ggplot()+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  facet_wrap("rule")+
+  geom_point(aes(
+    bedGraph.lines, mid.peaks),
+    data=min.err.ranges)+
+  scale_x_log10()+
+  scale_y_log10()

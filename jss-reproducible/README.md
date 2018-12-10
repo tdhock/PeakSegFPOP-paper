@@ -3,9 +3,10 @@ Reproducing the analyses in the paper
 There are several different levels of reproducibility.
 - For the most basic level of reproducibility you can re-make the
   figures using the jss-figure-*.R files provided. Type "make clean"
-  to remove the figure files, then type "make" to re-make the
-  figures. On my computer it took about 2 minutes to re-make the
-  figure files.
+  to remove the figure files, then type "make" to re-make the figures,
+  which are copied to the jss-figures sub-directory, and named
+  figure-3-left.pdf, figure-3-right.pdf, etc. On my computer it took
+  about 2 minutes to re-make the figure files.
 - For the next level of reproducibility you can type "rm *.rds" to
   remove the RDS files which store the results of the model fitting
   computations used to make those figures. Re-running
@@ -51,7 +52,7 @@ tdhock@recycled:~/projects/PeakSegFPOP-paper/jss-reproducible(master*)$ Rscript 
 tdhock@recycled:~/projects/PeakSegFPOP-paper/jss-reproducible(master*)$ 
 ```
 
-Note the following timings as a function of the row number:
+Note that longer timings should be expected for larger row numbers:
 
 ```
 > bench.models[, row := 1:.N];bench.models[seq(1, .N, l=10), list(row, minutes=seconds/60)]
@@ -72,10 +73,10 @@ Note the following timings as a function of the row number:
 If you want to re-do all the computations, the best way would be to
 use a compute cluster. The jss.bench.models.several.R script can be
 used to create jss.bench.models.several.csv, which assigns a job ID to
-each row. For a job time limit of 24 hours there are 645 jobs. Each
-job can be run via `Rscript jss.bench.models.several.one.R JOB_ID`
-where `JOB_ID` is an integer from 1 to 645. Each runs several
-rows/models of different sizes:
+each row. Each job can be run via `Rscript
+jss.bench.models.several.one.R JOB_ID` where `JOB_ID` is an integer
+from 1 to the number of rows in jss.bench.models.several.csv. Each
+runs several rows/models of different sizes:
 
 ```
 > rand.models[, list(
