@@ -1,3 +1,25 @@
+jmlr-paper.pdf: figure-all-cv.pdf figure-test-error-dots.pdf figure-compare-unconstrained.tex figure-PDPA-infeasible-error-compare.pdf jmlr-paper.tex figure-data-models.png figure-infeasible-error.tex figure-PDPA-intervals-all.pdf
+	rm -rf *.aux *.bbl
+	pdflatex jmlr-paper
+	bibtex jmlr-paper
+	pdflatex jmlr-paper
+	pdflatex jmlr-paper
+figure-PDPA-intervals-all.pdf: figure-PDPA-intervals-all.R
+	R --vanilla < $<
+figure-infeasible-error.tex: figure-infeasible-error.R
+	R --vanilla < $<
+figure-data-models.png: figure-data-models.R
+	R --vanilla < $<
+figure-PDPA-infeasible-error-compare.pdf: figure-PDPA-infeasible-error-compare.R
+	R --vanilla < $<
+figure-compare-unconstrained.tex: figure-compare-unconstrained.R
+	R --vanilla < $<
+figure-all-cv.pdf: figure-all-cv.R all.cv.RData test.error.RData
+	R --vanilla < $<
+all.modelSelection.RData: all.modelSelection.R PDPA.infeasible.RData PDPA.infeasible.error.RData Segmentor.infeasible.error.RData dp.peaks.RData dp.peaks.error.RData
+	R --vanilla < $<
+all.cv.RData: all.cv.R all.modelSelection.RData
+	R --vanilla < $<
 jss-arxiv.pdf: jss-arxiv.Rnw
 	rm -rf *.aux *.bbl
 	R CMD Sweave jss-arxiv.Rnw
@@ -80,7 +102,7 @@ figure-Segmentor-PeakSeg.png: figure-Segmentor-PeakSeg.R
 	R --no-save < $<
 dp.peaks.NA.RData: dp.peaks.NA.R dp.peaks.matrices.RData
 	R --no-save < $<
-dp.peaks.matrices.RData: dp.peaks.matrices.R dp.peaks.error.RData PDPA.peaks.error.RData Segmentor.peaks.error.RData PDPA.infeasible.error.RData
+dp.peaks.matrices.RData: dp.peaks.matrices.R dp.peaks.error.RData Segmentor.peaks.error.RData PDPA.infeasible.error.RData
 	R --no-save < $<
 dp.peaks.error.RData: dp.peaks.error.R dp.peaks.RData
 	R --no-save < $<
@@ -138,7 +160,7 @@ unsupervised.RData: unsupervised.R
 	R --no-save < $<
 unsupervised.inf.RData: unsupervised.inf.R
 	R --no-save < $<
-test.error.RData: test.error.R unsupervised.RData unsupervised.inf.RData unsupervised.pdpa.RData dp.peaks.matrices.RData dp.peaks.sets.RData unsupervised.Segmentor.RData
+test.error.RData: test.error.R unsupervised.RData unsupervised.inf.RData dp.peaks.matrices.RData dp.peaks.sets.RData unsupervised.Segmentor.RData
 	R --no-save < $<
 dp.peaks.sets.RData: dp.peaks.sets.R dp.peaks.matrices.RData
 	R --no-save < $<

@@ -20,12 +20,15 @@ for(chunk.name in names(dp.peaks.error)){
 }
 CDPA.error <- do.call(rbind, CDPA.error.list) 
 
-col.name.vec <- names(PDPA.infeasible.error)
+col.name.vec <- c(
+  "chunk.name", "sample.id", "peaks", "segments", "chromStart", 
+  "chromEnd", "annotation", "tp", "possible.tp", "fp", "possible.fp", 
+  "fp.status", "fn", "fn.status", "status")
 CDPA.error[, segments := as.integer(paste(peaks))*2+1]
 all.error <- rbind(
   data.table(algo="CDPA", CDPA.error[, ..col.name.vec]),
-  data.table(algo="PDPA", Segmentor.infeasible.error),
-  data.table(algo="GPDPA", PDPA.infeasible.error))
+  data.table(algo="PDPA", Segmentor.infeasible.error[rule=="rm", ..col.name.vec]),
+  data.table(algo="GPDPA", PDPA.infeasible.error[rule=="remove", ..col.name.vec]))
 
 all.totals <- all.error[, list(
   total.fp=sum(fp),
@@ -39,13 +42,13 @@ all.totals <- all.error[, list(
 all.loss <- rbind(
   PDPA.loss[, data.table(
     set.name, chunk.id, chunk.name, sample.id,
-    algo="GPDPA", segments, peaks, loss=PoissonLoss)],
+    algo="GPDPA", segments, loss=PoissonLoss)],
   Segmentor.loss[, data.table(
     set.name, chunk.id, chunk.name, sample.id,
-    algo="PDPA", segments, peaks, loss)],
+    algo="PDPA", segments, loss)],
   dp.loss[, data.table(
     set.name, chunk.id, chunk.name, sample.id,
-    algo="CDPA", segments, peaks, loss=error)])[all.totals, on=list(
+    algo="CDPA", segments, loss=error)])[all.totals, on=list(
       algo, chunk.name, sample.id, segments)]
 
 all.modelSelection <- all.loss[, {
@@ -54,5 +57,11 @@ all.modelSelection <- all.loss[, {
     .SD[loss==cm],
     complexity="segments")
 }, by=list(set.name, chunk.id, chunk.name, sample.id, algo)]
+
+class.vec <- sapply(all.modelSelection, class)
+if(any(class.vec=="list")){
+  print(class.vec)
+  stop("list column!")
+}
 
 save(all.modelSelection, file="all.modelSelection.RData")

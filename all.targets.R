@@ -14,7 +14,8 @@ wide.min <- dcast(all.min, chunk.name+sample.id~algo)
 
 ## PDPA never has fewer min errors than GPDPA.
 wide.min[GPDPA<PDPA]
-wide.min[, table(GPDPA,PDPA)]
+wide.min[PDPA<GPDPA]
+wide.min[, table(GPDPA-PDPA)]
 
 ## CDPA has fewer errors for 38 problems, GPDPA has fewer for 31
 ## problems...

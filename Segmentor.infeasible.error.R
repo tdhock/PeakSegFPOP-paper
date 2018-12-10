@@ -32,30 +32,38 @@ for(file.i in seq_along(files)){
       loss=fit$Likelihood[seg.vec],
       segments=seg.vec)
     for(seg.str in paste(seg.vec)){
-      peak.dt <- if(seg.str=="1"){
-        Peaks()
-      }else{
-        seg.dt <- data.table(fit$segments[[seg.str]])
-        seg.dt[, change.after := c(diff(mean), Inf)]
-        seg.dt[, change.before := c(-Inf, diff(mean))]
-        seg.dt[, status := ifelse(
-          0<change.after & change.before<0,
-          "background", "peak")]
-        seg.dt[, peak.i := cumsum(status=="background")]
-        seg.dt[status=="peak", list(
-          chromStart=min(chromStart),
-          chromEnd=max(chromEnd)
-        ), by=list(peak.i)]
+      seg.dt <- data.table(fit$segments[[seg.str]])
+      seg.dt[, change.after := c(diff(mean), Inf)]
+      seg.dt[, change.before := c(-Inf, diff(mean))]
+      seg.dt[, st.join := ifelse(
+        change.before<0 & 0<change.after,
+        "background", "peak")]
+      seg.dt[, st.rm := ifelse(
+        0<change.before & change.after<0,
+        "background", "peak")]
+      for(rule in c("join", "rm")){
+        peak.dt <- if(seg.str=="1"){
+          Peaks()
+        }else{
+          col.name <- paste0("st.", rule)
+          status.vec <- seg.dt[[col.name]]
+          seg.dt[, peak.i := cumsum(status.vec=="background")]
+          seg.dt[status=="peak", list(
+            chromStart=min(chromStart),
+            chromEnd=max(chromEnd)
+          ), by=list(peak.i)]
+        }
+        err.df <- PeakErrorChrom(peak.dt, sample.regions)
+        id.str <- paste(rule, chunk.name, sample.id, seg.str)
+        Segmentor.infeasible.error.list[[id.str]] <- data.table(
+          rule, chunk.name, sample.id,
+          segments=as.integer(seg.str),
+          peaks=nrow(peak.dt), err.df)
       }
-      err.df <- PeakErrorChrom(peak.dt, sample.regions)
-      Segmentor.infeasible.error.list[[paste(chunk.name, sample.id, seg.str)]] <- 
-        data.table(chunk.name, sample.id,
-                   segments=as.integer(seg.str),
-                   peaks=nrow(peak.dt), err.df)
     }
   }
 }
 Segmentor.infeasible.error <- do.call(rbind, Segmentor.infeasible.error.list)
 Segmentor.loss <- do.call(rbind, Segmentor.loss.list)
 
-save(Segmentor.loss, Segmentor.model.list, Segmentor.infeasible.error, file="Segmentor.infeasible.error.RData")
+save(Segmentor.loss, Segmentor.infeasible.error, file="Segmentor.infeasible.error.RData")

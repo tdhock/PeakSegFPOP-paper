@@ -4,18 +4,10 @@ library(animint)
 load("test.error.RData")
 
 levs <- c(
-  MACS="MACS",
-  HMCanBroad="HMCanBroad",
-  Segmentor="PDPA",
-  PeakSegDP="CDPA",
-  ##coseg.inf="GPDPAinf",
-  coseg="GPDPA")
-levs <- c(
-  MACS="MACS(popular baseline)",
-  HMCanBroad="HMCanBroad(popular baseline)",
-  Segmentor="PDPA(unconstrained baseline)",
+  MACS="MACS(baseline)",
+  HMCanBroad="HMCanBroad(baseline)",
+  Segmentor="PDPA(unconstrained)",
   PeakSegDP="CDPA(previous best)",
-  ##coseg.inf="GPDPAinf",
   coseg.inf="GPDPA(proposed)")
 test.error[, algorithm := levs[algorithm] ]
 roc[, algorithm := levs[algorithm] ]
@@ -34,7 +26,8 @@ test.counts[, FPR := fp/possible.fp]
 possible.counts <- test.counts[algorithm==algorithm[1] & train.type=="supervised", {
   list(
     possible.fn=sum(possible.tp),
-    possible.fp=sum(possible.fp)
+    possible.fp=sum(possible.fp),
+    labels=sum(labels)
     )
 }, by=list(set.name)]
 
@@ -80,25 +73,6 @@ algo.colors <- c(
   PDPA="#B15928", #brown
   Segmentor="#B15928") #brown
 
-ggplot()+
-  theme_bw()+
-  theme(panel.margin=grid::unit(0, "cm"),
-        legend.position="top")+
-  facet_grid(set.i ~ set.name, labeller=function(df){
-    if("set.name" %in% names(df)){
-      df$set.name <- gsub("_", "\n", df$set.name)
-    }
-    df
-  })+
-  scale_color_manual(values=algo.colors)+
-  scale_fill_manual(values=c(unsupervised="white", supervised="black"))+
-  geom_path(aes(FPR, TPR, color=algorithm, group=paste(set.i, algorithm)),
-            data=roc.total)+
-  geom_point(aes(FPR, TPR, color=algorithm, fill=train.type),
-             shape=21,
-             stroke=1,
-             data=test.counts)
-
 roc.not.cvx <- roc.total[, {
   tpr <- TPR[which.max(FPR)]
   tpr <- 1
@@ -128,31 +102,32 @@ ggplot()+
 ggplot()+
   theme_bw()+
   geom_abline(slope=1, intercept=0, color="grey")+
-  geom_point(aes(`PDPA(unconstrained baseline)`, `GPDPA(proposed)`), data=err.wide)+
+  geom_point(aes(`PDPA(unconstrained)`, `GPDPA(proposed)`), data=err.wide)+
   coord_equal()
 
 ggplot()+
   theme_bw()+
   geom_abline(slope=1, intercept=0, color="grey")+
-  geom_point(aes(`PDPA(unconstrained baseline)`, `CDPA(previous best)`), data=err.wide)+
+  geom_point(aes(`PDPA(unconstrained)`, `CDPA(previous best)`), data=err.wide)+
   coord_equal()
 
 if(FALSE){
-auc.wide[, {
-  L <- t.test(`CDPA(previous best)`, `GPDPA(proposed)`, paired=TRUE)
-  res <- L[c("statistic", "p.value")]
-  res$mean.cdpa <- mean(`CDPA(previous best)`)
-  res$mean.gpdpa <- mean(`GPDPA(proposed)`)
-  res
-}, by=list(set.name)][order(p.value)]
-auc.wide[, {
-  L <- t.test(`PDPA(unconstrained baseline)`, `GPDPA(proposed)`, paired=TRUE)
-  res <- L[c("statistic", "p.value")]
-  res$mean.pdpa <- mean(`PDPA(unconstrained baseline)`)
-  res$mean.gpdpa <- mean(`GPDPA(proposed)`)
-  res
-}, by=list(set.name)][order(p.value)]
+  auc.wide[, {
+    L <- t.test(`CDPA(previous best)`, `GPDPA(proposed)`, paired=TRUE)
+    res <- L[c("statistic", "p.value")]
+    res$mean.cdpa <- mean(`CDPA(previous best)`)
+    res$mean.gpdpa <- mean(`GPDPA(proposed)`)
+    res
+  }, by=list(set.name)][order(p.value)]
+  auc.wide[, {
+    L <- t.test(`PDPA(unconstrained)`, `GPDPA(proposed)`, paired=TRUE)
+    res <- L[c("statistic", "p.value")]
+    res$mean.pdpa <- mean(`PDPA(unconstrained)`)
+    res$mean.gpdpa <- mean(`GPDPA(proposed)`)
+    res
+  }, by=list(set.name)][order(p.value)]
 }
+
 roc.cvx <- roc.not.cvx[, {
   fit <- chull(FPR, TPR)
   data.table(FPR, TPR)[fit,]
@@ -216,8 +191,10 @@ leg <- ggplot()+
   theme(panel.margin=grid::unit(0, "cm"),
         legend.position=c(0.8, 0.3))+
   coord_equal(xlim=c(0,1.2))+
-  scale_x_continuous("FPR = False Positive Rate of predicted peaks relative to gold standard labels from biologist", breaks=seq(0, 1, by=0.2))+
-  scale_y_continuous("TPR = True Positive Rate of predicted peaks relative to gold standard labels from biologist", breaks=seq(0, 1, by=0.2))+
+  scale_x_continuous("FPR = False Positive Rate of predicted peaks
+relative to gold standard labels from biologist", breaks=seq(0, 1, by=0.2))+
+  scale_y_continuous("TPR = True Positive Rate of predicted peaks
+relative to gold standard labels from biologist", breaks=seq(0, 1, by=0.2))+
   geom_path(aes(
     FPR, TPR,
     color=algorithm,
@@ -234,16 +211,16 @@ leg <- ggplot()+
   geom_text(aes(FPR, TPR, label=label), data={
     rbind(
       data.table(FPR=1, TPR=0.6, label="Extrapolation to FPR=TPR=1\nto compute AUC"),
-      data.table(FPR=0.3, TPR=0.6, label="No peak pruning\nmost predicted peaks"),
-      data.table(FPR=0.4, TPR=0.4, label="All peaks pruned\nno peaks predicted\nFPR=TPR=0"))
+      data.table(FPR=0.37, TPR=0.4, label="No peak pruning\nmost predicted peaks"),
+      data.table(FPR=0.4, TPR=0.05, label="All peaks pruned\nno peaks predicted\nFPR=TPR=0"))
   })+
   geom_segment(aes(x, y, xend=xend, yend=yend), arrow=grid::arrow(type="closed"), data={
     rbind(
       data.table(x=1, xend=1, y=0.7, yend=0.9),
-      data.table(x=0.3, xend=0.3, y=0.7, yend=0.8),
-      data.table(x=0.3, xend=0.1, y=0.3, yend=0.1))
+      data.table(x=0.37, xend=0.37, y=0.45, yend=0.6),
+      data.table(x=0.25, xend=0.01, y=0.01, yend=0.01))
   })
-pdf("figure-test-error-dots-ROC-supp.pdf",8,8)
+pdf("figure-test-error-dots-ROC-supp.pdf",8,7)
 print(leg)
 dev.off()
 png("figure-test-error-dots-ROC-supp.png",800,800,res=100)
@@ -282,6 +259,194 @@ dots <- ggplot()+
         legend.position="top")+
   scale_x_continuous("percent correct peak region labels (test accuracy)",
                      breaks=seq(40, 100, by=20))
+dots
+pdf("figure-test-error-dots-supp.pdf", 10, 3)
+print(dots)
+dev.off()
+
+(objs <- load("all.cv.RData"))
+algo.map <- levs
+names(algo.map) <- sub("[(].*", "", levs)
+pred.thresh <- roc.thresh[threshold=="predicted"]
+pred.thresh[, algorithm := algo.map[algo] ]
+pred.thresh[, algo.fac := factor(algorithm, levs)]
+supervised.tall <- rbind(
+  pred.thresh[, data.table(
+    parameters="several",
+    set.name, set.i=fold.i, algo.fac, percent.accuracy=accuracy.percent)],
+  test.counts[train.type=="supervised", data.table(
+    parameters="one",
+    set.name, set.i, algo.fac, percent.accuracy)])
+supervised.wide <- dcast(
+  supervised.tall,
+  set.name + set.i + algo.fac ~ parameters,
+  value.var="percent.accuracy")[!is.na(several)]
+
+ggplot()+
+  coord_equal()+
+  geom_abline(slope=1, intercept=0, color="grey")+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  facet_grid(algo.fac ~ set.name)+
+  geom_point(aes(
+    one, several),
+    shape=1,
+    data=supervised.wide)
+
+all.vised <- rbind(
+  pred.thresh[, data.table(
+    parameters="several",
+    train.type="supervised",
+    set.name, set.i=fold.i, algo.fac, percent.accuracy=accuracy.percent)],
+  test.counts[, data.table(
+    parameters="one",
+    train.type,
+    set.name, set.i, algo.fac, percent.accuracy)])
+wide.params <- dcast(
+  all.vised[train.type=="supervised" & grepl("DPA", algo.fac)],
+  algo.fac + set.name + set.i ~ parameters,
+  value.var="percent.accuracy")
+(pval.params <- wide.params[, { #negative estimate is better for several params
+  t.res <- t.test(one, several, paired=TRUE)
+  with(t.res, data.table(estimate, p.value))
+}, by=list(algo.fac, set.name)][order(estimate)])
+wide.vised <- dcast(
+  all.vised[parameters=="one"],
+  algo.fac + set.name + set.i ~ train.type,
+  value.var="percent.accuracy")
+(pval.vised <- wide.vised[, {
+  t.res <- t.test(supervised, unsupervised, paired=TRUE)
+  with(t.res, data.table(estimate, p.value))
+}, by=list(algo.fac, set.name)][order(set.name, algo.fac)])
+mean.vised <- all.vised[, list(
+  mean.percent=mean(percent.accuracy),
+  sd=sd(percent.accuracy),
+  median=median(percent.accuracy),
+  q25=quantile(percent.accuracy, 0.25),
+  q75=quantile(percent.accuracy, 0.75)
+), by=.(set.name, algo.fac, train.type, parameters)]
+
+ggplot()+
+  ##geom_vline(aes(xintercept=min.percent), data=set.best)+
+  geom_segment(aes(
+    mean.percent+sd, algo.fac,
+    color=train.type,
+    size=parameters,
+    xend=mean.percent-sd, yend=algo.fac),
+    data=mean.vised)+
+  scale_size_manual(
+    values=c(one=0.7, several=1.4))+
+  geom_point(aes(
+    mean.percent, algo.fac, color=train.type),
+    shape=21,
+    size=3,
+    data=mean.vised)+
+  scale_color_manual(
+    "penalty / threshold training method",
+    values=c(
+      supervised="grey50",
+      unsupervised="deepskyblue"))+
+  scale_fill_manual(
+    values=c(one=NA, several="red"))+
+  facet_grid(. ~ set.name, labeller=function(df){
+    count.dt <- possible.counts[df$set.name]
+    df$set.name <- paste0(
+      gsub("_", "\n", df$set.name),
+      "\n", count.dt$possible.fp, " possible fp",
+      "\n", count.dt$possible.fn, " possible fn")
+    df
+  }, scales="free_y", space="free_y")+
+  scale_y_discrete("algorithm")+
+  theme_bw()+
+  ##guides(color=guide_legend())+
+  theme(
+    panel.margin=grid::unit(0, "cm"),
+    legend.position="top",
+    legend.box="horizontal")+
+  scale_x_continuous(
+    "percent correct peak region labels (test accuracy)",
+    breaks=seq(40, 100, by=20))
+
+mean.vised[, algo := sub("[(].*", "", paste(algo.fac))]
+mean.vised[, algo.params := paste0(algo, "/", parameters)]
+lev.dt <- data.table(expand.grid(
+  params=c("one", "several"),
+  algo=names(algo.map)))
+lev.dt[, algo.params := paste0(algo, "/", params)]
+fix <- function(x){
+  sub("several", "300", sub("one", "  1", x))
+}
+mean.vised[, ap.fac := factor(fix(algo.params), fix(lev.dt$algo.params))]
+mean.vised[, tt.fac := factor(train.type, c("unsupervised", "supervised"))]
+
+gg.acc <- ggplot()+
+  ##geom_vline(aes(xintercept=min.percent), data=set.best)+
+  geom_segment(aes(
+    q25, ap.fac,
+    color=tt.fac,
+    xend=q75, yend=ap.fac),
+    alpha=0.5,
+    size=0.75,
+    data=mean.vised)+
+  geom_point(aes(
+    median, ap.fac, color=tt.fac),
+    shape="|",
+    size=3,
+    alpha=0.5,
+    data=mean.vised)+
+  scale_color_manual(
+    "penalty / threshold training method",
+    values=c(
+      supervised="black",
+      unsupervised="red"))+
+  facet_grid(. ~ set.name, labeller=function(df){
+    count.dt <- possible.counts[df$set.name]
+    df$set.name <- paste0(
+      gsub("_", "\n", df$set.name),
+      "\n", count.dt$labels, " labels")
+    df
+  })+
+  scale_y_discrete(
+    "algorithm /\nlearned parameters")+
+  theme_bw()+
+  ##guides(color=guide_legend())+
+  theme(
+    axis.text.y=element_text(family="mono"),
+    panel.margin=grid::unit(0, "cm"),
+    legend.position="top",
+    legend.box="horizontal")+
+  scale_x_continuous(
+    "Test accuracy = percent correctly predicted labels (median and quartiles over 4 test sets)",
+    breaks=seq(40, 100, by=20))
+pdf("figure-test-error-dots-parameters.pdf", 10, 3.2)
+print(gg.acc)
+dev.off()
+
+dots <- ggplot()+
+  geom_vline(aes(xintercept=min.percent), data=set.best)+
+  geom_point(aes(mean.percent, algo.fac, color=train.type),
+             alpha=0.3,
+             size=4,
+             data=test.mean)+
+  geom_point(aes(percent.accuracy, algo.fac, color=train.type),
+             data=test.counts, pch=1)+
+  scale_color_discrete("penalty / threshold training method")+
+  facet_grid(. ~ set.name, labeller=function(df){
+    count.dt <- possible.counts[df$set.name]
+    df$set.name <- paste0(
+      gsub("_", "\n", df$set.name),
+      "\n", count.dt$possible.fp, " possible fp",
+      "\n", count.dt$possible.fn, " possible fn")
+    df
+  }, scales="free_y", space="free_y")+
+  scale_y_discrete("algorithm")+
+  theme_bw()+
+  guides(color=guide_legend())+
+  theme(panel.margin=grid::unit(0, "cm"),
+        legend.position="top")+
+  scale_x_continuous(
+    "Percent correctly predicted labels (median and quartiles over 4 test folds)",
+    breaks=seq(40, 100, by=20))
 dots
 pdf("figure-test-error-dots-supp.pdf", 10, 3)
 print(dots)

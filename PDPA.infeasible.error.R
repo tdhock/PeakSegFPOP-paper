@@ -3,6 +3,8 @@ source("packages.R")
 load("PDPA.infeasible.RData")
 
 PDPA.infeasible.error.list <- list()
+file.i <- 4
+sample.id <- "McGill0079"
 for(file.i in seq_along(PDPA.infeasible)){
   chunk.name <- names(PDPA.infeasible)[[file.i]]
   cat(sprintf("%4d / %4d %s\n", file.i, length(PDPA.infeasible), chunk.name))
@@ -29,9 +31,9 @@ for(file.i in seq_along(PDPA.infeasible)){
             peaks=nrow(rule.peaks),
             segments=as.integer(peaks.str)*2+1,
             err.dt)
-      }
-    }
-  }
-}
+      }#rule
+    }#peaks.str
+  }#sample.id
+}#file.i
 PDPA.infeasible.error <- do.call(rbind, PDPA.infeasible.error.list)
 save(PDPA.infeasible.error, file="PDPA.infeasible.error.RData")

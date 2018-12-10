@@ -1,4 +1,4 @@
-% Created by tikzDevice version 0.12 on 2018-10-26 14:06:55
+% Created by tikzDevice version 0.12 on 2018-12-06 14:46:08
 % !TEX encoding = UTF-8 Unicode
 \begin{tikzpicture}[x=1pt,y=1pt]
 \definecolor{fillColor}{RGB}{255,255,255}
@@ -149,6 +149,11 @@
 	(181.70, 56.94) --
 	(189.53, 56.79) --
 	(197.37, 57.61);
+\definecolor{drawColor}{RGB}{255,0,0}
+
+\path[draw=drawColor,line width= 0.4pt,line join=round,line cap=round] (197.37, 57.58) circle (  1.96);
+
+\node[text=drawColor,anchor=base east,inner sep=0pt, outer sep=0pt, scale=  1.00] at (197.37, 65.15) {16 intervals};
 \definecolor{drawColor}{gray}{0.50}
 
 \path[draw=drawColor,line width= 0.6pt,line join=round,line cap=round] ( 41.08, 33.41) rectangle (204.81,124.09);

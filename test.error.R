@@ -47,6 +47,9 @@ for(set.name in names(dp.peaks.sets)){
       for(train.chunk in train.chunks){
         seg.mat <- seg.mat.list[[algorithm]][[train.chunk]]
         err.mat <- chunk.list[[train.chunk]][[algorithm]]
+        if(any(is.na(err.mat)) && algorithm != "PeakSegDP"){
+          stop("missing values in error matrix")
+        }
         err.big <- apply(seg.mat, 2, function(segs){
           err.mat[cbind(seq_along(segs), (segs-1)/2+1)]
         })
@@ -84,9 +87,8 @@ for(set.name in names(dp.peaks.sets)){
           err.mat <- test.info[[algorithm]]
           tp.mat <- test.tp[[algorithm]]
           fp.mat <- test.fp[[algorithm]]
-          pred.peaks.vec <- (pred.seg.vec-1)/2
           sample.id <- names(pred.seg.vec)
-          param.name <- as.character(pred.peaks.vec)
+          param.name <- as.character(pred.seg.vec)
           i.mat <- cbind(sample.id, param.name)
           if(train.type=="supervised"){
             seg.mat <- seg.mat.list[[algorithm]][[test.chunk]]
@@ -116,8 +118,8 @@ for(set.name in names(dp.peaks.sets)){
                        fp=fp.mat[i.mat],
                        possible.fp=test.fp$possible.fp,
                        regions=test.info$regions)
-        }
-      }
+        }#for(algorithm
+      }#for(train.type
       ## other baseline methods:
       for(algorithm in names(default.params)){
         param.list <- list(
