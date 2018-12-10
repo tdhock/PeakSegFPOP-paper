@@ -7,10 +7,12 @@ bench.models[, row := 1:.N]
 bench.models[, minutes := seconds/60]
 bench.models[, hours := minutes/60]
 bench.models[, days := hours/24]
-(problems <- bench.models[, list(
+out.csv.vec <- dir("jss.bench.models.rules")
+bench.models[, done := paste0(row, ".csv") %in% out.csv.vec]
+(problems <- bench.models[done==FALSE, list(
   total.days=sum(days)
 ), by=list(prob.dir)][order(-total.days)])
-problems[, job := rep(1:500, l=.N)]
+problems[, job := rep(1:min(.N, 500), l=.N)]
 
 ## set.seed(1)
 ## (rand.models <- problems[order(sample(1:.N))])
@@ -31,7 +33,7 @@ problems[, list(
   min.days=min(total.days),
   max.days=max(total.days),
   total.days=sum(total.days)
-), by=list(job)][order(total.days)]
+), by=list(job)][order(-total.days)]
 
 join.dt <- bench.models[problems, on=list(prob.dir)]
 
