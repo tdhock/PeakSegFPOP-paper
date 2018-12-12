@@ -61,7 +61,7 @@ peak detection in genomic data}
   Flagstaff, AZ, USA
   \AND
   \name Guillem Rigaill \email guillem.rigaill@inra.fr \\
-  \addr Laboratoire de Math\'ematiques at Mod\'elisation d'Evry (LaMME)\\
+  \addr Laboratoire de Math\'ematiques et Mod\'elisation d'Evry (LaMME)\\
   Universit\'e d'Evry Val d'Essonne, INRA\\
   Evry, France
   \AND
@@ -983,7 +983,7 @@ The oracle model complexity is motivated by a statistical argument that assumes 
 the constants (4, 1.1) may be sub-optimal in real data that do not satisfy these assumptions. 
 
 We also investigate learned penalty functions.  The main idea of penalty learning \citep{HOCKING-penalties} is to
-computed a fixed feature vector $\mathbf x_m\in\RR^d$ for each problem
+compute a fixed feature vector $\mathbf x_m\in\RR^d$ for each problem
 $m$, then learn a function $f(\mathbf x_m)\in\RR$ that predicts
 problem-specific $\log\lambda$ values:
 \begin{equation}
@@ -1373,16 +1373,14 @@ experiments in the next sections, we used the Remove rule.
 % feasibility, and optimality of the three optimization-based
 % implementations (Segmentor, PeakSegDP, coseg).
 
-\subsection{GPDPA has log-linear time complexity empirically}
+\subsection{GPDPA has log-linear empirical time complexity}
 \label{sec:results_time}
 
 Overall there are 2752 labeled count data vectors $\mathbf y_m$ to segment,
 varying in size from $n=87$ to $n=263169$ data. For each count data
 vector $\mathbf y_m$, we ran each algorithm (CDPA, PDPA, GDPDA) with a
-maximum of $K=19$ segments.
-% , allowing at most 9 peaks (one for
-% each even-numbered segment), which is more than enough in these
-% relatively small data sets.
+maximum of $K=19$ segments (9 peaks, which is more than enough in these
+ relatively small data sets).
 To analyze the empirical time complexity,
 we recorded the number of intervals stored in the $C_{k,t}$ cost
 functions (Section~\ref{sec:implementation}), as well as the computation
@@ -1449,7 +1447,7 @@ HMCanBroad algorithm of \citet{HMCan} uses a finalThreshold parameter
 models with a learned penalty function $f$
 (Section~\ref{sec:supervised}), the threshold is a constant $\beta\in\RR$
 which is added when selecting the number of segments
-$\kappa_m(\exp(f(x_m)+\beta))$ (larger constants $\beta$ result in
+$\kappa_m(\exp(f(\mathbf x_m)+\beta))$ (larger constants $\beta$ result in
 larger penalties, fewer segments, and fewer false positives). 
 
 To account for this pruning step in our evaluation, we used Receiver
@@ -1566,12 +1564,11 @@ and then ROC curves and test AUC were computed for each fold ID.
 % p-values in the following paragraph computed in figure-all-cv.R
 In each of the seven data sets in the histone benchmark,
 %\citep{HOCKING2016-chipseq}, 
-we performed four-fold cross-validation and computed test AUC (area
-under the Receiver Operating Characteristic curve) to estimate the
+we performed four-fold cross-validation and computed test AUC to estimate the
 accuracy of each algorithm. For the changepoint models, we learned
 penalty functions using the labels in each train set
 (Section~\ref{sec:supervised}). The previous algorithm with
-state-of-the-art accuracy on this benchmark was the CDPA, which
+state-of-the-art accuracy on this benchmark was the CDPA, the heuristic that
 enforces the up-down constraint on segment means. We expected our
 proposed GPDPA to perform just as well, since it also enforces that
 constraint. In agreement with our expectation, we observed that the
@@ -1823,9 +1820,11 @@ to compute 10 peak models in the largest data set in the ChIP-seq
 benchmark, whereas the GPDPA took 2 minutes, and the MACS heuristic
 took 1 minute. Using our proposed GPDPA, it is now possible to compute
 highly accurate models in an amount of time that is comparable to
-heuristic algorithms. Our proposed GPDPA can now be used as an optimal
-alternative to heuristic algorithms, even for large data
-sets. Additionally, for \emph{any} model with $P$ peaks, due to the optimality of the GPDPA, it can be used 
+heuristic algorithms. 
+%Our proposed GPDPA can now be used as an optimal
+%alternative to heuristic algorithms, even for large data
+%sets. 
+Additionally, for \emph{any} model with $P$ peaks, due to the optimality of the GPDPA, it can be used 
 with $K=2P+1$ segments to compute a more likely (or
 equally likely) set of peaks (in terms of the Poisson likelihood of
 the piecewise constant model with a segment for each peak and
