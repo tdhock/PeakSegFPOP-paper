@@ -203,7 +203,7 @@ considering the top $p$ peaks, according to some likelihood or
 significance threshold. For example, the MACS algorithm uses a q-value threshold parameter, and HMCanBroad uses a finalThreshold parameter (higher
 thresholds result in more false positives). 
 
-To account for this pruning step is our evaluation, we used Receiver
+To account for this pruning step in our evaluation, we used Receiver
 Operating Characteristic (ROC) curve analysis. For each threshold
 parameter, we computed the false positive rate and true positive rate
 using the labels, which results in one point on the ROC curve. The
@@ -246,12 +246,12 @@ in higher test AUC, because of its statistical motivation. The second
 row of Supplementary Figure 4 plots the distribution of test AUC
 values for one model complexity function versus the other. Contrary to
 our expectation, for all three changepoint algorithms (CDPA, GPDPA,
-PDPA), the linear penalty has a slightly larger test AUC (mean
-difference from 0.00004 to 0.0006, not significant, $\text{p-value}>0.05$ in paired
-$t_{27}$-test). These data indicate that, despite the statistical
-arguments that motivate the oracle model complexity, it is not more
-accurate than the simple linear model complexity for peak detection in
-real genomic data.
+PDPA), the linear and oracle penalties showed no significant
+difference in test AUC (mean difference from 0.00004 to 0.0006,
+$\text{p-value}>0.05$ in paired $t_{27}$-test). These data indicate
+that, despite the statistical arguments that motivate the oracle model
+complexity, it is not more accurate than the simple linear model
+complexity for peak detection in real genomic data.
 
 We also compare learning a penalty function with either one or
 multiple parameters, given the linear model complexity function. We

@@ -260,7 +260,13 @@ Our main contribution is described in Section~\ref{sec:algorithms},
 where we generalize the functional pruning technique of
 \citet{pruned-dp} so that it can be applied to the constrained
 minimization problem (Table~\ref{tab:contribution}), leading to the fast and optimal Generalized Pruned Dynamic Programming
-Algorithm (GPDPA). In Section~\ref{sec:labeled-supervised} we describe the labeled data sets and we propose a supervised learning algorithm for predicting the crucial penalty parameter, which determines the number of segments $K$. In Section~\ref{sec:results} we show that our proposed algorithms
+Algorithm (GPDPA). 
+These new ideas around how to deal with constraints on the means for 
+neighbouring segments is of independent interest. For example, since the 
+first version of this paper appeared \citep{Hocking-constrained-changepoint-detection}, its ideas have already been used to 
+model monotone constraints in spike detection problems for calcium imaging 
+data \citep{Jewell2018}.
+In Section~\ref{sec:labeled-supervised} we describe the labeled data sets and we propose a supervised learning algorithm for predicting the crucial penalty parameter, which determines the number of segments $K$. In Section~\ref{sec:results} we show that our proposed algorithms
 achieve state-of-the-art speed and peak detection accuracy in a
 benchmark of ChIP-seq data sets. The paper ends with a
 discussion.
@@ -287,7 +293,7 @@ changepoint variables.
 
 For real-valued data $y_t\in\RR$, the statistical model is for every
 segment $k\in\{1\,\dots,K\}$, each data point on that segment
-$\tau\in(t_{k-1},t_k]$ is
+$t\in(t_{k-1},t_k]$ is
 $y_t\stackrel{\text{iid}}{\sim}N(u_k,\sigma^2)$.  Maximizing the
 likelihood in this Normal model is equivalent to minimizing the square
 loss $\ell(y_t,u_k)=(u_k-y_t)^2$. In the case of genomic count data,
@@ -317,7 +323,7 @@ This optimization problem is non-convex because the changepoint
 variables $t_k$ are integers. Nonetheless, the optimal solution can be
 computed in $O(K n^2)$ time using a dynamic programming algorithm
 \citep{segment-neighborhood}. By exploiting the structure of the
-convex loss function $\ell$, the pruned dynamic programming algorithm
+loss function $\ell$, the pruned dynamic programming algorithm
 of \citet{pruned-dp} computes the same optimal solution much faster;
 empirically having a computational cost that is $O(K n \log n)$.
 Efficient algorithms exist for solving similar problems such
@@ -769,7 +775,7 @@ computing $O(Kn)$ cost functions $C_{k,t}$. As in the original
 pruned dynamic programming algorithm \citep{pruned-dp}, the average time
 complexity of the GPDPA is $O(K n I)$ where $I$ is the average number of
 intervals (convex function pieces; candidate changepoints) that are
-used to represent a cost function. The theoretical maximum number of
+used to represent a cost function. For the unconstrained problem, the theoretical maximum number of
 intervals is $I=O(n)$, implying a worst case time complexity of $O(K n^2)$
 \citep{pruned-dp-new}.
 % However, this maximum is only achieved in
@@ -778,11 +784,9 @@ intervals is $I=O(n)$, implying a worst case time complexity of $O(K n^2)$
 % empirically $I=O(\log n)$, as we will show in
 % Section~\ref{sec:results_time}. Thus the average empirical time
 % complexity of the algorithm is $O(K n \log n)$.
-In practice we have always experienced $I\ll n$, with, for example,
-empirical results for the unconstrained case suggesting $I=O(\log n)$
-\citep{fpop}. We investigate the empirical computational cost for the
-up-down constrained algorithm in Section~\ref{sec:results_time} and observe $I=O(\log n)$ in that
-case, which corresponds to an overall average computational cost that
+For the up-down constrained problem the theoretical maximum number of intervals is unknown, but in practice we have always observed $I\ll n$. For example,
+we investigate the empirical computational cost for the
+up-down constrained algorithm in Section~\ref{sec:results_time} and observe $I=O(\log n)$, which corresponds to an overall average computational cost that
 is $O(Kn\log n)$.
 
 \subsection{Example and comparison with unconstrained case}
@@ -975,11 +979,10 @@ k\left(
 1 + 4\sqrt{1.1 + \log( n_m/k)}
 \right)^2.
 \end{equation}
-The oracle model complexity is motivated by statistical arguments, but
-the constants (4, 1.1) may be sub-optimal in real genomic data, which
-is why we also investigate learned penalty functions.
+The oracle model complexity is motivated by a statistical argument that assumes a piecewise constant Poisson model, but
+the constants (4, 1.1) may be sub-optimal in real data that do not satisfy these assumptions. 
 
-The main idea of penalty learning \citep{HOCKING-penalties} is to
+We also investigate learned penalty functions.  The main idea of penalty learning \citep{HOCKING-penalties} is to
 computed a fixed feature vector $\mathbf x_m\in\RR^d$ for each problem
 $m$, then learn a function $f(\mathbf x_m)\in\RR$ that predicts
 problem-specific $\log\lambda$ values:
@@ -1633,8 +1636,8 @@ in higher test AUC, because of its statistical motivation. The second
 row of Supplementary Figure 4 plots the distribution of test AUC
 values for one model complexity function versus the other. Contrary to
 our expectation, for all three changepoint algorithms (CDPA, GPDPA,
-PDPA), the linear penalty has a slightly larger test AUC (mean
-difference from 0.00004 to 0.0006 over all 28 test folds, not significant,
+PDPA), the linear and oracle penalties showed no significant
+difference in test AUC (mean difference from 0.00004 to 0.0006,
 $\text{p-value}>0.05$ in paired $t_{27}$-test). These data indicate
 that, despite the statistical arguments that motivate the oracle model
 complexity, it is not more accurate than the simple linear model
@@ -1801,7 +1804,7 @@ complexity as the original unconstrained PDPA, when applied to peak
 detection in ChIP-seq data sets (Section~\ref{sec:results_time},
 Figure~\ref{fig:timings}). We also observed that the up-down
 constrained GPDPA is much more accurate than the unconstrained PDPA,
-in terms of min train error (Section~\ref{sec:min-train-error},
+in terms of minimum train error (Section~\ref{sec:min-train-error},
 Figure~\ref{fig:PDPA-infeasible-error-compare}), test AUC
 (Section~\ref{sec:test-auc}, Figure~\ref{fig:test-auc}), and test
 accuracy (Section~\ref{sec:test-accuracy}, Supplementary
@@ -1813,7 +1816,7 @@ quadratic $O(Kn^2)$ time CDPA.
 
 We observed that the heuristic algorithms which are popular in the
 bioinformatics literature (MACS, HMCanBroad) are much less accurate
-than the proposed GPDPA, in terms of min train error, test AUC, and
+than the proposed GPDPA, in terms of minimum train error, test AUC, and
 test accuracy. In the past these sub-optimal heuristics have been
 preferred because of their speed. For example, the CDPA took 2 hours
 to compute 10 peak models in the largest data set in the ChIP-seq
