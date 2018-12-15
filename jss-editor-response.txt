@@ -31,15 +31,15 @@ contributions. And possibly explaining in a cover letter what aspects of
 the other paper will likely change in the next review process after AOAS.
 
 Response: we have added a paragraph at the end of the introduction
-which clarifies the similarities and differences of our submission
-with respect to our previous work. Our paper introduces two new
-algorithms that can solve the same statistical problem as Hocking et
-al. (2017), but with much smaller computational cost (for both time
-and memory). This computational saving is important in applications:
-As we state at the end of Section 1.4, for ten million data points and
-1000 peaks our algorithm takes just hours of computing time and
-gigabytes of storage, whereas the previous algorithm would take weeks
-of computing time and terabytes of storage.
+which clarifies the novelty of our submission with respect to our
+other contribution. Our paper introduces two new algorithms that can
+solve the same statistical problem as Hocking et al. (2017), but with
+much smaller computational cost (for both time and memory). This
+computational saving is important in applications: As we state at the
+end of Section 1.4, for ten million data points and 1000 peaks our
+algorithm takes just hours of computing time and gigabytes of storage,
+whereas the previous algorithm would take weeks of computing time and
+terabytes of storage.
 
 o When resubmitting to JSS, please make package PeakSegDisk available from
 a standard repository, e.g., CRAN. (The availability on GitHub may, of
