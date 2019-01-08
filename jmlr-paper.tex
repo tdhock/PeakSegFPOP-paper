@@ -55,33 +55,40 @@ penalty learning algorithms for
 peak detection in genomic data}
 
 \author{%
-  \name Toby Dylan Hocking \email toby.hocking@nau.edu \\
+  \name Toby Dylan Hocking \email toby.hocking@nau.edu \\%jmlr:tdhock
   \addr School of Informatics, Computing, and Cyber Systems\\
   Northern Arizona University\\
   Flagstaff, AZ, USA
   \AND
-  \name Guillem Rigaill \email guillem.rigaill@inra.fr \\
+  \name Guillem Rigaill \email guillem.rigaill@inra.fr \\%jmlr:rigaill
   \addr Laboratoire de Math\'ematiques et Mod\'elisation d'Evry (LaMME)\\
   Universit\'e d'Evry Val d'Essonne, INRA\\
   Evry, France
   \AND
-  \name Paul Fearnhead \email p.fearnhead@lancaster.ac.uk \\
+  \name Paul Fearnhead \email p.fearnhead@lancaster.ac.uk \\%jmlr:fearnhead
   \addr Department of Mathematics and Statistics\\
   Lancaster University\\
   Lancaster, UK
   \AND
-  \name Guillaume Bourque \email guil.bourque@mcgill.ca\\
+  \name Guillaume Bourque \email guil.bourque@mcgill.ca\\%jmlr:bourque
   \addr Department of Human Genetics\\
   McGill University\\
   Montr\'eal, Qu\'ebec, Canada}
 
 \editor{TBD}
 
+\textbf{Condensed running title of 50 characters or less:} 
+Constrained dynamic programming algorithms.
+
+\textbf{Five keywords:} non-convex, constrained, optimization, changepoint, segmentation.
+
+
+
 \maketitle
 
 \begin{abstract}
-  Peak detection is a central problem for genomic data, and involves
-  segmenting counts of DNA sequence reads that are aligned to
+  Peak detection in genomic data involves
+  segmenting counts of DNA sequence reads aligned to
   different locations of a chromosome. The goal is to detect peaks
   with higher counts, and filter out background noise with lower
   counts.  Most existing algorithms for this problem are unsupervised
@@ -1460,7 +1467,7 @@ many false and true positives, to a completely pruned/empty list of
 peaks with FPR=TPR=0, see Supplementary Figure 3 for an illustration).
 Because the largest peak list does not necessarily predict peaks in
 all positive labels, we linearly extrapolate each ROC curve to
-TPR=FPR=1 in order to compute AUC (see Supplementary Figure 5 for an
+TPR=FPR=1 in order to compute AUC (see Supplementary Figure 3 for an
 illustration of how the ROC/AUC is computed). To estimate the variance
 of AUC on each data set, we use four-fold cross-validation. Each
 labeled count data vector was randomly assigned a fold ID from 1 to 4
@@ -1590,7 +1597,7 @@ accurate than the CDPA (mean AUC=0.887, p-value=0.056); in the other
 data set (H3K4me3 XJ immune) the GPDPA (mean AUC=0.913) was significantly
 more accurate than the CDPA (mean AUC=0.897, p-value=0.02). In contrast, the
 unconstrained PDPA had significantly lower test AUC in all seven data sets
-(p-value$<0.04$), because of lower true positive rates. These results
+($\text{p-value}<0.04$), because of lower true positive rates. These results
 provide convincing evidence that the up-down constraint is necessary for
 optimal peak detection accuracy.
 %               set.name      p.value    estimate     GPDPA      PDPA
@@ -1824,11 +1831,12 @@ heuristic algorithms.
 %Our proposed GPDPA can now be used as an optimal
 %alternative to heuristic algorithms, even for large data
 %sets. 
-Additionally, for \emph{any} model with $P$ peaks, due to the optimality of the GPDPA, it can be used 
-with $K=2P+1$ segments to compute a more likely (or
-equally likely) set of peaks (in terms of the Poisson likelihood of
-the piecewise constant model with a segment for each peak and
-background region).
+% Additionally, for \emph{any} model with $P$ peaks, due to the optimality of the GPDPA, it can be used 
+% with $K=2P+1$ segments to compute a more likely (or
+% equally likely) set of peaks (in terms of the Poisson likelihood of
+% the piecewise constant model with a segment for each peak and
+% background region). 
+Finally, we have recently investigated a penalized formulation of the constrained changepoint problem that results in further speedups \citep{HOCKING-GFPOP}.
 
 The framework we have introduced for estimating changepoints when
 there are constraints on parameters of neighboring segments can be
