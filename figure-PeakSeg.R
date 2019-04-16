@@ -161,7 +161,7 @@ gg <- ggplot()+
     size=0.5)+
   geom_text(aes(
     ifelse(seg.i==1, chromStart, chromEnd),
-    20,
+    30,
     label=sprintf("$z_%s$", ifelse(seg.i==1, 1, "n"))),
     data=three.segs[seg.i != 2])
 library(tikzDevice)
@@ -291,6 +291,11 @@ gg <- ggplot()+
                    xend=(chromEnd+1/2)/1e3, yend=mean),
                data=five.segs,
                color="green", alpha=3/4, size=2)+
+  geom_segment(aes(
+    (chromStart-1/2)/1e3, 70,
+    xend=(chromEnd+1/2)/1e3, yend=70),
+    data=five.segs[seq_along(mean) %in% c(2, 4)],
+    color="deepskyblue", alpha=3/4, size=4)+
   geom_text(aes(x, y, label="$S=5$ segments\nconstrained"),
             data=lab.loc,
             hjust=0,

@@ -1,3 +1,5 @@
+2019-04-asu-slides.pdf: 2019-04-asu-slides.tex
+	pdflatex 2019-04-asu-slides
 jmlr-paper.pdf: figure-all-cv.pdf figure-test-error-dots.pdf figure-compare-unconstrained.tex figure-PDPA-infeasible-error-compare.pdf jmlr-paper.tex figure-data-models.png figure-infeasible-error.tex figure-PDPA-intervals-all.pdf
 	rm -rf *.aux *.bbl
 	pdflatex jmlr-paper
