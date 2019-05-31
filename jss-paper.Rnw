@@ -275,9 +275,11 @@ There has also been substantial research into speeding up the optimal partitioni
 using various ideas to prune the search space. In particular the Pruned Exact Linear Time (PELT)
 algorithm of \citet{pelt}, which is implemented within \code{changepoint::cpt.mean}, and Functional Pruning
 Optimal Partitioning (FPOP) of \citet{Maidstone2016} which is available in \R\ as
-\verb|fpop::Fpop| \citep{fpop}. These algorithms have a computational cost of 
-$O(N)$ if $K$ increases linearly with $N$. The FPOP algorithm has a computational cost 
-that is empirically $O(N \log N)$ in situations where $K$ increases sub-linearly with $N$. 
+\verb|fpop::Fpop| \citep{fpop}. 
+%These algorithms have a computational cost of $O(N)$ if $K$ increases linearly with $N$. 
+%The FPOP algorithm has a computational cost that is empirically $O(N \log N)$ in situations where $K$ increases sub-linearly with $N$. 
+%% PELT is $O(N)$ time if $K$ increases linearly with $N$;
+%% FPOP is empirically $O(N \log N)$ time. 
 See Table \ref{tab:unconstrained-algos} for a summary of the different dynamic programming algorithms and implementations.
 
 Whilst solving the optimal partitioning problem is faster than solving (\ref{min:ut}) for a range of $K$,
