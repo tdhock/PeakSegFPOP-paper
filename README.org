@@ -58,6 +58,9 @@ jss-paper.pdf"
   [[file:figure-min-train-error.R]]
 - big model labels in [[file:figure-test-error-dots.R]]
 
+** 22 July 2019
+[[file:jss.more.evals.R]] attempts to answer the question from a reviewer:
+does the number of GFPOP evals depend on the max number of peaks?
 ** 18 Oct 2018
 
 - new scheme for [[file:PDPA.infeasible.R]]: for background segments with
