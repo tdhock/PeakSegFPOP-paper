@@ -181,7 +181,7 @@ changepoints while guaranteeing optimality.
 Note that throughout this paper the term ``optimal'' will be used to
 describe algorithms that compute an exact solution to some
 well-defined optimization problem (e.g. maximum likelihood or minimum
-cost). 
+cost). For models that are defined in terms of maximizing a likelihood function, we use the terms ``more likely'' and ``most likely'' to compare likelihood values for specific models/algorithms.
 
 
 \subsection{Peak detection via changepoint methods}
@@ -193,7 +193,7 @@ increased mean of some measured signal. For example, ChIP-seq data
 measure transcription factor binding or histone modification
 \citep{chip-seq}; ATAC-seq data measure open chromatin \citep{ATACseq}. In these data
 we have counts of aligned reads at different positions along a
-chromosome, and we would like to detect regions for which the count data are larger than the usual background level.
+chromosome, and we would like to detect regions for which the count data are larger than the usual background level. These long contiguous genomic regions with large counts are referred to as ``peaks'' and they typically correspond to active genes/promoters in specific samples and cell types. An important sub-problem in analyzing these data is identifying the precise genomic positions of the starts and ends of these peak regions.
 
 One approach to detecting these regions is through algorithms that detect changes in the mean of the data. This paper
 builds on recent work of \citet{Hocking-constrained-changepoint-detection} and presents a new changepoint algorithm, and its implementation in
@@ -217,7 +217,7 @@ optimal changepoint models.
 Denote the data by $z_1,\dots,z_N$. We assume the data is ordered: for genomic applications the ordering will 
 be due to position along a chromosome, for time-series data the ordering is commonly by time. The aim of 
 changepoint analysis is to partition the data in to $K$ segments that each contain consecutive data points, 
-such that features of the data are common within a segment but differ between segments. The feature of the data 
+such that features of the data are common within a segment but differ between neighboring segments. The feature of the data 
 that changes will depend on the application, but could be, for example, the mean of the data, the variance, or 
 the distribution. Detecting changes of different features requires different statistical algorithms.
 
@@ -340,7 +340,8 @@ wild binary segmentation method of \citet{wbs}. An efficient
 implementation of the classical binary segmentation heuristic is
 available as \code{fpop::multiBinSeg}. The \pkg{stepR} and
 \pkg{FDRseg} packages implement a multiscale approach to changepoint
-inference, which is slow for large data \citep{stepR, FDRSeg}.
+inference, and have linear run times if the number of changes
+increase linearly in the number of observations \citep{stepR, FDRSeg}.
 
 \subsection{Models with inequality constraints between adjacent segment means}
 
@@ -352,12 +353,14 @@ states. In the ChIP-seq application the changepoint model needs to be
 interpreted in terms of peaks (large values which represent protein
 binding/modification) and background (small values which represent noise).
 
-In this context, \citet{HOCKING-PeakSeg} introduced a $O(KN^2)$
+In this context, \citet{HOCKING-PeakSeg} introduced an $O(KN^2)$
 Constrained Dynamic Programming Algorithm (CDPA) for fitting a model
 where up changes are followed by down changes, and vice versa
 (Table~\ref{tab:constrained-algos}). These constraints ensure that
 odd-numbered segments can be interpreted as background, and
-even-numbered segments can be interpreted as peaks. Although the CDPA
+even-numbered segments can be interpreted as peaks. 
+Note that in this constrained model, peaks can neither be predicted at the beginning nor at the end of the data. 
+Although the CDPA
 provides a sub-optimal solution to the Segment Neighborhood problem in
 $O(KN^2)$ time, \citet{HOCKING2016-chipseq} showed that it achieves
 state-of-the-art peak detection accuracy in a benchmark of
@@ -380,7 +383,7 @@ constrained Segment Neighborhood problem in $O(KN\log N)$ time.  The
   \begin{tabular}{r|c|c}
     & No changepoint pruning & Functional pruning \\
     \hline
-    Segment Neighborhood & Constrained DPA & Generalized PDPA \\
+    Segment Neighborhood & Constrained DPA & GPDPA \\
 $K$ segments    & Sub-optimal,  $O(KN^2)$ & Optimal, $O(KN\log N)$\\
     & \citet{HOCKING-PeakSeg} & 
 % dont know why this isn't abbreviated to etal!!!
@@ -389,7 +392,7 @@ $K$ segments    & Sub-optimal,  $O(KN^2)$ & Optimal, $O(KN\log N)$\\
  \\
 & \pkg{PeakSegDP} & \pkg{PeakSegOptimal}\\
     \hline
-    Optimal Partitioning &  & Generalized FPOP \\
+    Optimal Partitioning &  & GFPOP \\
     Penalty $\lambda$&  & Optimal, $O(N\log N)$\\
     &  & \textbf{This work}\\
     & & \pkg{PeakSegDisk}\\
@@ -422,7 +425,7 @@ segments using Segment Neighborhood algorithms. Our proposed GFPOP
 algorithm solves the Optimal Partitioning problem, so yields one
 optimal model with $K$ segments (without having to compute the models
 from 1 to $K-1$ segments). We show that the empirical complexity of
-our GFPOP implementation is $O(N\log N)$ time, $O(N\log N)$ space, and
+our GFPOP implementation is $O(N\log N)$ time, $O(N\log N)$ disk, and
 $O(\log N)$ memory, which makes it possible to compute optimal models with many peaks
 for typical genomic data sets on common laptop computers.
 
@@ -866,11 +869,11 @@ writes these parameters to a text output file on disk.
 \paragraph{Computational complexity.} The time/space complexity of
 Algorithm~\ref{algo:GFPOP} is $O(N I)$, where $I$ is the mean number
 of intervals (function pieces) that are used to represent the
-$C_{s, i}$ cost functions. Theoretically there are some pathological
-data sets for which the algorithm computes $I=O(N)$ intervals, which
-results in a worst case complexity of $O(N^2)$. However our empirical
-study suggests much faster average complexity in real genomic data
-(Section~\ref{sec:timings}).
+$C_{s, i}$ cost functions. There are some pathological data sets
+for which the algorithm computes $I=O(N)$
+intervals, which results in a worst case complexity of
+$O(N^2)$. One such example is when the data sequence always increases, which also results in the worst case of the original FPOP algorithm. However our empirical study suggests much faster average
+complexity in real genomic data (Section~\ref{sec:timings}).
 %% However our empirical study (Figure~\ref{fig:intervals}) suggests that in real genomic data sets, $I=O(\log N)$ which results in overall average complexity
 %% of $O(N \log N)$. 
 %% Using
@@ -963,10 +966,14 @@ gg <- ggplot() + theme_bw() +
             color = "grey50", data = Mono27ac$coverage) +
   geom_segment(aes(chromStart, mean, xend = chromEnd, yend = mean),
     color = "green", size = 1, data = fit$segments) +
-  coord_cartesian(xlim = c(2e5, 3e5))
+  coord_cartesian(xlim = c(2e5, 3e5))+
+  xlab("Position on chromosome (bases)")
 print(gg)
 @ 
 
+It is apparent in the plot above that the peaks detected by our
+algorithm vary in both height (i.e. mean value) and length (in bases
+along the chromosome).
 Note that the typical ``coverage'' representation shown above results
 in a sequence of spatially correlated genomic data which are not
 independently distributed (many subsequent counts are
@@ -1016,7 +1023,7 @@ solution to the Segment Neighborhood problem~(\ref{eq:L_P}),
     P\in\{0,1,\dots,P_{\text{max}}\} 
   } L_P + \lambda P.
 \end{equation}
-Equation~\ref{eq:F(lambda)} above makes it clear that there are only a finite number
+From (\ref{eq:F(lambda)}) it is clear that there are only a finite number
 of optimal changepoint models (from 0 to $P_{\text{max}}$
 peaks). $F(\lambda)$ is a concave, non-decreasing function that can be
 computed as the minimum of a finite number of affine functions
@@ -1030,7 +1037,7 @@ number of peaks $P^*$. To compute that model we will maximize the function
     P\in\{0,1,\dots,P_{\text{max}}\}
     } \underbrace{L_P + \lambda(P-P^*)}_{g_P(\lambda)}.
 \end{equation}
-From Equation~\ref{eq:G} it is clear that $G(\lambda)$ is a concave
+From (\ref{eq:G}) it is clear that $G(\lambda)$ is a concave
 function that can be computed as the minimum of a finite number of
 affine functions $g_P(\lambda)=L_P+\lambda(P-P^*)$. 
 %The maximum of $G$ is characterized by the subdifferential equation $0\in \partial G(\lambda)$. 
@@ -1234,7 +1241,8 @@ to segment (lines in the bedGraph file).
   less than $N$. \textbf{Right:} storage on disk (top panel) and
   computation time (bottom panel) are empirically $O(N \log N)$. Error
   bands show median and 5\%/95\% quantiles over several data sets of a
-  given size $N$; black dots and text show computational requirements
+  given size $N$ and penalties $\lambda$; 
+  black dots and text show computational requirements
   for the most extreme data sets.}
 \end{figure}
 
@@ -1272,29 +1280,29 @@ of 1 aligned read on chr1:101-150, which leads to spatial correlation
 between nearby positions (top panels of
 Figure~\ref{fig:spatial-correlation}). Another representation with no
 spatial correlation would be to count a sequence read at \emph{only
-  the last genomic position} where it aligns (bottom panels of figure
-below). In the example above that would be counting 1 at chr1:100 and
-1 at chr1:150, and 0 elsewhere.
+  the last genomic position} where it aligns (bottom panels of
+Figure~\ref{fig:spatial-correlation}). In the example above that would
+be counting 1 at chr1:100 and 1 at chr1:150, and 0 elsewhere.
 
 We have tried GFPOP on both representations of the data, and we have
 observed that the detected peaks are highly consistent (with some
 variation on the order of the read size, 100 bases). In
 Figure~\ref{fig:spatial-correlation} we represent two datasets
 (left:H3K36 and right:H3K4) using the coverage representation (top)
-and last position representation (bottom). The peaks in the model with
-2 peaks ($K=5$ segments) are shown as blue horizontal bars, which are
-highly consistent between the top and bottom plots. This illustrates
-that the proposed algorithm is highly insensitive to spatial correlation.
+and last position representation (bottom). The peak positions of the
+models shown in blue are highly consistent between the top and bottom
+plots. This illustrates that the proposed algorithm is highly
+robust to spatial correlation.
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.7\textwidth]{figure-spatial-correlation}
+  \includegraphics[width=\textwidth]{figure-spatial-correlation}
   \label{fig:spatial-correlation}
-  \vskip -0.3cm
+  \vskip -1cm
   \caption{For two different ChIP-seq experiment types (left=broad
     H3K36; right=sharp H3K4), our proposed GFPOP algorithm detects
     similar peaks (blue) in data sequences with (top) or without
-    (bottom) spatial correlation.}
+    (bottom) spatial correlation. Also shown are raw/exact count data (black), mean counts in bins (red), and peak position differences in bases between top/bottom panels (blue numbers).}
 \end{figure}
 
 \subsection{GFPOP is empirically log-linear}\label{sec:timings}
@@ -1339,8 +1347,8 @@ for genomic data in $O(N\log N)$ space/time.
   $O(N\log N)$ for both storage methods, but the disk-based method is
   slower by a constant factor. Median line and quartile band computed
   over several penalty values for a given data set. \textbf{Right:}
-  fixing one data set data set with $N=106,569$, the computation time
-  increases with penalty value $\lambda$ for both storage methods.}
+  fixing one data set with $N=106,569$, the computation time
+  generally increases with penalty value $\lambda$ for both storage methods.}
 \end{figure}
 
 \subsection{Disk storage is slower than memory by a constant
@@ -1374,7 +1382,7 @@ that disk storage is slower than memory storage by a constant factor
   linear $O(P)$ for Segment Neighborhood (grey line) but empirically
   $O(\log P)$ for Optimal Partitioning with sequential search (green
   dots). \textbf{Right:} Optimal Partitioning is empirically faster
-  for computing models with $P>5$ peaks (10 segments); Segment
+  for computing models with $P>5$ peaks (11 segments); Segment
   Neighborhood is faster for smaller models.}
 \end{figure}
 
@@ -1439,9 +1447,13 @@ for $N$ data and $P$ peaks.
 
 In this section we study the perfomance of the proposed algorithms in
 a typical application. In the UCI \verb|chipseq| data set, there are
-labels that indicate subsets of the data with or without peaks. In
-this context the labels can be used to compute false positive and
-false negative rates for any peak model. For example
+labels that indicate subsets of the data with or without peaks. 
+These labels were created by expert genomic scientists, 
+who used visual inspection of coverage data plots to determine
+genomic regions with/without peaks which are significantly higher 
+than the neighboring background noise.
+Although such labels are not available in all ChIP-seq data sets, here we use them as a gold standard to compute false positive and
+false negative rates for peak models. For example
 Figure~\ref{fig:label-error} shows one data set with six labels and
 four peak models computed via GFPOP. Small penalties result in too
 many peaks, and large false positive rates. Large penalties result in
@@ -1479,15 +1491,16 @@ for each data set, we computed the label error of each model. For each
 data set we computed the min/max peaks that achieves zero label errors
 (34/236 in Figure~\ref{fig:label-error}), along with the mean of those
 two values, $(34+236)/2=135$. We plot the mean number of peaks that
-achieves zero label errors as a function of data set size in
-Figure~\ref{fig:data-peaks}. In these data it is clear that models
-with $O(\sqrt N)$ peaks achieve zero label errors.
+achieves zero label errors as a function of data set size $N$ in
+Figure~\ref{fig:data-peaks}. From the figure it is clear that the mean
+number of peaks required to achieved zero label errors in these data
+is on the order of $O(\sqrt N)$.
 
-Computing the optimal model with $O(\sqrt N)$ peaks is computationally
+Computing the optimal model with $P=O(\sqrt N)$ peaks is computationally
 expensive using the Segment Neighborhood algorithm
 (\pkg{PeakSegOptimal} package), because the overall complexity would
 be $O(N\sqrt N\log N)$. For example in $N=10^7$ data,
-$P=O(\sqrt N)=1414$ peaks achieves zero label errors. Computing the
+$P=1414$ peaks achieves zero label errors. Computing the
 optimal model with Segment Neighborhood would thus require 2828
 $O(N\log N)$ DP iterations. If we assume that each iteration would
 have similar computational requirements as one $O(N\log N)$ run of
@@ -1541,8 +1554,7 @@ amounts of time (minutes).
 Third, we studied the empirical complexity of sequential search as a
 function of data size $N$ and number of peaks $P$. We showed that it
 requires $O(N\log(N)\log(P))$ time, $O(N\log N)$ disk, $O(\log N)$
-memory. In particular we showed that it is always faster than Segment
-Neighborhood solvers for models with $P>5$ peaks. 
+memory. In particular we found in the ChIP-seq data sets that it is always faster than Segment Neighborhood solvers for models with $P>5$ peaks. 
 
 Finally we analyzed the labels in our benchmark of genomic data,
 which indicated that an appropriate number of peaks is $P=O(\sqrt
