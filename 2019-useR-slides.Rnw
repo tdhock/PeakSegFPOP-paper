@@ -1,4 +1,4 @@
-% -*- compile-command: "make 2019-04-asu-slides.pdf" -*-
+% -*- compile-command: "make 2019-useR-slides.pdf" -*-
 \documentclass{beamer}
 \usepackage{tikz}
 \usetikzlibrary{arrows}

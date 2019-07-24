@@ -60,7 +60,11 @@ jss-paper.pdf"
 
 ** 2 July 2019
 
-TODO edit [[file:2019-useR-slides.tex]] for useR conf.
+[[file:2019-useR-slides.Rnw]] for useR conf.
+
+** 22 July 2019
+[[file:jss.more.evals.R]] attempts to answer the question from a reviewer:
+does the number of GFPOP evals depend on the max number of peaks?
 
 ** 18 Oct 2018
 
