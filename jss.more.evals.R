@@ -66,10 +66,14 @@ if(!dir.exists(data.dir)){
 }
 
 future::plan("multiprocess")
+prob.i.vec <- 1:8
 prob.i.vec <- 1:nrow(some.probs)
-##prob.i.vec <- 1:2
 
-jss.evaluations.list <- future.apply::future_lapply(prob.i.vec, function(prob.i){
+peaks.vec <- as.integer(10^seq(1, 3.25, by=0.25))
+LAPPLY <- future.apply::future_lapply
+LAPPLY <- lapply
+jss.evaluations.list <- LAPPLY(prob.i.vec, function(prob.i){
+  source("jss-packages.R")
   prob <- some.probs[prob.i]
   cat(sprintf("%4d / %4d problems\n", prob.i, length(prob.i.vec)))
   pdir <- file.path(data.dir, sub(":", "-", prob$prob.dir))
@@ -89,8 +93,9 @@ jss.evaluations.list <- future.apply::future_lapply(prob.i.vec, function(prob.i)
     problemStart="[0-9]+", as.integer,
     "-",
     problemEnd="[0-9]+", as.integer)
-  peaks.vec <- unique(c(prob$peaks, as.integer(10^seq(1, log10(prob$bedGraph.lines), by=0.25))))
-  L <- lapply(peaks.vec, function(peaks.arg){
+  L <- lapply(seq_along(peaks.vec), function(peaks.i){
+    peaks.arg <- peaks.vec[[peaks.i]]
+    cat(sprintf("%d / %d peaks=%d\n", peaks.i, length(peaks.vec), peaks.arg))
     fit.list <- PeakSegDisk::sequentialSearch_dir(pdir, peaks.arg, verbose=1)
     data.table(
       peaks.arg,
