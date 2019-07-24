@@ -517,6 +517,9 @@ text.dt <- rbind(
   d(1e7, 0.0005, "solve one", "gigabytes", 1, 0),
   d(3e3, 300, "find model", "minutes", 0, 1),
   d(1e7, 0.03, "solve one", "minutes", 1, 0))
+exp.vec <- seq(4, 7, by=1)
+breaks.vec <- 10^exp.vec
+labels.vec <- sprintf("$10^%d$", exp.vec)
 gg <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
@@ -548,12 +551,15 @@ gg <- ggplot()+
     data=prob.stats[var=="minutes"])+
   scale_x_log10(
     "$N$ = data to segment
-(log scale)"
+(log scale)",
+breaks=breaks.vec,
+labels=labels.vec
   )+
   scale_y_log10(
     "Time (minutes) to compute
      model with $O(\\sqrt N)$ peaks
      via GFPOP (log scale)",
+    breaks=10^seq(-1, 2),
 labels=paste)
 ##print(gg)
 tikz("jss-figure-evaluations-computation.tex", 3.1, 2.6)
@@ -605,7 +611,8 @@ leg <- ggplot()+
     "$N$ = data to segment
 (log scale)",
     limits=c(NA, 10^8.5),
-    breaks=10^seq(4, 7, by=1)
+breaks=breaks.vec,
+labels=labels.vec
   )+
   scale_y_log10(
     "Number of $O(N \\log N)$
@@ -640,7 +647,6 @@ print(dl)
 ## pdf("jss-figure-evaluations-ref.pdf", 3.5, 3)
 ## print(dl.ref)
 ## dev.off()
-
 tikz("jss-figure-evaluations.tex", 3.1, 2.6)
 print(dl)
 dev.off()

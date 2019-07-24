@@ -193,7 +193,7 @@ increased mean of some measured signal. For example, ChIP-seq data
 measure transcription factor binding or histone modification
 \citep{chip-seq}; ATAC-seq data measure open chromatin \citep{ATACseq}. In these data
 we have counts of aligned reads at different positions along a
-chromosome, and we would like to detect regions for which the count data are larger than the usual background level. These long contiguous genomic regions with large counts are referred to as ``peaks'' and they typically correspond to active genes/promoters in specific samples and cell types. An important sub-problem in analyzing these data is identifying the precise genomic positions of the starts and ends of these peak regions.
+chromosome, and we would like to detect regions for which the count data are larger than the usual background level. These long contiguous genomic regions with large counts are referred to as ``peaks'' and they typically correspond to active genes/promoters in specific samples and cell types. Each peak is separated from other peaks by background/noise regions (i.e. it is impossible for two peaks to be directly adjacent to one another without intervening background noise). An important sub-problem in analyzing these data is identifying the precise genomic positions of the starts and ends of these peak regions. 
 
 One approach to detecting these regions is through algorithms that detect changes in the mean of the data. This paper
 builds on recent work of \citet{Hocking-constrained-changepoint-detection} and presents a new changepoint algorithm, and its implementation in
@@ -413,11 +413,11 @@ genomic data (Section~\ref{sec:results}). The algorithms are
 implemented in the \R\ package \pkg{PeakSegDisk} on CRAN and
 GitHub.\footnote{ \url{https://github.com/tdhock/PeakSegDisk} }
 
-First, we present a new algorithm for solving the Optimal Partitioning
-problem with up-down constraints between adjacent segment means
-(GFPOP, Algorithm~\ref{algo:GFPOP}). The fastest existing algorithm
-for the up-down constrained changepoint model was the
-$O(KN\log N)$ solver for the Segment Neighborhood problem
+First, we present the first algorithm which directly solves the
+Optimal Partitioning problem with up-down constraints between adjacent
+segment means (GFPOP, Algorithm~\ref{algo:GFPOP}). The most similar
+existing algorithm computes the solution to the corresponding Segment
+Neighborhood problem in $O(KN\log N)$ time/space
 (Table~\ref{tab:constrained-algos}). In large genomic data sets, we
 are only interested in models with many segments/changepoints, so it
 is a waste of time and space to compute all models from 1 to $K$
@@ -426,8 +426,9 @@ algorithm solves the Optimal Partitioning problem, so yields one
 optimal model with $K$ segments (without having to compute the models
 from 1 to $K-1$ segments). We show that the empirical complexity of
 our GFPOP implementation is $O(N\log N)$ time, $O(N\log N)$ disk, and
-$O(\log N)$ memory, which makes it possible to compute optimal models with many peaks
-for typical genomic data sets on common laptop computers.
+$O(\log N)$ memory, which makes it possible to compute optimal models
+with many peaks for typical genomic data sets on common laptop
+computers.
 
 Although solving the Optimal Partitioning problem is faster by a
 factor of $O(K)$, the user is unable to directly choose the number of
@@ -438,21 +439,37 @@ optimal model for a specified number of segments $K$. It repeatedly
 calls GFPOP to solve Optimal Partitioning with different penalties
 $\lambda$, until it finds the maximum likelihood model with at most $K$
 segments. We empirically show that the sequential search only requires
-$O(\log K)$ evaluations of GFPOP. Overall the proposed algorithm is
-thus $O( N \log(N)\log(K))$ time, $O(N\log N)$ disk, and $O(\log N)$
-memory. In an analysis of benchmark genomic data sets, we show that
-this algorithm can compute an optimal model with $O(\sqrt N)\approx 1000$ peaks
-for $N=10^7$ data using only hours of compute time and gigabytes of
-storage. This is much less than weeks/terabytes which would be
+$O(\log K)$ calls to GFPOP. 
+%Overall the proposed algorithm is thus $O( N \log(N)\log(K))$ time, $O(N\log N)$ disk, and $O(\log N)$ memory. 
+In an analysis of benchmark genomic data sets, we show that
+this algorithm can compute an optimal model with $\approx 1000$ peaks
+for $N=10^7$ data using only $\approx 20$ calls to GFPOP. 
+This translates into only hours of compute time and gigabytes of
+storage, which is much less than weeks/terabytes which would be
 required for the previous Segment Neighborhood solver. 
 
-\paragraph{Novelty with respect to previous work.} This paper has several
-substantial similarities and differences with our previous work
-\citep{Hocking-constrained-changepoint-detection}. Whereas our
-previous work demonstrated the increased peak detection accuracy of
-the proposed up-down constrained model, this paper provides a fast algorithm
-for computing the same model on the large genomic data sets that are
-now common.
+\paragraph{Novelty with respect to previous work.} This paper has
+several substantial similarities and differences with previous work.
+The main new algorithm presented in this paper is GFPOP, which
+generalizes the FPOP algorithm of \citet{Maidstone2016}. FPOP was
+originally proposed for use with Gaussian mean change-point problems,
+but has also been used with robust loss functions, resulting in the
+R-FPOP algorithm \citep{Fearnhead2019}. FPOP and R-FPOP perform the
+same dynamic programming updates, but use different representations of
+the cost function. In contrast, in this paper we propose a
+generalization of FPOP for changepoint problems with inequality
+constraints between adjacent segment means. The resulting algorithm,
+GFPOP, is substantially novel because it uses different
+dynamic programming update rules, which depend on the constraints. We
+refer to the algorithm as ``Generalized'' because FPOP is the special
+case corresponding to a constraint graph with only one node and edge
+(Figure~\ref{fig:state-graph}, left).
+
+Whereas a previous work proposed the first exact solver for the
+up-down constrained changepoint model
+\citep{Hocking-constrained-changepoint-detection}, this paper provides
+a fast algorithm for computing the same model on the large genomic
+data sets that are now common.
 \begin{description}
 \item[Data.] Both papers propose peak detection algorithms
   for genomic data. Our previous work analyzes a smaller data set
@@ -476,6 +493,7 @@ now common.
   demonstrates faster computation time in large data, relative to
   the up-down constrained Segment Neighborhood algorithm.
 \end{description}
+
 
 \section{Statistical models and optimization problems} \label{sec:models}
 
@@ -866,14 +884,16 @@ in $(U_i,T_i)$. Note that there should be space to store $(U_i,T_i)$
 parameters for up to $N$ segments. In practice our implementation
 writes these parameters to a text output file on disk.
 
-\paragraph{Computational complexity.} The time/space complexity of
+\paragraph{Computational complexity.} The time complexity of
 Algorithm~\ref{algo:GFPOP} is $O(N I)$, where $I$ is the mean number
 of intervals (function pieces) that are used to represent the
-$C_{s, i}$ cost functions. There are some pathological data sets
-for which the algorithm computes $I=O(N)$
-intervals, which results in a worst case complexity of
-$O(N^2)$. One such example is when the data sequence always increases, which also results in the worst case of the original FPOP algorithm. However our empirical study suggests much faster average
-complexity in real genomic data (Section~\ref{sec:timings}).
+$C_{s, i}$ cost functions. Our implementation uses $O(NI)$ disk space
+and $O(I)$ memory. There are some pathological data sets for which the
+algorithm computes $I=O(N)$ intervals, which results in a worst case
+complexity of $O(N^2)$. One such example is when the data sequence
+always increases, which also results in the worst case of the original
+FPOP algorithm. However our empirical study suggests much faster
+average complexity in real genomic data (Section~\ref{sec:timings}).
 %% However our empirical study (Figure~\ref{fig:intervals}) suggests that in real genomic data sets, $I=O(\log N)$ which results in overall average complexity
 %% of $O(N \log N)$. 
 %% Using
@@ -1156,12 +1176,16 @@ Optimal Partitioning problem:
 \caption{\label{algo:seq-search}Sequential search for $P^*$ peaks using GFPOP.}
 \end{algorithm}
 
-\paragraph{Computational complexity.} The space complexity is the same as
-GFPOP: $O(N\log N)$ disk and $O(\log N)$ memory. Its time complexity
-is linear in the number of iterations of the while loop
-(line~\ref{line:while}). Empirically we see $O(\log P^*)$ iterations
-(Section~\ref{sec:op-faster-than-sn}), which implies an overall time
-complexity of $O(N\log(N)\log(P^*))$.
+\paragraph{Computational complexity.} The space complexity is the same
+as GFPOP: $O(NI)$ disk and $O(I)$ memory for $N$ data and $I$
+intervals (candidate changepoints). Its time complexity is $O(W N I)$
+where $W$ is the number of times the GFPOP sub-routine is called,
+i.e. the number of iterations of the while loop
+(line~\ref{line:while}). Because the algorithm essentially performs
+binary search, we expect $W=O(\log P_{\text{max}})$ iterations, where
+$P_{\text{max}}=O(N)$ is the maximum number of peaks for the data
+set. We study the empirical number of iterations $W$ in
+Sections~\ref{sec:op-faster-than-sn}--\ref{sec:more-evals}.
 
 \paragraph{Usage in \R.} The \R\ code below computes the optimal model with 17 peaks:
 
@@ -1373,42 +1397,41 @@ that disk storage is slower than memory storage by a constant factor
   \input{jss-figure-variable-peaks-zoom}
 \end{minipage}
 \vskip -0.5cm
-\caption{\label{fig:variable-peaks} Comparison of time to compute optimal model with at most $P$ peaks using
+\caption{\label{fig:variable-peaks} Comparison of time to compute optimal model with at most $P^*$ desired peaks using
   Segment Neighborhood (grey lines) and Optimal Partitioning with proposed sequential search (green
   dots). GFPOP with sequential search
   (Algorithm~\ref{algo:seq-search}) was used to compute optimal models
-  with different numbers of peaks $P$, for two data sets with
+  with different numbers of desired peaks $P^*$, for two data sets with
   $N\approx 10^6$. \textbf{Left:} the number of iterations is
-  linear $O(P)$ for Segment Neighborhood (grey line) but empirically
-  $O(\log P)$ for Optimal Partitioning with sequential search (green
+  linear $O(P^*)$ for Segment Neighborhood (grey line) but empirically
+  $O(\log P^*)$ for Optimal Partitioning with sequential search (green
   dots). \textbf{Right:} Optimal Partitioning is empirically faster
-  for computing models with $P>5$ peaks (11 segments); Segment
+  for computing models with $P^*>5$ peaks (11 segments); Segment
   Neighborhood is faster for smaller models.}
 \end{figure}
 
 \subsection{Sequential search is faster than Segment Neighborhood}
 \label{sec:op-faster-than-sn}
-In this section we compare the number of $O(N\log N)$ dynamic
-programming iterations required for the proposed sequential search
-(Algorithm~\ref{algo:seq-search}) and the previous generalized pruned
-dynamic programming algorithm (GPDPA) of
+In this section we compare the number of GFPOP calls required for the
+proposed sequential search (Algorithm~\ref{algo:seq-search}) and the
+previous generalized pruned dynamic programming algorithm (GPDPA) of
 \citet{Hocking-constrained-changepoint-detection}. Both algorithms
 compute the solution to the Segment Neighborhood problem (optimal
-model with at most $P$ peaks). The GPDPA requires exactly $2P$ iterations of
-dynamic programming, each of which is an $O(N\log N)$ operation. In
-contrast, the proposed sequential search
+model with at most $P^*$ peaks). The GPDPA requires exactly $2P^*$
+iterations of dynamic programming, each of which is empirically an $O(N\log N)$
+operation. In contrast, the proposed sequential search
 (Algorithm~\ref{algo:seq-search}) needs to solve for a sequence of
-penalties, each of which is done via GFPOP in $O(N\log N)$ time. 
+penalties, each of which is done via GFPOP in empirically $O(N\log N)$ time.
 
 For two data sets with $N\approx 10^6$ we therefore recorded the
 empirical number of times GFPOP was called by the sequential search
 algorithm. We observed that the number of GFPOP calls grows
-logarithmically with $P$ (Figure~\ref{fig:variable-peaks}, left). For
-a large number of peaks ($P>5$), it is clearly faster to use the
-sequential search algorithm (Figure~\ref{fig:variable-peaks},
-right). Overall these experiments indicate that the time complexity of
-the sequential search in genomic data is $O(N\log(N)\log(P))$
-for $N$ data and $P$ peaks.
+logarithmically with $P^*$ (Figure~\ref{fig:variable-peaks},
+left). For a large desired number of peaks ($P^*>5$), it is clearly
+faster to use the sequential search algorithm
+(Figure~\ref{fig:variable-peaks}, right). Overall these experiments
+indicate that the sequential search for $P^*$ desired peaks takes
+$O(\log P^*)$ GFPOP calls.
 
 
 \begin{figure}[t!]
@@ -1442,6 +1465,39 @@ for $N$ data and $P$ peaks.
   and grey quartile band computed over several data sets of a given size
   $N$; asymptotic reference lines shown in red.}
 \end{figure}
+
+\subsection{Sequential search iterations increase logarithmically with data set size}
+\label{sec:more-evals}
+
+Recall that the proposed sequential search
+(Algorithm~\ref{algo:seq-search}) repeatedly calls the GFPOP
+sub-routine until it finds the desired model with $P^*$ peaks. Because
+the algorithm is an instance of binary search, we expected the number
+of GFPOP calls $W$ to increase logarithmically with the maximum number
+of peaks $P_{\text{max}}=O(N)$. To test this hypothesis we ran the
+sequential search algorithm on several ChIP-seq data sets from the UCI
+benchmark, with $P_{\text{max}}$ varying from about $10^{3.5}$ to
+about $10^{6.5}$. For each data set we provided
+$P^*\in\{10,100,1000\}$ as values for the input parameter (desired
+number of peaks). We observed in these data that the number of GFPOP
+calls increases logarithmically with the maximum number of peaks
+(Figure~\ref{fig:more-evals}). These results provide a substantial
+empirical validation that the sequential search takes 
+$O(P_{\text{max}})$ GFPOP calls, as expected.
+
+\begin{figure}[t!] 
+\centering
+\includegraphics{jss-figure-more-evals}
+\vskip -0.5cm
+\caption{\label{fig:more-evals} The number of GFPOP calls required
+  during the sequential search algorithm is $O(\log P_{\text{max}})$
+  where $P_{\text{max}}$ is the maximum number of peaks for a data
+  set. Each panel shows, for a fixed input parameter $P^*$ (desired
+  number of peaks), the empirical number of GFPOP calls over several
+  data sets of different sizes.}
+\end{figure}
+
+
   
 \subsection{Application: computing a zero-error peak model}
 
@@ -1459,8 +1515,8 @@ four peak models computed via GFPOP. Small penalties result in too
 many peaks, and large false positive rates. Large penalties result in
 too few peaks, and large false negative rates. A range of intermediate
 penalties/peaks achieves zero label errors. 
-The labels can thus be used to determine an appropriate number of
-peaks (with zero errors) for each data set.
+The labels can thus be used to determine an desired number of
+peaks $P^*$ (with zero errors) for each data set.
 
 \begin{figure}[t!]
 \centering
@@ -1500,7 +1556,7 @@ Computing the optimal model with $P=O(\sqrt N)$ peaks is computationally
 expensive using the Segment Neighborhood algorithm
 (\pkg{PeakSegOptimal} package), because the overall complexity would
 be $O(N\sqrt N\log N)$. For example in $N=10^7$ data,
-$P=1414$ peaks achieves zero label errors. Computing the
+$P^*=1414$ peaks are desired in order to achieve zero label errors. Computing the
 optimal model with Segment Neighborhood would thus require 2828
 $O(N\log N)$ DP iterations. If we assume that each iteration would
 have similar computational requirements as one $O(N\log N)$ run of
@@ -1509,9 +1565,9 @@ GFPOP, each would require about 1 hour and 80 gigabytes
 storage and 17 weeks of computation time, which is much too expensive
 in practice.
 
-Instead, we can use the proposed sequential search
-(Algorithm~\ref{algo:seq-search}) to compute a zero-error model with
-$O(\sqrt N)$ peaks. In our empirical tests, we observed that only
+Instead, we propose to use the sequential search
+(Algorithm~\ref{algo:seq-search}) to compute the model with
+the desired number of peaks. In our empirical tests, we observed that only
 $O(\log N)$ GFPOP calls are required to compute $O(\sqrt N)$ peaks
 (Figure~\ref{fig:evaluations}, left). In particular for $N=10^7$ data
 only 10--15 GFPOP calls are required, which is significantly fewer
@@ -1535,7 +1591,7 @@ changepoint detection. We presented generalized functional
 partitioning optimal partitioning (GFPOP) which computes the optimal
 model for one penalty $\lambda$. We also proposed a sequential search
 algorithm which repeated calls GFPOP in order to compute the most
-likely model with at most $P$ peaks. 
+likely model with at most $P^*$ desired peaks. 
 
 We analyzed the proposed algorithms by running them on a set of
 genomic data sets ranging from $N=10^3$ to $N=10^7$. First, we showed
@@ -1544,32 +1600,40 @@ likely than existing heuristics, and often simpler (fewer
 peaks). 
 
 Second, we studied the empirical complexity of GFPOP as the a function
-of the number of data $N$. We showed that GFPOP requires $O(N\log N)$
-time, $O(N \log N)$ space, and $O(\log N)$ memory. We furthermore
-showed that using disk-based storage is only a constant factor slower
-than memory-based storage. Overall we showed that GFPOP can be used to
-compute optimal peak models for up to $N=10^7$ data in reasonable
-amounts of time (minutes). 
+of the number of data $N$. In the ChIP-seq data we examined, our GFPOP
+implementation requires only $O(N\log N)$ time, $O(N \log N)$ space,
+and $O(\log N)$ memory. We furthermore observed that using disk-based
+storage is only a constant factor slower than memory-based
+storage. Overall we showed that GFPOP can be used to compute optimal
+peak models for up to $N=10^7$ data in reasonable amounts of time
+(minutes).
 
-Third, we studied the empirical complexity of sequential search as a
-function of data size $N$ and number of peaks $P$. We showed that it
-requires $O(N\log(N)\log(P))$ time, $O(N\log N)$ disk, $O(\log N)$
-memory. In particular we found in the ChIP-seq data sets that it is always faster than Segment Neighborhood solvers for models with $P>5$ peaks. 
+Third, we studied the empirical complexity of the proposed sequential
+search for $P^*$ desired peaks, as a function of the maximum number of
+peaks $P_{\text{max}}=O(N)$ for a given data set. We observed that it
+requires $O(\log P^* \log P_{\text{max}})$ calls to the $O(N\log N)$
+GFPOP dynamic programming sub-routine. In the ChIP-seq data sets, for
+computing models with $P^*>5$ desired peaks, we observed that the
+sequential search uses fewer calls to the $O(N\log N)$ dynamic
+programming sub-routine than the comparable Segment Neighborhood
+algorithm. More generally, these results suggest that our proposed sequential search algorithm can be used to reduce computation times for other changepoint models, i.e.
+Optimal Partitioning combined with the sequential search algorithm
+should be preferred over the classical Segment Neighborhood approach.
 
 Finally we analyzed the labels in our benchmark of genomic data,
-which indicated that an appropriate number of peaks is $P=O(\sqrt
+which indicated that a desired number of peaks is $P^*=O(\sqrt
 N)$. We showed that sequential search computes the model with
 $O(\sqrt N)$ peaks in $O(N(\log N)^2)$ time, whereas existing Segment
 Neighborhood algorithms would be $O(N\sqrt N\log N)$. We showed that
 for $N=10^7$ data our approach only requires hours/gigabytes of
 time/space to compute optimal models. Our algorithms thus make it
-practical for the first time to compute optimal models with many peaks
-for genomic data sets.
+practical for the first time to compute optimal models with many desired peaks
+$P^*$ for genomic data sets.
 
 For future work we look forward to implementing our proposed
 disk-based storage mechanism for other loss/likelihood functions and
 constraints. For example, we are currently working on a \pkg{gfpop}
-package which works with the Gaussian loss/likelihood and a general
+package which uses the Gaussian loss/likelihood with a general
 constraint graph. Results from this paper indicate that disk-based
 storage can be used to scale to very large data sets, while
 maintaining fast computation times.
