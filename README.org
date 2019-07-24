@@ -62,9 +62,16 @@ jss-paper.pdf"
 [[file:jss-figure-more-evals.R]] creates
 
 [[file:jss-figure-more-evals.png]]
+
+** 2 July 2019
+
+[[file:2019-useR-slides.Rnw]] for useR conf.
+
+
 ** 22 July 2019
 [[file:jss.more.evals.R]] attempts to answer the question from a reviewer:
 does the number of GFPOP evals depend on the max number of peaks?
+
 ** 18 Oct 2018
 
 - new scheme for [[file:PDPA.infeasible.R]]: for background segments with
