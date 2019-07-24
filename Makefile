@@ -1,3 +1,8 @@
+2019-useR-slides.pdf: 2019-useR-slides.Rnw
+#R CMD Sweave 2019-useR-slides.Rnw
+	R -e 'knitr::knit("2019-useR-slides.Rnw")'
+	pdflatex 2019-useR-slides
+	rm 2019-useR-slides.tex
 2019-04-asu-slides.pdf: 2019-04-asu-slides.tex
 	pdflatex 2019-04-asu-slides
 jmlr-paper.pdf: figure-all-cv.pdf figure-test-error-dots.pdf figure-compare-unconstrained.tex figure-PDPA-infeasible-error-compare.pdf jmlr-paper.tex figure-data-models.png figure-infeasible-error.tex figure-PDPA-intervals-all.pdf
@@ -32,7 +37,9 @@ jss-arxiv.pdf: jss-arxiv.Rnw
 	rm jss-arxiv.tex
 jss-slides.pdf: jss-slides.tex jss-paper.pdf
 	pdflatex jss-slides
-jss-paper.pdf: jss-paper.Rnw jss-figure-more-likely-models-three-peaks.png jss-figure-target-intervals-models.pdf jss-figure-disk-memory-compare-speed.pdf jss-figure-data-peaks.tex jss-figure-label-error.pdf jss-figure-evaluations.tex jss-figure-variable-peaks.tex jss-refs.bib
+figure-spatial-correlation.png: figure-spatial-correlation.R
+	R --vanilla < $<
+jss-paper.pdf: jss-paper.Rnw jss-figure-more-likely-models-three-peaks.png jss-figure-target-intervals-models.pdf jss-figure-disk-memory-compare-speed.pdf jss-figure-data-peaks.tex jss-figure-label-error.pdf jss-figure-evaluations.tex jss-figure-variable-peaks.tex jss-refs.bib figure-spatial-correlation.png
 	rm -rf *.aux *.bbl
 	R CMD Sweave jss-paper.Rnw
 	pdflatex jss-paper

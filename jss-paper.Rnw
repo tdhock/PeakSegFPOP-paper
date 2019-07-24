@@ -171,6 +171,19 @@ Evry, France\\
 
 \section[Introduction]{Introduction} \label{sec:intro}
 
+This paper presents a new algorithm, and corresponding implementation
+as \R\ package \pkg{PeakSegDisk}, for detecting an optimal sequence of
+up/down changes in large count data, which are common in genomics. The
+algorithm is based on the technique of \emph{functional pruning}
+\citep{Maidstone2016}, which represents the cost as a function of the
+segment mean parameter, and reduces the number of candidate
+changepoints while guaranteeing optimality. 
+Note that throughout this paper the term ``optimal'' will be used to
+describe algorithms that compute an exact solution to some
+well-defined optimization problem (e.g. maximum likelihood or minimum
+cost). 
+
+
 \subsection{Peak detection via changepoint methods}
 
 There are many applications, particularly within genomics, that
@@ -234,10 +247,9 @@ following minimization problem,
 \label{min:ut}
 \end{align}
 Optimizing by naively searching over all possible arrangements of changepoints is an expensive $O(N^K)$ time
-operation. However, solving (\ref{min:ut}) can be achieved efficiently using dynamic programming. The first such
-algorithm was the Segment Neighborhood algorithm, which computes the series of 
-optimal segmentations with  1 to $K$ segments in $O(KN^2)$ time
-\citep{bellamn, segment-neighborhood}.  The classical algorithm for solving the
+operation. However, solving (\ref{min:ut}) can be achieved efficiently using dynamic programming \citep{bellman}. The first application of this principle to changepoint detection was the Segment Neighborhood algorithm, which computes 
+optimal segmentations from 1 to $K$ segments in $O(KN^2)$ time
+\citep{segment-neighborhood}.  The classical algorithm for solving the
 Segment Neighborhood problem is available in \R\ as
 \code{changepoint::cpt.mean}. Recent research has led to faster algorithms, based on pruning the search space of 
 the Segment Neighborhood algorithm
@@ -851,16 +863,20 @@ in $(U_i,T_i)$. Note that there should be space to store $(U_i,T_i)$
 parameters for up to $N$ segments. In practice our implementation
 writes these parameters to a text output file on disk.
 
-\paragraph{Computational complexity.} The complexity of Algorithm~\ref{algo:GFPOP} is $O(N I)$, where $I$ is
-the mean number of intervals (function pieces) that are used to
-represent the $C_{s, i}$ cost functions. Theoretically there are some
-pathological data sets for which the algorithm computes $I=O(N)$
-intervals, which results in a time complexity of $O(N^2)$.
-However since the number of intervals in real data is empirically
-$I=O(\log N)$ (see Figure~\ref{fig:intervals}), the overall time complexity
-of Algorithm~\ref{algo:GFPOP} is on average $O(N \log N)$. Using
-disk-based storage its complexity is $O(N\log N)$ time, $O(N\log N)$
-disk, and $O(\log N)$ memory. 
+\paragraph{Computational complexity.} The time/space complexity of
+Algorithm~\ref{algo:GFPOP} is $O(N I)$, where $I$ is the mean number
+of intervals (function pieces) that are used to represent the
+$C_{s, i}$ cost functions. Theoretically there are some pathological
+data sets for which the algorithm computes $I=O(N)$ intervals, which
+results in a worst case complexity of $O(N^2)$. However our empirical
+study suggests much faster average complexity in real genomic data
+(Section~\ref{sec:timings}).
+%% However our empirical study (Figure~\ref{fig:intervals}) suggests that in real genomic data sets, $I=O(\log N)$ which results in overall average complexity
+%% of $O(N \log N)$. 
+%% Using
+%% disk-based storage its complexity is $O(N\log N)$ time, $O(N\log N)$
+%% disk, and $O(\log N)$ memory. 
+
 
 \paragraph{Usage in \R.} We implemented the disk-based version of Algorithm~\ref{algo:GFPOP} in
 \proglang{C++} code with an interface in the \R\ package
@@ -876,7 +892,6 @@ options(prompt="R> ")
 library("PeakSegDisk")
 data(Mono27ac, package="PeakSegDisk")
 Mono27ac$coverage
-
 @ 
 
 Note that the 4 column bedGraph format shown above must be used to
@@ -905,7 +920,6 @@ data.dir <- file.path("Mono27ac", "chr11:60000-580000")
 dir.create(data.dir, showWarnings=FALSE, recursive=TRUE)
 write.table(Mono27ac$coverage, file.path(data.dir, "coverage.bedGraph"),
   col.names=FALSE, row.names=FALSE, quote=FALSE, sep="\t")
-
 @ 
 
 After saving the file to disk, we can run the algorithm using the code
@@ -913,37 +927,32 @@ below:
 
 <<problemPeakSegFPOP>>=
 
-fit <- PeakSegDisk::problem.PeakSegFPOP(data.dir, "10000")
-
+fit <- PeakSegDisk::PeakSegFPOP_dir(data.dir, 10000.5)
 @ 
 
-For the first argument you must give the folder name (not the
-\verb|coverage.bedGraph| file name) to the problem.PeakSegFPOP
-function.  Note that the second argument must be a character string
-that represents a penalty value (non-negative real number, larger
-penalties yield fewer peaks). The smallest value is \code{"0"} which
-yields max peaks, and the largest value is \code{"Inf"} which yields
-no peaks. It must be an \R\ character string (not a real number)
-because that string is used to create files 
-%such as \verb|Mono27ac/chr11:60000-580000/coverage.bedGraph_penalty=10000_loss.tsv|
-which are used to store/cache the results. If the files already exist
-(and are consistent) then problem.PeakSegFPOP just reads them;
-otherwise it runs the dynamic programming C++ code in order to create
-those files.
+The first argument must be the folder name (not the
+\verb|coverage.bedGraph| file name); the second argument must be a
+non-negative penalty $\lambda$ value (larger penalties yield fewer peaks). The
+smallest value is \code{0} which yields max peaks, and the largest
+value is \code{Inf} which yields no peaks. For increased speed when
+solving for several penalties for the same problem, files are
+automatically created to store/cache the results. If the files already
+exist (and are consistent) then \verb|PeakSegFPOP_dir| just reads
+them; otherwise it runs the dynamic programming C++ code in order to
+create those files.
 
 The returned \code{fit} object is a named list of data.tables. The
-\code{fit\$loss} component shown below is one row that contains general
+\code{loss} component shown below is one row that contains general
 information about the computed model: 
 
 <<fitLoss>>=
 
 fit$loss
-
 @ 
 
-Above we can see that the optimal model for $\lambda=10^4$ had $P=7$
-peaks ($K=15$ segments/$K-1=14$ changepoints). The
-\code{fit\$segments} component is used to visualize three of those
+Above we can see that the optimal model for the given penalty
+$\lambda$ had $P=7$ peaks ($K=15$ segments/$K-1=14$ changepoints). The
+\code{segments} component is used to visualize three of those
 peaks in a subset of the data below.
 
 <<plotModel, fig=TRUE, height=3>>=
@@ -956,8 +965,15 @@ gg <- ggplot() + theme_bw() +
     color = "green", size = 1, data = fit$segments) +
   coord_cartesian(xlim = c(2e5, 3e5))
 print(gg)
-
 @ 
+
+Note that the typical ``coverage'' representation shown above results
+in a sequence of spatially correlated genomic data which are not
+independently distributed (many subsequent counts are
+identical). Although this lack of independence may be problematic for
+other statistical methods, our results indicate that our proposed
+algorithm yields similar peaks in data with or without such spatial
+correlation (Section~\ref{sec:spatial-correlation}).
 
 \subsection{Sequential search algorithm for $P^*$ peaks}
 
@@ -1144,8 +1160,7 @@ complexity of $O(N\log(N)\log(P^*))$.
 
 <<seq-search>>=
 
-fit <- PeakSegDisk::problem.sequentialSearch(data.dir, 17L)
-
+fit <- PeakSegDisk::sequentialSearch_dir(data.dir, 17L)
 @ 
 
 If you want to see how many iterations/penalties the algorithm
@@ -1155,7 +1170,6 @@ look at the \verb|fit$others| component:
 <<>>=
 
 fit$others[, list(iteration, under, over, penalty, peaks, total.loss)]
-
 @ 
 
 \begin{figure}[t!]
@@ -1243,9 +1257,47 @@ model (bottom panel), which also has a higher log-likelihood than the
 used to compute models which are both more likely and simpler (with
 fewer peaks) than heuristics such as MACS2.
 
+\subsection{GFPOP is robust to spatial correlation in typical genomic data}\label{sec:spatial-correlation}
 
+As in all genomic data which use the typical ``coverage''
+representation of DNA sequence reads aligned to a reference genome,
+there is spatial correlation in the ChIP-seq data we analyze. In other
+words, a sequence read is counted at \emph{each genomic position}
+where it aligns to the reference genome, which results in a sequence
+of counts which is not independent. For example if a read of size 100
+bases aligns on chr1:1-100 and another read aligns on chr1:51-150,
+then the typical coverage representation is a count of 1 aligned read
+on chr1:1-50, a count of 2 aligned reads on chr1:51-100, and a count
+of 1 aligned read on chr1:101-150, which leads to spatial correlation
+between nearby positions (top panels of
+Figure~\ref{fig:spatial-correlation}). Another representation with no
+spatial correlation would be to count a sequence read at \emph{only
+  the last genomic position} where it aligns (bottom panels of figure
+below). In the example above that would be counting 1 at chr1:100 and
+1 at chr1:150, and 0 elsewhere.
 
-\subsection{GFPOP is empirically log-linear}
+We have tried GFPOP on both representations of the data, and we have
+observed that the detected peaks are highly consistent (with some
+variation on the order of the read size, 100 bases). In
+Figure~\ref{fig:spatial-correlation} we represent two datasets
+(left:H3K36 and right:H3K4) using the coverage representation (top)
+and last position representation (bottom). The peaks in the model with
+2 peaks ($K=5$ segments) are shown as blue horizontal bars, which are
+highly consistent between the top and bottom plots. This illustrates
+that the proposed algorithm is highly insensitive to spatial correlation.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.7\textwidth]{figure-spatial-correlation}
+  \label{fig:spatial-correlation}
+  \vskip -0.3cm
+  \caption{For two different ChIP-seq experiment types (left=broad
+    H3K36; right=sharp H3K4), our proposed GFPOP algorithm detects
+    similar peaks (blue) in data sequences with (top) or without
+    (bottom) spatial correlation.}
+\end{figure}
+
+\subsection{GFPOP is empirically log-linear}\label{sec:timings}
 
 To measure the empirical time complexity of GFPOP
 (Algorithm~\ref{algo:GFPOP}), we ran it on all 4951 genomic data sets,
@@ -1502,7 +1554,16 @@ time/space to compute optimal models. Our algorithms thus make it
 practical for the first time to compute optimal models with many peaks
 for genomic data sets.
 
+For future work we look forward to implementing our proposed
+disk-based storage mechanism for other loss/likelihood functions and
+constraints. For example, we are currently working on a \pkg{gfpop}
+package which works with the Gaussian loss/likelihood and a general
+constraint graph. Results from this paper indicate that disk-based
+storage can be used to scale to very large data sets, while
+maintaining fast computation times.
+
 \paragraph{Reproducible research statement.} The source code and data used to create this manuscript (including all figures) is available at \url{https://github.com/tdhock/PeakSegFPOP-paper}
+
 
 
 \newpage

@@ -58,6 +58,10 @@ jss-paper.pdf"
   [[file:figure-min-train-error.R]]
 - big model labels in [[file:figure-test-error-dots.R]]
 
+** 2 July 2019
+
+TODO edit [[file:2019-useR-slides.tex]] for useR conf.
+
 ** 18 Oct 2018
 
 - new scheme for [[file:PDPA.infeasible.R]]: for background segments with

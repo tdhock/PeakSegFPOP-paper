@@ -1,197 +1,176 @@
+library(PeakSegDisk)
 library(data.table)
 library(ggplot2)
 
-files.dt <- rbind(
-  data.table(sample.id="McGill0004", experiment="H3K36me3", chrom="chr9", chunk="H3K36me3_AM_immune/8"),
-  data.table(sample.id="McGill0002", experiment="H3K4me3", chrom="chr2", chunk="H3K4me3_PGP_immune/7"))
+## Load data set with one row for every genomic region with a
+## unique aligned read, and compute mean read size in bases.
+data(ChIPreads, envir=environment())
+experiments <- ChIPreads[, .(
+  mean.bases=mean(chromEnd-chromStart),
+  median.bases=median(chromEnd-chromStart),
+  chromStart=min(chromStart)
+), by=list(experiment)]
 
-peaks.dt.list <- list()
-cov.dt.list <- list()
-for(file.i in 1:nrow(files.dt)){
-  f <- files.dt[file.i]
-  bed.gz <- f[, paste0(sample.id, "_", experiment, ".bed.gz")]
-  if(!file.exists(bed.gz)){
-    suffix <- f[, paste0(sample.id, "/", experiment)]
-    u <- paste0("http://hubs.hpc.mcgill.ca/~thocking/bed/", suffix)
-    download.file(u, bed.gz)
-  }
-  reads.dt <- fread(paste0("zcat ", bed.gz, "|grep ^", f$chrom), select=2:3)
-  setnames(reads.dt, c("chromStart", "chromEnd"))
-  load(paste0("../chip-seq-paper/chunks/", f$chunk, "/counts.RData"))
-  sample.dt <- data.table(counts)[sample.id==f$sample.id]
-  first <- sample.dt$chromStart[1]
-  last <- sample.dt[, chromEnd[.N] ]
-  some.reads <- reads.dt[!(chromEnd < first | last < chromStart)]
-  end.counts <- some.reads[, list(count=.N), by=list(chromEnd)]
-  end.counts[, chromStart := chromEnd-1L]
+## Compute data set with two representations of these aligned
+## reads: count each read at each aligned base in the read, or
+## just the end/last base of the read.
+end.counts <- ChIPreads[, list(
+  count=.N #ignores dup reads, sum(count) would not.
+), by=list(experiment, chrom, chromEnd)]
+aligned.dt <- rbind(
+  ChIPreads[, .(
+    bases.counted="each", experiment, chrom,
+    chromStart, chromEnd,
+    count=1)], #ignore duplicate reads.
+  end.counts[, .(
+    bases.counted="end", experiment, chrom,
+    chromStart=chromEnd-1L, chromEnd,
+    count)])
 
-  ggplot()+
-    theme_bw()+
-    geom_rect(aes(
-      xmin=chromStart/1e3, xmax=chromEnd/1e3,
-      ymin=0, ymax=coverage),
-              data=sample.dt)+
-    geom_point(aes(
-      chromEnd/1e3, count),
-               shape=1,
-               data=end.counts)
-
-  ## Create rle/compressed data for PeakSegPDPA.
-  u.pos <- end.counts[, sort(unique(c(chromStart, chromEnd, first, last)))]
-  zero.cov <- data.table(
-    chromStart = u.pos[-length(u.pos)], 
-    chromEnd = u.pos[-1], count = 0L)
-  setkey(zero.cov, chromEnd)
-  zero.cov[J(end.counts$chromEnd), `:=`(count, end.counts$count)]
-  dup.cov <- zero.cov[first <= chromStart & chromEnd <= last]
-  out.cov <- dup.cov[c(diff(count), Inf)!=0]
-  out.cov[, chromStart := c(first, chromEnd[-.N])]
-  out.cov[, stopifnot(chromEnd[-.N] == chromStart[-1])]
-  out.cov[, stopifnot(all(diff(count)!=0))]
-
-  count.list <- list(
-    coverage=sample.dt[, list(chromStart, chromEnd, count=coverage)],
-    last=out.cov)
-
-  for(count.method in names(count.list)){
-    count.dt <- count.list[[count.method]]
-    count.dt[, stopifnot(
-      chromEnd[-.N] == chromStart[-1],
-      all(diff(count)!=0),
-      first==chromStart[1],
-      last==chromEnd[.N])]
-    fit <- PeakSegOptimal::PeakSegPDPAchrom(count.dt, 2L)
-    cov.dt.list[[paste(count.method, file.i)]] <- data.table(count.method, f, count.dt)
-    peaks.dt.list[[paste(count.method, file.i)]] <- data.table(count.method, f, subset(fit$segments, peaks==2))
-  }
-}
-
-cov.dt <- do.call(rbind, cov.dt.list)
-peaks.dt <- do.call(rbind, peaks.dt.list)[status=="peak"]
-
-cov.dt[, list(max=max(count)), by=list(experiment)]
-scale.dt <- data.table(
-  y=15, count.method="last",
-  yy=-c(54, 377)/10,
-  start=c(111750, 175440),
-  end=c(111800, 175490),
-  experiment=c("H3K36me3", "H3K4me3"))
-just.diff <- 0.3
-max.dt <- cov.dt[, list(
-  max.count=max(count)
-  ), by=count.method]
-blank.dt <- cov.dt[, list(min.chromStart=min(chromStart)), by=list(count.method, experiment)][max.dt, on=list(count.method)]
-size <- 3
-cov.peaks <- do.call(rbind, peaks.dt.list)[count.method=="coverage"]
-gg <- ggplot()+
+## Compute count profile for each base in these genomic regions.
+seq.dt <- aligned.dt[, {
+  event.dt <- rbind(
+    data.table(count, pos=chromStart+1L),
+    data.table(count=-count, pos=chromEnd+1L))
+  edge.vec <- event.dt[, {
+    as.integer(seq(min(pos), max(pos), l=100))
+  }]
+  event.bins <- rbind(
+    event.dt,
+    data.table(count=0L, pos=edge.vec))
+  total.dt <- event.bins[, .(
+    count=sum(count)
+  ), by=list(pos)][order(pos)]
+  total.dt[, cum := cumsum(count)]
+  total.dt[, bin.i := cumsum(pos %in% edge.vec)]
+  ## it is somewhat confusing because total.dt pos is the first base
+  ## with cum, and cum goes all the way up to but not including the
+  ## pos of the next row.
+  total.dt[, data.table(
+    chromStart=pos[-.N]-1L,
+    chromEnd=pos[-1]-1L,
+    count=cum[-.N],
+    bin.i=bin.i[-.N])]
+}, by=list(bases.counted, experiment, chrom)]
+gg.data <- ggplot()+
   theme_bw()+
-  geom_segment(aes(
-    start, yy,
-    xend=end, yend=yy),
-               color="grey",
-               size=4,
-               data=scale.dt)+
-  geom_text(aes(
-    (start+end)/2, yy, label=paste(end-start, "kb")),
-               color="grey",
-             vjust=-0.7,
-               data=scale.dt)+
-  theme(panel.margin=grid::unit(0, "lines"))+
-  facet_wrap("experiment", scales="free", labeller=function(df){
-    if("count.method" %in% names(df)){
-      df$count.method <- c(
-        ## coverage="each read counted at 100 positions, one for each aligned base: spatial correlation present",
-        ## last="each read counted at one position, the last aligned base: spatial correlation absent"
-        coverage="Some spatial correlation",
-        last="No spatial correlation"
-        )[df$count.method]
-    }
-    if("experiment" %in% names(df)){
-      df$experiment <- c(
-        H3K36me3="Broad histone mark H3K36me3",
-        H3K4me3="Sharp histone mark H3K4me3"
-        )[df$experiment]
-    }
-    df
-  })+
+  theme(panel.spacing=grid::unit(0, "lines"))+
+  facet_grid(
+    bases.counted ~ experiment,
+    scales="free",
+    labeller=label_both)+
   geom_step(aes(
-    chromStart/1e3, count),
-            data=cov.dt[count.method=="coverage"])+
+    chromStart/1e3, count, color=data.type),
+    data=data.table(seq.dt, data.type="exact"))+
+  scale_color_manual(values=c(
+    exact="black",
+    bins="red",
+    model="deepskyblue"
+  ))+
+  scale_x_continuous("Position on hg19 chrom (kb = kilo bases)")
+if(interactive())print(gg.data)
+
+## Compute mean profile in bins.
+bin.dt <- seq.dt[, {
+  bases <- chromEnd - chromStart
+  data.table(
+    binStart=min(chromStart),
+    binEnd=max(chromEnd),
+    mean.count=sum(count*bases)/sum(bases),
+    bases=sum(bases)
+  )}, by=list(bases.counted, experiment, bin.i)]
+gg.bins <- gg.data+
+  geom_step(aes(
+    binStart/1e3, mean.count, color=data.type),
+    alpha=0.75,
+    size=0.7,
+    data=data.table(bin.dt, data.type="bins"))+
+  scale_y_log10("Aligned DNA sequence reads (log scale)")
+if(interactive())print(gg.bins)
+
+## Compute optimal segmentation model with 2 peaks.
+segs.dt <- seq.dt[, {
+  data.dir <- file.path("figure-spatial-correlation", bases.counted, experiment)
+  dir.create(data.dir, showWarnings=FALSE, recursive=TRUE)
+  coverage.bedGraph <- file.path(data.dir, "coverage.bedGraph")
+  fwrite(
+    .SD[, .(chrom, chromStart, chromEnd, count)],
+    coverage.bedGraph,
+    sep="\t",
+    quote=FALSE,
+    col.names=FALSE)
+  fit <- PeakSegDisk::sequentialSearch_dir(data.dir, 2L, verbose=1)
+  data.table(fit$segments, data.type="model")
+}, by=list(bases.counted, experiment)]
+changes.dt <- segs.dt[, {
+  .SD[-1]
+}, by=list(bases.counted, experiment, data.type)]
+gg.model <- gg.bins+
   geom_segment(aes(
     chromStart/1e3, mean,
-    xend=chromEnd/1e3, yend=mean),
-               color="deepskyblue",
-               size=1,
-               data=cov.peaks)+
-  xlab("position on chromosome (kb = kilo bases)")+
-  scale_y_continuous("aligned read coverage")+
-  coord_cartesian(expand=FALSE)
-png("figure-spatial-correlation-mean.png", 1800, 600, res=200)
-print(gg)
-dev.off()
+    xend=chromEnd/1e3, yend=mean,
+    color=data.type),
+    data=segs.dt)+
+  geom_vline(aes(
+    xintercept=chromEnd/1e3,
+    color=data.type),
+    data=changes.dt)
+if(interactive())print(gg.model)
 
+## Compute difference between peak positions of two models.
+peaks.dt <- segs.dt[status=="peak"]
+peaks.dt[, peak.i := rep(1:2, l=.N)]
+peak.pos.tall <- melt(
+  peaks.dt,
+  measure.vars=c("chromStart", "chromEnd"))
+peak.pos.wide <- dcast(
+  peak.pos.tall,
+  experiment + variable + peak.i ~ bases.counted)
+peak.pos.wide[, diff.bases := abs(each-end)]
 
-gg <- ggplot()+
-  theme_bw()+
-  geom_segment(aes(
-    start, y,
-    xend=end, yend=y),
-               color="grey",
-               size=2,
-               data=scale.dt)+
+read.size.panel <- "each"
+bases.max.dt <- seq.dt[, .(max.count=max(count)), by=list(bases.counted)]
+read.size.y <- bases.max.dt[
+  read.size.panel, max.count, on=list(bases.counted)]
+read.size.y <- Inf
+diff.panel <- "end"
+diff.y <- bases.max.dt[
+  diff.panel, max.count, on=list(bases.counted)]
+diff.y <- Inf
+diff.vjust <- 1.1
+text.size <- 3
+gg.text <- gg.model+
   geom_text(aes(
-    (start+end)/2, y, label=paste(end-start, "kb")),
-               color="grey",
-             vjust=-0.5, 
-               data=scale.dt)+
-  theme(panel.margin=grid::unit(0, "lines"))+
-  facet_grid(count.method ~ experiment, scales="free", labeller=function(df){
-    if("count.method" %in% names(df)){
-      df$count.method <- c(
-        ## coverage="each read counted at 100 positions, one for each aligned base: spatial correlation present",
-        ## last="each read counted at one position, the last aligned base: spatial correlation absent"
-        coverage="Some spatial correlation",
-        last="No spatial correlation"
-        )[df$count.method]
-    }
-    if("experiment" %in% names(df)){
-      df$experiment <- c(
-        H3K36me3="Broad histone mark H3K36me3",
-        H3K4me3="Sharp histone mark H3K4me3"
-        )[df$experiment]
-    }
-    df
-  })+
-  geom_step(aes(
-    chromStart/1e3, count),
-            data=cov.dt)+
-  geom_segment(aes(
-    chromStart/1e3, mean,
-    xend=chromEnd/1e3, yend=mean),
-               color="deepskyblue",
-               size=1,
-               data=peaks.dt)+
+    chromStart/1e3, read.size.y, label=sprintf(
+      "Median read size:\n%.0f bases",
+      median.bases)),
+    hjust=0,
+    size=text.size,
+    vjust=1.1,
+    data=data.table(experiments, bases.counted=read.size.panel))+
   geom_text(aes(
-    chromStart/1e3, 0, label=as.integer(chromStart/1e3)),
-            color="deepskyblue",
-            vjust=1.5,
-            size=size,
-            hjust=1-just.diff,
-               data=peaks.dt)+
+    end/1e3, diff.y,
+    label=diff.bases,
+    color=data.type),
+    size=text.size,
+    data=data.table(
+      bases.counted=diff.panel,
+      data.type="model",
+      peak.pos.wide),
+    vjust=diff.vjust,
+    hjust=0)+
   geom_text(aes(
-    chromEnd/1e3, 0, label=as.integer(chromEnd/1e3)),
-            color="deepskyblue",
-            vjust=2.7,
-            size=size,
-            hjust=just.diff,
-            data=peaks.dt)+
-  geom_blank(aes(
-    min.chromStart/1e3, -max.count/10),
-             data=blank.dt)+
-  xlab("position on chromosome (kb = kilo bases)")+
-  scale_y_continuous("aligned read counts")
-print(gg)
-
-png("figure-spatial-correlation.png", 1800, 1200, res=200)
-print(gg)
+    chromStart/1e3, diff.y,
+    label="Difference=",
+    color=data.type,
+  ),
+  size=text.size,
+  hjust=0,
+  vjust=diff.vjust,
+  data=data.table(
+    data.type="model",
+    bases.counted=diff.panel,
+    experiments["H3K36me3", on=list(experiment)]))
+png("figure-spatial-correlation.png", 8, 3.2, units="in", res=300)
+print(gg.text)
 dev.off()
