@@ -125,7 +125,9 @@ gg <- ggplot()+
   scale_y_log10(
     "GFPOP calls required
 to compute model with
-desired peaks (log scale)")+
+desired peaks (log scale)",
+breaks=c(5, 10, 20))+
+  coord_cartesian(ylim=c(5,20))+
   scale_x_log10(
     "Maximum number of peaks for data set")+
   theme_bw()+
