@@ -191,17 +191,31 @@ involve detecting regions that deviate from a usual/background
 behaviour, and where qualitatively these deviations lead to an
 increased mean of some measured signal. For example, ChIP-seq data
 measure transcription factor binding or histone modification
-\citep{chip-seq}; ATAC-seq data measure open chromatin \citep{ATACseq}. In these data
-we have counts of aligned reads at different positions along a
-chromosome, and we would like to detect regions for which the count data are larger than the usual background level. These long contiguous genomic regions with large counts are referred to as ``peaks'' and they typically correspond to active genes/promoters in specific samples and cell types. Each peak is separated from other peaks by background/noise regions (i.e. it is impossible for two peaks to be directly adjacent to one another without intervening background noise). An important sub-problem in analyzing these data is identifying the precise genomic positions of the starts and ends of these peak regions. 
+\citep{chip-seq}; ATAC-seq data measure open chromatin
+\citep{ATACseq}. In these data we have counts of aligned reads at
+different positions along a chromosome, and we would like to detect
+regions for which the count data are larger than the usual background
+level. These long contiguous runs with large counts are referred to as
+``peaks'' and they typically correspond to active regions of the
+genome in specific samples and cell types. Each peak is separated from
+other peaks by background/noise regions (i.e. it is impossible for two
+peaks to be directly adjacent to one another without intervening
+background noise). An important sub-problem in analyzing these data is
+identifying the precise genomic positions of the starts and ends of
+these peak regions.
 
-One approach to detecting these regions is through algorithms that detect changes in the mean of the data. This paper
-builds on recent work of \citet{Hocking-constrained-changepoint-detection} and presents a new changepoint algorithm, and its implementation in
-\R. This algorithm is based on modeling count data using a Poisson distribution, and using the knowledge that we have
-background regions with small values and peak regions with large values. This imposes constraints
-on the directions of changes, with the mean of the data alternately increasing then decreasing in value. A particular
-challenge with genomic data is that for an algorithm to be widely used, it must scale well  to large data in terms of 
-both time and memory costs.
+One approach to detecting these regions is through algorithms that
+detect changes in the mean of the data. This paper builds on recent
+work of \citet{Hocking-constrained-changepoint-detection} and presents
+a new changepoint algorithm, and its implementation in \R. This
+algorithm is based on modeling count data using a Poisson
+distribution, and using the knowledge that we have background regions
+with small values and peak regions with large values. This imposes
+constraints on the directions of changes, with the mean of the data
+alternately increasing then decreasing in value. A particular
+challenge with genomic data is that for an algorithm to be widely
+used, it must scale well to large data in terms of both time and
+memory costs.
 
 There are other algorithms for tackling this type of problem, for
 example based on hidden Markov models \citep{chipseq-hmm}.  One drawback of such
@@ -214,7 +228,7 @@ optimal changepoint models.
 
 \subsection{Models with no constraints between adjacent segment means}
 
-Denote the data by $z_1,\dots,z_N$. We assume the data is ordered: for genomic applications the ordering will 
+Denote a sequence of $N$ data by $z_1,\dots,z_N$. We assume the data sequence is ordered: for genomic applications the ordering will 
 be due to position along a chromosome, for time-series data the ordering is commonly by time. The aim of 
 changepoint analysis is to partition the data in to $K$ segments that each contain consecutive data points, 
 such that features of the data are common within a segment but differ between neighboring segments. The feature of the data 
@@ -223,9 +237,9 @@ the distribution. Detecting changes of different features requires different sta
 
 Throughout we will let $K$ be the number of segments, with the changepoints being $0=t_0<t_1<\cdots<t_{K-1}<t_K=N$. 
 This means that the $k$th segment will contain data points $z_{t_{k-1}+1},\ldots,z_{t_k}$. We denote the 
-segment-specific parameter for the segment by $m_k$. For the problem of detecting changes in ChIP-seq count data,
+segment-specific parameter for each segment $k$ by $m_k$. For the problem of detecting changes in ChIP-seq count data,
 the simplest statistical model uses Poisson random variables with segment-specific mean  
-parameters for that segment. 
+parameters for each segment. 
 %it is natural to model each data point as a realisation of a Poisson random variable, with the segment-specific parameter being the mean for that segment. 
 Change detection is then an attempt to detect the points along the 
 chromosome where the mean of the data changes. 
@@ -236,7 +250,7 @@ negative log-likelihood under a Poisson model. This corresponds to
 using the loss function $\ell(m,z)=m-z\log m$ for fitting a non-negative count data point
 $z\in\ZZ_+$ with a mean parameter $m\in\RR_+$. If we know the number of
 segments $K$ we can estimate the location of the segments by solving the
-following minimization problem,
+following ``Segment Neighborhood'' problem,
  \begin{align}
     \minimize_{\substack{
   \mathbf m\in\RR^{K}
@@ -246,18 +260,18 @@ following minimization problem,
     \sum_{k=1}^K\  \sum_{i=t_{k-1}+1}^{t_k} \ell(m_k,z_i).
 \label{min:ut}
 \end{align}
-Optimizing by naively searching over all possible arrangements of changepoints is an expensive $O(N^K)$ time
-operation. However, solving (\ref{min:ut}) can be achieved efficiently using dynamic programming \citep{bellman}. The first application of this principle to changepoint detection was the Segment Neighborhood algorithm, which computes 
-optimal segmentations from 1 to $K$ segments in $O(KN^2)$ time
-\citep{segment-neighborhood}.  The classical algorithm for solving the
-Segment Neighborhood problem is available in \R\ as
-\code{changepoint::cpt.mean}. Recent research has led to faster algorithms, based on pruning the search space of 
-the Segment Neighborhood algorithm
-\citep{pruned-dp-new,johnson}, and these algorithms empirically take $O(K N \log N)$ time. 
-%%proposed similar functional
-%pruning techniques for solving the Segment Neighborhood problem in
-%faster $O(K N\log N)$ time. 
-The novelty of these techniques is a functional
+Optimizing by naively searching over all possible arrangements of
+changepoints is an expensive $O(N^K)$ time operation. However, solving
+(\ref{min:ut}) can be achieved efficiently using dynamic programming
+\citep{bellman}. The first application of this principle to
+changepoint detection was the Segment Neighborhood algorithm, which
+computes optimal segmentations from 1 to $K$ segments in $O(KN^2)$
+time \citep{segment-neighborhood}.  The classical algorithm for
+solving the Segment Neighborhood problem is available in \R\ as
+\code{changepoint::cpt.mean}. Recent research has led to faster
+algorithms such as the Pruned Dynamic Programming Algorithm (PDPA) of
+\citet{pruned-dp-new}, which empirically take
+$O(K N \log N)$ time.  The novelty of this algorithm is a functional
 representation of the optimal cost, which allows pruning of the $O(N)$
 possible changepoints to only $O(\log N)$ candidates (while
 maintaining optimality). The original implementation of the PDPA was
@@ -265,41 +279,53 @@ available in \R\ as \verb|cghseg:::segmeanCO| for the Normal
 homoscedastic model, but \pkg{cghseg} has been removed from CRAN as of
 18 December 2017. The PDPA for the Normal homoscedastic model is now
 available as \verb|jointseg::Fpsn| on Bioconductor
-\citep{jointseg}. \citet{cleynen2013segmentation} described a
-generalization of the PDPA for other likelihood/loss functions
+\citep{jointseg}. \citet{cleynen2013segmentation} described an
+implementation of the PDPA for other likelihood/loss functions
 (Poisson, negative binomial, Normal heteroscedastic). These are
 available in \R\ as \verb|Segmentor3IsBack::Segmentor|.
 
-In practice it is unusual to know in advance how many segments are present in the data. 
-To estimate $K$ it is common to use some information criteria that takes into account 
+In practice it is unusual to know in advance how many segments $K$ are present in the data. 
+To estimate $K$ it is common to use information criteria that take into account 
 both of the measure of fit to the data and the complexity of the segmentation
 model being fitted. The most natural measures of complexity are linear in the 
-number of changepoints, although others exist \citep{cleynen2013segmentation, mBIC,capushe}. Whilst it is possible to estimate $K$ by solving the 
-Segment Neighborhood problem for an appropriate set of changes, and calculating  
-the value of the information criteria for each value of the number of segments, it 
-is faster to jointly estimate both $K$ and the changepoint locations that minimize 
-the information criteria. The first algorithm to do so was the Optimal Partioning 
-algorithm introduced by \citet{optimal-partitioning}. Optimal partitioning is an  
-$O(N^2)$ algorithm, and can be significantly faster than Segment Neighborhood for 
-large $K$. 
+number of changepoints, although others exist \citep{mBIC,cleynen2013segmentation,capushe}. 
+%% Whilst it is possible to estimate $K$ by solving the 
+%% Segment Neighborhood problem for an appropriate set of changes, and calculating  
+%% the value of the information criteria for each value of the number of segments, it 
+%% is faster to jointly estimate both $K$ and the changepoint locations that minimize 
+%% the information criteria. 
+The $O(N^2)$ dynamic programming algorithm proposed by
+\citet{optimal-partitioning} solves the corresponding Optimal
+Partitioning problem,
+\begin{align}
+  \label{min:op}
+  \minimize_{
+  \substack{
+  \mathbf m\in\RR^N
+  }
+  } &\ \ 
+      \sum_{i=1}^N \ell(m_i, z_i) + \lambda \sum_{i=1}^{N-1} I(m_i\neq m_{i+1}).
+\end{align}
+The first term in the optimization objective measures fit to the data, and the second term measures model complexity, which is proportional to the number of
+changepoints. 
+The non-negative penalty $\lambda\in\RR_+$ controls the tradeoff
+between the two objectives (it is a tuning parameter that must be
+fixed before solving the problem). Larger penalty $\lambda$ values
+result in models with fewer changepoints/segments. The extreme penalty
+values are $\lambda=0$ which yields $N$ segments ($N-1$ changepoints),
+and $\lambda=\infty$ which yields 1 segment (0 changepoints).
 
-There has also been substantial research into speeding up the optimal partitioning algorithm, 
-using various ideas to prune the search space. In particular the Pruned Exact Linear Time (PELT)
-algorithm of \citet{pelt}, which is implemented within \code{changepoint::cpt.mean}, and Functional Pruning
-Optimal Partitioning (FPOP) of \citet{Maidstone2016} which is available in \R\ as
-\verb|fpop::Fpop| \citep{fpop}. 
-%These algorithms have a computational cost of $O(N)$ if $K$ increases linearly with $N$. 
-%The FPOP algorithm has a computational cost that is empirically $O(N \log N)$ in situations where $K$ increases sub-linearly with $N$. 
-%% PELT is $O(N)$ time if $K$ increases linearly with $N$;
-%% FPOP is empirically $O(N \log N)$ time. 
-See Table \ref{tab:unconstrained-algos} for a summary of the different dynamic programming algorithms and implementations.
+There has been substantial research into faster algorithms for solving the Optimal Partitioning problem. The Pruned Exact Linear Time (PELT)
+algorithm of \citet{pelt} (\code{changepoint::cpt.mean} in \R) is $O(N)$ time if $K$ increases linearly with $N$. The Functional Pruning
+Optimal Partitioning (FPOP) algorithm of \citet{Maidstone2016} (\verb|fpop::Fpop| in \R) is empirically $O(N\log N)$ time.
+See Table~\ref{tab:unconstrained-algos} for a summary of the different dynamic programming algorithms and implementations.
 
-Whilst solving the optimal partitioning problem is faster than solving (\ref{min:ut}) for a range of $K$,
-the drawback is that you only get a single segmentation for a single value $K$ of the number of segments. 
-Furthermore the choice of penalty that you impose with the information criteria -- which corresponds the 
-improvement in fit to the data needed to add an additional changepoint -- can be hard to tune and have an 
-important impact on the accuracy of the estimate of the number of changepoints. One way to ameliorate this 
-concern is to find segmentations for a range of penalties, which can be done efficiently \citep{crops}.
+%% Whilst solving the optimal partitioning problem is faster than solving (\ref{min:ut}) for a range of $K$,
+%% the drawback is that you only get a single segmentation for a single value $K$ of the number of segments. 
+%% Furthermore the choice of penalty that you impose with the information criteria -- which corresponds the 
+%% improvement in fit to the data needed to add an additional changepoint -- can be hard to tune and have an 
+%% important impact on the accuracy of the estimate of the number of changepoints. One way to ameliorate this 
+%% concern is to find segmentations for a range of penalties, which can be done efficiently \citep{crops}.
 
 
 \begin{table*}[t!]
@@ -341,7 +367,7 @@ implementation of the classical binary segmentation heuristic is
 available as \code{fpop::multiBinSeg}. The \pkg{stepR} and
 \pkg{FDRseg} packages implement a multiscale approach to changepoint
 inference, and have linear run times if the number of changes
-increase linearly in the number of observations \citep{stepR, FDRSeg}.
+increases linearly in the number of observations \citep{stepR, FDRSeg}.
 
 \subsection{Models with inequality constraints between adjacent segment means}
 
@@ -359,7 +385,10 @@ where up changes are followed by down changes, and vice versa
 (Table~\ref{tab:constrained-algos}). These constraints ensure that
 odd-numbered segments can be interpreted as background, and
 even-numbered segments can be interpreted as peaks. 
-Note that in this constrained model, peaks can neither be predicted at the beginning nor at the end of the data. 
+Note that in this constrained model, 
+peaks can neither be predicted at the beginning nor at the end of the data. 
+This is a sensible constraint in genomic data, 
+because peaks are not expected to occur near the beginning/end of the data.
 Although the CDPA
 provides a sub-optimal solution to the Segment Neighborhood problem in
 $O(KN^2)$ time, \citet{HOCKING2016-chipseq} showed that it achieves
@@ -494,34 +523,24 @@ data sets that are now common.
   the up-down constrained Segment Neighborhood algorithm.
 \end{description}
 
+Finally the previous work of \citet{crops} has proposed the CROPS
+algorithm for computing all changepoint models for a range of
+penalties $(\underline \lambda, \overline \lambda)$ (which is the
+input parameter). In this paper we use similar ideas in our proposed
+sequential search algorithm for computing the optimal model with $P^*$
+desired peaks (which is the input parameter). Both algorithms work by
+repeatedly solving the Optimal Partitioning problem for different
+penalties $\lambda$.
 
 \section{Statistical models and optimization problems} \label{sec:models}
 
+In this section we first introduce an equivalent formulation of the Optimal Partitioning problem, then add constraints on adjacent segment means.
 
 \subsection{Unconstrained Optimal Partitioning problem}
 
-Define our loss function to be the Poisson loss, $\ell(m,z)=m-z\log m$, and let $\lambda>0$ be a penalty for adding a changepoint. Then we can infer the number of segments and the location of the changes by solving
-the Optimal Partitioning problem
-\begin{align}
-  \label{min:op}
-  \minimize_{
-  \substack{
-  \mathbf m\in\RR^N
-  }
-  } &\ \ 
-      \sum_{i=1}^N \ell(m_i, z_i) + \lambda \sum_{i=1}^{N-1} I(m_i\neq m_{i+1}).
-\end{align}
-The first term measures fit to the data, and the second term measures model complexity, which is proportional to the number of
-changepoints. 
-The non-negative penalty $\lambda\in\RR_+$ controls the tradeoff
-between the two objectives (it is a tuning parameter that must be
-fixed before solving the problem). Larger penalty $\lambda$ values
-result in models with fewer changepoints/segments. The extreme penalty
-values are $\lambda=0$ which yields $N$ segments ($N-1$ changepoints),
-and $\lambda=\infty$ which yields 1 segment (0 changepoints).
-
+Recall that $z_1,\dots,z_N\in\mathbb Z_+$ is a sequence of $N$ non-negative count data. Maximizing the Poisson likelihood of a data point $z$ given a mean parameter $m$ is equivalent to minimizing the Poisson loss, $\ell(m,z)=m-z\log m$. 
 Below we write an equivalent version of the Optimal Partitioning
-problem, in terms of changepoint variables $c_i$ and state variables
+problem (\ref{min:op}), in terms of changepoint variables $c_i$ and state variables
 $s_i$:
 \begin{align}
   \label{min:op-c}
@@ -653,21 +672,26 @@ peaks in $O(N\log N)$ time.
 
 \section{Algorithms and Software}
 \label{sec:algorithms}
+
+In this section we first propose a new algorithm for solving the
+constrained Optimal Paritioning problem (for a particular penalty
+$\lambda$), and then we propose a new algorithm for solving the
+constrained Segment Neighborhood problem (for a given number $P^*$ of
+desired peaks).
+
 \subsection{Generalized functional pruning optimal partitioning (GFPOP)}
 
 In this section we propose a generalization of the FPOP algorithm
 \citep{Maidstone2016} which allows optimal inference in models with
 inequality constraints between adjacent means, such as
-problem~(\ref{min:op-up-down}). In particular we implemented the
-optimal changepoint model using the Poisson loss and the up-down
-constraints. The state graph
+problem~(\ref{min:op-up-down}). The state graph
 (Figure~\ref{fig:state-graph}, right) can be converted into a directed
 acyclic graph (Figure~\ref{fig:computation-graph}) that represents the
 dynamic programming updates required to solve
 problem~(\ref{min:op-up-down}). Each node in the computation graph
 represents an optimal cost function, and each edge represents an input
 to the $\min\{\}$ operation in the dynamic programming
-Equations~\ref{eq:dp-over} and \ref{eq:dp-under} below.
+updates~(\ref{eq:dp-over}) and (\ref{eq:dp-under}) below.
 
 \begin{figure}
   \centering
@@ -800,37 +824,50 @@ where the min-more operator is defined as
   f^\geq(\mu) = \min_{x\geq\mu} f(x).
 \end{equation}
 These dynamic programming computations are summarized in
-Algorithm~\ref{algo:GFPOP}. The key to implementing the algorithm is to use a
-PiecewiseFunction data structure that can exactly represent an
-optimal cost function $C_{s,i}$. In the case of the Poisson loss,
-each $C_{s,i}(\mu)$ is a piecewise function where each piece is of the
-form $\alpha\mu + \beta\log\mu +
-\gamma$. Therefore the optimal cost can be stored as a list
-of intervals of $\mu\in[\text{MIN},\text{MAX}]$, each with
-coefficients $\alpha,\beta,\gamma$.
+Algorithm~\ref{algo:GFPOP}. 
+
+\paragraph{Implementation details.} As in PDPA \citep{pruned-dp-new}
+and FPOP \citep{Maidstone2016}, the key idea is to use a data
+structure that provides an exact representation of the real-valued
+cost functions $C_{s,i}(\mu)$ (\ref{eq:C_sigma_tau}). In the case of
+the Poisson loss $\ell$, each $C_{s,i}(\mu)$ is a piecewise function,
+where each piece is of the form $\alpha\mu + \beta\log\mu + \gamma$,
+and $\alpha,\beta,\gamma\in\mathbb R$ are coefficients that exactly
+represent the cost function on a particular piece.  Therefore we
+propose to store each optimal cost function $C_{s,i}(\mu)$ as an
+instance of a C++ \texttt{PiecewiseFunction} class, which is
+essentially a linked list of intervals of possible mean values $\mu$,
+each with different coefficients $\alpha,\beta,\gamma$. When the final
+cost function $C_{0,N}(\mu)$ has been computed, the solution to
+(\ref{min:op-up-down}) is obtained by searching each piece in the
+linked list for the mean $\mu$ with min cost,
+$F(\lambda)=\min_{\mu} C_{0,N}(\mu)$. The implementation is thus
+highly dependent on the chosen loss function $\ell$; implementing
+other convex loss functions (e.g. Gaussian) is possible but we save
+that for future work.
 
 \begin{algorithm}
 \begin{algorithmic}[1]
 \STATE Input: data set $\mathbf z\in\RR^N$, penalty constant $\lambda\geq 0$.
 \STATE Output: vectors of optimal segment means $U\in\RR^{N}$ and ends $T\in\{1,\dots,N\}^{N}$
-\STATE Initialize $2\times N$ empty PiecewiseFunction objects $C_{s,i}$ either in memory or on disk.
+\STATE Initialize $2\times N$ empty \texttt{PiecewiseFunction} objects $C_{s,i}$ either in memory or on disk.
 \label{line:initialize}
 \STATE Compute min $\underline z$ and max $\overline z$ of $\mathbf z$.
 \label{line:op-min-max}
 \STATE
 $ C_{0,1}\gets
- \text{OnePiece}(z_1, \underline z, \overline z)$
+ \texttt{PiecewiseFunction}(z_1, \underline z, \overline z)$
 \label{line:first-cost}
 \STATE for data point $i$ from 2 to $N$: // dynamic programming
 \label{line:for-dp-t}
 \begin{ALC@g}
   \STATE $ M_1\gets \lambda + \text{MinLess}(i-1,  C_{0,i-1})$ //cost of non-decreasing change
   \label{line:op-MinLess}
-  \STATE $ C_{1,i}\gets \text{MinOfTwo}( M_1,  C_{1,i-1})+\text{OnePiece}(z_i, \underline z, \overline z)$
+  \STATE $ C_{1,i}\gets \text{MinOfTwo}( M_1,  C_{1,i-1})+\texttt{PiecewiseFunction}(z_i, \underline z, \overline z)$
   \label{line:op-MinOfTwo}
   \STATE $ M_0\gets \text{MinMore}(i-1,  C_{1,i-1})$ //cost of non-increasing change
   \label{line:op-MinMore}
-  \STATE $ C_{0,i}\gets \text{MinOfTwo}( M_0,  C_{0,i-1})+\text{OnePiece}(z_i, \underline z, \overline z)$
+  \STATE $ C_{0,i}\gets \text{MinOfTwo}( M_0,  C_{0,i-1})+\texttt{PiecewiseFunction}(z_i, \underline z, \overline z)$
   \label{line:op-MinOfTwo-under}
 \end{ALC@g}
 \STATE $\text{mean},\text{prevEnd},\text{prevMean}\gets \text{ArgMin}( C_{0,n})$ // begin decoding
@@ -851,28 +888,46 @@ $ C_{0,1}\gets
 \end{algorithmic}
 \end{algorithm}
 
-\paragraph{Discussion of pseudocode.} Algorithm~\ref{algo:GFPOP} begins on line~\ref{line:initialize} by
-initializing the array $C_{s, i}$ of optimal cost functions (either in
-memory or on disk). It then computes the min $\underline z$ and max
-$\overline z$ of the data (line~\ref{line:op-min-max}) and uses the
-OnePiece sub-routine to initialize the optimal cost at the first data
-point (line~\ref{line:first-cost}). Since the Poisson loss is
+\paragraph{Discussion of pseudocode.} Algorithm~\ref{algo:GFPOP}
+begins on line~\ref{line:initialize} by initializing the array
+$C_{s, i}$ of optimal cost functions (either in memory or on disk). It
+then computes the min $\underline z$ and max $\overline z$ of the
+data, which define the range of possible $\mu$ values
+(line~\ref{line:op-min-max}). The optimal cost at the first data point
+is then initialized as a linked list with just one function piece,
+using the \texttt{PiecewiseFunction} constructor
+(line~\ref{line:first-cost}). Since the Poisson loss is
 $\ell(\mu, z_1)=\mu-z_1\log \mu$, this first optimal cost function is
-represented as the single function piece with interval/coefficients
-$(\alpha=1,\beta=-z_1,\gamma=0,\text{MIN}=\underline
-z,\text{MAX}=\overline z)$. 
+represented as the single function piece with interval
+$\mu\in(\underline z,\overline z)$ and coefficients
+$(\alpha=1,\beta=-z_1,\gamma=0)$.
 
 The dynamic programming recursion in this algorithm is a loop over
-data points $i$ (line~\ref{line:for-dp-t}). To compute $C_{1,i}$, the
-penalty constant $\lambda$ is added to all of the result of MinLess
-(line~\ref{line:op-MinLess}), before computing MinOfTwo and adding the
-cost of the new data point (line~\ref{line:op-MinOfTwo}). The
-computation for $C_{0,i}$ is similar, but uses MinMore and does not
-add the penalty $\lambda$
-(lines~\ref{line:op-MinMore}--\ref{line:op-MinOfTwo-under}). The
-details about how the MinLess/MinMore/MinOfTwo sub-routines process
-the PiecewiseFunction objects have been described previously
-\citep{Hocking-constrained-changepoint-detection}.
+data points $i$ (line~\ref{line:for-dp-t}).  Each iteration of the
+loop uses the MinLess/MinMore/MinOfTwo sub-routines to process the
+\texttt{PiecewiseFunction} objects. The details about how to implement
+these sub-routines have been described previously
+\citep{Hocking-constrained-changepoint-detection}. Briefly,
+\begin{description}
+\item[MinLess] inputs a \texttt{PiecewiseFunction} $f(\mu)$ and
+  outputs a \texttt{PiecewiseFunction} corresponding to the min-less
+  operator $f^\leq(\mu)$ (\ref{eq:min-less}).
+\item[MinMore] inputs a \texttt{PiecewiseFunction} $f(\mu)$ and
+  outputs a \texttt{PiecewiseFunction} corresponding to the min-more
+  operator $f^\geq(\mu)$ (\ref{eq:min-more}).
+\item[MinOfTwo] inputs two \texttt{PiecewiseFunction} objects
+  $f(\mu),g(\mu)$, and outputs a \texttt{PiecewiseFunction}
+  corresponding to the pointwise minimum $\min\{f(\mu), g(\mu)\}$.
+\end{description}
+The DP update (\ref{eq:dp-over}) is used to compute $C_{1,i}$: the
+penalty constant $\lambda$ is added to the result of the MinLess
+sub-routine (line~\ref{line:op-MinLess}), before using the MinOfTwo
+sub-routine and adding the cost of the new data point
+(line~\ref{line:op-MinOfTwo}). Similarly, the DP update
+(\ref{eq:dp-under}) is used to compute $C_{0,i}$ on
+lines~\ref{line:op-MinMore}--\ref{line:op-MinOfTwo-under}. It uses the
+MinMore sub-routine, does not add the penalty $\lambda$, then finally
+uses the MinOfTwo sub-routine.
 
 After computing the optimal cost functions, the decoding of optimal
 parameters occurs on
@@ -881,8 +936,8 @@ and second to last segment end are first stored on
 line~\ref{line:op-store-i} in $(U_1,T_1)$. For each other segment $i$,
 the mean and previous segment end are stored on line~\ref{line:op-i+1}
 in $(U_i,T_i)$. Note that there should be space to store $(U_i,T_i)$
-parameters for up to $N$ segments. In practice our implementation
-writes these parameters to a text output file on disk.
+parameters for up to $N$ segments. Our disk-based implementation
+writes these parameters to a text output file.
 
 \paragraph{Computational complexity.} The time complexity of
 Algorithm~\ref{algo:GFPOP} is $O(N I)$, where $I$ is the mean number
@@ -890,7 +945,8 @@ of intervals (function pieces) that are used to represent the
 $C_{s, i}$ cost functions. Our implementation uses $O(NI)$ disk space
 and $O(I)$ memory. There are some pathological data sets for which the
 algorithm computes $I=O(N)$ intervals, which results in a worst case
-complexity of $O(N^2)$. One such example is when the data sequence
+complexity of $O(N^2)$. One such example is when 
+the penalty is large and the data sequence
 always increases, which also results in the worst case of the original
 FPOP algorithm. However our empirical study suggests much faster
 average complexity in real genomic data (Section~\ref{sec:timings}).
@@ -1203,27 +1259,6 @@ look at the \verb|fit$others| component:
 fit$others[, list(iteration, under, over, penalty, peaks, total.loss)]
 @ 
 
-\begin{figure}[t!]
-\centering
-\begin{minipage}{3.5in}
-  \includegraphics[width=\textwidth]{jss-figure-more-likely-models-three-peaks}
-\end{minipage}
-\begin{minipage}{2.3in}
-  \includegraphics[width=\textwidth]{jss-figure-more-likely-models-three-peaks-zoom}
-\end{minipage}
-\caption{\label{fig:three-peaks} One ChIP-seq data set with three peak
-  models. (green horizontal segment means; green dotted vertical lines
-  for changepoints; blue bars for peaks; blue dots for peak starts)
-  \textbf{Top:} the MACS2 algorithm (a heuristic from the
-  bioinformatics literature) computed a sub-optimal model with five
-  peaks for these data. \textbf{Middle:} the most likely model with
-  five peaks contains one equality constraint between segment means
-  (see zoomed figure on the right), which suggests that there are less
-  than five easily interpretable peaks. \textbf{Bottom:} the most
-  likely model with three peaks is also more likely than the MACS2
-  model.}
-\end{figure}
- 
 The output above shows that the algorithm only used three iterations
 to compute the optimal model with 17 peaks. The \code{under} and
 \code{over} columns show the current values of $\underline p$ and
@@ -1248,28 +1283,25 @@ to segment (lines in the bedGraph file).
 
 \begin{figure}[t!]
 \centering
-\begin{minipage}{3in}
-  \includegraphics{jss-figure-target-intervals-models}
-\end{minipage} 
-\begin{minipage}{3in}
-  \includegraphics{jss-figure-target-intervals-models-computation}
+\begin{minipage}{3.5in}
+  \includegraphics[width=\textwidth]{jss-figure-more-likely-models-three-peaks}
 \end{minipage}
-\caption{\label{fig:intervals} In our empirical
-  tests, the computational requirements of the GFPOP algorithm
-  were log-linear $O(N \log N)$ in the number of data points $N$ to
-  segment. \textbf{Left:} we analyzed the number of intervals $I$
-  (candidate changepoints) stored in the $C_t(\mu)$ cost functions,
-  because the total time/space complexity is $O(NI)$. We observed
-  empirically that the mean number of intervals $I=O(\log N)$ (red
-  curve). Even the maximum number of intervals (blue curve) is much
-  less than $N$. \textbf{Right:} storage on disk (top panel) and
-  computation time (bottom panel) are empirically $O(N \log N)$. Error
-  bands show median and 5\%/95\% quantiles over several data sets of a
-  given size $N$ and penalties $\lambda$; 
-  black dots and text show computational requirements
-  for the most extreme data sets.}
+\begin{minipage}{2.3in}
+  \includegraphics[width=\textwidth]{jss-figure-more-likely-models-three-peaks-zoom}
+\end{minipage}
+\caption{\label{fig:three-peaks} One ChIP-seq data set with three peak
+  models. (green horizontal segment means; green dotted vertical lines
+  for changepoints; blue bars for peaks; blue dots for peak starts)
+  \textbf{Top:} the MACS2 algorithm (a heuristic from the
+  bioinformatics literature) computed a sub-optimal model with five
+  peaks for these data. \textbf{Middle:} the most likely model with
+  five peaks contains one equality constraint between segment means
+  (see zoomed figure on the right), which suggests that there are less
+  than five easily interpretable peaks. \textbf{Bottom:} the most
+  likely model with three peaks is also more likely than the MACS2
+  model.}
 \end{figure}
-
+ 
 In this section we show that our algorithms can be used to compute the
 most likely model for a given number of peaks. A subset of one data
 set is shown in Figure~\ref{fig:three-peaks}, along with three
@@ -1281,7 +1313,7 @@ order to compute the most likely model with at most 5 peaks (shown in
 middle panel). It is clear that the optimal 5 peak model is a better
 fit in terms of likelihood (as expected); it is also a better fit
 visually, especially for the peak on the left. Furthermore the optimal
-5 peak model actually has one equality constraint between adjacent
+5 peak model actually has one active equality constraint between adjacent
 segment means, suggesting that there are less than five easily
 interpretable peaks. Therefore we also computed the optimal 3 peak
 model (bottom panel), which also has a higher log-likelihood than the
@@ -1290,6 +1322,17 @@ used to compute models which are both more likely and simpler (with
 fewer peaks) than heuristics such as MACS2.
 
 \subsection{GFPOP is robust to spatial correlation in typical genomic data}\label{sec:spatial-correlation}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{figure-spatial-correlation}
+  \vskip -0.5cm
+  \caption{For two different ChIP-seq experiment types (left=broad
+    H3K36; right=sharp H3K4), our proposed GFPOP algorithm detects
+    similar peaks (blue) in data sequences with (top) or without
+    (bottom) spatial correlation. Also shown are raw/exact count data (black), mean counts in bins (red), and peak position differences in bases between top/bottom panels (blue numbers).}
+  \label{fig:spatial-correlation}
+\end{figure}
 
 As in all genomic data which use the typical ``coverage''
 representation of DNA sequence reads aligned to a reference genome,
@@ -1317,17 +1360,6 @@ and last position representation (bottom). The peak positions of the
 models shown in blue are highly consistent between the top and bottom
 plots. This illustrates that the proposed algorithm is highly
 robust to spatial correlation.
-
-\begin{figure}
-  \centering
-  \includegraphics[width=\textwidth]{figure-spatial-correlation}
-  \label{fig:spatial-correlation}
-  \vskip -1cm
-  \caption{For two different ChIP-seq experiment types (left=broad
-    H3K36; right=sharp H3K4), our proposed GFPOP algorithm detects
-    similar peaks (blue) in data sequences with (top) or without
-    (bottom) spatial correlation. Also shown are raw/exact count data (black), mean counts in bins (red), and peak position differences in bases between top/bottom panels (blue numbers).}
-\end{figure}
 
 \subsection{GFPOP is empirically log-linear}\label{sec:timings}
 
@@ -1358,6 +1390,33 @@ for genomic data in $O(N\log N)$ space/time.
 \begin{figure}[t!]
 \centering
 \begin{minipage}{3in}
+  \includegraphics{jss-figure-target-intervals-models}
+\end{minipage} 
+\begin{minipage}{3in}
+  \includegraphics{jss-figure-target-intervals-models-computation}
+\end{minipage}
+\caption{\label{fig:intervals} In our empirical
+  tests, the computational requirements of the GFPOP algorithm
+  were log-linear $O(N \log N)$ in the number of data points $N$ to
+  segment. \textbf{Left:} we analyzed the number of intervals $I$
+  (candidate changepoints) stored in the $C_t(\mu)$ cost functions,
+  because the total time/space complexity is $O(NI)$. We observed
+  empirically that the mean number of intervals $I=O(\log N)$ (red
+  curve). Even the maximum number of intervals (blue curve) is much
+  less than $N$. \textbf{Right:} storage on disk (top panel) and
+  computation time (bottom panel) are empirically $O(N \log N)$. Error
+  bands show median and 5\%/95\% quantiles over several data sets of a
+  given size $N$ and penalties $\lambda$; 
+  black dots and text show computational requirements
+  for the most extreme data sets.}
+\end{figure}
+
+\subsection{Disk storage is slower than memory by a constant
+  factor}
+
+\begin{figure}[t!]
+\centering
+\begin{minipage}{3in}
   \includegraphics{jss-figure-disk-memory-compare-speed}
 \end{minipage} 
 \begin{minipage}{3in}
@@ -1374,9 +1433,6 @@ for genomic data in $O(N\log N)$ space/time.
   fixing one data set with $N=106,569$, the computation time
   generally increases with penalty value $\lambda$ for both storage methods.}
 \end{figure}
-
-\subsection{Disk storage is slower than memory by a constant
-  factor}
 
 In the previous section, we discussed how tens of gigabytes of
 storage are required to run GFPOP when $N=10^7$. Since typical
@@ -1434,38 +1490,6 @@ indicate that the sequential search for $P^*$ desired peaks takes
 $O(\log P^*)$ GFPOP calls.
 
 
-\begin{figure}[t!]
-\centering
-\includegraphics{jss-figure-label-error}
-\caption{\label{fig:label-error} Labels are used to compute an error
-  rate for each peak model (blue bars), defined as the sum of false
-  positive and false negative labels (rectangles with black
-  outline). This H3K36me3 ChIP-seq data set has $N=1,254,751$ data to
-  segment on a subset of chr12, but in the plot above we show only the
-  82,233 data (grey signal) in the region around the labels (colored
-  rectangles). The model with penalty=6682 results in 320 peaks, which
-  is too many (three false positive labels with more than one peak
-  start/end). Conversely, the model with penalty=278653 results in 33
-  peaks, which is too few (only two peaks in the plotted region,
-  resulting in two false negative labels on the right where there
-  should be exactly one peak start/end). The range of penalties between 9586 and
-  267277 results in models with between 34 and 236 peaks, and achieves
-  zero label errors. }
-\end{figure}
-
-\begin{figure}[t!]
-\centering
-%\includegraphics{jss-figure-data-peaks}
-\input{jss-figure-data-peaks}
-\caption{\label{fig:data-peaks} The model with minimal label
-  errors has $O(\sqrt{N})$ peaks in a data set of size $N$. For each data set we
-  computed peak models with minimal label errors (see
-  Figure~\ref{fig:label-error}); we then plot the number of peaks in
-  minimal error models as a function of data set size $N$. Black median line
-  and grey quartile band computed over several data sets of a given size
-  $N$; asymptotic reference lines shown in red.}
-\end{figure}
-
 \subsection{Sequential search iterations increase logarithmically with data set size}
 \label{sec:more-evals}
 
@@ -1518,6 +1542,42 @@ penalties/peaks achieves zero label errors.
 The labels can thus be used to determine an desired number of
 peaks $P^*$ (with zero errors) for each data set.
 
+
+
+\begin{figure}[t!]
+\centering
+\includegraphics[width=\textwidth]{jss-figure-label-error}
+\vskip -0.6cm
+\caption{\label{fig:label-error} Labels are used to compute an error
+  rate for each peak model (blue bars), defined as the sum of false
+  positive and false negative labels (rectangles with black
+  outline). This H3K36me3 ChIP-seq data set has $N=1,254,751$ data to
+  segment on a subset of chr12, but in the plot above we show only the
+  82,233 data (grey signal) in the region around the labels (colored
+  rectangles). The model with penalty=6682 results in 320 peaks, which
+  is too many (three false positive labels with more than one peak
+  start/end). Conversely, the model with penalty=278653 results in 33
+  peaks, which is too few (only two peaks in the plotted region,
+  resulting in two false negative labels on the right where there
+  should be exactly one peak start/end). The range of penalties between 9586 and
+  267277 results in models with between 34 and 236 peaks, and achieves
+  zero label errors. }
+\end{figure}
+
+\begin{figure}[t!]
+\centering
+%\includegraphics{jss-figure-data-peaks}
+\input{jss-figure-data-peaks}
+\vskip -0.5cm
+\caption{\label{fig:data-peaks} The model with minimal label
+  errors has $O(\sqrt{N})$ peaks in a data set of size $N$. For each data set we
+  computed peak models with minimal label errors (see
+  Figure~\ref{fig:label-error}); we then plot the number of peaks in
+  minimal error models as a function of data set size $N$. Black median line
+  and grey quartile band computed over several data sets of a given size
+  $N$; asymptotic reference lines shown in red.}
+\end{figure}
+
 \begin{figure}[t!]
 \centering
 \begin{minipage}{3in}
@@ -1549,7 +1609,7 @@ data set we computed the min/max peaks that achieves zero label errors
 two values, $(34+236)/2=135$. We plot the mean number of peaks that
 achieves zero label errors as a function of data set size $N$ in
 Figure~\ref{fig:data-peaks}. From the figure it is clear that the mean
-number of peaks required to achieved zero label errors in these data
+number of peaks required to achieve zero label errors in these data
 is on the order of $O(\sqrt N)$.
 
 Computing the optimal model with $P=O(\sqrt N)$ peaks is computationally
@@ -1587,10 +1647,10 @@ $O(N(\log N)^2)$ time.
 \section{Summary and discussion} \label{sec:summary} 
 
 This paper presented two new algorithms for constrained optimal
-changepoint detection. We presented generalized functional
-partitioning optimal partitioning (GFPOP) which computes the optimal
+changepoint detection. We presented Generalized Functional
+Pruning Optimal Partitioning (GFPOP) which computes the optimal
 model for one penalty $\lambda$. We also proposed a sequential search
-algorithm which repeated calls GFPOP in order to compute the most
+algorithm which repeatedly calls GFPOP with different penalties $\lambda$, in order to compute the most
 likely model with at most $P^*$ desired peaks. 
 
 We analyzed the proposed algorithms by running them on a set of
@@ -1611,7 +1671,7 @@ peak models for up to $N=10^7$ data in reasonable amounts of time
 Third, we studied the empirical complexity of the proposed sequential
 search for $P^*$ desired peaks, as a function of the maximum number of
 peaks $P_{\text{max}}=O(N)$ for a given data set. We observed that it
-requires $O(\log P^* \log P_{\text{max}})$ calls to the $O(N\log N)$
+requires $O(\log(P^*) \log(P_{\text{max}}))$ calls to the $O(N\log N)$
 GFPOP dynamic programming sub-routine. In the ChIP-seq data sets, for
 computing models with $P^*>5$ desired peaks, we observed that the
 sequential search uses fewer calls to the $O(N\log N)$ dynamic
@@ -1628,12 +1688,12 @@ Neighborhood algorithms would be $O(N\sqrt N\log N)$. We showed that
 for $N=10^7$ data our approach only requires hours/gigabytes of
 time/space to compute optimal models. Our algorithms thus make it
 practical for the first time to compute optimal models with many desired peaks
-$P^*$ for genomic data sets.
+$P^*$ in large genomic data sets.
 
 For future work we look forward to implementing our proposed
 disk-based storage mechanism for other loss/likelihood functions and
 constraints. For example, we are currently working on a \pkg{gfpop}
-package which uses the Gaussian loss/likelihood with a general
+package which uses the Gaussian loss/likelihood with a user-specified
 constraint graph. Results from this paper indicate that disk-based
 storage can be used to scale to very large data sets, while
 maintaining fast computation times.
