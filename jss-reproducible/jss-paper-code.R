@@ -31,7 +31,7 @@ write.table(Mono27ac$coverage, file.path(data.dir, "coverage.bedGraph"),
 ### code chunk number 4: problemPeakSegFPOP
 ###################################################
 
-fit <- PeakSegDisk::problem.PeakSegFPOP(data.dir, "10000")
+fit <- PeakSegDisk::PeakSegFPOP_dir(data.dir, "10000")
 
 
 
@@ -61,7 +61,7 @@ print(gg)
 ### code chunk number 7: seq-search
 ###################################################
 
-fit <- PeakSegDisk::problem.sequentialSearch(data.dir, 17L)
+fit <- PeakSegDisk::sequentialSearch_dir(data.dir, 17L)
 
 
 

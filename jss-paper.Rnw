@@ -1325,7 +1325,7 @@ fewer peaks) than heuristics such as MACS2.
 
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth]{figure-spatial-correlation}
+  \includegraphics[width=\textwidth]{jss-figure-spatial-correlation}
   \vskip -0.5cm
   \caption{For two different ChIP-seq experiment types (left=broad
     H3K36; right=sharp H3K4), our proposed GFPOP algorithm detects

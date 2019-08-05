@@ -58,7 +58,7 @@ works_with_R(
   penaltyLearning="2018.10.23",
   ggplot2="3.0.0",
   PeakSegOptimal="2018.5.25",
-  PeakSegDisk="2018.11.28",
+  "tdhock/PeakSegDisk@70ae0b1839120190c7a8bc703aa29558ddeac7ce",
   tikzDevice="0.12")
 library(grid)
 options(

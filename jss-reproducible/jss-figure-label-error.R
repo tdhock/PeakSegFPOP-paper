@@ -27,7 +27,7 @@ for(i in seq_along(model.i.vec)){
   cat(sprintf("%4d %s\n", model.i, model.name))
   model <- some.models[model.i]
   pen.str <- paste(model$penalty)
-  fit <- PeakSegDisk::problem.PeakSegFPOP(prob.dir, pen.str)
+  fit <- PeakSegDisk::PeakSegFPOP_dir(prob.dir, pen.str)
   fit.peaks <- fit$segments[status=="peak"]
   fit.errors <- PeakError::PeakErrorChrom(fit.peaks, some.regions)
   meta <- data.table(

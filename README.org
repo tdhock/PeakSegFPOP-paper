@@ -37,19 +37,23 @@ jss-paper.pdf"
 
 - Sweave/LaTeX source: [[file:jss-paper.Rnw]]
 - Figures 3 (concave G function we maximize to find the model with P
-  peaks) and 10 (time complexity of computing sqrt N peaks):
+  peaks) and 12 (time complexity of computing sqrt N peaks):
   [[file:jss-figure-evaluations.R]]
 - Figure 4 (PeakSegFPOP can be used to compute more likely models than
   the default MACS2 model): [[file:jss-figure-more-likely-models.R]]
-- Figure 5 (number of intervals is log N and time/space complexity is
+- Figure 5 (up-down constrained changepoint model is robust to spatial
+  correlation): [[file:jss-figure-spatial-correlation.R]]
+- Figure 6 (number of intervals is log N and time/space complexity is
   N log N): [[file:jss-figure-target-intervals-models.R]]
-- Figure 6 (disk-based storage is a constant factor slower than
+- Figure 7 (disk-based storage is a constant factor slower than
   memory-based storage, about 2x):
   [[file:jss-figure-disk-memory-compare-speed.R]]
-- Figure 7 (number of DP iterations using OP is much lower than
+- Figure 8 (number of DP iterations using OP is much lower than
   SN to compute a large number of peaks): [[file:jss-figure-variable-peaks.R]]
-- Figure 8 (label error): [[file:jss-figure-label-error.R]]
-- Figure 9 (N genomic data have sqrt N peaks): [[file:jss-figure-data-peaks.R]]
+- Figure 9 (number of GFPOP calls depends on maximum number of peaks):
+  [[file:jss-figure-more-evals.R]]
+- Figure 10 (label error): [[file:jss-figure-label-error.R]]
+- Figure 11 (N genomic data have sqrt N peaks): [[file:jss-figure-data-peaks.R]]
 
 ** TODOs
 

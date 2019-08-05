@@ -37,9 +37,11 @@ jss-arxiv.pdf: jss-arxiv.Rnw
 	rm jss-arxiv.tex
 jss-slides.pdf: jss-slides.tex jss-paper.pdf
 	pdflatex jss-slides
-figure-spatial-correlation.png: figure-spatial-correlation.R
+jss-figure-spatial-correlation.png: jss-figure-spatial-correlation.R
 	R --vanilla < $<
-jss-paper.pdf: jss-paper.Rnw jss-figure-more-likely-models-three-peaks.png jss-figure-target-intervals-models.pdf jss-figure-disk-memory-compare-speed.pdf jss-figure-data-peaks.tex jss-figure-label-error.pdf jss-figure-evaluations.tex jss-figure-variable-peaks.tex jss-refs.bib figure-spatial-correlation.png
+jss-figure-more-evals.png: jss-figure-more-evals.R
+	R --vanilla < $<
+jss-paper.pdf: jss-paper.Rnw jss-figure-more-likely-models-three-peaks.png jss-figure-target-intervals-models.pdf jss-figure-disk-memory-compare-speed.pdf jss-figure-data-peaks.tex jss-figure-label-error.pdf jss-figure-evaluations.tex jss-figure-variable-peaks.tex jss-refs.bib jss-figure-spatial-correlation.png jss-figure-more-evals.png
 	rm -rf *.aux *.bbl
 	R CMD Sweave jss-paper.Rnw
 	pdflatex jss-paper

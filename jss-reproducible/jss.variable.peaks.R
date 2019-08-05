@@ -52,7 +52,7 @@ for(prob.i in prob.i.vec){
   fwrite(
     match.df, file.path(pdir, "problem.bed"),
     quote=FALSE, sep="\t", col.names=FALSE, row.names=FALSE)
-  trivial <- problem.sequentialSearch(pdir, 0L, verbose=1)
+  trivial <- sequentialSearch_dir(pdir, 0L, verbose=1)
   most.peaks <- trivial$others$peaks[1]
   most.peaks <- prob$target.N/2
   peak.vec <- as.integer(c(
@@ -66,7 +66,7 @@ for(prob.i in prob.i.vec){
       peak.i, length(peak.vec),
       peaks
     ))
-    fit.list <- problem.sequentialSearch(pdir, peaks, verbose=1)
+    fit.list <- sequentialSearch_dir(pdir, peaks, verbose=1)
     jss.variable.peaks.list[[paste(pdir, peaks)]] <- data.table(
       prob,
       loss=fit.list$loss,

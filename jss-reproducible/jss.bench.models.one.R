@@ -10,7 +10,7 @@ prob.dir <- file.path("data", one.model$prob.dir)
 coverage.bedGraph <- file.path(prob.dir, "coverage.bedGraph")
 coverage.bedGraph.gz <- paste0(coverage.bedGraph, ".gz")
 system(paste("gunzip", coverage.bedGraph.gz))
-fit <- PeakSegDisk::problem.PeakSegFPOP(prob.dir, paste(one.model$penalty))
+fit <- PeakSegDisk::PeakSegFPOP_dir(prob.dir, paste(one.model$penalty))
 system(paste("gzip", coverage.bedGraph))
 
 ## Read labels.
