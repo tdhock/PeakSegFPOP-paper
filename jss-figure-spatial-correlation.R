@@ -171,6 +171,6 @@ gg.text <- gg.model+
     data.type="model",
     bases.counted=diff.panel,
     experiments["H3K36me3", on=list(experiment)]))
-png("figure-spatial-correlation.png", 8, 3.2, units="in", res=300)
+png("jss-figure-spatial-correlation.png", 8, 3.2, units="in", res=300)
 print(gg.text)
 dev.off()

@@ -65,32 +65,48 @@ if(!dir.exists(data.dir)){
   system("tar xvf peak-detection-data.tar.xz")
 }
 
+future::plan("multiprocess")
+prob.i.vec <- 1:8
 prob.i.vec <- 1:nrow(some.probs)
-##prob.i.vec <- 1:16
-jss.evaluations.list <- list()
-for(prob.i in prob.i.vec){
+
+peaks.vec <- as.integer(10^seq(1, 3, by=1))
+LAPPLY <- lapply
+LAPPLY <- future.apply::future_lapply
+jss.evaluations.list <- LAPPLY(prob.i.vec, function(prob.i){
+  source("jss-packages.R")
   prob <- some.probs[prob.i]
   cat(sprintf("%4d / %4d problems\n", prob.i, length(prob.i.vec)))
-  pdir <- file.path(data.dir, prob$prob.dir)
-  system(paste("gunzip", file.path(pdir, "coverage.bedGraph.gz")))
-  match.df <- namedCapture::str_match_named(pdir, paste0(
-    "(?<chrom>chr[^:]+)",
-    ":",
-    "(?<problemStart>[0-9]+)",
+  pdir <- file.path(data.dir, sub(":", "-", prob$prob.dir))
+  gz <- file.path(pdir, "coverage.bedGraph.gz")
+  bg <- file.path(pdir, "coverage.bedGraph")
+  if(!file.exists(bg)){
+    cov.dt <- fread(gz)
+    fwrite(
+      cov.dt,
+      bg,
+      sep="\t", col.names=FALSE, quote=FALSE)
+  }
+  match.df <- namedCapture::str_match_variable(
+    pdir,
+    chrom="chr[^:]+",
+    "[:-]",
+    problemStart="[0-9]+", as.integer,
     "-",
-    "(?<problemEnd>[0-9]+)"), list(
-      problemStart=as.integer,
-      problemEnd=as.integer))
-  fwrite(
-    match.df, file.path(pdir, "problem.bed"),
-    quote=FALSE, sep="\t", col.names=FALSE, row.names=FALSE)
-  fit.list <- sequentialSearch_dir(pdir, prob$peaks, verbose=1)
-  jss.evaluations.list[[prob.i]] <- data.table(
-    prob,
-    loss=fit.list$loss,
-    others=fit.list$others)
-}
-jss.evaluations <- do.call(rbind, jss.evaluations.list)
+    problemEnd="[0-9]+", as.integer)
+  L <- lapply(seq_along(peaks.vec), function(peaks.i){
+    peaks.arg <- peaks.vec[[peaks.i]]
+    cat(sprintf("%d / %d peaks=%d\n", peaks.i, length(peaks.vec), peaks.arg))
+    fit.list <- PeakSegDisk::sequentialSearch_dir(pdir, peaks.arg, verbose=1)
+    data.table(
+      peaks.arg,
+      prob,
+      loss=fit.list$loss,
+      others=fit.list$others)
+  })
+  do.call(rbind, L)
+})
 
-saveRDS(jss.evaluations, "jss.evaluations.rds")
+jss.more.evals <- do.call(rbind, jss.evaluations.list)
+
+saveRDS(jss.more.evals, "jss.more.evals.rds")
 
