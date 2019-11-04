@@ -4,7 +4,7 @@ constrained changepoint detection problem.
 
 ** [[https://arxiv.org/abs/1703.03352][arXiv:1703.03352]] A log-linear segmentation algorithm for peak detection in genomic data
 
-Updated pre-print: [[file:jmlr-paper.pdf]]
+Updated pre-print: [[file:jmlr-paper.pdf]], [[file:jmlr-supplementary.pdf]]
 
 The labeled data we used to compute peak detection accuracy are
 http://members.cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/

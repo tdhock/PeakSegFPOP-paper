@@ -1286,7 +1286,7 @@ Figure~\ref{fig:PDPA-infeasible-error-compare}). The largest
 difference was for HMCanBroad (GPDPA better for 1219 problems, no
 difference for 1494 problems, HMCanBroad better for 39 problems). The
 smallest difference was for CDPA (GPDPA better for 48 problems, no
-difference for 2689 problems, HMCanBroad better for 39 problems). Overall these data provide strong evidence that the proposed GPDPA detects peaks more
+difference for 2689 problems, CDPA better for 15 problems). Overall these data provide strong evidence that the proposed GPDPA detects peaks more
 accurately than previous baseline algorithms.
 
 When the GPDPA model has active equality constraints, we proposed
@@ -1644,7 +1644,7 @@ PDPA), the linear and oracle penalties showed no significant
 difference in test AUC (mean difference from 0.00004 to 0.0006,
 $\text{p-value}>0.05$ in paired $t_{27}$-test). These data indicate
 that, despite the statistical arguments that motivate the oracle model
-complexity, it is not more accurate than the simple linear model
+complexity, it is in fact less accurate than the simple linear model
 complexity for peak detection in real genomic data.
 
 We also compare learning a penalty function with either one or
