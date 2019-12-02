@@ -1026,7 +1026,7 @@ information about the computed model:
 
 <<fitLoss>>=
 
-fit$loss
+summary(fit)
 @ 
 
 Above we can see that the optimal model for the given penalty
