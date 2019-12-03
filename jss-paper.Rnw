@@ -1021,8 +1021,8 @@ them; otherwise it runs the dynamic programming C++ code in order to
 create those files.
 
 The returned \code{fit} object is a named list of data.tables. The
-\code{loss} component shown below is one row that contains general
-information about the computed model: 
+\code{summary} method shown below returns one row of general
+information about the computed model:
 
 <<fitLoss>>=
 
