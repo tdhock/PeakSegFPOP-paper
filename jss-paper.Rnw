@@ -218,12 +218,15 @@ used, it must scale well to large data in terms of both time and
 memory costs.
 
 There are other algorithms for tackling this type of problem, for
-example based on hidden Markov models \citep{chipseq-hmm}.  One drawback of such
+example based on hidden Markov models \citep{chipseq-hmm}.  
+One drawback of such
 methods is that they assume the background/peak means do not change across
 large genomic regions, whereas such long-range changes are observed in
-many real data sets. For a detailed comparison of other algorithms with
-changepoint approaches we refer the reader to
-\citep{HOCKING2016-chipseq}; we focus the remainder of the paper on
+many real data sets. 
+For a detailed comparison between optimal changepoint models 
+and other algorithms 
+we refer the reader to the previous work of
+\citet{HOCKING2016-chipseq}; we focus the remainder of the paper on
 optimal changepoint models.
 
 \subsection{Models with no constraints between adjacent segment means}
@@ -270,14 +273,14 @@ time \citep{segment-neighborhood}.  The classical algorithm for
 solving the Segment Neighborhood problem is available in \R\ as
 \code{changepoint::cpt.mean}. Recent research has led to faster
 algorithms such as the Pruned Dynamic Programming Algorithm (PDPA) of
-\citet{pruned-dp-new}, which empirically take
-$O(K N \log N)$ time.  The novelty of this algorithm is a functional
-representation of the optimal cost, which allows pruning of the $O(N)$
-possible changepoints to only $O(\log N)$ candidates (while
-maintaining optimality). The original implementation of the PDPA was
-available in \R\ as \verb|cghseg:::segmeanCO| for the Normal
-homoscedastic model, but \pkg{cghseg} has been removed from CRAN as of
-18 December 2017. The PDPA for the Normal homoscedastic model is now
+\citet{pruned-dp-new}, which empirically take $O(K N \log N)$ time.
+The novelty of this algorithm is a functional representation of the
+optimal cost, which allows pruning of the $O(N)$ possible changepoints
+to only $O(\log N)$ candidates (while maintaining optimality). The
+original implementation of the PDPA was available in \R\ as
+\verb|cghseg:::segmeanCO| for the Normal homoscedastic model, but
+\pkg{cghseg} was orphaned and had to be removed from CRAN as of 18
+December 2017. The PDPA for the Normal homoscedastic model is now
 available as \verb|jointseg::Fpsn| on Bioconductor
 \citep{jointseg}. \citet{cleynen2013segmentation} described an
 implementation of the PDPA for other likelihood/loss functions
@@ -494,10 +497,11 @@ refer to the algorithm as ``Generalized'' because FPOP is the special
 case corresponding to a constraint graph with only one node and edge
 (Figure~\ref{fig:state-graph}, left).
 
-Whereas a previous work proposed the first exact solver for the
-up-down constrained changepoint model
-\citep{Hocking-constrained-changepoint-detection}, this paper provides
-a fast algorithm for computing the same model on the large genomic
+Whereas an exact solver for the
+up-down constrained changepoint model was previously proposed by
+\citet{Hocking-constrained-changepoint-detection}, 
+the current paper provides
+a more efficient algorithm for computing the same model on the large genomic
 data sets that are now common.
 \begin{description}
 \item[Data.] Both papers propose peak detection algorithms
