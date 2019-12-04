@@ -685,8 +685,8 @@ desired peaks).
 
 \subsection{Generalized functional pruning optimal partitioning (GFPOP)}
 
-In this section we propose a generalization of the FPOP algorithm
-\citep{Maidstone2016} which allows optimal inference in models with
+The proposed generalization of the FPOP algorithm
+\citep{Maidstone2016} allows optimal inference in models with
 inequality constraints between adjacent means, such as
 problem~(\ref{min:op-up-down}). The state graph
 (Figure~\ref{fig:state-graph}, right) can be converted into a directed
@@ -999,7 +999,7 @@ name must be \verb|coverage.bedGraph|:
 
 <<saveData>>=
 
-data.dir <- file.path("Mono27ac", "chr11:60000-580000")
+data.dir <- file.path("Mono27ac", "chr11-60000-580000")
 dir.create(data.dir, showWarnings=FALSE, recursive=TRUE)
 write.table(Mono27ac$coverage, file.path(data.dir, "coverage.bedGraph"),
   col.names=FALSE, row.names=FALSE, quote=FALSE, sep="\t")
@@ -1321,7 +1321,7 @@ visually, especially for the peak on the left. Furthermore the optimal
 segment means, suggesting that there are less than five easily
 interpretable peaks. Therefore we also computed the optimal 3 peak
 model (bottom panel), which also has a higher log-likelihood than the
-5 peak MACS2 model. Overall it is clear that our algorithms can be
+5 peak MACS2 model. The given example shows that our algorithm can be
 used to compute models which are both more likely and simpler (with
 fewer peaks) than heuristics such as MACS2.
 
@@ -1438,14 +1438,16 @@ for genomic data in $O(N\log N)$ space/time.
   generally increases with penalty value $\lambda$ for both storage methods.}
 \end{figure}
 
-In the previous section, we discussed how tens of gigabytes of
-storage are required to run GFPOP when $N=10^7$. Since typical
-computers may not have enough memory, our implementation uses
-disk-based storage. We compared our disk-based implementation to
-another memory-based implementation, in terms of computation time on
-small data sets for which GFPOP uses $<1$GB of storage. We observed
+In the previous section, we discussed how tens of gigabytes of storage
+are required to run GFPOP when $N=10^7$. Since typical computers may
+not have enough memory, our implementation uses disk-based storage. We
+compared our disk-based implementation to another memory-based
+implementation, in terms of computation time on small data sets for
+which GFPOP uses $<1$GB of storage. The ATA disk we used was a TOSHIBA
+MK1652GSX (attached to SCSI, cache/buffer size = 8192 KB). We observed
 that disk storage is slower than memory storage by a constant factor
-(1.7--2.3$\times$, Figure~\ref{fig:disk-memory-compare-speed}), which was expected. 
+(1.7--2.3$\times$, Figure~\ref{fig:disk-memory-compare-speed}), which
+was expected.
 
 \begin{figure}[t!]
 \centering
