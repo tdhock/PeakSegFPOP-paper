@@ -585,7 +585,7 @@ constraint such as (\ref{eq:change-constraint}).
       \node[main node] (0) {$s=0$};
 
       \path[every node/.style={font=\sffamily\small}]
-      (0) edge [loop above] node {$c=1,\lambda$} (0);
+      (0) edge [loop above] node {$c=1,\lambda,m_i\neq m_{i+1}$} (0);
     \end{tikzpicture}
   \end{minipage}
   \begin{minipage}{3in}
@@ -599,25 +599,23 @@ constraint such as (\ref{eq:change-constraint}).
       \node (end) [right of=0] {end};
 
       \path[every node/.style={font=\sffamily\small}]
-      (0) edge [bend left] node {$c=1, \lambda, \leq$} (1)
+      (0) edge [bend left] node {$c=1, \lambda, m_i\leq m_{i+1}$} (1)
       (start) edge [dashed] (0)
       (0) edge [dashed] (end)
-      (1) edge [bend left] node {$c=-1, 0, \geq$} (0);
+      (1) edge [bend left] node {$c=-1, 0, m_i \geq m_{i+1}$} (0);
     \end{tikzpicture}
   \end{minipage}
   \caption{State graphs for two changepoint models. Nodes represent
     states and solid edges represent changepoints. \textbf{Left:}
-    one-state model with no constraints between adjacent segment
-    means, problem~(\ref{min:op-c}). \textbf{Right}: two-state model with
-    up-down constraints between adjacent segment means,
+    one-state model in which each change $c=1$ has a penalty of
+    $\lambda$, problem~(\ref{min:op-c}). \textbf{Right}: two-state
+    model with up-down constraints between adjacent segment means,
     problem~(\ref{min:op-up-down}). State $s=0$ represents background
     noise (small values) whereas state $s=1$ represents peaks (large
-    values). Constraint $c=1$ enforces a non-decreasing change via the
-    min-less operator ($\leq$) with a penalty of $\lambda$; $c=-1$
-    enforces a non-increasing change via the min-more operator
-    ($\geq$) with a penalty of $0$. The model is additionally
-    constrained to start and end in the background noise $s=0$ state
-    ($s_1=s_N=0$).}
+    values). Constraint $c=1$ enforces a non-decreasing change with a
+    penalty of $\lambda$; $c=-1$ enforces a non-increasing change with
+    a penalty of $0$. The model is additionally constrained to start
+    and end in the background noise $s=0$ state ($s_1=s_N=0$).}
   \label{fig:state-graph}
 \end{figure}
 
@@ -1504,16 +1502,18 @@ Recall that the proposed sequential search
 sub-routine until it finds the desired model with $P^*$ peaks. Because
 the algorithm is an instance of binary search, we expected the number
 of GFPOP calls $W$ to increase logarithmically with the maximum number
-of peaks $P_{\text{max}}=O(N)$. To test this hypothesis we ran the
+of peaks $P_{\text{max}}$. To test this hypothesis we ran the
 sequential search algorithm on several ChIP-seq data sets from the UCI
 benchmark, with $P_{\text{max}}$ varying from about $10^{3.5}$ to
-about $10^{6.5}$. For each data set we provided
-$P^*\in\{10,100,1000\}$ as values for the input parameter (desired
-number of peaks). We observed in these data that the number of GFPOP
-calls increases logarithmically with the maximum number of peaks
-(Figure~\ref{fig:more-evals}). These results provide a substantial
-empirical validation that the sequential search takes 
-$O(P_{\text{max}})$ GFPOP calls, as expected.
+about $10^{6.5}$. For each data set we determined the maximum number
+of peaks $P_{\text{max}}$ by running GFPOP with a penalty of
+$\lambda=0$. We then ran the sequential search algorithm on each data
+set with $P^*\in\{10,100,1000\}$ as values for the input parameter
+(desired number of peaks). We observed in these data that the number
+of GFPOP calls increases logarithmically with the maximum number of
+peaks (Figure~\ref{fig:more-evals}). These results provide a
+substantial empirical validation that the sequential search takes
+$O(\log P_{\text{max}})$ GFPOP calls, as expected.
 
 \begin{figure}[t!] 
 \centering
