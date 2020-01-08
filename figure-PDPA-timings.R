@@ -100,7 +100,7 @@ dl.log <- direct.label(gg.log, "last.polygons")+
   scale_x_continuous(
     "log10(data points to segment)")+
   coord_cartesian(xlim=c(2, 6.7), expand=FALSE)
-tikz("figure-PDPA-timings-small.tex", 3.3, 2.2)
+tikz("figure-PDPA-timings-small.tex", width=3.3, height=2.2)
 print(dl.log)
 dev.off()
 
@@ -155,10 +155,10 @@ my.polygons <- list("last.points", "calc.boxes",
 dl.log <- direct.label(gg.log, list(cex=0.75, "my.polygons"))+
   coord_cartesian(xlim=c(min(all.timings$data), 5e6))
 print(dl.log)
-tikz("figure-PDPA-timings-log-log.tex", 3, 1.8)
+tikz("figure-PDPA-timings-log-log.tex", width=3, height=1.8)
 print(dl.log)
 dev.off()
-pdf("figure-PDPA-timings-log-log.pdf", 3.3, 1.8)
+pdf("figure-PDPA-timings-log-log.pdf", width=3.3, height=1.8)
 print(dl.log)
 dev.off()
 
@@ -190,7 +190,7 @@ gg.log <- ggplot()+
 dl.log <- direct.label(gg.log, list(cex=0.75, "my.polygons"))+
   coord_cartesian(xlim=c(min(all.timings$data), 5e6))
 print(dl.log)
-tikz("figure-PDPA-timings-wide-labels.tex", 5, 1.8)
+tikz("figure-PDPA-timings-wide-labels.tex", width=5, height=1.8)
 print(dl.log)
 dev.off()
 

@@ -191,10 +191,10 @@ gg.pruning <- ggplot()+
             size=3.5,
             color="grey30",
             data=label.dt[cost.type=="minimum",])
-tikz("figure-2-min-envelope-slides.tex", 4.8, 3)
+tikz("figure-2-min-envelope-slides.tex", width=4.8, height=3)
 print(gg.pruning)
 dev.off()
-tikz("figure-2-min-envelope.tex", 5, 3)
+tikz("figure-2-min-envelope.tex", width=5, height=3)
 print(gg.pruning)
 dev.off()
 

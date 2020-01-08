@@ -576,7 +576,7 @@ pdftikz <- function(pre, g, w=3){
   pdf(paste0(pre, ".pdf"), 5, 3)
   print(g)
   dev.off()
-  tikz(paste0(pre, ".tex"), w, 1.5)
+  tikz(paste0(pre, ".tex"), width=w, height=1.5)
   print(g)
   dev.off()
 }

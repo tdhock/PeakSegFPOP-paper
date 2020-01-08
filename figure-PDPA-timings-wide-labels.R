@@ -129,7 +129,7 @@ my.polygons <- list("last.points", "calc.boxes",
 dl.log <- direct.label(gg.log, list(cex=0.6, "my.polygons"))+
   coord_cartesian(xlim=c(min(all.timings$data), 1e10))
 print(dl.log)
-tikz("figure-PDPA-timings-wide-labels-n.tex", 5, 2.2)
+tikz("figure-PDPA-timings-wide-labels-n.tex", width=5, height=2.2)
 print(dl.log)
 dev.off()
 ##system("pdflatex figure-PDPA-timings-wide-labels")

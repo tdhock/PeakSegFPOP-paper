@@ -86,7 +86,7 @@ print(gg)
 pdf("jss-figure-evaluations-concave.pdf")
 print(gg)
 dev.off()
-tikz("jss-figure-evaluations-concave.tex", 3, 2)
+tikz("jss-figure-evaluations-concave.tex", width=3, height=2)
 print(gg)
 dev.off()
 
@@ -220,7 +220,7 @@ gg.zoom <- ggplot()+
     color="red",
     data=it.points)
 
-tikz("jss-figure-evaluations-concave-zoom.tex", 3, 2)
+tikz("jss-figure-evaluations-concave-zoom.tex", width=3, height=2)
 print(gg.zoom)
 dev.off()
 
@@ -562,7 +562,7 @@ labels=labels.vec
     breaks=10^seq(-1, 2),
 labels=paste)
 ##print(gg)
-tikz("jss-figure-evaluations-computation.tex", 3.1, 2.6)
+tikz("jss-figure-evaluations-computation.tex", width=3.1, height=2.6)
 print(gg)
 dev.off() 
 
@@ -647,6 +647,6 @@ print(dl)
 ## pdf("jss-figure-evaluations-ref.pdf", 3.5, 3)
 ## print(dl.ref)
 ## dev.off()
-tikz("jss-figure-evaluations.tex", 3.1, 2.6)
+tikz("jss-figure-evaluations.tex", width=3.1, height=2.6)
 print(dl)
 dev.off()

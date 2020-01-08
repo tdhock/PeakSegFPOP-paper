@@ -165,7 +165,7 @@ gg <- ggplot()+
     label=sprintf("$z_%s$", ifelse(seg.i==1, 1, "n"))),
     data=three.segs[seg.i != 2])
 library(tikzDevice)
-tikz("figure-PeakSeg.tex", 4, 1)
+tikz("figure-PeakSeg.tex", width=4, height=1)
 print(gg)
 dev.off()
 gg <- ggplot()+
@@ -222,7 +222,7 @@ sequences",
     label=sprintf("$z_%s$", ifelse(seg.i==1, 1, "N"))),
     color="grey40",
     data=three.segs[seg.i != 2])
-tikz("figure-PeakSeg-big.tex", 6, 1.5)
+tikz("figure-PeakSeg-big.tex", width=6, height=1.5)
 print(gg)
 dev.off()
 
@@ -262,7 +262,7 @@ gg <- ggplot()+
     data=three.breaks,
     color="green",
     size=0.5)
-tikz("figure-PeakSeg-unconstrained.tex", 4, 1)
+tikz("figure-PeakSeg-unconstrained.tex", width=4, height=1)
 print(gg)
 dev.off()
 
@@ -306,7 +306,7 @@ gg <- ggplot()+
     data=three.breaks,
     color="green",
     size=0.5)
-tikz("figure-PeakSeg-constrained.tex", 4, 1)
+tikz("figure-PeakSeg-constrained.tex", width=4, height=1)
 print(gg)
 dev.off()
 
