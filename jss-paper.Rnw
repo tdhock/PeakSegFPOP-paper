@@ -243,8 +243,8 @@ that changes will depend on the application, but could be, for example, the mean
 the distribution. Detecting changes of different features requires different statistical algorithms.
 
 Throughout we will let $K$ be the number of segments, with the changepoints being $0=t_0<t_1<\cdots<t_{K-1}<t_K=N$.
-This means that the $k$th segment will contain data points $z_{t_{k-1}+1},\ldots,z_{t_k}$. We denote the
-segment-specific parameter for each segment $k$ by $m_k$. For the problem of detecting changes in ChIP-seq count data,
+This means that the $k$th segment will contain data points $z_{t_{k-1}+1},\ldots,z_{t_k}$. We let $m_k$ denote the
+segment-specific model parameter for each segment $k$. For the problem of detecting changes in ChIP-seq count data,
 the simplest statistical model uses Poisson random variables with segment-specific mean
 parameters for each segment.
 %it is natural to model each data point as a realisation of a Poisson random variable, with the segment-specific parameter being the mean for that segment.
@@ -426,7 +426,7 @@ candidate changepoints from $O(N)$ to $O(\log N)$ while enforcing the constraint
 optimality. The GPDPA computes the optimal solution to the up-down
 constrained Segment Neighborhood problem in $O(KN\log N)$ time.  The
 \pkg{PeakSegOptimal} \R\ package provides an in-memory solver for the up-down constrained Segment Neighborhood model
-\citep{Hocking-constrained-changepoint-detection, PeakSegOptimal}.
+\citep{PeakSegOptimal}.
 
 \begin{table}
   \centering
@@ -1683,8 +1683,7 @@ $K-1$ segments). We show that the empirical complexity of our GFPOP
 implementation is $O(N\log N)$ time, $O(N\log N)$ disk, and
 $O(\log N)$ memory, which makes it possible to compute optimal models
 with many peaks on common laptop computers. More precisely, the
-novelty of this paper with respect to that previous work is with
-respect to:
+novelty of this paper with respect to that previous work is in terms of:
 \begin{description}
 \item[Data.] Both papers propose peak detection algorithms
   for genomic data. Our previous work analyzes a smaller data set
