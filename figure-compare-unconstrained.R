@@ -50,7 +50,7 @@ gg <- ggplot()+
   geom_text(aes(x=3,y=0,label="unconstrained"),color="grey50", hjust=0.5, vjust=0)+
   geom_text(aes(x=1.5,y=5.5,label="$C^\\leq_{1,1}(\\mu)+(\\mu-1)^2$"),color="red")
 w <- 2.5
-tikz("figure-compare-cost.tex", w, h)
+tikz("figure-compare-cost.tex", width=w, height=h)
 print(gg)
 dev.off()
 gg <- ggplot()+
@@ -64,7 +64,7 @@ gg <- ggplot()+
   geom_text(aes(x=2,y=2.6,label="$C^\\leq_{1,1}(\\mu)=$"),color="red")+
   geom_text(aes(x=2,y=2,label="$\\min_{x\\leq \\mu} C_{1,1}(x)$"),color="red")+
   theme_bw()+small.title
-tikz("figure-compare-unconstrained.tex", w, h)
+tikz("figure-compare-unconstrained.tex", width=w, height=h)
 print(gg)
 dev.off()
 

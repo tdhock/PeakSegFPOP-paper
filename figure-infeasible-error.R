@@ -190,6 +190,6 @@ segments", df$segments)
   ##   xmin=chromStart/1e3, xmax=chromEnd/1e3,
   ##   ymin=peak.y-h, ymax=peak.y+h),
   ##   data=sample.error)
-tikz("figure-infeasible-error.tex", 6, 2.75)
+tikz("figure-infeasible-error.tex", width=6, height=2.75)
 print(ggm)
 dev.off()

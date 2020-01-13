@@ -129,7 +129,7 @@ gg.cost <- ggplot()+
   geom_line(aes(mean, cost, color=fun.type, size=fun.type),
             data=min.lines)
 
-tikz("figure-less-more-min.tex", 4, 3)
+tikz("figure-less-more-min.tex", width=4, height=3)
 print(gg.cost)
 dev.off()
 

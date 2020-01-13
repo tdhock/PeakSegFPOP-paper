@@ -540,7 +540,7 @@ pdftikz <- function(pre, g, w=3){
   pdf(paste0(pre, ".pdf"), 5, 3)
   print(g)
   dev.off()
-  tikz(paste0(pre, ".tex"), w, 1.5)
+  tikz(paste0(pre, ".tex"), width=w, height=1.5)
   print(g)
   dev.off()
 }
@@ -838,7 +838,7 @@ the functional min cost of a non-increasing change after $t_2=3$")))+
   ylab("cost")+
   xlab("segment mean")
 print(gg.pruning)
-tikz("figure-CDPA-fails.tex", 6, 4)
+tikz("figure-CDPA-fails.tex", width=6, height=4)
 print(gg.pruning)
 dev.off()
 ##system("pdflatex aoas-supplementary")

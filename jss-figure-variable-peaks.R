@@ -196,7 +196,7 @@ breaks=seq(0, 20, by=2))+
       data.table(x=4, y=14, algo="SN", label="SN\nfaster\nfor\n$P^*<5$", hjust=1),
       data.table(x=8, y=14, algo="OP", label="OP\nfaster\nfor\n$P^*>5$", hjust=0)),
     vjust=0.5)
-tikz("jss-figure-variable-peaks-zoom.tex", 3, 3)
+tikz("jss-figure-variable-peaks-zoom.tex", width=3, height=3)
 print(gg.zoom)
 dev.off()
 
@@ -227,6 +227,6 @@ gg <- ggplot()+
       data.table(x=100, y=11, algo="OP", label="Optimal\nPartitioning\nGFPOP\n$O(\\log P^*)$ iterations")),
     vjust=1,
     hjust=0)
-tikz("jss-figure-variable-peaks.tex", 3, 3)
+tikz("jss-figure-variable-peaks.tex", width=3, height=3)
 print(gg)
 dev.off()
