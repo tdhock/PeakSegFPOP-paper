@@ -32,7 +32,7 @@ peak detection in genomic data''}
 \includegraphics[width=\linewidth]{figure-background-peak-mean-density-scatter}
 }
 
-Hidden Markov Models have a uniform background/noise mean
+\textbf{Caption:} Hidden Markov Models have a uniform background/noise mean
 level, rather than a new segment mean for every background segment (as
 in the model we proposed). We have observed different mean levels in
 different background/noise regions in the same ChIP-seq sample, which
@@ -135,7 +135,8 @@ C_{2,3}(u_2)  &=&\ell(18, u_2) +
                   u_2 -18 \log u_2 -9.501  & \text{ if } u_2\in[15.41, 20],\ u_1=6,\ t_1=2\\
                 \end{cases}
 \end{eqnarray}
-This cost function is shown as the black curve in the figure
+\textbf{Caption:} The cost function above
+is shown as the black curve in the figure
 below. The part on the left ($u_2\leq 15.41$) in blue is the cost of a
 non-decreasing change after the first data point ($t_1=1$). The part
 on the right in violet ($u_2\geq 15.41$) is the cost of a
@@ -203,6 +204,7 @@ considering the top $p$ peaks, according to some likelihood or
 significance threshold. For example, the MACS algorithm uses a q-value threshold parameter, and HMCanBroad uses a finalThreshold parameter (higher
 thresholds result in more false positives). 
 
+\textbf{Caption:}
 To account for this pruning step in our evaluation, we used Receiver
 Operating Characteristic (ROC) curve analysis. For each threshold
 parameter, we computed the false positive rate and true positive rate
@@ -230,6 +232,12 @@ optimal model with 2 or more peaks.
 \section*{Supplementary Figure 4: test AUC comparison between penalty functions}
 
 \includegraphics[width=\textwidth]{figure-all-cv-learned-oracle-compare}
+
+\textbf{Caption:} Test AUC of one algorithm is plotted against another
+algorithm, in order to visualize whether or not there are any
+significant differences between algorithms. Each dot represents the
+accuracy with respect to a single train/test split. Mean difference is
+shown as well as p-value in paired t-test.
 
 We proposed to select the number of
 segments in changepoint models using two kinds of model complexity
@@ -268,6 +276,7 @@ be preferred for accurate peak detection in genomic data.
 
 \includegraphics[width=\textwidth]{figure-test-error-dots-parameters}
 
+\textbf{Caption:}
 Four-fold cross-validation was used to estimate peak prediction
 accuracy. Each panel shows one of seven ChIP-seq data sets, labeled by
 pattern/experiment (Broad H3K36me3), labeler (AM), cell types
