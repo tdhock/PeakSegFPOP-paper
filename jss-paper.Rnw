@@ -142,13 +142,16 @@
   E-mail: \email{Toby.Hocking@nau.edu}\\
   %URL: \url{https://eeecon.uibk.ac.at/~zeileis/}
 \\ \\
-  Guillem Rigaill\\
-  Laboratoire de Math\'ematiques at Mod\'elisation d'Evry (LaMME), Universit\'e
-d'Evry Val d'Essonne, UMR CNRS 8071, ENSIIE, USC INRA,
-Institute of Plant Sciences Paris-Saclay (IPS2), UMR 9213/UMR1403, CNRS, INRA,
-Universit\'e Paris-Sud, Universit\'e d'Evry, Universit\'e Paris-Diderot, Sorbonne
-Paris-Cit\'e,\\
-Evry, France\\
+Guillem Rigaill\\
+Laboratoire de Math\'ematiques et Mod\'elisation d'Evry (LaMME) \\ Universit\'e d'Evry Val d'Essonne, INRAE \\ 
+  Evry, France \\
+  or \\
+  Institute of Plant Sciences Paris Saclay IPS2 \\ 
+  CNRS, INRAE, Universit\'e  Paris-Sud, Universit\'e  Evry, Universit\'e  Paris-Saclay \\ Batiment 630, 91405 Orsay, France.\\
+  or \\
+  Institute of Plant Sciences Paris-Saclay IPS2 \\ 
+  Paris Diderot, Sorbonne Paris-Cit\'e  \\ 
+  B\^atiment 630, 91405, Orsay, France.\\
   E-mail: \email{Guillem.Rigaill@inra.fr}\\
   %URL: \url{https://eeecon.uibk.ac.at/~zeileis/}
   \\ \\
@@ -295,7 +298,7 @@ In practice it is unusual to know in advance how many segments $K$ are present i
 To estimate $K$ it is common to use information criteria that take into account
 both of the measure of fit to the data and the complexity of the segmentation
 model being fitted. The most natural measures of complexity are linear in the
-number of changepoints, although others exist \citep{mBIC,cleynen2013segmentation,capushe}.
+number of changepoints, although others exist \citep{Zhang2007,cleynen2013segmentation,capushe}.
 %% Whilst it is possible to estimate $K$ by solving the
 %% Segment Neighborhood problem for an appropriate set of changes, and calculating
 %% the value of the information criteria for each value of the number of segments, it
@@ -325,10 +328,11 @@ There are several existing algorithms for choosing the penalty
 parameter $\lambda$, and this is an active area of ongoing
 research. There are several classical unsupervised heuristics such as
 the Bayesian Information Criterion (BIC) \citep{Schwarz78, Yao88} as
-well as modern modifications for genomic data sets \citep{mBIC}. There
+well as modern modifications for genomic data sets
+\citep{lebarbier2005detecting, Zhang2007}. There
 are also supervised algorithms which are useful when there are some
 data sets with labels that indicate presence/absence of changepoints
-in specific regions \citep{HOCKING-penalties}.
+in specific regions \citep{HOCKING-penalties}. 
 
 There has been substantial research into faster algorithms for solving
 the Optimal Partitioning problem. The Pruned Exact Linear Time (PELT)
@@ -337,7 +341,9 @@ $O(N)$ time if $K$ increases linearly with $N$. The Functional Pruning
 Optimal Partitioning (FPOP) algorithm (\verb|fpop::Fpop| in \R) has
 been shown to be empirically $O(N\log N)$ and faster than PELT in
 practice for several data sets
-\citep{Maidstone2016}.  See
+\citep{Maidstone2016}.
+In particular, the number of changepoints considered by FPOP is always smaller than (or equal to) the number of changepoints considered by PELT, so when PELT is $O(N)$ FPOP is as well.
+See
 Table~\ref{tab:unconstrained-algos} for a summary of the different
 dynamic programming algorithms and implementations.
 
@@ -922,8 +928,8 @@ Note that the 4 column bedGraph format shown above must be used to
 represent a data set. Futhermore a run-length encoding should be used
 for data sets that have runs of the same values. Each row represents a
 sequence of identical data values. For example the first row means
-that the value 0 occurs on the 72601 positions in [60000,132601), the
-second row means a value of 1 for the 42 positions in [132601,132643),
+that the value 0 occurs on the 72601 positions in (60000,132601], the
+second row means a value of 1 for the 42 positions in (132601,132643],
 etc. This run-length encoding results in significant savings in disk
 space and time
 %while maintaining optimality
@@ -1018,13 +1024,15 @@ print(gg)
 @
 
 Note that the special \code{plot} method above shows the data along
-with predicted peaks and segmentation model. Vertical lines dashed
-lines are used to show changepoint variables with inequality
-constraints ($c_i = 1,\, m_i < m_{i+1}$ or $c_i = -1,\, m_i > m_{i+1}$
-in problem~\ref{min:op-up-down}) and equality constraints
-($c_i \in\{-1,1\},\, m_i = m_{i+1}$). Since the \code{plot} method
-returns a \code{ggplot} object, it can be further processed, e.g. to
-zoom in on the part of the model with equality constraints:
+with predicted peaks and segmentation model. Vertical dashed green
+lines are used to show changepoint variables with strict inequality
+constraints, i.e. $c_i = 1,\, m_i < m_{i+1}$ or $c_i = -1,\, m_i >
+m_{i+1}$ in problem~(\ref{min:op-up-down}); vertical dashed solid
+lines show non-zero changepoint variables with equality constraints,
+i.e. $c_i \in\{-1,1\},\, m_i =
+m_{i+1}$. Since the \code{plot} method returns a \code{ggplot} object,
+it can be further processed, e.g. to zoom in on the part of the model
+with equality constraints:
 
 <<zoom, fig=TRUE, height=3>>=
 
@@ -1745,6 +1753,14 @@ used to create this manuscript (including all figures) is available at
 \url{https://github.com/tdhock/PeakSegFPOP-paper}
 
 
+\paragraph{Acknowledgements.}
+Toby Dylan Hocking and Guillaume Bourque were supported by a Discovery
+Frontiers project grant, ``The Cancer Genome Collaboratory,'' jointly
+sponsored by the Natural Sciences and Engineering Research Council
+(NSERC), Genome Canada (GC), the Canadian Institutes of Health
+Research (CIHR) and the Canada Foundation for Innovation (CFI). Paul
+Fearnhead acknowledges EPSRC grant EP/N031938/1 (StatScale).
+Guillem Rigaill acknowledges an ATIGE grant from G\'enopole.
 
 \newpage
 \bibliography{jss-refs}
