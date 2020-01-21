@@ -153,7 +153,7 @@ gg <- ggplot()+
     df$target.N <- paste("N $\\approx$", df$target.N)
     df
   })+
-  scale_x_log10("Number of peaks $P$ (log scale)")+
+  scale_x_log10("Desired peaks $P^*$ (log scale)")+
   scale_y_log10("Number of DP iterations (log scale)")+
   geom_point(aes(
     peaks, evaluations),
@@ -171,11 +171,11 @@ gg+
 
 
 gg.zoom <- ggplot()+
-  ggtitle("Zoom to $P \\leq 10$ peaks\n(linear scales)")+
+  ggtitle("Zoom to $P^* \\leq 10$\n(linear scales)")+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
   scale_x_continuous(
-    "Number of peaks $P$",
+    "Desired peaks $P^*$",
     breaks=seq(0, 10, by=2))+
   scale_y_continuous("Number of DP iterations",
 breaks=seq(0, 20, by=2))+
@@ -187,16 +187,16 @@ breaks=seq(0, 20, by=2))+
     slope=2, intercept=0,
     size=1,
     color=sn.color)+
-  coord_equal()+
+  coord_equal(xlim=c(1,11))+
   scale_color_manual(values=abbrev.colors, guide=FALSE)+
   geom_text(aes(
     x, y, label=label, color=algo, hjust=hjust),
     size=3,
     data=rbind(
-      data.table(x=4, y=14, algo="SN", label="SN\nfaster\nfor\n$P<5$", hjust=1),
-      data.table(x=8, y=14, algo="OP", label="OP\nfaster\nfor\n$P>5$", hjust=0)),
+      data.table(x=4, y=14, algo="SN", label="SN\nfaster\nfor\n$P^*<5$", hjust=1),
+      data.table(x=8, y=14, algo="OP", label="OP\nfaster\nfor\n$P^*>5$", hjust=0)),
     vjust=0.5)
-pdf("jss-figure-variable-peaks-zoom.pdf", 3, 3)
+tikz("jss-figure-variable-peaks-zoom.tex", width=3, height=3)
 print(gg.zoom)
 dev.off()
 
@@ -205,8 +205,11 @@ gg <- ggplot()+
   ggtitle("All timings (log scales)")+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
-  scale_x_log10("Number of peaks $P$")+
-  scale_y_log10("Number of DP iterations")+
+  scale_x_log10("Desired peaks $P^*$")+
+  coord_cartesian(ylim=c(6, 25))+
+  scale_y_log10(
+    "Number of DP iterations",
+    breaks=seq(0, 20, by=2))+
   geom_point(aes(
     peaks, evaluations),
     color=op.color,
@@ -220,13 +223,10 @@ gg <- ggplot()+
     x, y, label=label, color=algo),
     size=3,
     data=rbind(
-      data.table(x=10, y=25, algo="SN", label="Segment\nNeighborhood\nGPDPA\n$O(P)$ iterations"),
-      data.table(x=100, y=11, algo="OP", label="Optimal\nPartitioning\nGFPOP\n$O(\\log P)$ iterations")),
+      data.table(x=10, y=25, algo="SN", label="Segment Neighborhood\nGPDPA $O(P^*)$ iterations\n\n"),
+      data.table(x=100, y=11, algo="OP", label="Optimal\nPartitioning\nGFPOP\n$O(\\log P^*)$ iterations")),
     vjust=1,
     hjust=0)
-gg
-
-pdf("jss-figure-variable-peaks.pdf", 3, 3)
+tikz("jss-figure-variable-peaks.tex", width=3, height=3)
 print(gg)
 dev.off()
-

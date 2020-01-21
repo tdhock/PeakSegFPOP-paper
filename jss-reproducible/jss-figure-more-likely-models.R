@@ -59,7 +59,7 @@ for(sample.i in seq_along(sample.id.vec)){
   problem <- data.table(chrom, problemStart, problemEnd)
   problem.dir <- file.path(
     "jss-data", sample.id,
-    sprintf("%s:%d-%d", chrom, problemStart, problemEnd))
+    sprintf("%s-%d-%d", chrom, problemStart, problemEnd))
   dir.create(problem.dir, showWarnings=FALSE, recursive=TRUE)
   problem.bed <- file.path(problem.dir, "problem.bed")
   fwrite(problem, problem.bed, sep="\t", col.names=FALSE)
@@ -93,8 +93,10 @@ for(sample.i in seq_along(sample.id.vec)){
   equality.constraints <- seg.means[, sum(diff(mean) == 0) ]
   total.loss.macs <- data.means[, PeakSegOptimal::PoissonLoss(
     coverage, mean, weight)]
+  ##better.list <- problem.mostFeasibleBetterPeaks(problem.dir, nrow(sample.peaks))
+  ##better.list <- problem.fewestBetterPeaks(problem.dir, total.loss.macs)
   loss.list[[paste(sample.id, "macs2")]] <- data.table(
-    sample.id, 
+    sample.id,
     model="macs2",
     equality.constraints,
     total.loss=total.loss.macs,
@@ -102,22 +104,21 @@ for(sample.i in seq_along(sample.id.vec)){
   segs.list[[paste(sample.id, "macs2")]] <- data.table(
     sample.id, model="macs2", seg.means)
   for(n.peaks in n.peaks.vec){
-    ## better.list <- NULL
-    ## while(is.null(better.list)){
-    ##   better.list <- tryCatch({
-    ##     PeakSegDisk::sequentialSearch_dir(problem.dir, n.peaks)
-    ##   }, error=function(e){
-    ##     print("trying again")
-    ##     NULL
-    ##   })
-    ## }
-    better.list <- PeakSegDisk::sequentialSearch_dir(problem.dir, n.peaks)
+    better.list <- NULL
+    while(is.null(better.list)){
+      better.list <- tryCatch({
+        PeakSegDisk::sequentialSearch_dir(problem.dir, n.peaks)
+      }, error=function(e){
+        print("trying again")
+        NULL
+      })
+    }
     loss.list[[paste(sample.id, n.peaks)]] <- data.table(
-      sample.id, 
+      sample.id,
       model=n.peaks,
       better.list$loss[, .(equality.constraints, total.loss, peaks)])
     segs.list[[paste(sample.id, n.peaks)]] <- data.table(
-      sample.id, 
+      sample.id,
       model=n.peaks,
       better.list$segments[, .(
         segStart=chromStart,
@@ -128,8 +129,6 @@ for(sample.i in seq_along(sample.id.vec)){
     )
   }
 }
-##unlink("jss-figure-more-likely-models", recursive=TRUE)
-##unlink("jss-data", recursive=TRUE)
 
 segs <- do.call(rbind, segs.list)
 loss <- do.call(rbind, loss.list)
@@ -205,6 +204,11 @@ gg <- ggplot()+
     data=segs)+
   xlab("position on chromosome (kb)")+
   ylab("aligned read coverage")
+png("jss-figure-more-likely-models-overview.png",
+    units="in", res=200, width=6, height=3.5)
+print(gg)
+dev.off()
+##system("display jss-figure-more-likely-models-overview.png")
 
 one <- function(dt){
   dt[sample.id=="McGill0322"]
@@ -254,6 +258,11 @@ gg <- ggplot()+
     data=one(segs[status=="peak"]))+
   xlab("position on chromosome")+
   ylab("aligned read coverage")
+## png("jss-figure-more-likely-models-one-peak.png",
+##     units="in", res=200, width=6, height=3)
+## print(gg)
+## dev.off()
+##system("display jss-figure-more-likely-models-one-peak.png")
 
 one <- function(dt){
   dt[sample.id=="McGill0104"]
@@ -261,6 +270,13 @@ one <- function(dt){
 xmin <- 118122000
 xmax <- 118124000
 gg <- ggplot()+
+  ## penaltyLearning::geom_tallrect(
+  ##   aes(xmin=xmin, xmax=xmax),
+  ##   fill=NA,
+  ##   size=0.5,
+  ##   color="red",
+  ##   data=data.table(xmin, xmax)
+  ##   )+
   geom_text(aes(
     118120000, max, label=sprintf(
       "logLik=%.1f\n%d peak%s",
@@ -309,7 +325,8 @@ gg <- ggplot()+
 png("jss-figure-more-likely-models-three-peaks.png",
     units="in", res=300, width=4, height=3)
 print(gg+guides(linetype="none"))
-dev.off() 
+dev.off()
+##system("display jss-figure-more-likely-models-three-peaks.png")
 
 gg.zoom <- gg+coord_cartesian(xlim=c(xmin, xmax))+
   ggtitle("Zoom to right peak")+
@@ -320,5 +337,5 @@ gg.zoom <- gg+coord_cartesian(xlim=c(xmin, xmax))+
 png("jss-figure-more-likely-models-three-peaks-zoom.png",
     units="in", res=300, width=2.5, height=3)
 print(gg.zoom)
-dev.off() 
-
+dev.off()
+##system("display jss-figure-more-likely-models-three-peaks-zoom.png")

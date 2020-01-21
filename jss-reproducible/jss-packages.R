@@ -57,13 +57,24 @@ works_with_R(
   geometry="0.4.0",
   penaltyLearning="2018.10.23",
   ggplot2="3.0.0",
+  future.apply="1.3.0",
   PeakSegOptimal="2018.5.25",
-  "tdhock/PeakSegDisk@70ae0b1839120190c7a8bc703aa29558ddeac7ce",
+  ##PeakSegDisk="2018.11.28",
+  "tdhock/PeakSegDisk@183ba4496a9ba7386ace413b5958f435c9a9ae78",
   tikzDevice="0.12")
 library(grid)
+## to use jss.cls with tikzDevice, need to copy it to a place which is
+## findable from a temp dir (which is where it does the metrics
+## computation), so here we copy the files to the user-specific
+## texmf/tex directory.
+tex.dir <- file.path("~", "texmf", "tex")
+dir.create(tex.dir, showWarnings=FALSE, recursive=TRUE)
+from.vec <- c("jss.cls", "jsslogo.jpg")
+to.vec <- file.path(tex.dir, from.vec)
+file.copy(from.vec, to.vec)
 options(
   tikzDocumentDeclaration=paste(
-    "\\documentclass[article]{jss}",
+    "\\documentclass[article,11pt]{jss}",
     "\\usepackage{amsmath,amssymb,amsthm}"),
   tikzMetricsDictionary="tikzMetricsJSS")
 

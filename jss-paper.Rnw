@@ -82,7 +82,7 @@
 %% - Separate authors by \And or \AND (in \author) or by comma (in \Plainauthor).
 %% - \AND starts a new line, \And does not.
 \author{Toby Dylan Hocking\\Northern Arizona University
-   \And Guillem Rigaill\\INRA
+   \And Guillem Rigaill\\INRAE
    \And Paul Fearnhead\\Lancaster University
    \And Guillaume Bourque\\McGill University}
 \Plainauthor{Toby Dylan Hocking, Guillem Rigaill, Paul Fearnhead, Guillaume Bourque}

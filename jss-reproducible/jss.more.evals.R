@@ -69,9 +69,9 @@ future::plan("multiprocess")
 prob.i.vec <- 1:8
 prob.i.vec <- 1:nrow(some.probs)
 
-peaks.vec <- as.integer(10^seq(1, 3, by=1))
-LAPPLY <- lapply
+peaks.vec <- as.integer(10^seq(1, 3.25, by=0.25))
 LAPPLY <- future.apply::future_lapply
+LAPPLY <- lapply
 jss.evaluations.list <- LAPPLY(prob.i.vec, function(prob.i){
   source("jss-packages.R")
   prob <- some.probs[prob.i]

@@ -86,6 +86,9 @@ print(gg)
 pdf("jss-figure-evaluations-concave.pdf")
 print(gg)
 dev.off()
+tikz("jss-figure-evaluations-concave.tex", width=3, height=2)
+print(gg)
+dev.off()
 
 biggest.it <- 8
 it.text <- not.found[others.iteration <= biggest.it]
@@ -217,7 +220,7 @@ gg.zoom <- ggplot()+
     color="red",
     data=it.points)
 
-pdf("jss-figure-evaluations-concave-zoom.pdf", 3, 2)
+tikz("jss-figure-evaluations-concave-zoom.tex", width=3, height=2)
 print(gg.zoom)
 dev.off()
 
@@ -514,6 +517,9 @@ text.dt <- rbind(
   d(1e7, 0.0005, "solve one", "gigabytes", 1, 0),
   d(3e3, 300, "find model", "minutes", 0, 1),
   d(1e7, 0.03, "solve one", "minutes", 1, 0))
+exp.vec <- seq(4, 7, by=1)
+breaks.vec <- 10^exp.vec
+labels.vec <- sprintf("$10^%d$", exp.vec)
 gg <- ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
@@ -545,15 +551,18 @@ gg <- ggplot()+
     data=prob.stats[var=="minutes"])+
   scale_x_log10(
     "$N$ = data to segment
-(log scale)"
+(log scale)",
+breaks=breaks.vec,
+labels=labels.vec
   )+
   scale_y_log10(
     "Time (minutes) to compute
      model with $O(\\sqrt N)$ peaks
      via GFPOP (log scale)",
+    breaks=10^seq(-1, 2),
 labels=paste)
 ##print(gg)
-pdf("jss-figure-evaluations-computation.pdf", 3.1, 2.6)
+tikz("jss-figure-evaluations-computation.tex", width=3.1, height=2.6)
 print(gg)
 dev.off() 
 
@@ -602,7 +611,8 @@ leg <- ggplot()+
     "$N$ = data to segment
 (log scale)",
     limits=c(NA, 10^8.5),
-    breaks=10^seq(4, 7, by=1)
+breaks=breaks.vec,
+labels=labels.vec
   )+
   scale_y_log10(
     "Number of $O(N \\log N)$
@@ -626,6 +636,17 @@ m <- list(
 dl <- direct.label(leg, m)
 print(dl)
 
-pdf("jss-figure-evaluations.pdf", 3.1, 2.6)
+## dl.ref <- dl+
+##   geom_line(aes(
+##     N.data, value, group=paste(ref.name, fun.name)),
+##     data=ref.tall)+
+##   geom_text(aes(
+##     N.data, value, label=fun.name),
+##     hjust=0,
+##     data=ref.tall[N.data==max(N.data)])
+## pdf("jss-figure-evaluations-ref.pdf", 3.5, 3)
+## print(dl.ref)
+## dev.off()
+tikz("jss-figure-evaluations.tex", width=3.1, height=2.6)
 print(dl)
 dev.off()

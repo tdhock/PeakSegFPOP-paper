@@ -60,7 +60,7 @@ works_with_R(
   future.apply="1.3.0",
   PeakSegOptimal="2018.5.25",
   ##PeakSegDisk="2018.11.28",
-  "tdhock/PeakSegDisk@db55e4d697b42cb974e2c0e8921bdbeed622acfa",
+  "tdhock/PeakSegDisk@183ba4496a9ba7386ace413b5958f435c9a9ae78",
   tikzDevice="0.12")
 library(grid)
 ## to use jss.cls with tikzDevice, need to copy it to a place which is
