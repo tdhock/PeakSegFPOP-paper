@@ -47,7 +47,7 @@ for(file.i in file.i.vec){
           Size = as.integer(n.data),
           KMax = as.integer(max.segments),
           Data = as.integer(data.vec),
-          DataComp = as.integer(bases.vec),
+          DataComp = as.integer(bases.vec),#weight
           Breakpoints = as.integer(break.mat),
           Parameters = as.double(param.mat),
           Likelihood = as.double(lik.mat),
