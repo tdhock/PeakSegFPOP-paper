@@ -194,7 +194,7 @@ gg.pruning <- ggplot()+
 tikz("figure-2-min-envelope-slides.tex", width=4.8, height=3)
 print(gg.pruning)
 dev.off()
-tikz("figure-2-min-envelope.tex", width=5, height=3)
+tikz("figure-2-min-envelope.tex", width=5.5, height=3)
 print(gg.pruning)
 dev.off()
 
