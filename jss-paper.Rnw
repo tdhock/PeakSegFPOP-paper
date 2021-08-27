@@ -1003,11 +1003,12 @@ other statistical methods, our results indicate that our proposed
 algorithm yields similar peaks in data with or without such spatial
 correlation (Section~\ref{sec:spatial-correlation}).
 
-The \pkg{PeakSegDisk} package contains several other helper
-functions (which call the functions mentioned above). For example
-\code{PeakSegFPOP\_vec} computes the optimal model for a data set
-specified as an integer vector, and \code{PeakSegFPOP\_df} takes a
-data frame as input:
+The \pkg{PeakSegDisk} package contains several other helper functions
+(which call the functions mentioned above). For example
+\code{PeakSegFPOP\_vec} can handle integer vector data input
+(including automatic conversion of repeated values to a more efficient
+run-length encoding), and \code{PeakSegFPOP\_df} takes a data frame as
+input:
 
 <<plot2, fig=TRUE, height=3>>=
 
