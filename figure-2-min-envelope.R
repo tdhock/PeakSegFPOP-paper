@@ -48,7 +48,7 @@ gg.pruning <- ggplot()+
   ##coord_cartesian(xlim=c(-0.2, 0), ylim=c(0, 0.3))+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
-  facet_grid(. ~ timestep, 
+  facet_grid(. ~ timestep,
              labeller=function(var, val){
                if(var %in% c("total.segments", "timestep")){
                  paste(var, "=", val)
@@ -71,7 +71,7 @@ gg.pruning <- ggplot()+
   ##            data=minima[total.segments==3 & timestep %in% ti,])+
   coord_cartesian(ylim=c(0.12,0.4), xlim=c(-0.2, 0.8))
 step <- function(x="cost up to data $t=35$"){
-  factor(x, 
+  factor(x,
          c("pruning at data $t=34$",
            "cost up to data $t=35$",
            "pruning at data $t=35$"))
@@ -123,7 +123,7 @@ fun.colors <- c(
   model="#E41A1C",
   compare="#377EB8",
   "#4DAF4A",
-  add="#984EA3", "#FF7F00", "#FFFF33", 
+  add="#984EA3", "#FF7F00", "#FFFF33",
   "#A65628", "#F781BF",
   minimum="grey70")
 gg.pruning <- ggplot()+
@@ -139,7 +139,7 @@ gg.pruning <- ggplot()+
       model=1,
       add=1,
       compare=1,
-      minimum=2.5),
+      minimum=3.5),
     labels=type.code)+
   theme_bw()+
   theme(
@@ -157,7 +157,7 @@ gg.pruning <- ggplot()+
                 color=cost.type.fac,
                 size=cost.type.fac),
             data=add.dt)+
-  geom_line(aes(mean, cost, 
+  geom_line(aes(mean, cost,
                 color=cost.type.fac,
                 size=cost.type.fac),
             data=compute.cost)+
@@ -170,7 +170,7 @@ gg.pruning <- ggplot()+
                 color=cfac("minimum"),
                 size=cfac("minimum")),
             data=envelope[total.segments==3 & timestep %in% ti,])+
-  geom_line(aes(mean, cost, 
+  geom_line(aes(mean, cost,
                 color=cost.type.fac,
                 size=cost.type.fac),
             data=cost.lines[total.segments==3 & timestep %in% ti,])+
@@ -194,7 +194,7 @@ gg.pruning <- ggplot()+
 tikz("figure-2-min-envelope-slides.tex", width=4.8, height=3)
 print(gg.pruning)
 dev.off()
-tikz("figure-2-min-envelope.tex", width=5, height=3)
+tikz("figure-2-min-envelope.tex", width=5.5, height=3)
 print(gg.pruning)
 dev.off()
 

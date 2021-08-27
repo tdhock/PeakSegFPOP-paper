@@ -82,7 +82,7 @@
 %% - Separate authors by \And or \AND (in \author) or by comma (in \Plainauthor).
 %% - \AND starts a new line, \And does not.
 \author{Toby Dylan Hocking\\Northern Arizona University
-   \And Guillem Rigaill\\INRA
+   \And Guillem Rigaill\\INRAE
    \And Paul Fearnhead\\Lancaster University
    \And Guillaume Bourque\\McGill University}
 \Plainauthor{Toby Dylan Hocking, Guillem Rigaill, Paul Fearnhead, Guillaume Bourque}
@@ -142,13 +142,16 @@
   E-mail: \email{Toby.Hocking@nau.edu}\\
   %URL: \url{https://eeecon.uibk.ac.at/~zeileis/}
 \\ \\
-  Guillem Rigaill\\
-  Laboratoire de Math\'ematiques at Mod\'elisation d'Evry (LaMME), Universit\'e
-d'Evry Val d'Essonne, UMR CNRS 8071, ENSIIE, USC INRA,
-Institute of Plant Sciences Paris-Saclay (IPS2), UMR 9213/UMR1403, CNRS, INRA,
-Universit\'e Paris-Sud, Universit\'e d'Evry, Universit\'e Paris-Diderot, Sorbonne
-Paris-Cit\'e,\\
-Evry, France\\
+Guillem Rigaill\\
+Laboratoire de Math\'ematiques et Mod\'elisation d'Evry (LaMME) \\ Universit\'e d'Evry Val d'Essonne, INRAE \\ 
+  Evry, France \\
+  or \\
+  Institute of Plant Sciences Paris Saclay IPS2 \\ 
+  CNRS, INRAE, Universit\'e  Paris-Sud, Universit\'e  Evry, Universit\'e  Paris-Saclay \\ Batiment 630, 91405 Orsay, France.\\
+  or \\
+  Institute of Plant Sciences Paris-Saclay IPS2 \\ 
+  Paris Diderot, Sorbonne Paris-Cit\'e  \\ 
+  B\^atiment 630, 91405, Orsay, France.\\
   E-mail: \email{Guillem.Rigaill@inra.fr}\\
   %URL: \url{https://eeecon.uibk.ac.at/~zeileis/}
   \\ \\
@@ -180,7 +183,7 @@ segment mean parameter, and reduces the number of candidate
 changepoints while guaranteeing optimality.
 Note that throughout this paper the term ``optimal'' will be used to
 describe algorithms that compute an exact solution to some
-well-defined optimization problem (e.g. maximum likelihood or minimum
+well-defined optimization problem (e.g., maximum likelihood or minimum
 cost). For models that are defined in terms of maximizing a likelihood function, we use the terms ``more likely'' and ``most likely'' to compare likelihood values for specific models/algorithms.
 
 
@@ -200,7 +203,7 @@ level. These long contiguous runs with large counts are referred to as
 genome in specific samples and cell types. An important sub-problem in
 analyzing these data is identifying the precise genomic positions of
 the starts and ends of these peak regions. Each peak is separated from
-other peaks by background/noise regions (i.e. it is impossible for two
+other peaks by background/noise regions (i.e., it is impossible for two
 peaks to be directly adjacent to one another without intervening
 background noise). This is a central assumption of all peak detection
 algorithms \citep{chipseq-comparison}; in practice this means that if
@@ -230,7 +233,7 @@ For a detailed comparison between optimal changepoint models
 and other algorithms
 we refer the reader to the previous work of
 \citet{HOCKING2016-chipseq}. We focus the remainder of the paper on
-optimal changepoint models, i.e. penalized maximum likelihood
+optimal changepoint models, i.e., penalized maximum likelihood
 approaches (and their exact computation).
 
 \subsection{Models with no constraints between adjacent segment means}
@@ -295,7 +298,7 @@ In practice it is unusual to know in advance how many segments $K$ are present i
 To estimate $K$ it is common to use information criteria that take into account
 both of the measure of fit to the data and the complexity of the segmentation
 model being fitted. The most natural measures of complexity are linear in the
-number of changepoints, although others exist \citep{mBIC,cleynen2013segmentation,capushe}.
+number of changepoints, although others exist \citep{Zhang2007,cleynen2013segmentation,capushe}.
 %% Whilst it is possible to estimate $K$ by solving the
 %% Segment Neighborhood problem for an appropriate set of changes, and calculating
 %% the value of the information criteria for each value of the number of segments, it
@@ -325,19 +328,22 @@ There are several existing algorithms for choosing the penalty
 parameter $\lambda$, and this is an active area of ongoing
 research. There are several classical unsupervised heuristics such as
 the Bayesian Information Criterion (BIC) \citep{Schwarz78, Yao88} as
-well as modern modifications for genomic data sets \citep{mBIC}. There
+well as modern modifications for genomic data sets
+\citep{lebarbier2005detecting, Zhang2007}. There
 are also supervised algorithms which are useful when there are some
 data sets with labels that indicate presence/absence of changepoints
-in specific regions \citep{HOCKING-penalties}.
+in specific regions \citep{HOCKING-penalties}. 
 
 There has been substantial research into faster algorithms for solving
 the Optimal Partitioning problem. The Pruned Exact Linear Time (PELT)
-algorithm of \citet{pelt} (\code{changepoint::cpt.mean} in \R) is
-$O(N)$ time if $K$ increases linearly with $N$. The Functional Pruning
+algorithm (\code{changepoint::cpt.mean} in \R) is
+$O(N)$ time if $K$ increases linearly with $N$ \citep{pelt-jasa, changepoint-jss}. The Functional Pruning
 Optimal Partitioning (FPOP) algorithm (\verb|fpop::Fpop| in \R) has
 been shown to be empirically $O(N\log N)$ and faster than PELT in
 practice for several data sets
-\citep{Maidstone2016}.  See
+\citep{Maidstone2016}.
+In particular, the number of changepoints considered by FPOP is always smaller than (or equal to) the number of changepoints considered by PELT, so when PELT is $O(N)$ FPOP is as well.
+See
 Table~\ref{tab:unconstrained-algos} for a summary of the different
 dynamic programming algorithms and implementations.
 
@@ -382,13 +388,16 @@ if we wish to identify at most one changepoint.  The advantage that
 the dynamic programming approaches have is that they jointly detect
 multiple changepoints which can lead to more accurate estimates
 \citep{Maidstone2016}. Several of these alternative algorithms are
-available in \R.  For example, the \pkg{wbs} package implements the
-wild binary segmentation method of \citet{wbs}. An efficient
-implementation of the classical binary segmentation heuristic is
-available as \code{fpop::multiBinSeg}. The \pkg{stepR} and
-\pkg{FDRseg} packages implement a multiscale approach to changepoint
-inference, and have linear run times if the number of changes
-increases linearly in the number of observations \citep{stepR, FDRSeg}.
+available in \R.  For example, the \pkg{wbs} package implements a
+stochastic algorithm called
+wild binary segmentation \citep{wbs-paper, wbs-pkg}. Efficient
+implementations of the classical binary segmentation heuristic are
+available in \R\ as \code{fpop::multiBinSeg} and
+\code{binseg::binseg_normal} \citep{binseg-pkg}. The \pkg{stepR} and \pkg{FDRSeg}
+packages implement a multiscale approach to changepoint inference, and
+have linear run times if the number of changes increases linearly in
+the number of observations \citep{stepR-paper, FDRSeg-paper,
+  FDRSeg-pkg, stepR-pkg}.
 
 \subsection{Models with inequality constraints between adjacent segment means}
 
@@ -627,15 +636,15 @@ Generalized Functional Pruning Optimal Partitioning (GFPOP), can
 compute the maximum likelihood parameters for any model with
 constraints that can be represented as a state graph $G=(V,E)$ with
 vertices $V$ for states and edges $E$ for possible changepoints
-(e.g. up-down constrained model in Figure~\ref{fig:state-graph},
+(e.g., up-down constrained model in Figure~\ref{fig:state-graph},
 right). The state graph $G$ can be converted into a directed acyclic
 graph that represents the dynamic programming updates required to
-solve the problem, e.g. Figure~\ref{fig:computation-graph} represents
+solve the problem, e.g., Figure~\ref{fig:computation-graph} represents
 the computations required to solve the up-down constrained
 problem~(\ref{min:op-up-down}). Each node in the computation graph
 represents an optimal cost function, and each edge represents an input
 to the $\min\{\}$ operation in the dynamic programming
-updates, e.g. equations (\ref{eq:dp-over}) and (\ref{eq:dp-under}) for
+updates, e.g., equations (\ref{eq:dp-over}) and (\ref{eq:dp-under}) for
 the up-down constrained model.
 
 \begin{figure}
@@ -788,7 +797,7 @@ cost function $C_{0,N}(\mu)$ has been computed, the solution to
 linked list for the mean $\mu$ with min cost,
 $F(\lambda)=\min_{\mu} C_{0,N}(\mu)$. The implementation is thus
 highly dependent on the chosen loss function $\ell$; implementing
-other convex loss functions (e.g. Gaussian) is possible but we save
+other convex loss functions (e.g., Gaussian) is possible but we save
 that for future work.
 
 \begin{algorithm}
@@ -908,13 +917,13 @@ average complexity in real genomic data (Section~\ref{sec:timings}).
 genomic data,
 
 <<options, echo=FALSE>>=
-options(prompt="R> ")
+options(prompt="R> ", datatable.print.trunc.cols=FALSE)
 @
 
 <<loadData>>=
 
 library("PeakSegDisk")
-data(Mono27ac, package="PeakSegDisk")
+data("Mono27ac", package="PeakSegDisk")
 Mono27ac$coverage
 @
 
@@ -922,8 +931,8 @@ Note that the 4 column bedGraph format shown above must be used to
 represent a data set. Futhermore a run-length encoding should be used
 for data sets that have runs of the same values. Each row represents a
 sequence of identical data values. For example the first row means
-that the value 0 occurs on the 72601 positions in [60000,132601), the
-second row means a value of 1 for the 42 positions in [132601,132643),
+that the value 0 occurs on the 72601 positions in (60000,132601], the
+second row means a value of 1 for the 42 positions in (132601,132643],
 etc. This run-length encoding results in significant savings in disk
 space and time
 %while maintaining optimality
@@ -941,7 +950,7 @@ name must be \verb|coverage.bedGraph|:
 <<saveData>>=
 
 data.dir <- file.path("Mono27ac", "chr11-60000-580000")
-dir.create(data.dir, showWarnings=FALSE, recursive=TRUE)
+dir.create(data.dir, showWarnings = FALSE, recursive = TRUE)
 PeakSegDisk::writeBedGraph(
   Mono27ac$coverage, file.path(data.dir, "coverage.bedGraph"))
 @
@@ -982,18 +991,17 @@ peaks in a subset of the data below.
 <<plotModel, fig=TRUE, height=3>>=
 
 library("ggplot2")
-gg <- ggplot() + theme_bw() +
-  geom_step(aes(chromStart, count),
-            color = "grey50", data = Mono27ac$coverage) +
+gg <- ggplot() + theme_bw() + coord_cartesian(xlim = c(2e5, 3e5)) +
+  geom_step(aes(chromStart, count), color = "grey50",
+    data = Mono27ac$coverage) +
   geom_segment(aes(chromStart, mean, xend = chromEnd, yend = mean),
     color = "green", size = 1, data = fit$segments) +
-  coord_cartesian(xlim = c(2e5, 3e5))+
   xlab("Position on chromosome (bases)")
 print(gg)
 @
 
 It is apparent in the plot above that the peaks detected by our
-algorithm vary in both height (i.e. mean value) and length (in bases
+algorithm vary in both height (i.e., mean value) and length (in bases
 along the chromosome).
 Note that the typical ``coverage'' representation shown above results
 in a sequence of spatially correlated genomic data which are not
@@ -1011,21 +1019,24 @@ run-length encoding), and \code{PeakSegFPOP\_df} takes a data frame as
 input:
 
 <<plot2, fig=TRUE, height=3>>=
-
-fit <- PeakSegDisk::PeakSegFPOP_df(Mono27ac$coverage, 1000.5)
+fit <- PeakSegDisk::PeakSegFPOP_df(Mono27ac$coverage, 999.9)
 class(fit)
 gg <- plot(fit)
 print(gg)
 @
 
 Note that the special \code{plot} method above shows the data along
-with predicted peaks and segmentation model. Vertical lines dashed
-lines are used to show changepoint variables with inequality
-constraints ($c_i = 1,\, m_i < m_{i+1}$ or $c_i = -1,\, m_i > m_{i+1}$
-in problem~\ref{min:op-up-down}) and equality constraints
-($c_i \in\{-1,1\},\, m_i = m_{i+1}$). Since the \code{plot} method
-returns a \code{ggplot} object, it can be further processed, e.g. to
-zoom in on the part of the model with equality constraints:
+with predicted peaks and segmentation model (which seems to have too
+many changepoints/peaks, suggesting that a larger penalty should be
+used). Vertical dashed green lines are used to show changepoint
+variables with strict inequality constraints, i.e., $c_i = 1,\, m_i <
+m_{i+1}$ or $c_i = -1,\, m_i >
+m_{i+1}$ in problem~(\ref{min:op-up-down}); vertical dashed solid
+lines show non-zero changepoint variables with equality constraints,
+i.e., $c_i \in\{-1,1\},\, m_i =
+m_{i+1}$. Since the \code{plot} method returns a \code{ggplot} object,
+it can be further processed, e.g., to zoom in on the part of the model
+with equality constraints:
 
 <<zoom, fig=TRUE, height=3>>=
 
@@ -1214,7 +1225,7 @@ Optimal Partitioning problem:
 as GFPOP: $O(NI)$ disk and $O(I)$ memory for $N$ data and $I$
 intervals (candidate changepoints). Its time complexity is $O(W N I)$
 where $W$ is the number of times the GFPOP sub-routine is called,
-i.e. the number of iterations of the while loop
+i.e., the number of iterations of the while loop
 (line~\ref{line:while}). Because the algorithm essentially performs
 binary search, we expect $W=O(\log P_{\text{max}})$ iterations, where
 $P_{\text{max}}=O(N)$ is the maximum number of peaks for the data
@@ -1296,18 +1307,19 @@ most likely model for a given number of peaks. A subset of one data
 set is shown in Figure~\ref{fig:three-peaks}, along with three
 segmentation/peak models. In the top panel, we show the peak model
 that results from running MACS2, a heuristic algorithm from the
-bioinformatics literature \citep{MACS}. It detects five peaks, so we
-ran Algorithm~\ref{algo:seq-search} with $P^*=5$ on these data in
+bioinformatics literature \citep{MACS}. Using default parameter
+settings MACS2 detects five peaks, so we ran our proposed sequential
+search (Algorithm~\ref{algo:seq-search}) with $P^*=5$ on these data in
 order to compute the most likely model with at most 5 peaks (shown in
 middle panel). It is clear that the optimal 5 peak model is a better
 fit in terms of likelihood (as expected); it is also a better fit
 visually, especially for the peak on the left. Furthermore the optimal
-5 peak model actually has one active equality constraint between adjacent
-segment means, suggesting that there are less than five easily
-interpretable peaks. Therefore we also computed the optimal 3 peak
-model (bottom panel), which also has a higher log-likelihood than the
-5 peak MACS2 model. The given example shows that our algorithm can be
-used to compute models which are both more likely and simpler (with
+5 peak model actually has one active equality constraint between
+adjacent segment means, suggesting that there are less than five
+easily interpretable peaks. Therefore we also computed the optimal 3
+peak model (bottom panel), which also has a higher log-likelihood than
+the 5 peak MACS2 model. The given example shows that our algorithm can
+be used to compute models which are both more likely and simpler (with
 fewer peaks) than heuristics such as MACS2.
 
 \subsection{GFPOP is robust to spatial correlation in typical genomic data}\label{sec:spatial-correlation}
@@ -1729,7 +1741,7 @@ gigabytes of storage, which is much less than weeks/terabytes which
 would be required for the previous Segment Neighborhood solver. More
 generally, these results suggest that our proposed sequential search
 algorithm can be used to reduce computation times for other
-changepoint models, i.e. Optimal Partitioning combined with the
+changepoint models, i.e., Optimal Partitioning combined with the
 sequential search algorithm should be preferred over the classical
 Segment Neighborhood approach.
 
@@ -1742,10 +1754,18 @@ storage can be used to scale to very large data sets, while
 maintaining fast computation times.
 
 \paragraph{Reproducible research statement.} The source code and data
-used to create this manuscript (including all figures) is available at
+used to create this paper (including all figures) is available at
 \url{https://github.com/tdhock/PeakSegFPOP-paper}
 
 
+\paragraph{Acknowledgements.}
+Toby Dylan Hocking and Guillaume Bourque were supported by a Discovery
+Frontiers project grant, ``The Cancer Genome Collaboratory,'' jointly
+sponsored by the Natural Sciences and Engineering Research Council
+(NSERC), Genome Canada (GC), the Canadian Institutes of Health
+Research (CIHR) and the Canada Foundation for Innovation (CFI). Paul
+Fearnhead acknowledges EPSRC grant EP/N031938/1 (StatScale).
+Guillem Rigaill acknowledges an ATIGE grant from G\'enopole.
 
 \newpage
 \bibliography{jss-refs}

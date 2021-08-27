@@ -84,7 +84,7 @@ for(prob.i in prob.i.vec){
   fwrite(
     match.df, file.path(pdir, "problem.bed"),
     quote=FALSE, sep="\t", col.names=FALSE, row.names=FALSE)
-  fit.list <- sequentialSearch_dir(pdir, prob$peaks, verbose=1)
+  fit.list <- problem.sequentialSearch(pdir, prob$peaks, verbose=1)
   jss.evaluations.list[[prob.i]] <- data.table(
     prob,
     loss=fit.list$loss,

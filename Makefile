@@ -1,6 +1,6 @@
 2019-useR-slides.pdf: 2019-useR-slides.Rnw
 #R CMD Sweave 2019-useR-slides.Rnw
-	R -e 'knitr::knit("2019-useR-slides.Rnw")'
+	R -e "knitr::knit('2019-useR-slides.Rnw')"
 	pdflatex 2019-useR-slides
 	rm 2019-useR-slides.tex
 2019-04-asu-slides.pdf: 2019-04-asu-slides.tex

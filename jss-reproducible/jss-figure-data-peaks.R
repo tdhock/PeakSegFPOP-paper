@@ -352,6 +352,13 @@ gg <- ggplot()+
     labels=paste)+
   scale_y_log10("Peaks in models with\nmin label error\n(log scale)")
 
-pdf("jss-figure-data-peaks.pdf", 6, 2)
+tikz("jss-figure-data-peaks-slide.tex", width=4, height=2)
+print(gg+scale_x_log10(
+    "N = number of data to segment (log scale)",
+    limits=c(NA, 10^8),
+    labels=paste))
+dev.off()
+
+tikz("jss-figure-data-peaks.tex", width=6, height=2)
 print(gg)
 dev.off()
