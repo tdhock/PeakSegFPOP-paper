@@ -918,6 +918,7 @@ genomic data,
 
 <<options, echo=FALSE>>=
 options(prompt="R> ", datatable.print.trunc.cols=FALSE)
+source("jss-packages.R")
 @
 
 <<loadData>>=
