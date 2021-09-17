@@ -21,7 +21,7 @@ gg <- ggplot()+
     min(it.points$others.iteration),
     max(it.points$others.iteration)))+
   theme_bw()+
-  xlab("Penalty $\\lambda$")+ 
+  xlab("Penalty $\\lambda$")+
   ylab("$G(\\lambda)=F(\\lambda)-\\lambda P^*$")+
   geom_abline(aes(
     slope=others.peaks-peaks,
@@ -56,7 +56,7 @@ gg <- ggplot()+
     expand=FALSE)+
   scale_x_continuous(
     "Penalty $\\lambda$",
-    breaks=seq(0, 20000, by=5000))+ 
+    breaks=seq(0, 20000, by=5000))+
   ylab("$G(\\lambda)=F(\\lambda)-\\lambda P^*$")+
   geom_abline(aes(
     slope=others.peaks-peaks,
@@ -82,7 +82,6 @@ gg <- ggplot()+
     color="red",
     data=not.found)
 print(gg)
- 
 pdf("jss-figure-evaluations-concave.pdf")
 print(gg)
 dev.off()
@@ -136,7 +135,7 @@ gg.zoom <- ggplot()+
     min(it.points$others.iteration),
     max(it.points$others.iteration)
   ))+
-  xlab("Penalty $\\lambda$")+ 
+  xlab("Penalty $\\lambda$")+
   scale_y_continuous(
     "$G(\\lambda)=F(\\lambda)-\\lambda P^*$",
     limits=c(NA, -71830)
@@ -181,7 +180,7 @@ gg.zoom <- ggplot()+
     min(it.points$others.iteration),
     max(it.points$others.iteration)
   ))+
-  xlab("Penalty $\\lambda$")+ 
+  xlab("Penalty $\\lambda$")+
   scale_y_continuous(
     "$G(\\lambda)=F(\\lambda)-\\lambda P^*$",
     limits=c(NA, -71830)
@@ -333,7 +332,7 @@ via Optimal Partitioning (log scales)",
     labels=paste)
 pdf("jss-figure-evaluations-computation.pdf", 3.5, 3)
 print(gg)
-dev.off() 
+dev.off()
 
 evals.dt <- prob.stats[var=="minutes"]
 evals.dt[, SN := segments-1]
@@ -564,7 +563,7 @@ labels=paste)
 ##print(gg)
 tikz("jss-figure-evaluations-computation.tex", width=3.1, height=2.6)
 print(gg)
-dev.off() 
+dev.off()
 
 evals.dt <- prob.stats[var=="minutes"]
 evals.dt[, SN := segments-1]

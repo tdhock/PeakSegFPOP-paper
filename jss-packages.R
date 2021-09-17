@@ -61,7 +61,7 @@ works_with_R(
   future.apply="1.3.0",
   PeakSegOptimal="2018.5.25",
   PeakSegDisk="2020.8.13",
-  tikzDevice="0.12")
+  tikzDevice="0.12.3.1")
 library(grid)
 ## to use jss.cls with tikzDevice, need to copy it to a place which is
 ## findable from a temp dir (which is where it does the metrics
@@ -74,7 +74,8 @@ to.vec <- file.path(tex.dir, from.vec)
 file.copy(from.vec, to.vec)
 options(
   tikzDocumentDeclaration=paste(
-    "\\documentclass[article,11pt]{jss}",
+    ##"\\documentclass[article,11pt]{jss}",
+    "\\documentclass[11pt]{article}",
     "\\usepackage{amsmath,amssymb,amsthm}"),
   tikzMetricsDictionary="tikzMetricsJSS")
 
