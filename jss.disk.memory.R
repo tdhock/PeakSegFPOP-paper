@@ -16,18 +16,19 @@ log10.range <- small.probs[, log10(range(bedGraph.lines))]
 some.probs <- data.table(target.N=10^seq(log10.range[1], log10.range[2], l=10))[, {
   small.probs[which.min(abs(target.N-bedGraph.lines))]
 }, by=list(target.N)]
-##some.probs <- small.probs[round(seq(1, .N, l=10))]
 small.models <- bench.models[some.probs, on=list(prob.dir, bedGraph.lines)]
+## approx time.
 small.models[, sum(hours)]
-
+## compressed data size.
+gz.files <- file.path(
+  "data",
+  sub(":", "-", unique(small.models$prob.dir)),
+  "coverage.bedGraph.gz"
+)
+(add.cmd <- paste("git add -f", paste(gz.files, collapse=" ")))
+system(add.cmd)
+(compressed.megabytes <- file.size(gz.files)/1024/1024)
 small.models[, plot( log10(penalty) ~ log10(bedGraph.lines) )]
-
-## ggplot()+
-##   geom_point(aes(
-##     bedGraph.lines, penalty),
-##     data=small.models)+
-##   scale_x_log10()+
-##   scale_y_log10()
 
 data.dir <- "data"
 if(!dir.exists(data.dir)){
@@ -42,33 +43,45 @@ model.i.vec <- 1:nrow(small.models)
 for(model.i in model.i.vec){
   model <- small.models[model.i]
   pen.str <- paste(model$penalty)
+  prob.path <- file.path(
+    data.dir,
+    sub(":", "-", model$prob.dir))
   times.RData <- file.path(
-    data.dir, model$prob.dir, paste0("times_pen=", pen.str, ".RData"))
+    prob.path,
+    paste0("times_pen=", pen.str, ".RData"))
   if(file.exists(times.RData)){
     load(times.RData)
   }else{
     cat(sprintf("%4d / %4d models\n", model.i, nrow(small.models)))
-    coverage.bedGraph.gz <- file.path(
-      data.dir, model$prob.dir, "coverage.bedGraph.gz")
+    coverage.bedGraph <- file.path(prob.path, "coverage.bedGraph")
+    coverage.bedGraph.gz <- paste0(coverage.bedGraph, ".gz")
     gunzip.seconds <- system.time({
-      system(paste("gunzip", coverage.bedGraph.gz))
+      if(!file.exists(coverage.bedGraph)){
+        ##system(paste("gunzip", coverage.bedGraph.gz))
+        R.utils::gunzip(coverage.bedGraph.gz)
+      }
     })[["elapsed"]]
-    coverage.bedGraph <- file.path(
-      data.dir, model$prob.dir, "coverage.bedGraph")
+    coverage.bedGraph.bytes <- file.size(coverage.bedGraph)
     fread.seconds <- system.time({
       coverage.dt <- fread(coverage.bedGraph)
       setnames(coverage.dt, c("chrom", "chromStart", "chromEnd", "count"))
     })[["elapsed"]]
-    time.df <- microbenchmark(
+    time.df <- microbenchmark::microbenchmark(
       memory=PeakSegOptimal::PeakSegFPOPchrom(coverage.dt, model$penalty),
-      disk=fit <- PeakSegDisk::PeakSegFPOP_disk(
-        coverage.bedGraph, pen.str),
+      disk=fit <- PeakSegDisk::PeakSegFPOP_file(coverage.bedGraph, pen.str),
       times=2)
     unlink(fit$db)
     gzip.seconds <- system.time({
-      system(paste("gzip", coverage.bedGraph))
+      ##system(paste("gzip", coverage.bedGraph))
+      fun <- if(file.exists(coverage.bedGraph.gz)){
+        unlink
+      }else R.utils::gzip
+      fun(coverage.bedGraph)
     })[["elapsed"]]
-    zip.times <- data.table(gunzip.seconds, gzip.seconds, fread.seconds)
+    coverage.bedGraph.gz.bytes <- file.size(coverage.bedGraph.gz)
+    zip.times <- data.table(
+      gunzip.seconds, gzip.seconds, fread.seconds,
+      coverage.bedGraph.bytes, coverage.bedGraph.gz.bytes)
     fit.times <- data.table(time.df)
     save(zip.times, fit.times, file=times.RData)
   }
