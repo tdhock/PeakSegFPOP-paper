@@ -1,0 +1,765 @@
+% -*- compile-command: "make jss-slides.pdf" -*-
+\documentclass[t]{beamer} 
+\usepackage{tikz}
+\usepackage[all]{xy}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{algorithmic}
+\usepackage{multirow}
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\Lik}{Lik}
+\DeclareMathOperator*{\PoissonLoss}{PoissonLoss}
+\DeclareMathOperator*{\Peaks}{Peaks}
+\DeclareMathOperator*{\Segments}{Segments}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\maximize}{maximize}
+\DeclareMathOperator*{\minimize}{minimize}
+\newcommand{\sign}{\operatorname{sign}}
+\newcommand{\RR}{\mathbb R}
+\newcommand{\ZZ}{\mathbb Z}
+\newcommand{\NN}{\mathbb N}
+\newcommand{\z}{$z = 2, 4, 3, 5, 1$} 
+
+\newcommand{\algo}[1]{\textcolor{#1}{#1}}
+\definecolor{PDPA}{HTML}{66C2A5}
+\definecolor{CDPA}{HTML}{FC8D62}
+\definecolor{GPDPA}{HTML}{4D4D4D}
+
+% Set transparency of non-highlighted sections in the table of
+% contents slide.
+\setbeamertemplate{section in toc shaded}[default][100]
+\AtBeginSection[]
+{
+  \setbeamercolor{section in toc}{fg=red} 
+  \setbeamercolor{section in toc shaded}{fg=black} 
+  \begin{frame}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\begin{document}
+
+\title{Recent advances in fast algorithms for optimal changepoint detection}
+
+\author{
+  Toby Dylan Hocking\\
+  toby.hocking@nau.edu}
+
+%\date{13 Nov 2017}
+
+\maketitle
+
+\section{Constrained Dynamic Programming and Supervised Penalty
+  Learning Algorithms for Peak Detection in Genomic Data}
+
+\begin{frame}
+  \frametitle{Citation}
+  Hocking TD, Rigaill G, Fearnhead P, Bourque G. Constrained Dynamic
+  Programming and Supervised Penalty Learning Algorithms for Peak
+  Detection in Genomic Data. Journal of Machine Learning Research
+  21(87):1-40, 2020.
+
+  \includegraphics[width=0.8\textwidth]{figure-data-models}
+
+  Main new idea: an optimal algorithm for computing the best
+  changepoints which alternate up and down.
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Comparison to previous work and novelty}
+{  \scriptsize
+    \begin{tabular}{r|c|c}
+    Constraint & No pruning & Functional pruning \\
+    \hline
+    None & Dynamic Prog. Algo. (DPA) & Pruned DPA (PDPA) \\
+    & Optimal, $O(Sn^2)$ time & Optimal, $O(Sn\log n)$ time\\
+    & Auger and Lawrence (1989) & Rigaill (2010); Johnson (2011) \\
+    \hline
+    Up-down & Constrained DPA (CDPA) & Generalized Pruned DPA (GPDPA) \\
+    & Sub-optimal, $O(Sn^2)$ time & Optimal, $O(Sn\log n)$ time\\
+    & Hocking et al. (2015) & \textbf{This paper} \\
+    \hline
+  \end{tabular}
+}
+\begin{align*}
+    \minimize_{\substack{
+  \mathbf u\in\RR^{S}
+\\
+   0=t_0<t_1<\cdots<t_{S-1}<t_S=n
+  }} &\ \ 
+    \sum_{s=1}^S\  \sum_{i=1+t_{s-1}}^{t_s} \ell( u_s,  z_i) 
+\\
+      \text{subject to \hskip 0.75cm} &\ \ \alert{u_{s-1} \leq u_s\ \forall s\in\{2,4,\dots\},}
+  \nonumber\\
+  &\ \ \alert{u_{s-1} \geq u_s\ \forall s\in\{3,5,\dots\}.}
+  \nonumber 
+\end{align*}
+\vskip -0.4cm
+\begin{itemize}  
+\item One hyper-parameter = number of segments $S\in\{1,3,\dots\}$.
+\item Hard optimization problem, naively $O(n^S)$ time.
+\item Previous unconstrained model: not always up-down changes.
+\item \alert{Interpretable: $P=(S-1)/2$ peaks (segments 2, 4, ...).}
+\item H {\it et al.}, {\it ICML} 2015: $O(Sn^2)$ time approximate
+  algorithm. 
+\item \textbf{This paper}: $O(Sn\log n)$ time optimal algorithm.
+\end{itemize}
+
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Labeled data setting}
+
+  \includegraphics[width=\textwidth]{figure-good-bad}
+
+  Benchmark data with 2752 labeled data sequences:
+  \url{https://rcdata.nau.edu/genomic-ml/chip-seq-chunk-db/}
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Comparing minimum label errors}
+  
+  \includegraphics[width=\textwidth]{figure-PDPA-infeasible-error-compare}
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Test ROC curves of predicted peaks}
+  \includegraphics[width=0.85\textwidth]{figure-test-error-dots-ROC-supp.pdf}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Test AUC of predicted peaks}
+  \includegraphics[width=\textwidth]{figure-test-error-dots}
+  \begin{itemize}
+  \item 4-fold cross-validation: train on 3/4 of labels, test on 1/4.
+  \item All models trained by learning a scalar significance
+    threshold / penalty parameter, which is varied to compute ROC/AUC.
+  \item MACS is highly inaccurate in all data sets.
+  \item HMCanBroad is accurate for broad but not sharp pattern.
+  \item Unconstrained PDPA algorithm not as accurate as up-down
+    constrained algorithms (CDPA, GPDPA).
+  \end{itemize}
+  \scriptsize
+  %\url{http://bl.ocks.org/tdhock/raw/886575874144c3b172ce6b7d7d770b9f/} 
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Time complexity analysis 1}
+  
+  \input{figure-PDPA-intervals-log-log}
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Time complexity analysis 2}
+  
+    \input{figure-PDPA-timings-log-log}
+
+\end{frame}
+
+\section{Linear Time Dynamic Programming for
+  Computing Breakpoints in the Regularization Path of Models Selected From a Finite Set}
+
+\begin{frame}
+  \frametitle{Citation}
+  Hocking TD, Vargovich J. Linear Time Dynamic Programming for
+  Computing Breakpoints in the Regularization Path of Models Selected
+  From a Finite Set. Journal of Computational and Graphical Statistics
+  (2021).
+\end{frame}
+
+\section{Generalized Functional Pruning Optimal Partitioning (GFPOP)
+  for Constrained Changepoint Detection in Genomic Data}
+
+\begin{frame}
+  \frametitle{Citation}
+  Hocking TD, Rigaill G, Fearnhead P, Bourque G. Generalized
+  Functional Pruning Optimal Partitioning (GFPOP) for Constrained
+  Changepoint Detection in Genomic Data. Journal of Statistical
+  Software Vol. 101, Issue 10.
+\end{frame}
+
+\begin{frame}
+  \frametitle{Previous work on the Segment Neighborhood problem}
+{  \scriptsize
+    \begin{tabular}{r|c|c}
+    Constraint & No pruning & Functional pruning \\
+    \hline
+    None & Dynamic Prog. Algo. (DPA) & Pruned DPA (PDPA) \\
+    & Optimal, $O(SN^2)$ time & Optimal, $O(SN\log N)$ time\\
+    & Auger and Lawrence (1989) & Rigaill (2010); Johnson (2011) \\
+    \hline
+    Up-down & Constrained DPA (CDPA) & Generalized Pruned DPA (GPDPA) \\
+    & Sub-optimal, $O(SN^2)$ time & Optimal, $O(SN\log N)$ time\\
+    & Hocking et al. (2015) & \textbf{This paper} \\
+    \hline
+  \end{tabular}
+}
+  % \begin{tabular}{r|c|c}
+  %   & no pruning & functional pruning \\
+  %   \hline
+  %   unconstrained & Dynamic Prog. Algo. & Pruned DPA \\
+  %    & exact $O(SN^2)$ & exact $O(SN\log N)$\\
+  %   %R pkgs: & \alert<1>{changepoint} & \alert<2>{cghseg, Segmentor}\\
+  %   & Auger and L. 1989 & Rigaill 2010\\
+  %   \hline
+  %   up-down constrained & Constrained DPA & Generalized PDPA \\
+  %    & inexact $O(SN^2)$ & exact $O(SN\log N)$\\
+  %   %R pkgs: & \alert<3>{PeakSegDP} & \alert<4>{PeakSegOptimal}\\
+  %   & H et al 2015 & H et al 2020\\
+  %   \hline
+  % \end{tabular}
+  \begin{itemize}
+  \item All algorithms solve the \textbf{Segment Neighborhood}
+    ``constrained'' problem: most likely mean $m_i$ for data $z_i$,
+    subject to the constraint of $S$ segments ($S-1$ changes).
+  \end{itemize} 
+\begin{align*}
+    \minimize_{\substack{
+  \mathbf m\in\RR^{N}
+  }} &\ \ 
+    \sum_{i=1}^N \ell( m_i,  z_i) 
+\\
+      \text{subject to} &\ \ {\alert{\sum_{i=1}^{N-1} I[m_i\neq m_{i+1}]}=S-1,}
+  \nonumber\\
+  &\ \ \text{...up-down constraints on $m$.}
+  \nonumber 
+\end{align*}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Previous work on the Optimal Partitioning problem}
+  \begin{tabular}{r|c|c}
+    & no pruning & functional pruning \\
+    \hline
+    unconstrained & Opt. Part. Algo. & FPOP \\
+     & exact $O(N^2)$ & exact $O(N\log N)$\\
+    %R pkgs: & \alert<1>{changepoint} & \alert<2>{cghseg, Segmentor}\\
+    & Jackson et al 2005 & Maidstone et al 2016\\
+    \hline
+    up-down constrained &  & Generalized FPOP \\
+     &  & exact $O(N\log N)$\\
+    %R pkgs: & \alert<3>{PeakSegDP} & \alert<4>{PeakSegOptimal}\\
+    &  & \textbf{This work}\\
+    \hline
+  \end{tabular}
+  \begin{itemize}
+  % \item \alert<1>{Auger and Lawrence 1989, Jackson et al 2005}.
+  % \item \alert<2>{Rigaill 2010, Johnson 2013, Cleynen et al 2014}.
+  % \item \alert<3>{Hocking, Rigaill, Bourque 2015}.
+  % \item \alert<4>{\textbf{Contribution:} Generalized Pruned Dynamic
+  %       Programming Algorithm (GPDPA) that \textbf{exactly} computes the
+  %     \textbf{constrained} model for $n$ data points and up to $S$ segments in
+  %      $O(Sn\log n)$ time}.
+  \item All algorithms solve the \textbf{Optimal Partitioning}
+    ``penalized'' problem: most likely mean $m_i$ for data $z_i$,
+    penalized by a non-negative penalty $\lambda\in\RR_+$ for each change:
+  \end{itemize}
+\begin{align*}
+    \minimize_{\substack{
+  \mathbf m\in\RR^{N}
+% \\
+%    0=t_0<t_1<\cdots<t_{S-1}<t_S=N
+  }} &\ \ 
+    \sum_{i=1}^N \ell( m_i,  z_i)  + \lambda\alert{\sum_{i=1}^{N-1}I[m_{i}\neq m_{i+1}]}
+\\
+      \text{subject to} &\ \ \text{...up-down constraints on $m$.}
+  \nonumber 
+\end{align*}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Benchmark of large genomic data sequences}
+
+\url{http://github.com/tdhock/feature-learning-benchmark}
+
+\begin{itemize}
+\item 4951 data sequences ranging from $N=10^3$ to $N=10^7$.
+\item Ran GFPOP with penalty $\lambda\in(\log N, N)$, resulting in a
+  range of models with different numbers of peaks, for each data set.
+\item Each data set has \textbf{labels} which can be used to determine
+  an appropriate number of peaks.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Labels used to determine optimal number of peaks}
+  \includegraphics[width=\textwidth]{jss-figure-label-error-data}
+  
+  One ChIP-seq data set with $N=1,254,751$ (only 82,233 shown).
+\end{frame}
+
+\begin{frame}
+  \frametitle{Labels used to determine optimal number of peaks}
+  \includegraphics[width=\textwidth]{jss-figure-label-error-data-labels}
+
+  Visually labeled regions (H {\it et al.}, {\it Bioinformatics} 2017). 
+\end{frame}
+
+\begin{frame}
+  \frametitle{Labels used to determine optimal number of peaks}
+  \includegraphics[width=\textwidth]{jss-figure-label-error-too-few}
+
+  Penalty too large, too few peaks, 2 false negative labels.
+\end{frame}
+
+\begin{frame}
+  \frametitle{Labels used to determine optimal number of peaks}
+  \includegraphics[width=\textwidth]{jss-figure-label-error-too-many}
+
+  Penalty too small, too many peaks, 3 false positive labels.
+\end{frame}
+
+\begin{frame}
+  \frametitle{Labels used to determine optimal number of peaks}
+  \includegraphics[width=\textwidth]{jss-figure-label-error}
+  
+  Models with 34--236 peaks have no label errors (midpoint=135).
+\end{frame}
+
+\begin{frame}
+  \frametitle{Segment Neighborhood model too slow for $O(\sqrt N)$ peaks }
+  \input{jss-figure-data-peaks-slide}
+  \vskip -0.4cm
+  \begin{itemize} 
+  \item %H {\it et al.}, arXiv 2017: $O(SN\log N)$ time/space
+    Previous GPDPA: $O(S)$ dynamic programming iterations,
+    each is $O(N\log N)$ time/space.
+  \item If we want $S=O(\sqrt{N})$ segments then the algorithm is
+    $O(N \sqrt N \log N)$ time/space -- too much for large data.
+  \item For example $N=10^7$ data. Each $O(N\log N)$ DP iteration
+    takes 1 hour, 80 GB. Overall if we want $S=O(\sqrt N) = 2828$
+    segments we need means 220 TB of storage space and 17 weeks of
+    computation time!
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{GFPOP Implementation stores cost functions on disk}
+
+  \includegraphics[width=0.5\textwidth]{jss-figure-disk-memory-compare-speed}
+
+  \begin{itemize}
+  \item Disk storage is only a constant factor slower than memory!
+  \item Both are $O(N\log N)$ time.
+  \item Memory implementation: $O(N \log N)$ memory! (too big)
+  \item Disk implementation: $O(\log N)$ memory ($<1$GB), $O(N\log N)$
+    disk.
+  \end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Time/space to solve one penalty is $O(N \log N)$}
+
+  Total time/space = $O(NI)$ where $I$ is the number of intervals
+  (candidate changepoints) stored in every optimal cost function
+  $\overline C_t(\mu)$.
+
+  \begin{minipage}{0.48\textwidth}
+    \includegraphics[width=\textwidth]{jss-figure-target-intervals-models}
+    $I=O(\log N)$ intervals.
+  \end{minipage}
+  \begin{minipage}{0.48\textwidth}
+    \includegraphics[width=\textwidth]{jss-figure-target-intervals-models-computation}
+    Overall  $O(N \log N)$ complexity.
+  \end{minipage}
+  
+\vskip 0.5cm
+  But how to compute model with $O(\sqrt N)$ peaks?
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Binary search algorithm using GFPOP to compute most
+    likely model with at most $P^*$ peaks}
+  \begin{algorithmic}[1]
+  \STATE Input: data $\mathbf z\in\RR^N$, target peaks $P^*$.
+  \STATE $\overline L,\overline p \gets \text{GFPOP}(\mathbf z, \lambda=0)$ // max peak model
+  \STATE $\underline L,\underline p \gets \text{GFPOP}(\mathbf z, \lambda=\infty)$ // 0 peak model
+  \STATE While $\underline p\neq P^*$ and $\overline p\neq P^*$:
+  \begin{ALC@g}
+    \STATE $\lambda=(\overline L-\underline L)/(\underline p-\overline p)$
+    \STATE $L_{\text{new}},p_{\text{new}}\gets\text{GFPOP}(\mathbf z, \lambda)$
+    \STATE If $p_{\text{new}}\in\{\underline p, \overline p\}$: return model with $\underline p$ peaks.
+    \STATE If $p_{\text{new}} < P^*$: $\underline p\gets p_{\text{new}}$
+    \STATE Else: $\overline p\gets p_{\text{new}}$
+% > prob.i <- 3
+% > fit.list$others[order(iteration)][, list(target.peaks=prob$peaks, iteration, under, over, penalty, peaks, total.cost)]
+%    target.peaks iteration under over    penalty peaks total.cost
+% 1:           33         1    NA   NA     0.0000  7487 -201361.96
+% 2:           33         1    NA   NA        Inf     0  920923.98
+% 3:           33         2     0 7487   149.8979   753  -24385.02
+% 4:           33         3     0  753  1255.3904    47  153676.28
+% 5:           33         4     0   47 16324.4191    10  310043.81
+% 6:           33         5    10   47  4226.1495    21  214200.02
+% 7:           33         6    21   47  2327.8360    33  177484.99
+% > 
+  \end{ALC@g}
+  \STATE If $\underline p=P^*$: return model with $\underline p$ peaks.
+  \STATE Else: return model with $\overline p$ peaks.
+  \end{algorithmic}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Example run of binary search algorithm using GFPOP}
+  One data set with $P^*=93$ peaks and $N=146,186$ data.
+  \begin{tabular}{rrrrrr}
+ iteration& $\underline p$& $\overline p$&    $\lambda$ & $p_{\text{new}}$& $L_{\text{new}}$\\
+\hline
+         1&    &    &     0& 68752&   -2570319\\
+         1&    &    &        $\infty$&     0&   14239212\\
+         2&     0& 68752&   244.4952&  4361&    1980119\\
+         3&     0&  4361&  2811.0738&   188&    3676671\\
+         4&     0&   188& 56183.7271&    55&    5330310\\
+         5&    55&   188& 12433.3766&    98&    4108354\\
+         6&    55&    98& 28417.5941&    72&    4584042\\
+         7&    72&    98& 18295.6895&    83&    4336773\\
+         8&    83&    98& 15227.9249&    90&    4218815\\
+         9&    90&    98& 13807.6282&    95&    4146172\\
+        10&    90&    95& 14528.5052&    92&    4188881\\
+        11&    92&    95& 14236.0863&    94&    4160179\\
+        12&    92&    94& 14350.6622&    93&    4174480
+  \end{tabular}
+
+  \alert{12 DP iterations much fewer than $93\times 2=186$ which would be
+  required for Segment Neighborhood!}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Only $O(\log N)$ runs of GFPOP to compute $O(\sqrt N)$
+    peaks}
+  \input{jss-figure-evaluations} 
+  
+\end{frame}
+
+\begin{frame}
+  \frametitle{Binary search only a log factor slower than solving one penalty}
+  \input{jss-figure-evaluations-computation} 
+
+  For $N=10^7$ only several hours of computation! (compare with weeks
+  for Segment Neighborhood algorithm)
+  
+\end{frame}
+
+\section{Conclusions}
+
+\begin{frame}[fragile]
+  \frametitle{Conclusions}
+
+  \begin{itemize}
+  \item Previous GPDPA was $O(N\sqrt N\log N)$ -- much too complex to
+    compute a zero-error model with $O(\sqrt N)$ peaks for $N=10^7$
+    data.
+  \item Proposed GFPOP with binary search is $O(N(\log N)^2)$ time,
+    $O(\log N)$ memory, $O(N\log N)$ disk -- optimal models are now
+    possible to compute for large data.
+  \item C++ code with R interface:
+    \verb|PeakSegPipeline::PeakSegFPOP_disk|
+    \url{https://github.com/tdhock/PeakSegPipeline}
+  \item Future work: changepoint detection in large ecological data?
+  \item Contact me: toby.hocking@nau.edu
+  \item Thanks!
+  \end{itemize}
+  
+\end{frame}
+
+\begin{frame}
+  \frametitle{For some data
+ the desired number of peaks does not exist!}
+
+One data set with $P^*=75$ and $N=66,031$ data.
+
+\begin{tabular}{rrrrrr}
+\small
+ iteration& $\underline p$& $\overline p$&    $\lambda$ & $p_{\text{new}}$& $L_{\text{new}}$\\
+  \hline
+    1 &  &  & 0 & 29681 & -1495863.85 \\ 
+    1 &  &  & $\infty$ &   0 & 1200631.42 \\ 
+    2 &   0 & 29681 & 90.85 & 3445 & -1245181.37 \\ 
+    3 &   0 & 3445 & 709.96 & 401 & -446632.57 \\ 
+    4 &   0 & 401 & 4107.89 &  51 & 3105.03 \\ 
+    5 &  51 & 401 & 1284.96 & 168 & -230152.31 \\ 
+    6 &  51 & 168 & 1993.65 &  97 & -120725.83 \\ 
+    7 &  51 &  97 & 2691.98 &  68 & -53946.18 \\ 
+    8 &  68 &  97 & 2302.75 &  81 & -86423.80 \\ 
+    9 &  68 &  81 & 2498.28 &  77 & -76891.10 \\ 
+   10 &  68 &  77 & 2549.44 &  71 & -61722.09 \\ 
+   11 &  71 &  77 & 2528.17 &  74 & -69330.62 \\ 
+   12 &  74 &  77 & 2520.16 &  76 & -74374.78 \\ 
+   13 &  \alert{74} &  \alert{76} & \alert{2522.08} &  \alert{76} & -74374.78 \\ 
+\end{tabular}
+
+\alert{No model exists between $\underline p=74$ and
+  $\overline p=76$, so algo stops and returns the simpler model with 74 peaks.}
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Chromatin immunoprecipitation sequencing (ChIP-seq)}
+  Analysis of DNA-protein interactions.
+
+  \includegraphics[width=\textwidth]{Chromatin_immunoprecipitation_sequencing_wide.png}
+
+  Source: ``ChIP-sequencing,'' Wikipedia.
+\end{frame}
+
+\begin{frame}
+  \frametitle{Problem: find peaks in each of several samples}
+  \includegraphics[width=\textwidth]{screenshot-ucsc-edited}
+
+  \begin{itemize}
+  \item Grey profiles are noisy aligned read count signals -- \\peaks
+    are genomic locations with protein binding sites.
+  \item Black bars are peaks called by MACS2 (Zhang et al, 2008) -- many
+    false positives! (black bars where there is only noise)
+  \item From a machine learning perspective, this is binary
+    classification (positive=peaks, negative=noise).
+  \end{itemize}
+\end{frame}
+
+% \begin{frame}
+%   \frametitle{Previous work in genomic peak detection}
+%   \begin{itemize}
+%   \item Model-based analysis of ChIP-Seq (MACS), Zhang et al, 2008.
+%   \item SICER, Zang et al, 2009.
+%   \item HOMER, Heinz et al, 2010.
+%   \item CCAT, Xu et al, 2010.
+%   \item RSEG, Song et al, 2011.
+%   \item Triform, Kornacker et al, 2012.
+%   \item Histone modifications in cancer (HMCan), Ashoor et al, 2013.
+%   \item PeakSeg, Hocking, Rigaill, Bourque, ICML 2015.
+%   %\item PeakSegJoint Hocking and Bourque, arXiv:1506.01286.
+%   \item ... dozens of others.
+%   \end{itemize}
+%   Two big questions: how to choose the best...
+%   \begin{itemize}
+%   \item ...algorithm? (testing)
+%   \item \alert<1>{...parameters? (training)}
+%   \end{itemize}
+% \end{frame}
+
+% \begin{frame}[fragile]
+%   \frametitle{How to choose parameters of unsupervised peak
+%     detectors?}
+% \scriptsize
+% 19 parameters for Model-based analysis of ChIP-Seq (MACS), Zhang et al, 2008.
+% \begin{verbatim}
+%   [-g GSIZE]
+%   [-s TSIZE] [--bw BW] [-m MFOLD MFOLD] [--fix-bimodal]
+%   [--nomodel] [--extsize EXTSIZE | --shiftsize SHIFTSIZE]
+%   [-q QVALUE | -p PVALUE | -F FOLDENRICHMENT] [--to-large]
+%   [--down-sample] [--seed SEED] [--nolambda]
+%   [--slocal SMALLLOCAL] [--llocal LARGELOCAL]
+%   [--shift-control] [--half-ext] [--broad]
+%   [--broad-cutoff BROADCUTOFF] [--call-summits]
+% \end{verbatim}
+% 10 parameters for Histone modifications in cancer (HMCan),
+% Ashoor et al, 2013.
+% \begin{verbatim}
+% minLength 145
+% medLength 150
+% maxLength 155
+% smallBinLength 50
+% largeBinLength 100000
+% pvalueThreshold 0.01
+% mergeDistance 200
+% iterationThreshold 5
+% finalThreshold 0
+% maxIter 20
+% \end{verbatim}
+% \end{frame}
+ 
+\begin{frame}
+  \frametitle{Which macs parameter is best for these data?}
+  \includegraphics[width=1\textwidth]{figure-macs-problem.png}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Compute likelihood/loss of piecewise constant model}
+  \includegraphics[width=1\textwidth]{figure-macs-problem-7-5.png}
+  % $\PoissonLoss(\mathbf z, \mathbf m) = \sum_{i=1}^n m_i - z_i \log(m_i)$
+  % for count data $\mathbf z\in\ZZ_+^n$ 
+  % and segment mean model $\mathbf m\in\RR^n$.
+\end{frame}
+
+\begin{frame}
+  \frametitle{Idea: choose the parameter with a lower loss}
+  \includegraphics[width=1\textwidth]{figure-macs-problem-15.png}
+\end{frame}
+
+\begin{frame}
+  \frametitle{PeakSeg: search for the peaks with lowest loss}
+  \includegraphics[width=1\textwidth]{figure-macs-problem-PeakSeg.png}
+
+  Simple model with only one parameter (number of peaks).
+
+  %Choose the number of peaks via standard penalties (AIC, BIC,
+  %  ...)\\or learned penalties based on visual labels (more on this later).
+\end{frame}
+
+% \begin{frame}
+%   \frametitle{Maximum likelihood Poisson segmentation models}
+%   \includegraphics[width=1\textwidth]{figure-Segmentor-PeakSeg}
+
+%   \begin{itemize}
+%   \item Previous work: unconstrained maximum likelihood mean\\
+%     for $s$ segments ($s-1$ changes), Cleynen et al 2014.
+%   \item Hocking et al, ICML 2015: PeakSeg constraint enforces up, down, up,
+%     down changes (and not up, up, down). 
+%   \item Odd-numbered segments are background noise,\\
+%     even-numbered segments are peaks.
+%   \item Constrained Dynamic Programming Algorithm, $O(n^2)$ time for $n$ data points.
+%   \end{itemize}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{But quadratic time is not fast enough for genomic data!}
+%   \includegraphics[width=\textwidth]{figure-PDPA-timings-dp}
+%   \begin{itemize}
+%   \item Genomic data is large, $n \geq 10^6$.
+%   \item Split into subsets? What if we split a peak in half?
+%   \item Need linear time algorithm for analyzing whole data set.
+%   \end{itemize}
+% \end{frame}
+
+\begin{frame}
+  \frametitle{Statistical model is a piecewise constant Poisson mean}
+  H {\it et al.}, {\it ICML} 2015. 
+
+  %\input{figure-PeakSeg}
+  \vskip -0.8cm    
+  \begin{itemize}
+  \item We have $n$ count data $z_1, \dots, z_n\in\ZZ_+$.
+  \item Fix the number of segments $S\in\{1, 2, \dots, n\}$.
+  \item Optimization variables: $S-1$ changepoints
+    $t_1 < \cdots < t_{S-1}$ and $S$ segment means $u_1,\dots,u_S\in\RR_+$.
+  \item Let $0=t_0<t_1 < \cdots < t_{S-1}<t_S=n$ be the segment
+    limits.
+  \item Statistical model: for every segment $s\in\{1,\dots,S\}$,
+    $z_i \stackrel{\text{iid}}{\sim} \text{Poisson}(u_s)$ for every data
+    point $i\in(t_{s-1},t_s]$.
+  \item PeakSeg up-down constraint: $u_1\leq u_2 \geq u_3 \leq u_4 \geq \cdots$
+  \item Want to find means $u_s$ which maximize the Poisson likelihood:
+    $P(Z = z_i|u_s) = u_s^{z_i} e^{-u_s} / (z_i!)$.
+  \item Equivalent to finding means $u_s$ which minimize the Poisson
+    loss: $\ell(u_s, z_i) = u_s - z_i\log u_s$.
+  % \item Comparison to Hidden Markov Model:
+  %   \begin{description}
+  %   \item[Likelihood] Same emission terms, no transition terms.
+  %   \item[Constraint] Number of changes rather than values.
+  %   \end{description}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Dynamic programming and functional pruning}
+  \textbf{Classical dynamic programming for optimal partitioning}
+  (Jackson et al 2005) computes the vector of optimal loss values up
+  to $N$ data points, $O(N^2)$ time because each DP iteration needs to
+  consider all $O(N)$ possible changepoints and cost values.
+$$
+\begin{array}{ccccc}
+  \mathcal C_{1} & \mathcal C_2 & \cdots & \mathcal C_{N-1} &  \mathcal C_N
+\end{array}
+$$
+\textbf{Functional pruning optimal partitioning} (Maidstone 2016)
+computes a vector of loss \textbf{functions}, $O(N\log N)$ because
+each DP iteration only considers $O(\log N)$ candidate changepoints
+\\(the others --- which will never be optimal --- are pruned).
+$$
+\begin{array}{ccccc}
+   C_{1}(m_1) & C_2(m_2) & \cdots & C_{N-1}(m_{N-1}) &   C_N(m_{N})
+\end{array}
+$$
+\textbf{Contribution of this work}: a new algorithm that applies the
+functional pruning technique to the up-down constrained model.
+\end{frame}
+
+\begin{frame}
+  \frametitle{Constrained optimal partitioning problem}
+  \begin{align*}
+  \label{eq:penalized_peakseg}
+  \minimize_{
+    \substack{
+    \mathbf m\in\RR^N,\ \mathbf s\in\{0, 1\}^N\\
+\mathbf c\in\{-1, 0,1\}^{N-1}\\
+}
+    } &\ \ 
+  \sum_{i=1}^N \ell(m_i, z_i) + \lambda \sum_{i=1}^{N-1} I(c_i \neq 0) \\
+  \text{subject to\ \ } &\ \text{no change: }c_t = 0 \Rightarrow m_t = m_{t+1}\text{ and }s_t=s_{t+1}
+  \nonumber\\
+&\ \text{go up: }c_t = 1 \Rightarrow m_t \leq m_{t+1}\text{ and }(s_t,s_{t+1})=(0,1),
+  \nonumber\\
+&\ \text{go down: } c_t = -1 \Rightarrow m_t \geq m_{t+1}\text{ and }(s_t,s_{t+1})=(1,0).
+\nonumber
+\end{align*}
+\begin{minipage}{0.5\linewidth}
+    \begin{tikzpicture}[->,>=latex,shorten >=1pt,auto,node distance=2cm,
+                    thick,main node/.style={circle,draw}]
+
+  \node[main node] (1) {$s=1$};
+  \node[main node] (2) [below of=1] {$s=0$};
+
+  \path[every node/.style={font=\sffamily\small}]
+    (2) edge [bend left] node {$c=1, \leq, \lambda$} (1)
+    (1) edge [bend left] node {$c=-1, \geq, \lambda$} (2);
+\end{tikzpicture}
+\end{minipage}
+\begin{minipage}{0.45\linewidth}
+  Nodes=states $s$,\\
+  Edges=changes $c$ (constraint, penalty).
+\end{minipage}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Generalized Functional Pruning Optimal Partitioning
+    (GFPOP) algorithm for up-down constrained model}
+Recursively compute two vectors of real-valued cost functions:
+$$
+\begin{array}{cccl}
+  \overline C_{1}(m_1) & \cdots & \overline C_N(m_{N})& \text{ optimal cost in peak state $s=1$}\\
+  \underline C_{1}(m_1) & \cdots & \underline C_N(m_{N})& \text{ optimal cost in background state $s=0$}\\
+\end{array}
+$$
+\begin{minipage}{0.65\linewidth}
+  $$\overline C_{t+1}(\mu) = \ell(\mu, z_i) + \min\{
+  \overline C_t(\mu),\, 
+  \underline C_t^\leq(\mu)+\lambda
+\},$$
+  $$\underline C_{t+1}(\mu) = \ell(\mu, z_i) + \min\{
+  \underline C_t(\mu),\, 
+  \overline C_t^\geq(\mu)+\lambda
+\},$$
+where $f^\leq(\mu) = \min_{x\leq\mu} f(x)$,\\
+$f^\geq(\mu) = \min_{x\geq\mu} f(x)$.
+\end{minipage}
+\begin{minipage}{0.25\linewidth}
+  \begin{tikzpicture}[->,>=latex,shorten >=1pt,auto,node distance=3cm,
+  thick,main node/.style={circle,draw}]
+  \node[main node] (peak_t) {$\overline C_t$};
+  \node[main node] (bkg_t) [below of=peak_t] {$\underline C_t$};
+  \node[main node] (peak_t1) [right of=peak_t] {$\overline C_{t+1}$};
+  \node[main node] (bkg_t1) [right of=bkg_t] {$\underline C_{t+1}$};
+  \path[every node/.style={font=\small}]
+    (peak_t) edge [dotted] node {$\overline C_{t}$} (peak_t1)
+    (peak_t) edge [black, bend right] node [right] {$\overline C_{t}^{\geq}+\lambda$} (bkg_t1)
+    (bkg_t) edge [dotted] node[midway, below] {$\underline C_{t}$} (bkg_t1)
+    (bkg_t) edge [black, bend left] node[right] {$\underline C_{ t}^{\leq}+\lambda$} (peak_t1)
+;
+\end{tikzpicture}
+\end{minipage}
+\end{frame}
+
+
+
+\end{document}

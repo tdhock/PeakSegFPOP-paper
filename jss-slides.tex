@@ -1,5 +1,5 @@
 % -*- compile-command: "make jss-slides.pdf" -*-
-\documentclass{beamer}
+\documentclass{beamer} 
 \usepackage{tikz}
 \usepackage[all]{xy}
 \usepackage{amsmath,amssymb}
@@ -188,7 +188,7 @@ Guillem Rigaill, Guillaume Bourque, Paul Fearnhead}
   \frametitle{Statistical model is a piecewise constant Poisson mean}
   H {\it et al.}, {\it ICML} 2015. 
 
-  \input{figure-PeakSeg}
+  %\input{figure-PeakSeg}
   \vskip -0.8cm    
   \begin{itemize}
   \item We have $n$ count data $z_1, \dots, z_n\in\ZZ_+$.
@@ -216,9 +216,9 @@ Guillem Rigaill, Guillaume Bourque, Paul Fearnhead}
 \begin{frame}
   \frametitle{Maximum likelihood changepoint detection with up-down constraints on adjacent segment means (PeakSeg)}
     
-\only<1>{\input{figure-PeakSeg}}      
-\only<2>{\input{figure-PeakSeg-unconstrained}}
-\only<3>{\input{figure-PeakSeg-constrained}}
+%\only<1>{\input{figure-PeakSeg}}      
+%\only<2>{\input{figure-PeakSeg-unconstrained}}
+%\only<3>{\input{figure-PeakSeg-constrained}}
 \vskip -1.4cm
 \begin{align*}
     \minimize_{\substack{

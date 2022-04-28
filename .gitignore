@@ -2,6 +2,11 @@ figure-*/*
 *.RData
 data
 .httr-oauth
+*.nav
+*.out
+*.snm
+*.toc
+*.vrb
 *.aux
 *.bbl
 *.blg
