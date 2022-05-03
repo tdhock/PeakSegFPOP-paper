@@ -174,8 +174,49 @@
   From a Finite Set. Journal of Computational and Graphical Statistics
   (2021).
 
-  R package penaltyLearning.
+  R function \texttt{penaltyLearning::modelSelection}.
 \end{frame}
+
+\begin{frame}
+  \frametitle{Three iterations of proposed algorithm}
+
+  \includegraphics[width=\textwidth]{figure-three-iterations}
+  
+\end{frame}
+
+\begin{frame}
+  \frametitle{Empirical iterations and theoretical bounds}
+
+  \includegraphics[width=\textwidth]{figure-loss-small-evals}
+  
+\end{frame}
+
+\begin{frame}
+  \frametitle{Empirical timings}
+
+  \includegraphics[width=0.8\textwidth]{figure-fullpath-db-binseg}
+
+  Faster than previous quadratic algorithm.
+  
+\end{frame} 
+
+\begin{frame}
+  \frametitle{Empirical timings}
+
+  \includegraphics[width=0.8\textwidth]{figure-fullpath-grid-timing}
+
+  Faster than grid search.
+  
+\end{frame}
+
+\begin{frame}
+  \frametitle{Accuracy in cross-validation experiments}
+
+  \includegraphics[width=\textwidth]{figure-chipseq-cv}
+  
+\end{frame}
+
+
 
 \section{Generalized Functional Pruning Optimal Partitioning (GFPOP)
   for Constrained Changepoint Detection in Genomic Data}
@@ -185,7 +226,9 @@
   Hocking TD, Rigaill G, Fearnhead P, Bourque G. Generalized
   Functional Pruning Optimal Partitioning (GFPOP) for Constrained
   Changepoint Detection in Genomic Data. Journal of Statistical
-  Software Vol. 101, Issue 10.
+  Software Vol. 101, Issue 10 (2022).
+
+  R package PeakSegDisk.
 \end{frame}
 
 \begin{frame}
@@ -200,7 +243,7 @@
     \hline
     Up-down & Constrained DPA (CDPA) & Generalized Pruned DPA (GPDPA) \\
     & Sub-optimal, $O(SN^2)$ time & Optimal, $O(SN\log N)$ time\\
-    & Hocking et al. (2015) & \textbf{This paper} \\
+    & Hocking et al. (2015) & Hocking et al. (2020) \\
     \hline
   \end{tabular}
 }
@@ -234,7 +277,6 @@
   &\ \ \text{...up-down constraints on $m$.}
   \nonumber 
 \end{align*}
-R package PeakSegDisk.
 \end{frame}
 
 \begin{frame}
@@ -341,8 +383,7 @@ R package PeakSegDisk.
     $O(N \sqrt N \log N)$ time/space -- too much for large data.
   \item For example $N=10^7$ data. Each $O(N\log N)$ DP iteration
     takes 1 hour, 80 GB. Overall if we want $S=O(\sqrt N) = 2828$
-    segments we need means 220 TB of storage space and 17 weeks of
-    computation time!
+    segments we need 220 TB of storage and 17 weeks!
   \end{itemize}
 \end{frame}
 
@@ -764,6 +805,13 @@ $f^\geq(\mu) = \min_{x\geq\mu} f(x)$.
 \end{minipage}
 \end{frame}
 
+
+\begin{frame}
+  \frametitle{Not always faster}
+
+  \includegraphics[width=\textwidth]{figure-binseg-quadratic-rigaill}
+  
+\end{frame}
 
 
 \end{document}

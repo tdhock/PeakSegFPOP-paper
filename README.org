@@ -64,6 +64,11 @@ jss-paper.pdf"
   [[file:figure-min-train-error.R]]
 - big model labels in [[file:figure-test-error-dots.R]]
 
+** 2 May 2022
+
+[[file:jss-slides-short.tex]] makes [[file:jss-slides-short.pdf]] summary of
+three recent papers for talk in Paris.
+
 ** 24 July 2019
 [[file:jss-figure-more-evals.R]] creates
 
