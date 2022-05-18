@@ -66,8 +66,9 @@ jss-paper.pdf"
 
 ** 2 May 2022
 
-[[file:jss-slides-short.tex]] makes [[file:jss-slides-short.pdf]] summary of
-three recent papers for talk in Paris.
+[[file:2022-06-20-paris-time-complexity.tex]] makes
+[[file:2022-06-20-paris-time-complexity.pdf]] slides with summary of
+results from three recent papers for talk in Paris.
 
 ** 24 July 2019
 [[file:jss-figure-more-evals.R]] creates
