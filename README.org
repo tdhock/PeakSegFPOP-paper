@@ -70,6 +70,23 @@ jss-paper.pdf"
 [[file:2022-06-20-paris-time-complexity.pdf]] slides with summary of
 results from three recent papers for talk in Paris.
 
+Title: Time complexity analysis of recently proposed algorithms for
+optimal changepoint detection
+
+Slides:
+https://github.com/tdhock/PeakSegFPOP-paper/blob/master/2022-06-20-paris-time-complexity.pdf
+
+Abstract: Several dynamic programming algorithms have been recently
+proposed for efficiently solving various problems related to optimal
+changepoint detection in large data sequences measured over space or
+time. In this talk we will discuss three recent papers which each
+provide a theoretical or empirical time complexity analysis. Our time
+complexity analysis shows that these linear and log-linear time
+algorithms can be used for analysis of huge data sequences, with ten
+million observations or more, which are now common in areas such as
+genomics.
+
+
 ** 24 July 2019
 [[file:jss-figure-more-evals.R]] creates
 
