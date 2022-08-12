@@ -64,17 +64,19 @@ jss-paper.pdf"
   [[file:figure-min-train-error.R]]
 - big model labels in [[file:figure-test-error-dots.R]]
 
-** 2 May 2022
+** 12 Aug 2022
 
 [[file:2022-06-20-paris-time-complexity.tex]] makes
 [[file:2022-06-20-paris-time-complexity.pdf]] slides with summary of
 results from three recent papers for talk in Paris.
 
+Updated: [[file:2022-09-28-tucson-slides.tex]] makes [[file:2022-09-28-tucson-slides.pdf]]
+
 Title: Time complexity analysis of recently proposed algorithms for
 optimal changepoint detection
 
 Slides:
-https://github.com/tdhock/PeakSegFPOP-paper/blob/master/2022-06-20-paris-time-complexity.pdf
+https://github.com/tdhock/PeakSegFPOP-paper/blob/master/2022-09-28-tucson-slides.pdf
 
 Abstract: Several dynamic programming algorithms have been recently
 proposed for efficiently solving various problems related to optimal
