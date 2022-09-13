@@ -56,7 +56,23 @@
   Learning Algorithms for Peak Detection in Genomic Data}
 
 \begin{frame}
-  \frametitle{Citation}
+  \frametitle{Problem: find peaks in each of several samples}
+  \includegraphics[width=\textwidth]{screenshot-ucsc-edited}
+
+  \begin{itemize}
+  \item Grey profiles are noisy aligned read count signals -- \\peaks
+    are genomic locations with protein binding sites.
+  \item Black bars are peaks called by MACS2 (Zhang et al, 2008) -- many
+    false positives! (black bars where there is only noise)
+  \item From a machine learning perspective, this could be binary
+    classification (positive=peaks, negative=noise).
+  \item We treat this as a changepoint detection problem with two
+    states.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Citation and new idea}
   Hocking TD, Rigaill G, Fearnhead P, Bourque G. Constrained Dynamic
   Programming and Supervised Penalty Learning Algorithms for Peak
   Detection in Genomic Data. Journal of Machine Learning Research
@@ -100,44 +116,37 @@
 \end{align*}
 \vskip -0.4cm
 \begin{itemize}  
+\item Let there be a sequence of $n$ data: $z_1,\dots,z_n$.
 \item One hyper-parameter = number of segments $S\in\{1,3,\dots\}$.
-\item Hard optimization problem, naively $O(n^S)$ time.
-\item Previous unconstrained model: not always up-down changes.
-\item \alert{Interpretable: $P=(S-1)/2$ peaks (segments 2, 4, ...).}
-\item H {\it et al.}, {\it ICML} 2015: $O(Sn^2)$ time approximate
-  algorithm. 
-\item \textbf{This paper}: $O(Sn\log n)$ time optimal algorithm.
+\item \alert{Up-down constraints: $P=(S-1)/2$ peaks.}
+\item Discrete/non-convex problem, naively $O(n^S)$ time.
+\item Main novelty: new fast and optimal algorithm for this constrained
+  problem.
 \end{itemize}
 
 
 \end{frame}
 
 \begin{frame}
-  \frametitle{Labeled data setting}
+  \frametitle{Labeled data setting, learning to predict penalty}
 
   \includegraphics[width=\textwidth]{figure-good-bad}
 
   \begin{itemize}
-  \item   Benchmark data with 2752 labeled data sequences:
+  \item 2752 expert-labeled sequences (H {\it et al.}, {\it Bioinformatics} 2017). 
     {\small \url{https://rcdata.nau.edu/genomic-ml/chip-seq-chunk-db/}}
-\item  Goal is to learn a model for predicting the log penalty,
-  $f(x)=\log \lambda$ with good peak prediction accuracy according to
-  labels.
+  \item Split sequences into train and test, learn using labels in
+    train set, then predict peaks on test set.
+    \begin{itemize}
+    \item  If we have optimal loss $L_s$ for model size $s$,
+    \item then for penalty $\lambda\geq 0$ we select the model of size $ S^*(\lambda) = \argmin_s L_s + \lambda s $ (standard linear penalty in statistics).
+    \item We compute a fixed feature vector $x$ for each sequence,
+      then learn $f(x)=\log \lambda$ to minimize a convex relaxation of label
+      error. (H. \emph{et al.}, ICML'13)
+    \end{itemize}
 \end{itemize}
 
-$$ S^*(\lambda) = \argmin_s L_s + \lambda s. $$
 \end{frame}
-
-% \begin{frame}
-%   \frametitle{Comparing minimum label errors}
-  
-%   \includegraphics[width=\textwidth]{figure-PDPA-infeasible-error-compare}
-
-%   \begin{itemize}
-%   \item Proposed GPDPA with remove
-%   \end{itemize}
-
-% \end{frame}
 
 \begin{frame}
   \frametitle{Test ROC curves of predicted peaks}
@@ -175,7 +184,7 @@ $$ S^*(\lambda) = \argmin_s L_s + \lambda s. $$
     several pieces/intervals with different coefficients.
   \item The algorithm complexity is linear in the number of intervals,
     and the figure above shows that it is very small, $O(\log n)$, for
-    real data.
+    real data, much smaller than worst case $O(n)$.
   \end{itemize}
 
 \end{frame}
@@ -186,6 +195,7 @@ $$ S^*(\lambda) = \argmin_s L_s + \lambda s. $$
   \input{figure-PDPA-timings-log-log}
 
   \begin{itemize}
+  \item Computation time for a fixed number of peaks, 20.
   \item Proposed GPDPA with up-down constraints is just as fast as
     previous PDPA with no constraints between adjacent segment means.
   \item Both are much faster than the CDPA (heuristic/approximate
@@ -194,97 +204,33 @@ $$ S^*(\lambda) = \argmin_s L_s + \lambda s. $$
 
 \end{frame}
 
-\section{Linear Time Dynamic Programming for
-  Computing Breakpoints in the Regularization Path of Models Selected From a Finite Set}
-
-\begin{frame}
-  \frametitle{Citation}
-  Hocking TD, Vargovich J. Linear Time Dynamic Programming for
-  Computing Breakpoints in the Regularization Path of Models Selected
-  From a Finite Set. Journal of Computational and Graphical Statistics
-  (2021).
-
-  R function \texttt{penaltyLearning::modelSelection}.
-\end{frame}
-
-\begin{frame}
-  \frametitle{Three iterations of proposed algorithm}
-
-  \includegraphics[width=\textwidth]{figure-three-iterations}
-
-  \begin{itemize}
-  \item For learning we would like an exact representation of the
-    model selection function,
-    $$ k^*(\lambda) = \argmin_k \underbrace{L_k + \lambda k}_{f_k(\lambda)}$$
-  \item Each $f_k$ is a linear function; we propose a linear time
-    algorithm which efficiently computes the intersection points
-    (previous algorithms were quadratic time).
-  \end{itemize}
-  
-\end{frame}
-
-\begin{frame}
-  \frametitle{Empirical iterations and theoretical bounds}
-
-  \includegraphics[width=\textwidth]{figure-loss-small-evals}
-
-  \begin{itemize}
-  \item We proved linear upper and lower bounds on the total number of
-    iterations $W_N$.
-  \item We showed that in real data the number of iterations is closer
-    to the lower bound than the upper bound.
-  \end{itemize}
-  
-\end{frame}
-
-\begin{frame}
-  \frametitle{Empirical timings (synthetic data)}
-
-  \includegraphics[width=0.7\textwidth]{figure-fullpath-db-binseg}
-
-  \begin{itemize}
-  \item Step1: binary segmentation.
-  \item Step2: compute breakpoints in model selection function.
-  \item Proposed linear algorithm faster than previous quadratic algorithm.
-  \end{itemize}
-\end{frame} 
-
-\begin{frame}
-  \frametitle{Empirical timings (real genomic data)}
-
-  \includegraphics[width=0.7\textwidth]{figure-fullpath-grid-timing}
- 
-  Faster than approximate grid search algorithm and exact quadratic
-  algorithm.
-  
-\end{frame}
-
-\begin{frame}
-  \frametitle{Accuracy in cross-validation experiments}
-
-  \includegraphics[width=\textwidth]{figure-chipseq-cv}
-
-  \begin{itemize}
-  \item Learning using exact linear algorithm is just as good (and
-    faster than) the approximate search algorithm using a large number
-    of grid points.
-  \end{itemize}
-  
-\end{frame}
-
-
-
 \section{Generalized Functional Pruning Optimal Partitioning (GFPOP)
   for Constrained Changepoint Detection in Genomic Data}
 
 \begin{frame}
-  \frametitle{Citation}
+  \frametitle{Citation and motivation}
   Hocking TD, Rigaill G, Fearnhead P, Bourque G. Generalized
   Functional Pruning Optimal Partitioning (GFPOP) for Constrained
   Changepoint Detection in Genomic Data. Journal of Statistical
   Software Vol. 101, Issue 10 (2022).
 
-  R package PeakSegDisk.
+  \begin{itemize}
+  \item Previous algorithm computes best models with $1,\dots,S$
+    segments for $N$ data in $O(S N\log N)$ time.
+  \item Accurate/fast for relatively small data sets, $N\approx 10^5$,
+    with relatively small number of segments, $S\approx 10^1$.
+  \item But in real data, number of segments grows with number of data
+    (larger data sequences have more peaks).
+  \item For example, largest contig in human genome, $N\approx 10^7$
+    (ten million data) and $S\approx 10^3$ (thousands of segments), we
+    do not need models with small number of segments/peaks.
+  \item Main novelty: a new optimal algorithm, GFPOP, and an efficient
+    disk-based implementation (R package PeakSegDisk), which computes
+    a single model in $O(N\log N)$ time, even with
+    a large number of segments/peaks.
+  \end{itemize}
+
+  
 \end{frame}
 
 \begin{frame}
@@ -303,24 +249,10 @@ $$ S^*(\lambda) = \argmin_s L_s + \lambda s. $$
     \hline
   \end{tabular}
 }
-  % \begin{tabular}{r|c|c}
-  %   & no pruning & functional pruning \\
-  %   \hline
-  %   unconstrained & Dynamic Prog. Algo. & Pruned DPA \\
-  %    & exact $O(SN^2)$ & exact $O(SN\log N)$\\
-  %   %R pkgs: & \alert<1>{changepoint} & \alert<2>{cghseg, Segmentor}\\
-  %   & Auger and L. 1989 & Rigaill 2010\\
-  %   \hline
-  %   up-down constrained & Constrained DPA & Generalized PDPA \\
-  %    & inexact $O(SN^2)$ & exact $O(SN\log N)$\\
-  %   %R pkgs: & \alert<3>{PeakSegDP} & \alert<4>{PeakSegOptimal}\\
-  %   & H et al 2015 & H et al 2020\\
-  %   \hline
-  % \end{tabular}
   \begin{itemize}
   \item All algorithms solve the \textbf{Segment Neighborhood}
     ``constrained'' problem: most likely mean $m_i$ for data $z_i$,
-    subject to the constraint of $S$ segments ($S-1$ changes).
+    subject to the constraint of $S$ segments ($S-1$ \alert{changes}).
   \end{itemize} 
 \begin{align*}
     \minimize_{\substack{
@@ -353,16 +285,9 @@ $$ S^*(\lambda) = \argmin_s L_s + \lambda s. $$
     \hline
   \end{tabular}
   \begin{itemize}
-  % \item \alert<1>{Auger and Lawrence 1989, Jackson et al 2005}.
-  % \item \alert<2>{Rigaill 2010, Johnson 2013, Cleynen et al 2014}.
-  % \item \alert<3>{Hocking, Rigaill, Bourque 2015}.
-  % \item \alert<4>{\textbf{Contribution:} Generalized Pruned Dynamic
-  %       Programming Algorithm (GPDPA) that \textbf{exactly} computes the
-  %     \textbf{constrained} model for $n$ data points and up to $S$ segments in
-  %      $O(Sn\log n)$ time}.
   \item All algorithms solve the \textbf{Optimal Partitioning}
     ``penalized'' problem: most likely mean $m_i$ for data $z_i$,
-    penalized by a non-negative penalty $\lambda\in\RR_+$ for each change:
+    penalized by a non-negative penalty $\lambda\in\RR_+$ \alert{for each change}:
   \end{itemize}
 \begin{align*}
     \minimize_{\substack{
@@ -384,11 +309,18 @@ $$ S^*(\lambda) = \argmin_s L_s + \lambda s. $$
 \url{http://github.com/tdhock/feature-learning-benchmark}
 
 \begin{itemize}
-\item 4951 data sequences ranging from $N=10^3$ to $N=10^7$.
+\item \texttt{chipseq} data set submitted to UCI machine learning
+  repository.
+\item 4951 data sequences ranging from $N=10^3$ to $N=10^7$ (much
+  larger than previous benchmark in terms of number of sequences, and
+  number of data $N$ per sequence).
 \item Ran GFPOP with penalty $\lambda\in(\log N, N)$, resulting in a
-  range of models with different numbers of peaks, for each data set.
-\item Each data set has \textbf{labels} which can be used to determine
-  an appropriate number of peaks.
+  range of models with different numbers of peaks, for each data
+  sequence.
+\item How to determine penalty value(s) most appropriate for a given
+  data sequence?
+\item Each data set has \textbf{labels} from experts which can be used
+  to determine an appropriate number of peaks.
 \end{itemize}
 \end{frame}
 
@@ -444,14 +376,16 @@ $$ S^*(\lambda) = \argmin_s L_s + \lambda s. $$
 \end{frame}
 
 \begin{frame}
-  \frametitle{GFPOP Implementation stores cost functions on disk}
+  \frametitle{Implementation stores cost functions on disk}
 
   \includegraphics[width=0.5\textwidth]{jss-figure-disk-memory-compare-speed}
 
   \begin{itemize}
-  \item Disk storage is only a constant factor slower than memory!
+  \item Proposed GFPOP (Generalized FPOP) algorithm implemented using disk-based storage
+    in R package \texttt{PeakSegDisk}.
+  \item Disk storage is only a constant factor slower than memory.
   \item Both are $O(N\log N)$ time.
-  \item Memory implementation: $O(N \log N)$ memory! (too big)
+  \item Memory implementation: $O(N \log N)$ memory. (too big)
   \item Disk implementation: $O(\log N)$ memory ($<1$GB), $O(N\log N)$
     disk.
   \end{itemize}
@@ -462,20 +396,25 @@ $$ S^*(\lambda) = \argmin_s L_s + \lambda s. $$
   \frametitle{Time/space to solve one penalty is $O(N \log N)$}
 
   Total time/space = $O(NI)$ where $I$ is the number of intervals
-  (candidate changepoints) stored in every optimal cost function
-  $\overline C_t(\mu)$.
+  (candidate changepoints) stored in every optimal cost function.
 
   \begin{minipage}{0.48\textwidth}
+\centering
     \includegraphics[width=\textwidth]{jss-figure-target-intervals-models}
     $I=O(\log N)$ intervals.
   \end{minipage}
   \begin{minipage}{0.48\textwidth}
+\centering
     \includegraphics[width=\textwidth]{jss-figure-target-intervals-models-computation}
     Overall  $O(N \log N)$ complexity.
   \end{minipage}
   
 \vskip 0.5cm
-  But how to compute model with $O(\sqrt N)$ peaks?
+\begin{itemize}
+\item So we can efficiently compute the best model for a given penalty
+  $\lambda$.
+\item But how to compute model with $O(\sqrt N)$ peaks?
+\end{itemize}
 
 \end{frame}
 
@@ -488,7 +427,7 @@ $$ S^*(\lambda) = \argmin_s L_s + \lambda s. $$
   \STATE $\underline L,\underline p \gets \text{GFPOP}(\mathbf z, \lambda=\infty)$ // 0 peak model
   \STATE While $\underline p\neq P^*$ and $\overline p\neq P^*$:
   \begin{ALC@g}
-    \STATE $\lambda=(\overline L-\underline L)/(\underline p-\overline p)$
+    \STATE \alert{$\lambda=(\overline L-\underline L)/(\underline p-\overline p)$}
     \STATE $L_{\text{new}},p_{\text{new}}\gets\text{GFPOP}(\mathbf z, \lambda)$
     \STATE If $p_{\text{new}}\in\{\underline p, \overline p\}$: return model with $\underline p$ peaks.
     \STATE If $p_{\text{new}} < P^*$: $\underline p\gets p_{\text{new}}$
@@ -508,16 +447,26 @@ $$ S^*(\lambda) = \argmin_s L_s + \lambda s. $$
   \STATE If $\underline p=P^*$: return model with $\underline p$ peaks.
   \STATE Else: return model with $\overline p$ peaks.
   \end{algorithmic}
+\begin{itemize}
+\item \alert{New penalty $\lambda$} guaranteed to make progress toward $P^*$ peaks.
+\item Time complexity depends on number of iterations of while loop
+  (number of calls to GFPOP sub-routine).
+\end{itemize}
 \end{frame}
 
+
 \begin{frame}
-  \frametitle{Example run of sequential search algorithm using GFPOP}
-  One data set with $P^*=93$ peaks and $N=146,186$ data.
+  \frametitle{Example run of sequential search algorithm }
+  \begin{itemize}
+  \item One data set with $P^*=93$ peaks and $N=146,186$ data.
+  \item 12 DP iterations much fewer than $93\times 2=186$ required for previous GPDPA (Segment Neighborhood problem).
+  \end{itemize}
+\small
   \begin{tabular}{rrrrrr}
  iteration& $\underline p$& $\overline p$&    $\lambda$ & $p_{\text{new}}$& $L_{\text{new}}$\\
 \hline
+         0&    &    &        $\infty$&     0&   14239212\\
          1&    &    &     0& 68752&   -2570319\\
-         1&    &    &        $\infty$&     0&   14239212\\
          2&     0& 68752&   244.4952&  4361&    1980119\\
          3&     0&  4361&  2811.0738&   188&    3676671\\
          4&     0&   188& 56183.7271&    55&    5330310\\
@@ -531,47 +480,38 @@ $$ S^*(\lambda) = \argmin_s L_s + \lambda s. $$
         12&    92&    94& 14350.6622&    93&    4174480
   \end{tabular}
 
-  \alert{12 DP iterations much fewer than $93\times 2=186$ which would be
-  required for Segment Neighborhood!}
+How large must the model size $P^*$ be for the new algorithm to be faster?
+
 \end{frame}
 
 
 \begin{frame}
-  \frametitle{Only $O(\log N)$ runs of GFPOP to compute $O(\sqrt N)$
-    peaks}
-  \input{jss-figure-evaluations}
+  \frametitle{Only $O(\log N)$ runs of GFPOP even for large models}
+  \includegraphics[width=\textwidth]{jss-figure-8}
 
   \begin{itemize}
-  \item Proposed Optimal Partitioning algorithm + sequential search
-    algorithm is much faster than previous Segment
-    Neighborhood algorithm. 
+  \item Experiment with two large data sequences $N\approx 10^7$,
+    varying the number of desired peaks.
+  \item Proposed Optimal Partitioning + sequential search
+    algorithm is faster than previous Segment
+    Neighborhood algorithm, for model sizes $P^*>5$.
   \end{itemize}
-  
-\end{frame}
-
-\begin{frame}
-  \frametitle{Sequential search only a log factor slower than solving one penalty}
-  \input{jss-figure-evaluations-computation} 
-
-  For $N=10^7$ only several hours of computation! (compare with weeks
-  for Segment Neighborhood algorithm)
   
 \end{frame}
 
 \section{Conclusions}
 
 \begin{frame}[fragile]
-  \frametitle{Conclusions}
+  \frametitle{Conclusion: optimal peak detection for large data}
 
   \begin{itemize}
   \item New algorithms for optimal changepoint detection in
     peak/background model, with constraints or penalty on number of
     changes/peaks.
-  \item New algorithm for computing breakpoints in model selection
-    function (converts solution from constrained to penalized
-    problem).
   \item New R packages with efficient C++ code: PeakSegOptimal,
-    PeakSegDisk, penaltyLearning.
+    PeakSegDisk.
+  \item Makes it possible to compute an optimal model, with a large
+    number of peaks, in huge genomic data sets, on your laptop.
   \item Future work: more general graph-based constraints for other
     data types (not just up-down peak pattern).
   \item Contact me: toby.hocking@nau.edu
@@ -612,26 +552,46 @@ One data set with $P^*=75$ and $N=66,031$ data.
 \end{frame}
 
 \begin{frame}
+  \frametitle{Number of GFPOP calls increases slowly with maximum number of peaks}
+  \includegraphics[width=\textwidth]{jss-figure-more-evals.png}
+  \begin{itemize}
+  \item Run GFPOP with penalty $\lambda=0$ to determine max number of
+    peaks for each data sequence.
+  \item Run sequential search on each data sequence with desired peaks
+    $P^*\in\{10,100,1000\}$.
+  \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Only $O(\log N)$ runs of GFPOP to compute $O(\sqrt N)$
+    peaks}
+  \input{jss-figure-evaluations}
+
+  \begin{itemize}
+  \item Proposed Optimal Partitioning algorithm + sequential search
+    algorithm is much faster than previous Segment
+    Neighborhood algorithm. 
+  \end{itemize}
+  
+\end{frame}
+
+\begin{frame}
+  \frametitle{Sequential search only a log factor slower than solving one penalty}
+  \input{jss-figure-evaluations-computation} 
+
+  For $N=10^7$ only several hours of computation! (compare with weeks
+  for Segment Neighborhood algorithm)
+  
+\end{frame}
+
+\begin{frame}
   \frametitle{Chromatin immunoprecipitation sequencing (ChIP-seq)}
   Analysis of DNA-protein interactions.
 
   \includegraphics[width=\textwidth]{Chromatin_immunoprecipitation_sequencing_wide.png}
 
   Source: ``ChIP-sequencing,'' Wikipedia.
-\end{frame}
-
-\begin{frame}
-  \frametitle{Problem: find peaks in each of several samples}
-  \includegraphics[width=\textwidth]{screenshot-ucsc-edited}
-
-  \begin{itemize}
-  \item Grey profiles are noisy aligned read count signals -- \\peaks
-    are genomic locations with protein binding sites.
-  \item Black bars are peaks called by MACS2 (Zhang et al, 2008) -- many
-    false positives! (black bars where there is only noise)
-  \item From a machine learning perspective, this is binary
-    classification (positive=peaks, negative=noise).
-  \end{itemize}
 \end{frame}
 
 % \begin{frame}
@@ -743,8 +703,7 @@ One data set with $P^*=75$ and $N=66,031$ data.
   \frametitle{Statistical model is a piecewise constant Poisson mean}
   H {\it et al.}, {\it ICML} 2015. 
 
-  %\input{figure-PeakSeg}
-  \vskip -0.8cm    
+
   \begin{itemize}
   \item We have $n$ count data $z_1, \dots, z_n\in\ZZ_+$.
   \item Fix the number of segments $S\in\{1, 2, \dots, n\}$.
@@ -868,12 +827,6 @@ $f^\geq(\mu) = \min_{x\geq\mu} f(x)$.
 \end{frame}
 
 
-\begin{frame}
-  \frametitle{Not always faster}
-
-  \includegraphics[width=\textwidth]{figure-binseg-quadratic-rigaill}
-  
-\end{frame}
 
 
 \end{document}
