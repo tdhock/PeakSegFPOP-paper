@@ -101,6 +101,7 @@
     \hline
   \end{tabular}
 }
+\vspace{-0.3cm}
 \begin{align*}
     \minimize_{\substack{
   \mathbf u\in\RR^{S}
@@ -116,11 +117,11 @@
 \end{align*}
 \vskip -0.4cm
 \begin{itemize}  
-\item Let there be a sequence of $n$ data: $z_1,\dots,z_n$.
+\item Let there be a sequence of $n$ data: $z_1,\dots,z_n$, and corresponding loss function $\ell$ (for example, Poisson loss for non-negative count data).
 \item One hyper-parameter = number of segments $S\in\{1,3,\dots\}$.
 \item \alert{Up-down constraints: $P=(S-1)/2$ peaks.}
 \item Discrete/non-convex problem, naively $O(n^S)$ time.
-\item Main novelty: new fast and optimal algorithm for this constrained
+\item Main novelty: fast and optimal algorithm for this
   problem.
 \end{itemize}
 
