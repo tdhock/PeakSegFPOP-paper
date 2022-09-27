@@ -44,9 +44,11 @@
 \title{Time complexity analysis of recently proposed algorithms for
   optimal changepoint detection}
 
-\author{
-  Toby Dylan Hocking\\
-  toby.hocking@nau.edu}
+\author{Toby Dylan Hocking --- toby.hocking@nau.edu\\
+Director of Machine Learning Lab, NAU SICCS\\
+(School of Informatics, Computing, and Cyber Systems)\\
+\includegraphics[width=0.6\textwidth]{2019-12-ml-lab-sedona-cropped-lores.jpeg}
+}
 
 %\date{13 Nov 2017}
 
@@ -274,12 +276,12 @@
     & no pruning & functional pruning \\
     \hline
     unconstrained & Opt. Part. Algo. & FPOP \\
-     & exact $O(N^2)$ & exact $O(N\log N)$\\
+     & Optimal $O(N^2)$ & Optimal $O(N\log N)$\\
     %R pkgs: & \alert<1>{changepoint} & \alert<2>{cghseg, Segmentor}\\
     & Jackson et al 2005 & Maidstone et al 2016\\
     \hline
     up-down constrained &  & Generalized FPOP \\
-     &  & exact $O(N\log N)$\\
+     &  & Optimal $O(N\log N)$\\
     %R pkgs: & \alert<3>{PeakSegDP} & \alert<4>{PeakSegOptimal}\\
     &  & \textbf{This work}\\
     \hline
@@ -302,6 +304,34 @@
 \end{align*}
 \end{frame}
 
+\begin{frame}
+  \frametitle{Dynamic programming and functional pruning}
+  \textbf{Classical dynamic programming for optimal partitioning}
+  (Jackson et al 2005) computes optimal cost \textbf{values} up
+  to $N$ data points, $O(N^2)$ time because each DP iteration needs to
+  consider all $O(N)$ possible changepoints and cost values.
+$$
+\begin{array}{ccccc}
+  \mathcal C^\lambda_{1} & \mathcal C^\lambda_2 & \cdots & \mathcal C^\lambda_{N-1} &  \mathcal C^\lambda_N
+\end{array}
+$$
+\textbf{Functional pruning optimal partitioning} (Maidstone 2016)
+computes optimal cost \textbf{functions}, $O(N\log N)$ because
+each DP iteration only considers $O(\log N)$ candidate changepoints
+\\(the others --- which will never be optimal --- are pruned).
+$$
+\begin{array}{ccccc}
+  C^\lambda_{1}(m_1) 
+  & C^\lambda_2(m_2) 
+  & \cdots 
+  & C^\lambda_{N-1}(m_{N-1}) 
+  &   C^\lambda_N(m_{N})
+\end{array}
+$$
+\textbf{Contribution of this work}: a new functional pruning algorithm
+that computes a globally optimal solution to the penalized problem
+with up-down constraints.
+\end{frame}
 
 \begin{frame}
   \frametitle{Benchmark of large genomic data sequences}
@@ -383,11 +413,11 @@
   \begin{itemize}
   \item Proposed GFPOP (Generalized FPOP) algorithm implemented using disk-based storage
     in R package \texttt{PeakSegDisk}.
-  \item Disk storage is only a constant factor slower than memory.
   \item Both are $O(N\log N)$ time.
+  \item Disk implementation: $O(\log N)$ memory ($<1$GB),\\
+    $O(N\log N)$ disk ($<100$GB).
   \item Memory implementation: $O(N \log N)$ memory. (too big)
-  \item Disk implementation: $O(\log N)$ memory ($<1$GB), $O(N\log N)$
-    disk.
+  \item Disk storage is only a constant factor slower than memory.
   \end{itemize}
 
 \end{frame}
@@ -512,13 +542,35 @@ How large must the model size $P^*$ be for the new algorithm to be faster?
     PeakSegDisk.
   \item Makes it possible to compute an optimal model, with a large
     number of peaks, in huge genomic data sets, on your laptop.
-  \item Future work: more general graph-based constraints for other
-    data types (not just up-down peak pattern).
-  \item Contact me: toby.hocking@nau.edu
-  \item Thanks!
+\end{itemize}
+Future work: other graph-based constraints (not just up-down pattern)
+for other data types, and learning the graph structure.
+\begin{itemize}
+  % \item Fotoohinasab A, Hocking TD, Afghah F. A Graph-Constrained
+  %   Changepoint Learning Approach for Automatic QRS-Complex
+  %   Detection. Paper in proceedings of Asilomar Conference on Signals,
+  %   Systems, and Computers (2020).
+  \item Runge V, Hocking TD, Romano G, Afghah F, Fearnhead P, Rigaill G. gfpop: an R Package for Univariate Graph-Constrained Change-point Detection. Preprint arXiv:2002.03646.
+  % \item Fotoohinasab A, Hocking TD, Afghah F. A Graph-constrained
+  %   Changepoint Detection Approach for ECG Segmentation. In
+  %   proceedings of International Conference of the IEEE
+  %   Engineering in Medicine and Biology Society (2020).
+  \item Fotoohinasab A, Hocking TD, Afghah F. A Greedy Graph Search
+    Algorithm Based on Changepoint Analysis for Automatic QRS-Complex
+    Detection. Computers in Biology and Medicine 130 (2021).
   \end{itemize}
   
 \end{frame}
+
+\begin{frame}
+  \frametitle{Come visit NAU SICCS ML Lab in Flagstaff!}
+
+  \includegraphics[height=3in]{2021-03-lab-ski-lunch} 
+
+  Contact: toby.hocking@nau.edu
+
+\end{frame} 
+
 
 \begin{frame}
   \frametitle{For some data
@@ -594,57 +646,57 @@ One data set with $P^*=75$ and $N=66,031$ data.
   Source: ``ChIP-sequencing,'' Wikipedia.
 \end{frame}
 
-% \begin{frame}
-%   \frametitle{Previous work in genomic peak detection}
-%   \begin{itemize}
-%   \item Model-based analysis of ChIP-Seq (MACS), Zhang et al, 2008.
-%   \item SICER, Zang et al, 2009.
-%   \item HOMER, Heinz et al, 2010.
-%   \item CCAT, Xu et al, 2010.
-%   \item RSEG, Song et al, 2011.
-%   \item Triform, Kornacker et al, 2012.
-%   \item Histone modifications in cancer (HMCan), Ashoor et al, 2013.
-%   \item PeakSeg, Hocking, Rigaill, Bourque, ICML 2015.
-%   %\item PeakSegJoint Hocking and Bourque, arXiv:1506.01286.
-%   \item ... dozens of others.
-%   \end{itemize}
-%   Two big questions: how to choose the best...
-%   \begin{itemize}
-%   \item ...algorithm? (testing)
-%   \item \alert<1>{...parameters? (training)}
-%   \end{itemize}
-% \end{frame}
+\begin{frame}
+  \frametitle{Previous work in genomic peak detection}
+  \begin{itemize}
+  \item Model-based analysis of ChIP-Seq (MACS), Zhang et al, 2008.
+  \item SICER, Zang et al, 2009.
+  \item HOMER, Heinz et al, 2010.
+  \item CCAT, Xu et al, 2010.
+  \item RSEG, Song et al, 2011.
+  \item Triform, Kornacker et al, 2012.
+  \item Histone modifications in cancer (HMCan), Ashoor et al, 2013.
+  \item PeakSeg, Hocking, Rigaill, Bourque, ICML 2015.
+  %\item PeakSegJoint Hocking and Bourque, arXiv:1506.01286.
+  \item ... dozens of others.
+  \end{itemize}
+  Two big questions: how to choose the best...
+  \begin{itemize}
+  \item ...algorithm? (testing)
+  \item \alert<1>{...parameters? (training)}
+  \end{itemize}
+\end{frame}
 
-% \begin{frame}[fragile]
-%   \frametitle{How to choose parameters of unsupervised peak
-%     detectors?}
-% \scriptsize
-% 19 parameters for Model-based analysis of ChIP-Seq (MACS), Zhang et al, 2008.
-% \begin{verbatim}
-%   [-g GSIZE]
-%   [-s TSIZE] [--bw BW] [-m MFOLD MFOLD] [--fix-bimodal]
-%   [--nomodel] [--extsize EXTSIZE | --shiftsize SHIFTSIZE]
-%   [-q QVALUE | -p PVALUE | -F FOLDENRICHMENT] [--to-large]
-%   [--down-sample] [--seed SEED] [--nolambda]
-%   [--slocal SMALLLOCAL] [--llocal LARGELOCAL]
-%   [--shift-control] [--half-ext] [--broad]
-%   [--broad-cutoff BROADCUTOFF] [--call-summits]
-% \end{verbatim}
-% 10 parameters for Histone modifications in cancer (HMCan),
-% Ashoor et al, 2013.
-% \begin{verbatim}
-% minLength 145
-% medLength 150
-% maxLength 155
-% smallBinLength 50
-% largeBinLength 100000
-% pvalueThreshold 0.01
-% mergeDistance 200
-% iterationThreshold 5
-% finalThreshold 0
-% maxIter 20
-% \end{verbatim}
-% \end{frame}
+\begin{frame}[fragile]
+  \frametitle{How to choose parameters of unsupervised peak
+    detectors?}
+\scriptsize
+19 parameters for Model-based analysis of ChIP-Seq (MACS), Zhang et al, 2008.
+\begin{verbatim}
+  [-g GSIZE]
+  [-s TSIZE] [--bw BW] [-m MFOLD MFOLD] [--fix-bimodal]
+  [--nomodel] [--extsize EXTSIZE | --shiftsize SHIFTSIZE]
+  [-q QVALUE | -p PVALUE | -F FOLDENRICHMENT] [--to-large]
+  [--down-sample] [--seed SEED] [--nolambda]
+  [--slocal SMALLLOCAL] [--llocal LARGELOCAL]
+  [--shift-control] [--half-ext] [--broad]
+  [--broad-cutoff BROADCUTOFF] [--call-summits]
+\end{verbatim}
+10 parameters for Histone modifications in cancer (HMCan),
+Ashoor et al, 2013.
+\begin{verbatim}
+minLength 145
+medLength 150
+maxLength 155
+smallBinLength 50
+largeBinLength 100000
+pvalueThreshold 0.01
+mergeDistance 200
+iterationThreshold 5
+finalThreshold 0
+maxIter 20
+\end{verbatim}
+\end{frame}
  
 \begin{frame}
   \frametitle{Which macs parameter is best for these data?}
@@ -725,30 +777,6 @@ One data set with $P^*=75$ and $N=66,031$ data.
   %   \item[Constraint] Number of changes rather than values.
   %   \end{description}
   \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Dynamic programming and functional pruning}
-  \textbf{Classical dynamic programming for optimal partitioning}
-  (Jackson et al 2005) computes the vector of optimal loss values up
-  to $N$ data points, $O(N^2)$ time because each DP iteration needs to
-  consider all $O(N)$ possible changepoints and cost values.
-$$
-\begin{array}{ccccc}
-  \mathcal C_{1} & \mathcal C_2 & \cdots & \mathcal C_{N-1} &  \mathcal C_N
-\end{array}
-$$
-\textbf{Functional pruning optimal partitioning} (Maidstone 2016)
-computes a vector of loss \textbf{functions}, $O(N\log N)$ because
-each DP iteration only considers $O(\log N)$ candidate changepoints
-\\(the others --- which will never be optimal --- are pruned).
-$$
-\begin{array}{ccccc}
-   C_{1}(m_1) & C_2(m_2) & \cdots & C_{N-1}(m_{N-1}) &   C_N(m_{N})
-\end{array}
-$$
-\textbf{Contribution of this work}: a new algorithm that applies the
-functional pruning technique to the up-down constrained model.
 \end{frame}
 
 \begin{frame}
